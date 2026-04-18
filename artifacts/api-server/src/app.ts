@@ -46,8 +46,11 @@ const staticDir = candidates.find((p) => fs.existsSync(path.join(p, "index.html"
 if (staticDir) {
   logger.info({ staticDir }, "Serving static frontend");
   app.use(express.static(staticDir));
-  app.get(/^(?!\/api\/).*/, (_req, res) => {
+  app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
+  });
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "Not Found" });
   });
 } else {
   logger.warn({ candidates }, "Frontend build not found; only /api will be served");
