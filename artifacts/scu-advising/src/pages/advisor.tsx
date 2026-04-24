@@ -12,6 +12,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { ProfessorLookup } from "@/components/ProfessorLookup";
 import {
   MessageSquareText,
   Plus,
@@ -257,6 +258,7 @@ export default function Advisor() {
                 ))
               )}
             </div>
+            <ProfessorLookup />
           </aside>
 
           <section className="col-span-9 flex flex-col">

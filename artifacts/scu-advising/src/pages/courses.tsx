@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProfessorLookup } from "@/components/ProfessorLookup";
 import {
   Sheet,
   SheetContent,
@@ -270,6 +271,9 @@ function CourseDrawer({
                   Per-quarter section schedules are not in the bulletin —
                   check Workday Student for the current term's offerings,
                   instructors, and seat counts.
+                </div>
+                <div className="mt-2">
+                  <ProfessorLookup variant="inline" />
                 </div>
               </Section>
 
