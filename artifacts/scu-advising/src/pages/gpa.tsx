@@ -268,7 +268,7 @@ function SimulateTab() {
                 <Input
                   value={r.code}
                   onChange={(e) => update(i, "code", e.target.value)}
-                  placeholder="COEN 12"
+                  placeholder="CSEN 12"
                   className="col-span-5 font-mono"
                 />
                 <Input

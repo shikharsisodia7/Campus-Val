@@ -1306,6 +1306,18 @@ components:
         - scuEquivalent
         - scuQuarterUnits
         - verifiedDate
+    ArticulationCollege:
+      type: object
+      properties:
+        name:
+          type: string
+        assistUrl:
+          type: string
+          description: Deep-link to the ASSIST.org agreement page for this CC -> SCU
+      required:
+        - name
+        - assistUrl
+
     ArticulationLookupResult:
       type: object
       properties:
@@ -1317,9 +1329,14 @@ components:
             $ref: "#/components/schemas/ArticulationEntry"
         availableInstitutions:
           type: array
-          description: All institutions in the seeded dataset
+          description: All institutions in the seeded dataset (names only, alphabetical)
           items:
             type: string
+        colleges:
+          type: array
+          description: All known California community colleges with ASSIST.org deep-links
+          items:
+            $ref: "#/components/schemas/ArticulationCollege"
         sourceNote:
           type: string
           description: e.g. "Cached from ASSIST.org 2024-2025 catalog"
@@ -1327,6 +1344,7 @@ components:
         - institution
         - matches
         - availableInstitutions
+        - colleges
         - sourceNote
 
     GraduationPathQuarter:

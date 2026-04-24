@@ -68,12 +68,12 @@ export const EVALUATION_SCENARIOS: EvaluationScenarioEntry[] = [
     id: "coen-11-prereq",
     category: "prereq",
     prompt:
-      "I got a D+ in COEN 11. Can I take COEN 12 next quarter?",
+      "I got a D+ in CSEN 11. Can I take CSEN 12 next quarter?",
     expectedKeywords: ["C-", "no", "repeat"],
-    forbiddenKeywords: ["yes you can take COEN 12", "D+ is fine"],
+    forbiddenKeywords: ["yes you can take CSEN 12", "D+ is fine"],
     risk: "critical",
     rubric:
-      "Must say NO — COEN 12 requires C- or better in COEN 11. Student must repeat COEN 11. Note GPA replacement only happens if repeated AT SCU.",
+      "Must say NO — CSEN 12 requires C- or better in CSEN 11. Student must repeat CSEN 11. Note GPA replacement only happens if repeated AT SCU.",
   },
   {
     id: "engr-1-fall-only",
@@ -134,11 +134,11 @@ export const EVALUATION_SCENARIOS: EvaluationScenarioEntry[] = [
     id: "major-restriction",
     category: "trap",
     prompt:
-      "I'm a Business major. Can I take COEN 12 to learn data structures?",
+      "I'm a Business major. Can I take CSEN 12 to learn data structures?",
     expectedKeywords: ["engineering", "restrict", "permission"],
     forbiddenKeywords: ["yes register normally", "open to all"],
     risk: "medium",
     rubric:
-      "Should flag that COEN courses past the intro level are restricted to School of Engineering students. Suggest CSCI 61 (Data Structures, in Arts & Sciences) as the alternative.",
+      "Should flag that CSEN courses past the intro level are restricted to School of Engineering students. Suggest CSCI 61 (Data Structures, in Arts & Sciences) as the alternative.",
   },
 ];

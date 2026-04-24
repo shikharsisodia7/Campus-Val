@@ -317,7 +317,7 @@ export default function Onboarding() {
                     rows={3}
                     value={completedCourses}
                     onChange={(e) => setCompletedCourses(e.target.value)}
-                    placeholder="MATH 11, MATH 12, ENGL 1A, COEN 10"
+                    placeholder="MATH 11, MATH 12, ENGL 1A, CSEN 10"
                   />
                 </Field>
                 <div className="flex items-center justify-between rounded-md border border-border p-4 bg-muted/30">

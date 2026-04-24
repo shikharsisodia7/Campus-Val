@@ -16,6 +16,7 @@ import {
   GaugeCircle,
   BookMarked,
   ArrowUpRight,
+  Info,
 } from "lucide-react";
 import { Link } from "wouter";
 import { termLabel } from "@/lib/api";
@@ -59,6 +60,20 @@ export default function Dashboard() {
         }
       />
       <PageContent>
+        <Card className="border-blue-200 bg-blue-50/60 p-4">
+          <div className="flex items-start gap-2.5">
+            <Info className="h-4 w-4 text-blue-700 shrink-0 mt-0.5" />
+            <div className="text-xs text-blue-900/90 leading-relaxed">
+              <span className="font-semibold">Data scope:</span> The course
+              catalog covers SCU's 2025-2026 undergraduate bulletin
+              (~2,300 courses across all departments). Per-quarter section
+              schedules, instructors, and seat counts live in Workday Student /
+              Camino and require SCU login — not shown here. The 2026-2027
+              bulletin publishes June 2026.
+            </div>
+          </div>
+        </Card>
+
         {summary.warnings.length > 0 && (
           <Card className="border-destructive/30 bg-destructive/5 p-5">
             <div className="flex items-start gap-3">

@@ -60,9 +60,9 @@ export const POLICIES: PolicyEntry[] = [
     title: "Major / College Course Restrictions",
     category: "Registration",
     summary:
-      "Some courses are restricted to students in a specific SCU college (e.g., COEN courses are limited to School of Engineering students).",
+      "Some courses are restricted to students in a specific SCU college (e.g., CSEN courses are limited to School of Engineering students).",
     body:
-      "Many engineering courses (COEN, ELEN, MECH, CENG, ENGR) are restricted to students enrolled in the School of Engineering and require an inter-college permission number to register if you're in another college. Business core courses similarly restrict to Leavey School of Business students. Always check the prerequisites/restrictions field in the schedule of classes; the registration system will silently block you otherwise. Permission numbers are typically issued by the offering department, not your home college's dean.",
+      "Many engineering courses (CSEN, ECEN, MECH, CENG, BIOE, ENGR, AMTH) are restricted to students enrolled in the School of Engineering and require an inter-college permission number to register if you're in another college. (Note: SCU renamed COEN → CSEN in 2024-2025.) Business core courses similarly restrict to Leavey School of Business students. Always check the prerequisites/restrictions field in the schedule of classes; the registration system will silently block you otherwise. Permission numbers are typically issued by the offering department, not your home college's dean.",
     source: "SCU Bulletin — Inter-College Registration",
     tags: ["college", "restriction", "permission", "engineering"],
   },
@@ -73,7 +73,7 @@ export const POLICIES: PolicyEntry[] = [
     summary:
       "Most major prerequisites and required major courses must be passed with a C- or better.",
     body:
-      "Many SCU majors and most STEM prerequisite chains require a grade of C- or better in prerequisite courses. A grade of D or F (or even D+/D-) in a prerequisite means you must REPEAT the course before continuing the sequence. This applies prominently to COEN 10 → COEN 11 → COEN 12, MATH 11 → 12 → 13, and most engineering and CS majors.",
+      "Many SCU majors and most STEM prerequisite chains require a grade of C- or better in prerequisite courses. A grade of D or F (or even D+/D-) in a prerequisite means you must REPEAT the course before continuing the sequence. This applies prominently to CSEN 10 → CSEN 11 → CSEN 12, MATH 11 → 12 → 13, and most engineering and CS majors.",
     source: "SCU Department Bulletins — Prerequisite Policies",
     tags: ["prerequisites", "grades", "major", "repeat"],
   },

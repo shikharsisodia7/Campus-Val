@@ -45,7 +45,7 @@ export default function Courses() {
     <AppShell>
       <PageHeader
         title="Course Catalog"
-        subtitle="Search SCU's courses, see prerequisites, and check which terms each is offered."
+        subtitle="Search SCU's 2025-2026 undergraduate bulletin (~2,300 courses). Per-quarter offerings, instructors, and seat availability live in Workday Student / Camino."
       />
       <PageContent>
         <Card className="p-4">
@@ -144,9 +144,6 @@ export default function Courses() {
                             : "Restricted"}
                         </Badge>
                       )}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-3 uppercase tracking-wider">
-                    Offered: {c.offeredTerms.map(termLabel).join(" · ")}
                   </div>
                 </Card>
               </button>
@@ -268,13 +265,11 @@ function CourseDrawer({
                 </Section>
               )}
 
-              <Section title="Offered">
-                <div className="flex flex-wrap gap-1.5">
-                  {data.offeredTerms.map((t) => (
-                    <Badge key={t} variant="secondary">
-                      {termLabel(t)}
-                    </Badge>
-                  ))}
+              <Section title="Offered terms">
+                <div className="text-xs text-muted-foreground italic">
+                  Per-quarter section schedules are not in the bulletin —
+                  check Workday Student for the current term's offerings,
+                  instructors, and seat counts.
                 </div>
               </Section>
 

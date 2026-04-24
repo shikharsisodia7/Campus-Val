@@ -7,7 +7,7 @@ const TRAP_SCENARIOS = `
 
 2. **The 87.5 cap surprise** — A transfer student arrives with ~70 quarter units, then tries to bring in more credit (AP exams discovered later, additional CC summer classes). The 87.5 quarter-unit cap is HARD. Anything beyond is dropped — and AP/IB units count toward this cap.
 
-3. **COEN 11 C- prerequisite trap** — Student earns a D+ in COEN 11 and tries to register for COEN 12. Registration silently fails or instructor blocks them. Must REPEAT COEN 11 (and that costs a quarter in the sequence).
+3. **CSEN 11 C- prerequisite trap** — Student earns a D+ in CSEN 11 (formerly COEN 11) and tries to register for CSEN 12. Registration silently fails or instructor blocks them. Must REPEAT CSEN 11 (and that costs a quarter in the sequence).
 
 4. **ENGR 1 fall-only trap** — Engineering students who skip ENGR 1 in their freshman fall must wait an entire YEAR for the next offering, delaying the engineering sequence by a year.
 
@@ -21,11 +21,11 @@ const TRAP_SCENARIOS = `
 
 9. **Dean's List 12-unit miss** — Student earns a 3.7 quarterly GPA but took an 11-unit load (or had P/NP units that don't count). Doesn't qualify for Dean's List.
 
-10. **5-unit STEM combo trap** — COEN 20 (5u) + PHYS 32 (5u) + MATH 14 (4u) + COEN 19 (4u) = 18 units that are all very hard simultaneously. Within unit cap, NOT within sanity cap.
+10. **5-unit STEM combo trap** — CSEN 20 (5u) + PHYS 32 (5u) + MATH 14 (4u) + CSEN 19 (4u) = 18 units that are all very hard simultaneously. Within unit cap, NOT within sanity cap.
 
 11. **AP credit doubling assumption** — Student assumes AP Calc BC = MATH 11 + 12 PLUS placement into MATH 13 with credit. It's typically substitution, not duplication; they cannot also re-take MATH 11/12 for credit.
 
-12. **Major GPA vs cumulative GPA confusion** — Some major requirements (e.g. COEN, CSCI) require a major GPA of 2.0 to graduate, not just cumulative. Bombing a single 4-unit core CS class can drop major GPA below 2.0 even with high cumulative.
+12. **Major GPA vs cumulative GPA confusion** — Some major requirements (e.g. CSEN, CSCI) require a major GPA of 2.0 to graduate, not just cumulative. Bombing a single 4-unit core CS class can drop major GPA below 2.0 even with high cumulative.
 
 13. **RTC sequence ordering** — TESP/RSOC 1, 2, 3 must be taken in that level order. Taking a 2-level before a 1-level is generally not allowed and won't satisfy core.
 
@@ -46,7 +46,9 @@ const HARD_RULES = `
 - Semester-to-quarter conversion: multiply semester units by **1.5**.
 - Post-enrollment outside coursework requires **written advance approval** from the dean's office BEFORE enrolling. Without it, the credit will not transfer.
 - Most major prerequisites require **C- or better** to advance.
-- Many engineering courses (COEN, ELEN, MECH, CENG, ENGR) are **restricted to School of Engineering students** and require an inter-college permission number for non-engineering students.
+- Many engineering courses (CSEN, ECEN, MECH, CENG, BIOE, ENGR, AMTH) are **restricted to School of Engineering students** and require an inter-college permission number for non-engineering students. (SCU renamed COEN → CSEN starting 2024-2025.)
+- Course catalog covers the **2025-2026 SCU bulletin** (~2,300 undergraduate courses across all departments). The 2026-2027 bulletin publishes June 2026 — until then, advise students to verify any course in the current bulletin.
+- **Per-quarter section schedules, instructors, and seat counts are NOT in this dataset** — they live in Workday Student / Camino. When a student asks "is X offered this fall?", direct them to Workday rather than guessing.
 - Minimum units to graduate: **175 quarter units**.
 - Residency: **at least 60 units in residence** at SCU; **35 of the final 45 units** in residence.
 - Withdrawal with "W" deadline: approximately end of **week 7** each quarter.

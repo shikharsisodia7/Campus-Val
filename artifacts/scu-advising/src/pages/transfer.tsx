@@ -26,6 +26,7 @@ import {
   XCircle,
   ArrowRight,
   Search,
+  ExternalLink,
 } from "lucide-react";
 import { GRADE_OPTIONS, gradeLabel } from "@/lib/api";
 
@@ -420,25 +421,36 @@ function ArticulationLookup() {
     "Santa Monica College",
   ];
 
+  // Use the per-CC ASSIST.org deep-link from the API (single source of truth).
+  // Fall back to a generic ASSIST search URL if the CC isn't found in the response.
+  const assistUrl =
+    data?.colleges?.find((c) => c.name === institution)?.assistUrl ??
+    `https://assist.org/transfer/results?institution=${encodeURIComponent(
+      institution,
+    )}&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false`;
+
   return (
     <Card className="p-6 border-l-4 border-l-primary/40">
       <div className="text-sm font-semibold text-foreground flex items-center gap-2">
         <Search className="h-4 w-4" />
-        Articulation lookup (ASSIST.org cache)
+        Articulation lookup
       </div>
       <p className="text-xs text-muted-foreground mt-1.5 mb-4">
-        Look up which course at your community college maps to which SCU course.
+        Browse the {institutions.length} California community colleges that send
+        students to SCU. We have a small set of hand-verified course equivalencies
+        for the highest-traffic feeder colleges; for everything else, use the
+        official ASSIST.org link.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-            Institution
+            Institution ({institutions.length} colleges)
           </label>
           <Select value={institution} onValueChange={setInstitution}>
             <SelectTrigger className="mt-1" data-testid="select-articulation-inst">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[400px]">
               {institutions.map((i) => (
                 <SelectItem key={i} value={i}>
                   {i}
@@ -470,14 +482,35 @@ function ArticulationLookup() {
         </div>
       </div>
 
+      <div className="mt-3">
+        <a
+          href={assistUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="link-assist-deeplink"
+          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+        >
+          <ExternalLink className="h-3 w-3" />
+          Open {institution} → SCU on ASSIST.org (official live data)
+        </a>
+      </div>
+
       {submitted && (
         <div className="mt-4">
           {isLoading ? (
             <div className="text-sm text-muted-foreground">Searching…</div>
           ) : !data || data.matches.length === 0 ? (
-            <div className="text-sm text-muted-foreground italic">
-              No articulation records found. Verify the course code or check
-              ASSIST.org directly.
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="font-semibold mb-1">
+                No cached articulation records for {submitted.institution}
+                {submitted.courseCode ? ` / ${submitted.courseCode}` : ""}.
+              </div>
+              <div className="text-xs">
+                We only cache hand-verified records for a small set of high-traffic
+                feeders (De Anza, Foothill, West Valley, Mission, Santa Monica).
+                Use the ASSIST.org link above for the official, live mapping for
+                this institution.
+              </div>
             </div>
           ) : (
             <div className="space-y-2">

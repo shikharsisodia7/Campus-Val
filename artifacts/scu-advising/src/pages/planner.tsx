@@ -164,7 +164,7 @@ export default function Planner() {
                   value={draftCode}
                   onChange={(e) => setDraftCode(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addCourse()}
-                  placeholder="e.g. COEN 11"
+                  placeholder="e.g. CSEN 11"
                   className="flex-1 font-mono"
                 />
                 <datalist id="course-codes">

@@ -5,13 +5,16 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { ArticulationCollege } from "./articulationCollege";
 import type { ArticulationEntry } from "./articulationEntry";
 
 export interface ArticulationLookupResult {
   institution: string;
   matches: ArticulationEntry[];
-  /** All institutions in the seeded dataset */
+  /** All institutions in the seeded dataset (names only, alphabetical) */
   availableInstitutions: string[];
+  /** All known California community colleges with ASSIST.org deep-links */
+  colleges: ArticulationCollege[];
   /** e.g. "Cached from ASSIST.org 2024-2025 catalog" */
   sourceNote: string;
 }

@@ -1,9 +1,12 @@
+import rawCourses from "./courses-data.json";
+
 export type Term = "fall" | "winter" | "spring" | "summer";
 
 export interface CourseEntry {
   code: string;
   title: string;
   department: string;
+  departmentName?: string;
   units: number;
   description: string;
   coreAreas: string[];
@@ -20,520 +23,58 @@ export interface CourseEntry {
   restrictedToColleges?: string[];
 }
 
-const ENGR_ONLY = ["School of Engineering"];
+/**
+ * Course catalog for SCU 2025-2026 undergraduate bulletin.
+ *
+ * Source: https://www.scu.edu/bulletin/undergraduate/ (chapters 3-5)
+ * Scraped April 2026 from the public bulletin HTML. 2,300+ undergraduate
+ * courses across all departments (Arts & Sciences, Business, Engineering).
+ *
+ * Limitations of this data:
+ *   - SCU's bulletin does NOT publish per-quarter course offerings.
+ *     Real schedules live behind Workday Student / Camino (gated). The
+ *     `offeredTerms` field is set to ["fall","winter","spring"] for every
+ *     course as a placeholder — verify in Workday before relying on it.
+ *   - Prerequisite parsing is heuristic: we extract course codes mentioned
+ *     in the bulletin's prerequisite sentence. The full English sentence is
+ *     preserved in `prereqLogic` so the AI advisor and UI can reason about
+ *     "C- or better", "with permission", etc.
+ *   - 2026-2027 catalog has not been published yet (typically June 2026).
+ *
+ * Manual overrides (difficulty rating, core-area mapping) may be added
+ * later from a separate hand-curated overlay; for now they're empty.
+ */
+const ENGR_PREFIXES = new Set(["CSEN", "ECEN", "MECH", "CENG", "BIOE", "ENGR", "AMTH"]);
 
-export const COURSES: CourseEntry[] = [
-  // Mathematics
-  {
-    code: "MATH 11",
-    title: "Calculus and Analytic Geometry I",
-    department: "MATH",
-    units: 4,
-    description:
-      "Introduction to differential calculus of one variable. Limits, continuity, derivatives, applications.",
-    coreAreas: ["Mathematics"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "Three years of high school mathematics or MATH 9",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "MATH 12",
-    title: "Calculus and Analytic Geometry II",
-    department: "MATH",
-    units: 4,
-    description:
-      "Integral calculus of one variable, sequences and series, applications.",
-    coreAreas: ["Mathematics"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "MATH 11 with grade C- or better",
-    prereqGroups: [["MATH 11"]],
-    corequisites: [],
-  },
-  {
-    code: "MATH 13",
-    title: "Calculus and Analytic Geometry III",
-    department: "MATH",
-    units: 4,
-    description:
-      "Multivariable calculus: partial derivatives, multiple integrals, vector calculus.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "hard",
-    prereqLogic: "MATH 12",
-    prereqGroups: [["MATH 12"]],
-    corequisites: [],
-  },
-  {
-    code: "MATH 14",
-    title: "Calculus and Analytic Geometry IV",
-    department: "MATH",
-    units: 4,
-    description: "Vector calculus, Green's, Stokes', and Divergence theorems.",
-    coreAreas: [],
-    offeredTerms: ["winter", "spring"],
-    difficulty: "hard",
-    prereqLogic: "MATH 13",
-    prereqGroups: [["MATH 13"]],
-    corequisites: [],
-  },
-  {
-    code: "MATH 22",
-    title: "Differential Equations",
-    department: "MATH",
-    units: 4,
-    description:
-      "First and second order differential equations, Laplace transforms, systems.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "hard",
-    prereqLogic: "MATH 13",
-    prereqGroups: [["MATH 13"]],
-    corequisites: [],
-  },
-  {
-    code: "MATH 53",
-    title: "Linear Algebra",
-    department: "MATH",
-    units: 4,
-    description:
-      "Vector spaces, linear transformations, matrices, determinants, eigenvalues.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "hard",
-    prereqLogic: "MATH 13",
-    prereqGroups: [["MATH 13"]],
-    corequisites: [],
-  },
+export const COURSES: CourseEntry[] = (rawCourses as CourseEntry[]).map((c) => ({
+  ...c,
+  offeredTerms: c.offeredTerms as Term[],
+  restrictedToColleges:
+    c.restrictedToColleges && c.restrictedToColleges.length > 0
+      ? c.restrictedToColleges
+      : ENGR_PREFIXES.has(c.department)
+      ? ["School of Engineering"]
+      : undefined,
+}));
 
-  // Computer Science / Engineering
-  {
-    code: "COEN 10",
-    title: "Introduction to Programming",
-    department: "COEN",
-    units: 4,
-    description:
-      "Fundamentals of programming in C. Variables, control flow, functions, arrays.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "COEN 11",
-    title: "Advanced Programming",
-    department: "COEN",
-    units: 4,
-    description:
-      "Continuation of COEN 10. Pointers, dynamic memory, structures, file I/O in C.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "hard",
-    prereqLogic: "COEN 10 (or CSCI 10) with grade C- or better",
-    prereqGroups: [["COEN 10", "CSCI 10"]],
-    corequisites: [],
-    notes:
-      "TRAP: COEN 11 has a strict C- prerequisite. C-/D students must retake COEN 10.",
-    restrictedToColleges: ENGR_ONLY,
-  },
-  {
-    code: "COEN 12",
-    title: "Abstract Data Types and Data Structures",
-    department: "COEN",
-    units: 4,
-    description: "Lists, stacks, queues, trees, graphs, hashing, sorting.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "very_hard",
-    prereqLogic: "COEN 11 with grade C- or better",
-    prereqGroups: [["COEN 11"]],
-    corequisites: [],
-    restrictedToColleges: ENGR_ONLY,
-  },
-  {
-    code: "COEN 19",
-    title: "Discrete Mathematics",
-    department: "COEN",
-    units: 4,
-    description:
-      "Logic, sets, functions, relations, induction, combinatorics, graph theory.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "hard",
-    prereqLogic: "MATH 11",
-    prereqGroups: [["MATH 11"]],
-    corequisites: [],
-    restrictedToColleges: ENGR_ONLY,
-  },
-  {
-    code: "COEN 20",
-    title: "Introduction to Embedded Systems",
-    department: "COEN",
-    units: 5,
-    description:
-      "Assembly programming, microcontrollers, hardware/software interface.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "very_hard",
-    prereqLogic: "COEN 11",
-    prereqGroups: [["COEN 11"]],
-    corequisites: [],
-    notes:
-      "TRAP: 5 units. Pairing with two other heavy COEN classes pushes toward overload territory.",
-    restrictedToColleges: ENGR_ONLY,
-  },
-  {
-    code: "COEN 21",
-    title: "Logic Design",
-    department: "COEN",
-    units: 4,
-    description:
-      "Boolean algebra, combinational and sequential logic, design with Verilog.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "hard",
-    prereqLogic: "None (recommended: COEN 19)",
-    prereqGroups: [],
-    corequisites: [],
-    restrictedToColleges: ENGR_ONLY,
-  },
-  {
-    code: "CSCI 10",
-    title: "Introduction to Computer Science",
-    department: "CSCI",
-    units: 4,
-    description:
-      "Programming in Python. Algorithms, control flow, basic data structures.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "easy",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "CSCI 60",
-    title: "Object-Oriented Programming",
-    department: "CSCI",
-    units: 4,
-    description: "OOP in C++. Classes, inheritance, polymorphism, templates.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "CSCI 10 or COEN 10",
-    prereqGroups: [["CSCI 10", "COEN 10"]],
-    corequisites: [],
-  },
-  {
-    code: "CSCI 61",
-    title: "Data Structures",
-    department: "CSCI",
-    units: 4,
-    description: "Algorithms, complexity, advanced data structures in C++.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "hard",
-    prereqLogic: "CSCI 60",
-    prereqGroups: [["CSCI 60"]],
-    corequisites: [],
-  },
-
-  // Engineering core
-  {
-    code: "ENGR 1",
-    title: "Engineering and the Profession",
-    department: "ENGR",
-    units: 1,
-    description: "Introduction to engineering disciplines and ethics.",
-    coreAreas: [],
-    offeredTerms: ["fall"],
-    difficulty: "easy",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-    notes:
-      "TRAP: Only offered in fall. Missing it freshman fall delays the whole engineering sequence.",
-    restrictedToColleges: ENGR_ONLY,
-  },
-  {
-    code: "ENGR 110",
-    title: "Engineering Design Project I",
-    department: "ENGR",
-    units: 2,
-    description: "First quarter of senior design.",
-    coreAreas: [],
-    offeredTerms: ["fall"],
-    difficulty: "hard",
-    prereqLogic: "Senior standing in engineering",
-    prereqGroups: [],
-    corequisites: [],
-    restrictedToColleges: ENGR_ONLY,
-  },
-
-  // Physics
-  {
-    code: "PHYS 31",
-    title: "Physics for Scientists and Engineers I",
-    department: "PHYS",
-    units: 5,
-    description: "Mechanics, kinematics, dynamics. With lab.",
-    coreAreas: ["Natural Science"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "hard",
-    prereqLogic: "MATH 11 (corequisite OK)",
-    prereqGroups: [["MATH 11"]],
-    corequisites: ["MATH 12"],
-  },
-  {
-    code: "PHYS 32",
-    title: "Physics for Scientists and Engineers II",
-    department: "PHYS",
-    units: 5,
-    description: "Electricity and magnetism. With lab.",
-    coreAreas: ["Natural Science"],
-    offeredTerms: ["winter", "spring"],
-    difficulty: "very_hard",
-    prereqLogic: "PHYS 31",
-    prereqGroups: [["PHYS 31"]],
-    corequisites: ["MATH 13"],
-  },
-  {
-    code: "PHYS 33",
-    title: "Physics for Scientists and Engineers III",
-    department: "PHYS",
-    units: 5,
-    description: "Waves, optics, modern physics. With lab.",
-    coreAreas: [],
-    offeredTerms: ["fall", "spring"],
-    difficulty: "very_hard",
-    prereqLogic: "PHYS 32",
-    prereqGroups: [["PHYS 32"]],
-    corequisites: [],
-  },
-
-  // English
-  {
-    code: "ENGL 1A",
-    title: "Critical Thinking and Writing I",
-    department: "ENGL",
-    units: 4,
-    description:
-      "Argumentation, rhetorical analysis, academic writing.",
-    coreAreas: ["Critical Thinking & Writing"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "easy",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "ENGL 1B",
-    title: "Critical Thinking and Writing II",
-    department: "ENGL",
-    units: 4,
-    description: "Continuation of ENGL 1A. Researched argument.",
-    coreAreas: ["Critical Thinking & Writing"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "ENGL 1A",
-    prereqGroups: [["ENGL 1A"]],
-    corequisites: [],
-  },
-  {
-    code: "ENGL 2",
-    title: "Composition",
-    department: "ENGL",
-    units: 4,
-    description: "Advanced composition and rhetoric.",
-    coreAreas: ["Advanced Writing"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "ENGL 1B",
-    prereqGroups: [["ENGL 1B"]],
-    corequisites: [],
-  },
-
-  // Religion / RTC
-  {
-    code: "TESP 1",
-    title: "The Religious Quest",
-    department: "TESP",
-    units: 4,
-    description: "Foundational course in religious studies.",
-    coreAreas: ["Religion, Theology, & Culture 1"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "easy",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "TESP 2",
-    title: "Christian Theology",
-    department: "TESP",
-    units: 4,
-    description: "Foundations of Christian theological tradition.",
-    coreAreas: ["Religion, Theology, & Culture 2"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "easy",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "TESP 3",
-    title: "Religion and Society",
-    department: "TESP",
-    units: 4,
-    description: "Religion's role in society and ethics.",
-    coreAreas: ["Religion, Theology, & Culture 3"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "easy",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-
-  // Business core
-  {
-    code: "ACTG 11",
-    title: "Introduction to Financial Accounting",
-    department: "ACTG",
-    units: 5,
-    description: "Financial accounting fundamentals for business decisions.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "ECON 1",
-    title: "Principles of Microeconomics",
-    department: "ECON",
-    units: 5,
-    description: "Microeconomic theory and applications.",
-    coreAreas: ["Social Science"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "ECON 2",
-    title: "Principles of Macroeconomics",
-    department: "ECON",
-    units: 5,
-    description: "Macroeconomic theory and applications.",
-    coreAreas: ["Social Science"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "ECON 1",
-    prereqGroups: [["ECON 1"]],
-    corequisites: [],
-  },
-  {
-    code: "MGMT 6",
-    title: "Managerial Communication",
-    department: "MGMT",
-    units: 5,
-    description: "Business writing and presentation skills.",
-    coreAreas: ["Advanced Writing"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "easy",
-    prereqLogic: "ENGL 1A",
-    prereqGroups: [["ENGL 1A"]],
-    corequisites: [],
-  },
-  {
-    code: "OMIS 34",
-    title: "Business Analytics",
-    department: "OMIS",
-    units: 5,
-    description: "Statistical analysis for business decisions.",
-    coreAreas: [],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "MATH 11 or MATH 30",
-    prereqGroups: [["MATH 11", "MATH 30"]],
-    corequisites: [],
-  },
-
-  // Communication / Social Science
-  {
-    code: "COMM 12",
-    title: "Public Speaking",
-    department: "COMM",
-    units: 4,
-    description: "Theory and practice of public address.",
-    coreAreas: ["Communication & Argument"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "easy",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "PSYC 1",
-    title: "General Psychology",
-    department: "PSYC",
-    units: 5,
-    description: "Introduction to psychological science.",
-    coreAreas: ["Social Science"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "easy",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "HIST 11A",
-    title: "Modern World History I",
-    department: "HIST",
-    units: 4,
-    description: "World history to 1800.",
-    coreAreas: ["Cultures & Ideas 1"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "HIST 11B",
-    title: "Modern World History II",
-    department: "HIST",
-    units: 4,
-    description: "World history since 1800.",
-    coreAreas: ["Cultures & Ideas 2"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "moderate",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-  {
-    code: "PHIL 9",
-    title: "Critical Thinking",
-    department: "PHIL",
-    units: 4,
-    description: "Logic and critical reasoning.",
-    coreAreas: ["Critical Thinking & Writing"],
-    offeredTerms: ["fall", "winter", "spring"],
-    difficulty: "easy",
-    prereqLogic: "None",
-    prereqGroups: [],
-    corequisites: [],
-  },
-];
+export const COURSE_CATALOG_NOTE =
+  "Course catalog from SCU 2025-2026 undergraduate bulletin (scraped from scu.edu/bulletin). Per-quarter section offerings, professors, and seat counts require Workday Student / Camino access — not in this dataset. The 2026-2027 bulletin publishes June 2026.";
 
 export function findCourse(code: string): CourseEntry | undefined {
-  const normalized = code.trim().toUpperCase().replace(/\s+/g, " ");
-  return COURSES.find((c) => c.code.toUpperCase() === normalized);
+  const norm = code.toUpperCase().replace(/\s+/g, " ").trim();
+  return COURSES.find(
+    (c) => c.code.toUpperCase().replace(/\s+/g, " ") === norm,
+  );
+}
+
+export function listDepartments(): { code: string; name: string; count: number }[] {
+  const counts = new Map<string, { name: string; count: number }>();
+  for (const c of COURSES) {
+    const existing = counts.get(c.department);
+    if (existing) existing.count++;
+    else counts.set(c.department, { name: c.departmentName || c.department, count: 1 });
+  }
+  return Array.from(counts.entries())
+    .map(([code, v]) => ({ code, name: v.name, count: v.count }))
+    .sort((a, b) => a.code.localeCompare(b.code));
 }

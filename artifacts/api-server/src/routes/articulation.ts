@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import {
   ARTICULATION_SOURCE_NOTE,
+  COMMUNITY_COLLEGES,
   listInstitutions,
   searchArticulation,
 } from "../data/articulation";
@@ -20,6 +21,10 @@ router.get("/articulation", (req, res) => {
     institution,
     matches,
     availableInstitutions: listInstitutions(),
+    colleges: COMMUNITY_COLLEGES.map((cc) => ({
+      name: cc.name,
+      assistUrl: cc.assistUrl,
+    })),
     sourceNote: ARTICULATION_SOURCE_NOTE,
   });
 });

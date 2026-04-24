@@ -520,7 +520,23 @@ export const LookupArticulationResponse = zod.object({
   ),
   availableInstitutions: zod
     .array(zod.string())
-    .describe("All institutions in the seeded dataset"),
+    .describe(
+      "All institutions in the seeded dataset (names only, alphabetical)",
+    ),
+  colleges: zod
+    .array(
+      zod.object({
+        name: zod.string(),
+        assistUrl: zod
+          .string()
+          .describe(
+            "Deep-link to the ASSIST.org agreement page for this CC -> SCU",
+          ),
+      }),
+    )
+    .describe(
+      "All known California community colleges with ASSIST.org deep-links",
+    ),
   sourceNote: zod
     .string()
     .describe('e.g. \"Cached from ASSIST.org 2024-2025 catalog\"'),
