@@ -35,7 +35,7 @@ export interface ParseResult {
 }
 
 const COURSE_CODE_RE =
-  /\b([A-Z]{2,5})\s*0*(\d{1,4}[A-Z]{0,3})(?:\s*-\s*([A-Z]?\d{1,3}))?/;
+  /\b([A-Z]{2,5})\s*0*(\d{1,4}[A-Z]{0,3})(?:\s*-\s*([A-Z]?\d{1,3}[A-Z]?))?/;
 // Match a meeting-pattern segment that precedes a time, allowing spaces
 // between day letters ("M W F", "T R") and SCU's "Th" for Thursday.
 const MEETING_PATTERN_RE =

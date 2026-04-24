@@ -12,6 +12,7 @@ import {
   Route,
   Gauge,
   ClipboardPaste,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ const NAV = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/courses", label: "Course Catalog", icon: BookOpen },
   { path: "/planner", label: "Quarter Planner", icon: CalendarRange },
+  { path: "/schedule", label: "Weekly Schedule", icon: Calendar },
   { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
   { path: "/gpa", label: "GPA Calculator", icon: Calculator },
   { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },

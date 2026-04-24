@@ -10,6 +10,7 @@ import Planner from "@/pages/planner";
 import GpaPage from "@/pages/gpa";
 import TransferPage from "@/pages/transfer";
 import SyncWorkdayPage from "@/pages/sync-workday";
+import SchedulePage from "@/pages/schedule";
 import Policies from "@/pages/policies";
 import Advisor from "@/pages/advisor";
 import GraduationPaths from "@/pages/graduation-paths";
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/courses" component={Courses} />
       <Route path="/planner" component={Planner} />
+      <Route path="/schedule" component={SchedulePage} />
       <Route path="/gpa" component={GpaPage} />
       <Route path="/transfer" component={TransferPage} />
       <Route path="/sync-workday" component={SyncWorkdayPage} />

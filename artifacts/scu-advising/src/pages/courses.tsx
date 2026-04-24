@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useListCourses,
   useGetCourse,
@@ -25,8 +25,14 @@ import {
   Users,
   Clock,
   MapPin,
+  CalendarPlus,
+  Check,
+  FlaskConical,
+  User,
 } from "lucide-react";
 import { termLabel } from "@/lib/api";
+import { addToSchedule, getSchedule, subscribe } from "@/lib/schedule-store";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Courses() {
   const [search, setSearch] = useState("");
@@ -322,6 +328,26 @@ function CourseDrawer({
 
 function SectionsList({ code }: { code: string }) {
   const { data: sections = [], isLoading } = useListCourseSections(code);
+  const { toast } = useToast();
+  const [scheduledIds, setScheduledIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const refresh = () =>
+      setScheduledIds(new Set(getSchedule().map((s) => s.id)));
+    refresh();
+    return subscribe(refresh);
+  }, []);
+  // Group by term/year for prominence
+  const grouped = new Map<string, typeof sections>();
+  for (const s of sections) {
+    const key = `${s.term}|${s.year}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(s);
+  }
+  const groups = Array.from(grouped.entries()).sort((a, b) => {
+    const [, ya] = a[0].split("|");
+    const [, yb] = b[0].split("|");
+    return Number(yb) - Number(ya);
+  });
   return (
     <div>
       <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
@@ -346,70 +372,152 @@ function SectionsList({ code }: { code: string }) {
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {sections.map((s) => (
-            <div
-              key={s.id}
-              data-testid={`section-${s.id}`}
-              className="rounded-md border border-border p-3 bg-muted/10"
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <div className="font-mono text-sm font-bold flex items-baseline gap-2">
-                  <span>
-                    {s.courseCode} · {s.sectionNumber}
+        <div className="space-y-5">
+          {groups.map(([key, rows]) => {
+            const [term, year] = key.split("|");
+            return (
+              <div key={key}>
+                <div className="flex items-baseline gap-2 mb-2 pb-1.5 border-b-2 border-primary/30">
+                  <span className="font-serif text-lg font-bold text-primary capitalize">
+                    {term} {year}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                    {s.term} {s.year}
+                  <span className="text-xs text-muted-foreground">
+                    {rows.length} section{rows.length === 1 ? "" : "s"}{" "}
+                    offered
                   </span>
                 </div>
-                <Badge
-                  variant={s.seatsOpen > 0 ? "default" : "destructive"}
-                  className="text-[10px]"
-                >
-                  {s.seatsOpen > 0
-                    ? `${s.seatsOpen}/${s.seatsTotal} open`
-                    : `Waitlist ${s.waitlist}`}
-                </Badge>
-              </div>
-              <div className="text-sm font-medium text-foreground mt-1">
-                {s.instructor}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {s.meetingDays.join("")} {s.startTime}-{s.endTime}
-                </span>
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {s.location}
-                </span>
-              </div>
-              {s.rating && (
-                <div className="mt-2 pt-2 border-t border-border/60 text-xs">
-                  <div className="flex items-center gap-3 text-foreground/90">
-                    <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3 text-amber-600" />
-                      <strong>{s.rating.overallRating ?? "—"}</strong>
-                      <span className="text-muted-foreground">
-                        /5 ({s.rating.numRatings})
-                      </span>
-                    </span>
-                    <span>
-                      Difficulty: <strong>{s.rating.difficulty ?? "—"}</strong>
-                    </span>
-                    {s.rating.averageGpa !== null && (
-                      <span>
-                        Avg GPA: <strong>{s.rating.averageGpa}</strong>
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-1 italic">
-                    {s.rating.sourceNote}
-                  </div>
+                <div className="space-y-2.5">
+                  {rows.map((s) => {
+                    const isLab =
+                      /L\d*$/.test(s.courseCode.replace(/\s/g, "")) ||
+                      /^L|L$/.test(s.sectionNumber);
+                    const inSchedule = scheduledIds.has(s.id);
+                    return (
+                      <div
+                        key={s.id}
+                        data-testid={`section-${s.id}`}
+                        className="rounded-md border border-border p-3 bg-card hover:border-primary/40 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm font-bold">
+                              {s.courseCode} · §{s.sectionNumber}
+                            </span>
+                            {isLab && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[9px] px-1.5 py-0 h-5 bg-purple-100 text-purple-900 border-purple-300"
+                              >
+                                <FlaskConical className="h-2.5 w-2.5 mr-0.5" />
+                                LAB
+                              </Badge>
+                            )}
+                          </div>
+                          <Badge
+                            variant={s.seatsOpen > 0 ? "default" : "destructive"}
+                            className="text-[10px]"
+                          >
+                            {s.seatsOpen > 0
+                              ? `${s.seatsOpen}/${s.seatsTotal} open`
+                              : `Waitlist ${s.waitlist}`}
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                            <User className="h-3.5 w-3.5 text-primary" />
+                            {s.instructor || (
+                              <span className="text-muted-foreground italic font-normal">
+                                Instructor TBA
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                            <Clock className="h-3.5 w-3.5 text-primary" />
+                            <span className="font-mono">
+                              {s.meetingDays.length > 0
+                                ? s.meetingDays.join("")
+                                : "TBA"}
+                            </span>
+                            <span>
+                              {s.startTime && s.endTime
+                                ? `${s.startTime}–${s.endTime}`
+                                : ""}
+                            </span>
+                          </div>
+                          {s.location && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <MapPin className="h-3 w-3" />
+                              {s.location}
+                            </div>
+                          )}
+                        </div>
+
+                        <Button
+                          variant={inSchedule ? "secondary" : "default"}
+                          size="sm"
+                          className="mt-2.5 w-full h-8 text-xs"
+                          disabled={inSchedule}
+                          onClick={() => {
+                            const r = addToSchedule(s);
+                            toast({
+                              title: r.added
+                                ? "Added to your schedule"
+                                : (r.reason ?? "Already added"),
+                              description: r.added
+                                ? `${s.courseCode} · §${s.sectionNumber} — open the Weekly Schedule to see it.`
+                                : undefined,
+                            });
+                          }}
+                          data-testid={`add-${s.id}`}
+                        >
+                          {inSchedule ? (
+                            <>
+                              <Check className="h-3.5 w-3.5 mr-1" />
+                              In your schedule
+                            </>
+                          ) : (
+                            <>
+                              <CalendarPlus className="h-3.5 w-3.5 mr-1" />
+                              Add to Schedule
+                            </>
+                          )}
+                        </Button>
+
+                        {s.rating && (
+                          <div className="mt-2 pt-2 border-t border-border/60 text-xs">
+                            <div className="flex items-center gap-3 text-foreground/90">
+                              <span className="flex items-center gap-1">
+                                <Star className="h-3 w-3 text-amber-600" />
+                                <strong>
+                                  {s.rating.overallRating ?? "—"}
+                                </strong>
+                                <span className="text-muted-foreground">
+                                  /5 ({s.rating.numRatings})
+                                </span>
+                              </span>
+                              <span>
+                                Difficulty:{" "}
+                                <strong>{s.rating.difficulty ?? "—"}</strong>
+                              </span>
+                              {s.rating.averageGpa !== null && (
+                                <span>
+                                  Avg GPA: <strong>{s.rating.averageGpa}</strong>
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-1 italic">
+                              {s.rating.sourceNote}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
