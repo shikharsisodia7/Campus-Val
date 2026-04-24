@@ -17,19 +17,27 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ArticulationLookupResult,
   CalculateGpaBody,
   CheckPlanBody,
   CheckPrereqsBody,
   Course,
   CourseDetail,
+  CourseSection,
   CreateOpenaiConversationBody,
   DashboardSummary,
   EvaluateTransferBody,
+  EvaluationRunResult,
+  EvaluationScenario,
+  GetGraduationPathParams,
   GpaResult,
   GpaSimulationResult,
+  GraduationPath,
   HealthStatus,
+  ListCourseSectionsParams,
   ListCoursesParams,
   ListPoliciesParams,
+  LookupArticulationParams,
   OpenaiConversation,
   OpenaiConversationWithMessages,
   OpenaiError,
@@ -37,6 +45,7 @@ import type {
   PlanCheckResult,
   Policy,
   PrereqCheckResult,
+  RunEvaluationBody,
   SendOpenaiMessageBody,
   SimulateGpaBody,
   StudentProfile,
@@ -1066,6 +1075,494 @@ export function useGetDashboardSummary<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List scheduled sections (instructors, meeting times, ratings) for a course
+ */
+export const getListCourseSectionsUrl = (
+  code: string,
+  params?: ListCourseSectionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/courses/${code}/sections?${stringifiedParams}`
+    : `/api/courses/${code}/sections`;
+};
+
+export const listCourseSections = async (
+  code: string,
+  params?: ListCourseSectionsParams,
+  options?: RequestInit,
+): Promise<CourseSection[]> => {
+  return customFetch<CourseSection[]>(getListCourseSectionsUrl(code, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCourseSectionsQueryKey = (
+  code: string,
+  params?: ListCourseSectionsParams,
+) => {
+  return [
+    `/api/courses/${code}/sections`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListCourseSectionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCourseSections>>,
+  TError = ErrorType<unknown>,
+>(
+  code: string,
+  params?: ListCourseSectionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCourseSections>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCourseSectionsQueryKey(code, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCourseSections>>
+  > = ({ signal }) =>
+    listCourseSections(code, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!code,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCourseSections>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCourseSectionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCourseSections>>
+>;
+export type ListCourseSectionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List scheduled sections (instructors, meeting times, ratings) for a course
+ */
+
+export function useListCourseSections<
+  TData = Awaited<ReturnType<typeof listCourseSections>>,
+  TError = ErrorType<unknown>,
+>(
+  code: string,
+  params?: ListCourseSectionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCourseSections>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCourseSectionsQueryOptions(code, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Look up SCU equivalent for a California Community College course
+ */
+export const getLookupArticulationUrl = (params: LookupArticulationParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/articulation?${stringifiedParams}`
+    : `/api/articulation`;
+};
+
+export const lookupArticulation = async (
+  params: LookupArticulationParams,
+  options?: RequestInit,
+): Promise<ArticulationLookupResult> => {
+  return customFetch<ArticulationLookupResult>(
+    getLookupArticulationUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getLookupArticulationQueryKey = (
+  params?: LookupArticulationParams,
+) => {
+  return [`/api/articulation`, ...(params ? [params] : [])] as const;
+};
+
+export const getLookupArticulationQueryOptions = <
+  TData = Awaited<ReturnType<typeof lookupArticulation>>,
+  TError = ErrorType<unknown>,
+>(
+  params: LookupArticulationParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupArticulation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getLookupArticulationQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof lookupArticulation>>
+  > = ({ signal }) => lookupArticulation(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof lookupArticulation>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type LookupArticulationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof lookupArticulation>>
+>;
+export type LookupArticulationQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Look up SCU equivalent for a California Community College course
+ */
+
+export function useLookupArticulation<
+  TData = Awaited<ReturnType<typeof lookupArticulation>>,
+  TError = ErrorType<unknown>,
+>(
+  params: LookupArticulationParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof lookupArticulation>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getLookupArticulationQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a recommended 3-year or 4-year graduation path template
+ */
+export const getGetGraduationPathUrl = (
+  type: "three_year" | "four_year",
+  params?: GetGraduationPathParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/graduation-paths/${type}?${stringifiedParams}`
+    : `/api/graduation-paths/${type}`;
+};
+
+export const getGraduationPath = async (
+  type: "three_year" | "four_year",
+  params?: GetGraduationPathParams,
+  options?: RequestInit,
+): Promise<GraduationPath> => {
+  return customFetch<GraduationPath>(getGetGraduationPathUrl(type, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetGraduationPathQueryKey = (
+  type: "three_year" | "four_year",
+  params?: GetGraduationPathParams,
+) => {
+  return [
+    `/api/graduation-paths/${type}`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetGraduationPathQueryOptions = <
+  TData = Awaited<ReturnType<typeof getGraduationPath>>,
+  TError = ErrorType<unknown>,
+>(
+  type: "three_year" | "four_year",
+  params?: GetGraduationPathParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGraduationPath>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetGraduationPathQueryKey(type, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getGraduationPath>>
+  > = ({ signal }) =>
+    getGraduationPath(type, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!type,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getGraduationPath>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetGraduationPathQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getGraduationPath>>
+>;
+export type GetGraduationPathQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a recommended 3-year or 4-year graduation path template
+ */
+
+export function useGetGraduationPath<
+  TData = Awaited<ReturnType<typeof getGraduationPath>>,
+  TError = ErrorType<unknown>,
+>(
+  type: "three_year" | "four_year",
+  params?: GetGraduationPathParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGraduationPath>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetGraduationPathQueryOptions(type, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List benchmark scenarios used to evaluate the AI advisor
+ */
+export const getListEvaluationScenariosUrl = () => {
+  return `/api/evaluation/scenarios`;
+};
+
+export const listEvaluationScenarios = async (
+  options?: RequestInit,
+): Promise<EvaluationScenario[]> => {
+  return customFetch<EvaluationScenario[]>(getListEvaluationScenariosUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListEvaluationScenariosQueryKey = () => {
+  return [`/api/evaluation/scenarios`] as const;
+};
+
+export const getListEvaluationScenariosQueryOptions = <
+  TData = Awaited<ReturnType<typeof listEvaluationScenarios>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listEvaluationScenarios>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListEvaluationScenariosQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listEvaluationScenarios>>
+  > = ({ signal }) => listEvaluationScenarios({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listEvaluationScenarios>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListEvaluationScenariosQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listEvaluationScenarios>>
+>;
+export type ListEvaluationScenariosQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List benchmark scenarios used to evaluate the AI advisor
+ */
+
+export function useListEvaluationScenarios<
+  TData = Awaited<ReturnType<typeof listEvaluationScenarios>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listEvaluationScenarios>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListEvaluationScenariosQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Run all benchmark scenarios against the AI advisor and return scored results
+ */
+export const getRunEvaluationUrl = () => {
+  return `/api/evaluation/run`;
+};
+
+export const runEvaluation = async (
+  runEvaluationBody?: RunEvaluationBody,
+  options?: RequestInit,
+): Promise<EvaluationRunResult> => {
+  return customFetch<EvaluationRunResult>(getRunEvaluationUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(runEvaluationBody),
+  });
+};
+
+export const getRunEvaluationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runEvaluation>>,
+    TError,
+    { data: BodyType<RunEvaluationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof runEvaluation>>,
+  TError,
+  { data: BodyType<RunEvaluationBody> },
+  TContext
+> => {
+  const mutationKey = ["runEvaluation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof runEvaluation>>,
+    { data: BodyType<RunEvaluationBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return runEvaluation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RunEvaluationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof runEvaluation>>
+>;
+export type RunEvaluationMutationBody = BodyType<RunEvaluationBody>;
+export type RunEvaluationMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Run all benchmark scenarios against the AI advisor and return scored results
+ */
+export const useRunEvaluation = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof runEvaluation>>,
+    TError,
+    { data: BodyType<RunEvaluationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof runEvaluation>>,
+  TError,
+  { data: BodyType<RunEvaluationBody> },
+  TContext
+> => {
+  return useMutation(getRunEvaluationMutationOptions(options));
+};
 
 /**
  * @summary List all conversations

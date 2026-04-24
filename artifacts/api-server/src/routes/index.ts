@@ -8,6 +8,9 @@ import transferRouter from "./transfer";
 import policiesRouter from "./policies";
 import dashboardRouter from "./dashboard";
 import openaiRouter from "./openai";
+import articulationRouter from "./articulation";
+import graduationPathsRouter from "./graduation-paths";
+import evaluationRouter from "./evaluation";
 
 const router: IRouter = Router();
 
@@ -20,5 +23,8 @@ router.use(transferRouter);
 router.use(policiesRouter);
 router.use(dashboardRouter);
 router.use(openaiRouter);
+router.use(articulationRouter);
+router.use(graduationPathsRouter);
+router.use(evaluationRouter);
 
 export default router;

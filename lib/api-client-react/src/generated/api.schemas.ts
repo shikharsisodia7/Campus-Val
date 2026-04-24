@@ -113,6 +113,8 @@ export interface Course {
   coreAreas: string[];
   offeredTerms: Term[];
   difficulty?: CourseDifficulty;
+  /** If non-empty, only students in one of these SCU colleges may register */
+  restrictedToColleges: string[];
 }
 
 export type CourseDetail = Course & {
@@ -156,10 +158,26 @@ export interface PlanIssue {
   policyId?: string | null;
 }
 
+export type ClassStanding = (typeof ClassStanding)[keyof typeof ClassStanding];
+
+export const ClassStanding = {
+  freshman: "freshman",
+  sophomore: "sophomore",
+  junior: "junior",
+  senior: "senior",
+} as const;
+
 export interface PlanCheckResult {
   totalUnits: number;
   unitCap: number;
+  /** Standard per-quarter cap for this class standing (no approval required) */
+  standardCap: number;
+  /** Maximum cap with dean/advisor approval and GPA ≥ 3.0 */
+  approvedCap: number;
+  classStanding: ClassStanding;
   canOverload: boolean;
+  /** True if planned units exceed the standard cap (requires written advisor/dean approval) */
+  requiresAdvisorApproval: boolean;
   overloadReason: string;
   issues: PlanIssue[];
   coreAreasFulfilled: string[];
@@ -331,6 +349,175 @@ export interface OpenaiError {
   error: string;
 }
 
+/**
+ * Aggregated professor data sourced from RateMyProfessors and SCU Schedule Helper
+ */
+export interface ProfessorRating {
+  instructor: string;
+  /** Average rating 1.0-5.0 */
+  overallRating?: number | null;
+  /** Difficulty 1.0-5.0 */
+  difficulty?: number | null;
+  /** Percent of students who would take again (0-100) */
+  wouldTakeAgainPercent?: number | null;
+  /** Historical average GPA in this professor's sections */
+  averageGpa?: number | null;
+  numRatings: number;
+  /** Provenance, e.g. "RateMyProfessors + SCU Schedule Helper aggregate (cached)" */
+  sourceNote: string;
+}
+
+export type CourseSectionMeetingDaysItem =
+  (typeof CourseSectionMeetingDaysItem)[keyof typeof CourseSectionMeetingDaysItem];
+
+export const CourseSectionMeetingDaysItem = {
+  M: "M",
+  T: "T",
+  W: "W",
+  R: "R",
+  F: "F",
+  S: "S",
+  U: "U",
+} as const;
+
+export interface CourseSection {
+  /** e.g. "COEN-12-01-fall-2025" */
+  id: string;
+  courseCode: string;
+  sectionNumber: string;
+  term: Term;
+  year: number;
+  instructor: string;
+  meetingDays: CourseSectionMeetingDaysItem[];
+  /** 24h HH:mm */
+  startTime: string;
+  /** 24h HH:mm */
+  endTime: string;
+  location: string;
+  seatsTotal: number;
+  seatsOpen: number;
+  waitlist: number;
+  rating?: ProfessorRating | null;
+}
+
+export type ArticulationEntrySourceUnitSystem =
+  (typeof ArticulationEntrySourceUnitSystem)[keyof typeof ArticulationEntrySourceUnitSystem];
+
+export const ArticulationEntrySourceUnitSystem = {
+  semester: "semester",
+  quarter: "quarter",
+} as const;
+
+export interface ArticulationEntry {
+  institution: string;
+  sourceCourseCode: string;
+  sourceCourseTitle: string;
+  sourceUnits: number;
+  sourceUnitSystem: ArticulationEntrySourceUnitSystem;
+  /** SCU course code, e.g. "MATH 11" */
+  scuEquivalent: string;
+  scuQuarterUnits: number;
+  notes?: string | null;
+  /** When this articulation was verified, e.g. "2024-2025" */
+  verifiedDate: string;
+}
+
+export interface ArticulationLookupResult {
+  institution: string;
+  matches: ArticulationEntry[];
+  /** All institutions in the seeded dataset */
+  availableInstitutions: string[];
+  /** e.g. "Cached from ASSIST.org 2024-2025 catalog" */
+  sourceNote: string;
+}
+
+export interface GraduationPathQuarter {
+  /** 1-based year, 1=freshman year */
+  year: number;
+  term: Term;
+  /** e.g. "Y1 Fall" */
+  label: string;
+  courses: string[];
+  plannedUnits: number;
+  notes?: string | null;
+}
+
+export type GraduationPathType =
+  (typeof GraduationPathType)[keyof typeof GraduationPathType];
+
+export const GraduationPathType = {
+  three_year: "three_year",
+  four_year: "four_year",
+} as const;
+
+export interface GraduationPath {
+  type: GraduationPathType;
+  major: string;
+  title: string;
+  summary: string;
+  feasibilityNote: string;
+  averageUnitsPerQuarter: number;
+  requiresOverload: boolean;
+  quarters: GraduationPathQuarter[];
+  risks: string[];
+}
+
+export type EvaluationScenarioRisk =
+  (typeof EvaluationScenarioRisk)[keyof typeof EvaluationScenarioRisk];
+
+export const EvaluationScenarioRisk = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export interface EvaluationScenario {
+  id: string;
+  /** e.g. "unit_cap", "transfer_cap", "prereq", "policy", "trap" */
+  category: string;
+  /** User question to ask the AI advisor */
+  prompt: string;
+  /** Phrases or concepts that MUST appear in a correct answer */
+  expectedKeywords: string[];
+  /** Phrases that indicate a wrong/hallucinated answer */
+  forbiddenKeywords: string[];
+  risk: EvaluationScenarioRisk;
+  /** Human-readable explanation of what a correct answer looks like */
+  rubric: string;
+}
+
+export interface EvaluationScenarioResult {
+  scenarioId: string;
+  category: string;
+  risk: string;
+  prompt: string;
+  response: string;
+  matchedKeywords: string[];
+  missedKeywords: string[];
+  triggeredForbidden: string[];
+  /** 0.0 to 1.0 */
+  score: number;
+  passed: boolean;
+  latencyMs: number;
+}
+
+export interface RunEvaluationBody {
+  /** Optional subset of scenario IDs. If omitted, all scenarios run. */
+  scenarioIds?: string[];
+}
+
+export interface EvaluationRunResult {
+  ranAt: string;
+  model: string;
+  totalScenarios: number;
+  passed: number;
+  failed: number;
+  averageScore: number;
+  criticalFailures: number;
+  results: EvaluationScenarioResult[];
+}
+
 export type ListCoursesParams = {
   search?: string;
   department?: string;
@@ -343,4 +530,31 @@ export type ListCoursesParams = {
 export type ListPoliciesParams = {
   search?: string;
   category?: string;
+};
+
+export type ListCourseSectionsParams = {
+  term?: Term;
+  year?: number;
+};
+
+export type LookupArticulationParams = {
+  /**
+   * e.g. "De Anza College"
+   */
+  institution: string;
+  /**
+   * Source course code, e.g. "CIS 22A"
+   */
+  courseCode?: string;
+  /**
+   * Optional target SCU course code to filter on
+   */
+  scuTarget?: string;
+};
+
+export type GetGraduationPathParams = {
+  /**
+   * Major code, e.g. "CSE" (Computer Science & Engineering). Defaults to CSE.
+   */
+  major?: string;
 };

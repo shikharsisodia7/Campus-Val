@@ -1,16 +1,15 @@
 import { Router, type IRouter } from "express";
 import { db, studentProfilesTable } from "@workspace/db";
+import {
+  classifyStanding,
+  standardCapFor,
+  approvedCapFor,
+  standingLabel,
+} from "../lib/standing";
 
 const router: IRouter = Router();
 
 const REQUIRED_TO_GRADUATE = 175;
-
-function classify(units: number): string {
-  if (units < 44) return "First Year";
-  if (units < 87) return "Sophomore";
-  if (units < 131) return "Junior";
-  return "Senior";
-}
 
 function nextTerm(
   term: "fall" | "winter" | "spring" | "summer",
@@ -70,7 +69,7 @@ router.get("/dashboard/summary", async (_req, res) => {
       progressPercent: 0,
       canOverloadNextTerm: false,
       overloadReason: "Complete onboarding to see overload eligibility.",
-      unitCapNextTerm: 19,
+      unitCapNextTerm: 20,
       registrationWindowNote:
         "Registration windows open by class standing. Priority groups go first.",
       nextTerm: term,
@@ -81,7 +80,10 @@ router.get("/dashboard/summary", async (_req, res) => {
   }
 
   const totalUnits = profile.unitsCompletedAtSCU + profile.unitsTransferredIn;
-  const classification = classify(totalUnits);
+  const standing = classifyStanding(totalUnits);
+  const classification = standingLabel(standing);
+  const standardCap = standardCapFor(standing);
+  const approvedCap = approvedCapFor(standing);
   const unitsToGraduation = Math.max(0, REQUIRED_TO_GRADUATE - totalUnits);
   const progressPercent = Math.min(
     100,
@@ -94,16 +96,14 @@ router.get("/dashboard/summary", async (_req, res) => {
 
   let overloadReason = "";
   if (canOverload) {
-    overloadReason =
-      "Eligible: GPA ≥ 3.0 + priority registration. Dean approval still required to register above 19 units.";
+    overloadReason = `Eligible: GPA ≥ 3.0 + priority registration. As a ${classification.toLowerCase()}, you can request up to ${approvedCap} units (standard cap is ${standardCap}). Dean approval still required to register above ${standardCap} units.`;
   } else if (gpa === null) {
     overloadReason =
       "Add your cumulative GPA to your profile to evaluate overload eligibility.";
   } else if (!canOverloadByGpa) {
     overloadReason = `Cumulative GPA of ${gpa.toFixed(2)} is below the 3.0 overload threshold.`;
   } else {
-    overloadReason =
-      "Priority registration is required to overload above 19 units.";
+    overloadReason = `Priority registration is required to overload above the ${standardCap}-unit ${classification.toLowerCase()} cap.`;
   }
 
   const next = nextTerm(profile.currentTerm as "fall" | "winter" | "spring" | "summer", profile.currentYear);
@@ -119,7 +119,7 @@ router.get("/dashboard/summary", async (_req, res) => {
     );
   }
   if (
-    classification === "Senior" &&
+    standing === "senior" &&
     REQUIRED_TO_GRADUATE - totalUnits <= 45 &&
     profile.unitsCompletedAtSCU < 60
   ) {
@@ -141,7 +141,7 @@ router.get("/dashboard/summary", async (_req, res) => {
     progressPercent,
     canOverloadNextTerm: canOverload,
     overloadReason,
-    unitCapNextTerm: canOverload ? 25 : 19,
+    unitCapNextTerm: canOverload ? approvedCap : standardCap,
     registrationWindowNote,
     nextTerm: next.term,
     nextTermYear: next.year,

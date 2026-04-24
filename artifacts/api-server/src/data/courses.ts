@@ -13,7 +13,14 @@ export interface CourseEntry {
   prereqGroups: string[][];
   corequisites: string[];
   notes?: string;
+  /**
+   * If non-empty, only students in one of these SCU colleges may register
+   * (matched against StudentProfile.college). Empty / omitted = open to all.
+   */
+  restrictedToColleges?: string[];
 }
+
+const ENGR_ONLY = ["School of Engineering"];
 
 export const COURSES: CourseEntry[] = [
   // Mathematics
@@ -131,6 +138,7 @@ export const COURSES: CourseEntry[] = [
     corequisites: [],
     notes:
       "TRAP: COEN 11 has a strict C- prerequisite. C-/D students must retake COEN 10.",
+    restrictedToColleges: ENGR_ONLY,
   },
   {
     code: "COEN 12",
@@ -144,6 +152,7 @@ export const COURSES: CourseEntry[] = [
     prereqLogic: "COEN 11 with grade C- or better",
     prereqGroups: [["COEN 11"]],
     corequisites: [],
+    restrictedToColleges: ENGR_ONLY,
   },
   {
     code: "COEN 19",
@@ -158,6 +167,7 @@ export const COURSES: CourseEntry[] = [
     prereqLogic: "MATH 11",
     prereqGroups: [["MATH 11"]],
     corequisites: [],
+    restrictedToColleges: ENGR_ONLY,
   },
   {
     code: "COEN 20",
@@ -174,6 +184,7 @@ export const COURSES: CourseEntry[] = [
     corequisites: [],
     notes:
       "TRAP: 5 units. Pairing with two other heavy COEN classes pushes toward overload territory.",
+    restrictedToColleges: ENGR_ONLY,
   },
   {
     code: "COEN 21",
@@ -188,6 +199,7 @@ export const COURSES: CourseEntry[] = [
     prereqLogic: "None (recommended: COEN 19)",
     prereqGroups: [],
     corequisites: [],
+    restrictedToColleges: ENGR_ONLY,
   },
   {
     code: "CSCI 10",
@@ -245,6 +257,7 @@ export const COURSES: CourseEntry[] = [
     corequisites: [],
     notes:
       "TRAP: Only offered in fall. Missing it freshman fall delays the whole engineering sequence.",
+    restrictedToColleges: ENGR_ONLY,
   },
   {
     code: "ENGR 110",
@@ -258,6 +271,7 @@ export const COURSES: CourseEntry[] = [
     prereqLogic: "Senior standing in engineering",
     prereqGroups: [],
     corequisites: [],
+    restrictedToColleges: ENGR_ONLY,
   },
 
   // Physics

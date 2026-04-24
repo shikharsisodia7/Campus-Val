@@ -25,6 +25,12 @@ tags:
     description: Dashboard summary
   - name: openai
     description: AI advisor chat (OpenAI integration)
+  - name: articulation
+    description: California Community College → SCU course articulation lookup (ASSIST.org-style)
+  - name: graduation-paths
+    description: 3-year and 4-year recommended graduation path templates
+  - name: evaluation
+    description: AI advisor evaluation framework (benchmark scenarios + scoring)
 paths:
   /healthz:
     get:
@@ -249,6 +255,123 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
+
+  /courses/{code}/sections:
+    get:
+      operationId: listCourseSections
+      tags: [courses]
+      summary: List scheduled sections (instructors, meeting times, ratings) for a course
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: term
+          in: query
+          schema:
+            $ref: "#/components/schemas/Term"
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourseSection"
+
+  /articulation:
+    get:
+      operationId: lookupArticulation
+      tags: [articulation]
+      summary: Look up SCU equivalent for a California Community College course
+      parameters:
+        - name: institution
+          in: query
+          required: true
+          schema:
+            type: string
+            description: e.g. "De Anza College"
+        - name: courseCode
+          in: query
+          schema:
+            type: string
+            description: Source course code, e.g. "CIS 22A"
+        - name: scuTarget
+          in: query
+          schema:
+            type: string
+            description: Optional target SCU course code to filter on
+      responses:
+        "200":
+          description: Lookup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticulationLookupResult"
+
+  /graduation-paths/{type}:
+    get:
+      operationId: getGraduationPath
+      tags: [graduation-paths]
+      summary: Get a recommended 3-year or 4-year graduation path template
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [three_year, four_year]
+        - name: major
+          in: query
+          schema:
+            type: string
+            description: Major code, e.g. "CSE" (Computer Science & Engineering). Defaults to CSE.
+      responses:
+        "200":
+          description: Path template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraduationPath"
+
+  /evaluation/scenarios:
+    get:
+      operationId: listEvaluationScenarios
+      tags: [evaluation]
+      summary: List benchmark scenarios used to evaluate the AI advisor
+      responses:
+        "200":
+          description: Benchmark scenarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EvaluationScenario"
+  /evaluation/run:
+    post:
+      operationId: runEvaluation
+      tags: [evaluation]
+      summary: Run all benchmark scenarios against the AI advisor and return scored results
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunEvaluationBody"
+      responses:
+        "200":
+          description: Evaluation run result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluationRunResult"
 
   /openai/conversations:
     get:
@@ -540,6 +663,11 @@ components:
           type: string
           enum: [easy, moderate, hard, very_hard]
           nullable: true
+        restrictedToColleges:
+          type: array
+          description: If non-empty, only students in one of these SCU colleges may register
+          items:
+            type: string
       required:
         - code
         - title
@@ -548,6 +676,7 @@ components:
         - description
         - coreAreas
         - offeredTerms
+        - restrictedToColleges
     CourseDetail:
       allOf:
         - $ref: "#/components/schemas/Course"
@@ -634,6 +763,9 @@ components:
         - severity
         - code
         - message
+    ClassStanding:
+      type: string
+      enum: [freshman, sophomore, junior, senior]
     PlanCheckResult:
       type: object
       properties:
@@ -641,8 +773,19 @@ components:
           type: number
         unitCap:
           type: number
+        standardCap:
+          type: number
+          description: Standard per-quarter cap for this class standing (no approval required)
+        approvedCap:
+          type: number
+          description: Maximum cap with dean/advisor approval and GPA ≥ 3.0
+        classStanding:
+          $ref: "#/components/schemas/ClassStanding"
         canOverload:
           type: boolean
+        requiresAdvisorApproval:
+          type: boolean
+          description: True if planned units exceed the standard cap (requires written advisor/dean approval)
         overloadReason:
           type: string
         issues:
@@ -656,7 +799,11 @@ components:
       required:
         - totalUnits
         - unitCap
+        - standardCap
+        - approvedCap
+        - classStanding
         - canOverload
+        - requiresAdvisorApproval
         - overloadReason
         - issues
         - coreAreasFulfilled
@@ -1040,3 +1187,327 @@ components:
           type: string
       required:
         - error
+
+    ProfessorRating:
+      type: object
+      description: Aggregated professor data sourced from RateMyProfessors and SCU Schedule Helper
+      properties:
+        instructor:
+          type: string
+        overallRating:
+          type: number
+          description: Average rating 1.0-5.0
+          nullable: true
+        difficulty:
+          type: number
+          description: Difficulty 1.0-5.0
+          nullable: true
+        wouldTakeAgainPercent:
+          type: number
+          description: Percent of students who would take again (0-100)
+          nullable: true
+        averageGpa:
+          type: number
+          description: Historical average GPA in this professor's sections
+          nullable: true
+        numRatings:
+          type: integer
+        sourceNote:
+          type: string
+          description: Provenance, e.g. "RateMyProfessors + SCU Schedule Helper aggregate (cached)"
+      required:
+        - instructor
+        - numRatings
+        - sourceNote
+    CourseSection:
+      type: object
+      properties:
+        id:
+          type: string
+          description: e.g. "COEN-12-01-fall-2025"
+        courseCode:
+          type: string
+        sectionNumber:
+          type: string
+        term:
+          $ref: "#/components/schemas/Term"
+        year:
+          type: integer
+        instructor:
+          type: string
+        meetingDays:
+          type: array
+          items:
+            type: string
+            enum: [M, T, W, R, F, S, U]
+        startTime:
+          type: string
+          description: 24h HH:mm
+        endTime:
+          type: string
+          description: 24h HH:mm
+        location:
+          type: string
+        seatsTotal:
+          type: integer
+        seatsOpen:
+          type: integer
+        waitlist:
+          type: integer
+        rating:
+          $ref: "#/components/schemas/ProfessorRating"
+          nullable: true
+      required:
+        - id
+        - courseCode
+        - sectionNumber
+        - term
+        - year
+        - instructor
+        - meetingDays
+        - startTime
+        - endTime
+        - location
+        - seatsTotal
+        - seatsOpen
+        - waitlist
+
+    ArticulationEntry:
+      type: object
+      properties:
+        institution:
+          type: string
+        sourceCourseCode:
+          type: string
+        sourceCourseTitle:
+          type: string
+        sourceUnits:
+          type: number
+        sourceUnitSystem:
+          type: string
+          enum: [semester, quarter]
+        scuEquivalent:
+          type: string
+          description: SCU course code, e.g. "MATH 11"
+        scuQuarterUnits:
+          type: number
+        notes:
+          type: string
+          nullable: true
+        verifiedDate:
+          type: string
+          description: When this articulation was verified, e.g. "2024-2025"
+      required:
+        - institution
+        - sourceCourseCode
+        - sourceCourseTitle
+        - sourceUnits
+        - sourceUnitSystem
+        - scuEquivalent
+        - scuQuarterUnits
+        - verifiedDate
+    ArticulationLookupResult:
+      type: object
+      properties:
+        institution:
+          type: string
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArticulationEntry"
+        availableInstitutions:
+          type: array
+          description: All institutions in the seeded dataset
+          items:
+            type: string
+        sourceNote:
+          type: string
+          description: e.g. "Cached from ASSIST.org 2024-2025 catalog"
+      required:
+        - institution
+        - matches
+        - availableInstitutions
+        - sourceNote
+
+    GraduationPathQuarter:
+      type: object
+      properties:
+        year:
+          type: integer
+          description: 1-based year, 1=freshman year
+        term:
+          $ref: "#/components/schemas/Term"
+        label:
+          type: string
+          description: e.g. "Y1 Fall"
+        courses:
+          type: array
+          items:
+            type: string
+            description: SCU course code
+        plannedUnits:
+          type: number
+        notes:
+          type: string
+          nullable: true
+      required:
+        - year
+        - term
+        - label
+        - courses
+        - plannedUnits
+    GraduationPath:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [three_year, four_year]
+        major:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        feasibilityNote:
+          type: string
+        averageUnitsPerQuarter:
+          type: number
+        requiresOverload:
+          type: boolean
+        quarters:
+          type: array
+          items:
+            $ref: "#/components/schemas/GraduationPathQuarter"
+        risks:
+          type: array
+          items:
+            type: string
+      required:
+        - type
+        - major
+        - title
+        - summary
+        - feasibilityNote
+        - averageUnitsPerQuarter
+        - requiresOverload
+        - quarters
+        - risks
+
+    EvaluationScenario:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+          description: e.g. "unit_cap", "transfer_cap", "prereq", "policy", "trap"
+        prompt:
+          type: string
+          description: User question to ask the AI advisor
+        expectedKeywords:
+          type: array
+          description: Phrases or concepts that MUST appear in a correct answer
+          items:
+            type: string
+        forbiddenKeywords:
+          type: array
+          description: Phrases that indicate a wrong/hallucinated answer
+          items:
+            type: string
+        risk:
+          type: string
+          enum: [low, medium, high, critical]
+        rubric:
+          type: string
+          description: Human-readable explanation of what a correct answer looks like
+      required:
+        - id
+        - category
+        - prompt
+        - expectedKeywords
+        - forbiddenKeywords
+        - risk
+        - rubric
+    EvaluationScenarioResult:
+      type: object
+      properties:
+        scenarioId:
+          type: string
+        category:
+          type: string
+        risk:
+          type: string
+        prompt:
+          type: string
+        response:
+          type: string
+        matchedKeywords:
+          type: array
+          items:
+            type: string
+        missedKeywords:
+          type: array
+          items:
+            type: string
+        triggeredForbidden:
+          type: array
+          items:
+            type: string
+        score:
+          type: number
+          description: 0.0 to 1.0
+        passed:
+          type: boolean
+        latencyMs:
+          type: integer
+      required:
+        - scenarioId
+        - category
+        - risk
+        - prompt
+        - response
+        - matchedKeywords
+        - missedKeywords
+        - triggeredForbidden
+        - score
+        - passed
+        - latencyMs
+    RunEvaluationBody:
+      type: object
+      properties:
+        scenarioIds:
+          type: array
+          description: Optional subset of scenario IDs. If omitted, all scenarios run.
+          items:
+            type: string
+    EvaluationRunResult:
+      type: object
+      properties:
+        ranAt:
+          type: string
+          format: date-time
+        model:
+          type: string
+        totalScenarios:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        averageScore:
+          type: number
+        criticalFailures:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvaluationScenarioResult"
+      required:
+        - ranAt
+        - model
+        - totalScenarios
+        - passed
+        - failed
+        - averageScore
+        - criticalFailures
+        - results

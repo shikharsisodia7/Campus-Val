@@ -9,6 +9,8 @@ import {
   Library,
   GraduationCap,
   UserCog,
+  Route,
+  Gauge,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,10 +18,12 @@ const NAV = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/courses", label: "Course Catalog", icon: BookOpen },
   { path: "/planner", label: "Quarter Planner", icon: CalendarRange },
+  { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
   { path: "/gpa", label: "GPA Calculator", icon: Calculator },
   { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },
   { path: "/advisor", label: "AI Advisor", icon: MessageSquareText },
   { path: "/policies", label: "SCU Policies", icon: Library },
+  { path: "/evaluation", label: "AI Evaluation", icon: Gauge },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

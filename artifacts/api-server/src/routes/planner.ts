@@ -1,6 +1,12 @@
 import { Router, type IRouter } from "express";
 import { CheckPlanBody, CheckPrereqsBody } from "@workspace/api-zod";
 import { findCourse, COURSES } from "../data/courses";
+import {
+  classifyStanding,
+  standardCapFor,
+  approvedCapFor,
+} from "../lib/standing";
+import { db, studentProfilesTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -31,7 +37,6 @@ function checkPrereqsFor(
     );
     if (!satisfied) missing.push(group);
   }
-  // Corequisites: must be either completed or in current planned term
   const missingCoreqs: string[] = [];
   for (const co of course.corequisites) {
     const norm = co.toUpperCase().replace(/\s+/g, " ");
@@ -73,8 +78,20 @@ router.post("/planner/prereqs", (req, res) => {
   );
 });
 
-router.post("/planner/check", (req, res) => {
+router.post("/planner/check", async (req, res) => {
   const body = CheckPlanBody.parse(req.body);
+
+  // Pull profile to determine class standing (units completed) without
+  // forcing the client to send it. Falls back to freshman caps if absent.
+  const rows = await db.select().from(studentProfilesTable).limit(1);
+  const profile = rows[0];
+  const totalUnitsCompleted = profile
+    ? Number(profile.unitsCompletedAtScu) + Number(profile.unitsTransferredIn)
+    : 0;
+  const classStanding = classifyStanding(totalUnitsCompleted);
+  const standardCap = standardCapFor(classStanding);
+  const approvedCap = approvedCapFor(classStanding);
+
   const issues: {
     severity: "error" | "warning" | "info";
     code: string;
@@ -90,35 +107,41 @@ router.post("/planner/check", (req, res) => {
   const cumulativeGpa = body.cumulativeGpa ?? null;
   const canOverloadByGpa = cumulativeGpa !== null && cumulativeGpa >= 3.0;
   const canOverload = canOverloadByGpa && body.priorityRegistration;
-  const unitCap = canOverload ? 25 : 19;
+  const unitCap = canOverload ? approvedCap : standardCap;
+  const requiresAdvisorApproval = totalUnits > standardCap;
 
   let overloadReason = "";
   if (canOverload) {
-    overloadReason =
-      "You meet the baseline overload criteria (GPA ≥ 3.0 + priority registration). Dean approval still required to register above 19 units.";
+    overloadReason = `You meet the baseline overload criteria (GPA ≥ 3.0 + priority registration). As a ${classStanding}, you can request up to ${approvedCap} units (standard cap is ${standardCap}). Dean approval still required to register above ${standardCap} units.`;
   } else if (!canOverloadByGpa) {
     overloadReason =
       cumulativeGpa === null
-        ? "GPA not provided — overload above 19 units requires cumulative GPA ≥ 3.0."
+        ? `GPA not provided — overload above the ${standardCap}-unit ${classStanding} cap requires cumulative GPA ≥ 3.0.`
         : `Cumulative GPA of ${cumulativeGpa.toFixed(2)} is below the 3.0 threshold required for overload.`;
   } else {
-    overloadReason =
-      "Priority registration is required for overload above 19 units.";
+    overloadReason = `Priority registration is required for overload above the ${standardCap}-unit ${classStanding} cap.`;
   }
 
   if (totalUnits > unitCap) {
     issues.push({
       severity: "error",
       code: "UNIT_CAP_EXCEEDED",
-      message: `Plan totals ${totalUnits} units, which exceeds your cap of ${unitCap}.`,
-      policyId: canOverload ? "overload-eligibility-25" : "unit-load-cap-19",
+      message: `Plan totals ${totalUnits} units, which exceeds your maximum of ${unitCap} (${classStanding} ${canOverload ? "approved" : "standard"} cap).`,
+      policyId: canOverload ? "overload-eligibility" : "unit-load-cap-standing",
     });
-  } else if (totalUnits > 19 && canOverload) {
+  } else if (requiresAdvisorApproval && canOverload) {
     issues.push({
       severity: "warning",
       code: "OVERLOAD_REQUIRES_APPROVAL",
-      message: `${totalUnits} units requires explicit dean approval to register, even with overload eligibility.`,
-      policyId: "overload-eligibility-25",
+      message: `${totalUnits} units exceeds the ${standardCap}-unit ${classStanding} standard cap. Even with overload eligibility, you need explicit dean approval to register.`,
+      policyId: "overload-eligibility",
+    });
+  } else if (requiresAdvisorApproval) {
+    issues.push({
+      severity: "error",
+      code: "OVERLOAD_NOT_ELIGIBLE",
+      message: `${totalUnits} units exceeds your ${standardCap}-unit ${classStanding} cap, and you don't meet overload criteria.`,
+      policyId: "overload-eligibility",
     });
   }
 
@@ -141,6 +164,20 @@ router.post("/planner/check", (req, res) => {
         code: "NOT_OFFERED",
         message: `${course.code} is not typically offered in ${body.term}. Offered: ${course.offeredTerms.join(", ")}.`,
         relatedCourse: course.code,
+      });
+    }
+    // Major / college restriction check
+    if (
+      course.restrictedToColleges &&
+      course.restrictedToColleges.length > 0 &&
+      !course.restrictedToColleges.includes(body.college)
+    ) {
+      issues.push({
+        severity: "error",
+        code: "COLLEGE_RESTRICTED",
+        message: `${course.code} is restricted to: ${course.restrictedToColleges.join(", ")}. Your profile is in ${body.college}. You'd need an inter-college permission number from the department.`,
+        relatedCourse: course.code,
+        policyId: "major-restriction",
       });
     }
     const prereqResult = checkPrereqsFor(
@@ -184,7 +221,6 @@ router.post("/planner/check", (req, res) => {
     });
   }
 
-  // Core areas fulfilled
   const coreAreasFulfilled = Array.from(
     new Set(
       body.plannedCourses.flatMap((p) => {
@@ -197,7 +233,11 @@ router.post("/planner/check", (req, res) => {
   res.json({
     totalUnits,
     unitCap,
+    standardCap,
+    approvedCap,
+    classStanding,
     canOverload,
+    requiresAdvisorApproval,
     overloadReason,
     issues,
     coreAreasFulfilled,

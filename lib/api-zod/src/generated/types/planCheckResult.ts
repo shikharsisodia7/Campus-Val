@@ -5,12 +5,20 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { ClassStanding } from "./classStanding";
 import type { PlanIssue } from "./planIssue";
 
 export interface PlanCheckResult {
   totalUnits: number;
   unitCap: number;
+  /** Standard per-quarter cap for this class standing (no approval required) */
+  standardCap: number;
+  /** Maximum cap with dean/advisor approval and GPA ≥ 3.0 */
+  approvedCap: number;
+  classStanding: ClassStanding;
   canOverload: boolean;
+  /** True if planned units exceed the standard cap (requires written advisor/dean approval) */
+  requiresAdvisorApproval: boolean;
   overloadReason: string;
   issues: PlanIssue[];
   coreAreasFulfilled: string[];

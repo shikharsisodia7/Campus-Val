@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   useListCourses,
   useGetCourse,
+  useListCourseSections,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -14,7 +15,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Search, BookOpen, AlertCircle } from "lucide-react";
+import {
+  Search,
+  BookOpen,
+  AlertCircle,
+  Lock,
+  Star,
+  Users,
+  Clock,
+  MapPin,
+} from "lucide-react";
 import { termLabel } from "@/lib/api";
 
 export default function Courses() {
@@ -121,6 +131,19 @@ export default function Courses() {
                     {c.difficulty && (
                       <DifficultyBadge difficulty={c.difficulty} />
                     )}
+                    {c.restrictedToColleges &&
+                      c.restrictedToColleges.length > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-normal border-amber-300 text-amber-800 bg-amber-50 flex items-center gap-1"
+                          data-testid={`restriction-${c.code.replace(/\s+/g, "-")}`}
+                        >
+                          <Lock className="h-2.5 w-2.5" />
+                          {c.restrictedToColleges[0] === "School of Engineering"
+                            ? "Engineering only"
+                            : "Restricted"}
+                        </Badge>
+                      )}
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-3 uppercase tracking-wider">
                     Offered: {c.offeredTerms.map(termLabel).join(" · ")}
@@ -267,17 +290,117 @@ function CourseDrawer({
                 </Section>
               )}
 
+              {data.restrictedToColleges &&
+                data.restrictedToColleges.length > 0 && (
+                  <div className="rounded-md border border-amber-300 bg-amber-50 p-4 flex gap-3">
+                    <Lock className="h-4 w-4 text-amber-800 shrink-0 mt-0.5" />
+                    <div className="text-sm text-amber-900">
+                      <div className="font-semibold mb-1">
+                        Restricted enrollment
+                      </div>
+                      Only open to: {data.restrictedToColleges.join(", ")}.
+                      Other students need an inter-college permission number from
+                      the offering department.
+                    </div>
+                  </div>
+                )}
+
               {data.notes && (
                 <div className="rounded-md border border-amber-200 bg-amber-50 p-4 flex gap-3">
                   <AlertCircle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
                   <p className="text-sm text-amber-900">{data.notes}</p>
                 </div>
               )}
+
+              <SectionsList code={data.code} />
             </div>
           </>
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+function SectionsList({ code }: { code: string }) {
+  const { data: sections = [], isLoading } = useListCourseSections(code, {
+    term: "fall",
+    year: 2025,
+  });
+  return (
+    <div>
+      <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+        <Users className="h-3 w-3" />
+        Fall 2025 sections
+      </div>
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground">Loading sections…</div>
+      ) : sections.length === 0 ? (
+        <div className="text-sm text-muted-foreground">
+          No section data cached for this course.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {sections.map((s) => (
+            <div
+              key={s.id}
+              data-testid={`section-${s.id}`}
+              className="rounded-md border border-border p-3 bg-muted/10"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="font-mono text-sm font-bold">
+                  {s.courseCode} · {s.sectionNumber}
+                </div>
+                <Badge
+                  variant={s.seatsOpen > 0 ? "default" : "destructive"}
+                  className="text-[10px]"
+                >
+                  {s.seatsOpen > 0
+                    ? `${s.seatsOpen}/${s.seatsTotal} open`
+                    : `Waitlist ${s.waitlist}`}
+                </Badge>
+              </div>
+              <div className="text-sm font-medium text-foreground mt-1">
+                {s.instructor}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {s.meetingDays.join("")} {s.startTime}-{s.endTime}
+                </span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {s.location}
+                </span>
+              </div>
+              {s.rating && (
+                <div className="mt-2 pt-2 border-t border-border/60 text-xs">
+                  <div className="flex items-center gap-3 text-foreground/90">
+                    <span className="flex items-center gap-1">
+                      <Star className="h-3 w-3 text-amber-600" />
+                      <strong>{s.rating.overallRating ?? "—"}</strong>
+                      <span className="text-muted-foreground">
+                        /5 ({s.rating.numRatings})
+                      </span>
+                    </span>
+                    <span>
+                      Difficulty: <strong>{s.rating.difficulty ?? "—"}</strong>
+                    </span>
+                    {s.rating.averageGpa !== null && (
+                      <span>
+                        Avg GPA: <strong>{s.rating.averageGpa}</strong>
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-1 italic">
+                    {s.rating.sourceNote}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

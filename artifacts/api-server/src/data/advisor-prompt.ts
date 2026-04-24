@@ -37,12 +37,16 @@ const TRAP_SCENARIOS = `
 const HARD_RULES = `
 ## Hard Rules (NEVER contradict these)
 
-- Standard quarterly unit cap: **19 units**.
-- Maximum overload: **25 units**, only with cumulative GPA ≥ 3.0 + priority registration + dean approval.
-- Transfer credit cap (pre-matriculation total): **87.5 quarter units**.
+- Standard quarterly unit cap depends on **class standing**:
+  - First-year and sophomore students: **20 units** standard, up to **22 units** with overload approval.
+  - Junior and senior students: **22 units** standard, up to **24 units** with overload approval.
+- Class standing is by total units (incl. transfer): freshman <44, sophomore 44-86, junior 87-130, senior 131+.
+- Overload above the standard cap requires **cumulative GPA ≥ 3.0 + priority registration + written dean approval**. All three are required.
+- Transfer credit cap (pre-matriculation total): **87.5 quarter units**. AP/IB credits count toward this cap.
 - Semester-to-quarter conversion: multiply semester units by **1.5**.
-- Post-enrollment outside coursework requires **written advance approval** from the dean's office.
+- Post-enrollment outside coursework requires **written advance approval** from the dean's office BEFORE enrolling. Without it, the credit will not transfer.
 - Most major prerequisites require **C- or better** to advance.
+- Many engineering courses (COEN, ELEN, MECH, CENG, ENGR) are **restricted to School of Engineering students** and require an inter-college permission number for non-engineering students.
 - Minimum units to graduate: **175 quarter units**.
 - Residency: **at least 60 units in residence** at SCU; **35 of the final 45 units** in residence.
 - Withdrawal with "W" deadline: approximately end of **week 7** each quarter.

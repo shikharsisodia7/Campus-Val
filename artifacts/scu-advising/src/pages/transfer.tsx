@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   useEvaluateTransfer,
   useGetProfile,
+  useLookupArticulation,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -23,6 +24,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  ArrowRight,
+  Search,
 } from "lucide-react";
 import { GRADE_OPTIONS, gradeLabel } from "@/lib/api";
 
@@ -91,6 +94,8 @@ export default function TransferPage() {
         subtitle="Check whether outside coursework will count at SCU. Handles the 87.5-quarter-unit cap, semester→quarter conversion, and post-enrollment restrictions."
       />
       <PageContent>
+        <ArticulationLookup />
+
         {profile && (
           <Card className="p-4 flex items-center gap-4 bg-muted/30">
             <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
@@ -384,6 +389,133 @@ export default function TransferPage() {
         )}
       </PageContent>
     </AppShell>
+  );
+}
+
+function ArticulationLookup() {
+  const [institution, setInstitution] = useState("De Anza College");
+  const [courseCode, setCourseCode] = useState("");
+  const [submitted, setSubmitted] = useState<{
+    institution: string;
+    courseCode: string;
+  } | null>({ institution: "De Anza College", courseCode: "" });
+
+  const { data, isLoading } = useLookupArticulation(
+    {
+      institution: submitted?.institution ?? "",
+      ...(submitted?.courseCode ? { courseCode: submitted.courseCode } : {}),
+    },
+    {
+      query: {
+        enabled: !!submitted,
+      },
+    },
+  );
+
+  const institutions = data?.availableInstitutions ?? [
+    "De Anza College",
+    "Foothill College",
+    "West Valley College",
+    "Mission College",
+    "Santa Monica College",
+  ];
+
+  return (
+    <Card className="p-6 border-l-4 border-l-primary/40">
+      <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+        <Search className="h-4 w-4" />
+        Articulation lookup (ASSIST.org cache)
+      </div>
+      <p className="text-xs text-muted-foreground mt-1.5 mb-4">
+        Look up which course at your community college maps to which SCU course.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+            Institution
+          </label>
+          <Select value={institution} onValueChange={setInstitution}>
+            <SelectTrigger className="mt-1" data-testid="select-articulation-inst">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {institutions.map((i) => (
+                <SelectItem key={i} value={i}>
+                  {i}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+            Course code (optional)
+          </label>
+          <Input
+            value={courseCode}
+            onChange={(e) => setCourseCode(e.target.value)}
+            placeholder="e.g. MATH 1A"
+            className="mt-1 font-mono"
+            data-testid="input-articulation-code"
+          />
+        </div>
+        <div className="flex items-end">
+          <Button
+            onClick={() => setSubmitted({ institution, courseCode })}
+            data-testid="button-articulation-search"
+            className="w-full"
+          >
+            Look up
+          </Button>
+        </div>
+      </div>
+
+      {submitted && (
+        <div className="mt-4">
+          {isLoading ? (
+            <div className="text-sm text-muted-foreground">Searching…</div>
+          ) : !data || data.matches.length === 0 ? (
+            <div className="text-sm text-muted-foreground italic">
+              No articulation records found. Verify the course code or check
+              ASSIST.org directly.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground italic">
+                {data.sourceNote}
+              </div>
+              {data.matches.map((m, i) => (
+                <div
+                  key={i}
+                  data-testid={`articulation-match-${i}`}
+                  className="rounded-md border border-border bg-muted/10 p-3 text-sm"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="font-mono">
+                      {m.sourceCourseCode}
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      {m.sourceCourseTitle} ({m.sourceUnits} {m.sourceUnitSystem}{" "}
+                      units)
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Badge className="font-mono">{m.scuEquivalent}</Badge>
+                    <span className="text-muted-foreground">
+                      ({m.scuQuarterUnits} quarter units)
+                    </span>
+                  </div>
+                  {m.notes && (
+                    <div className="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded p-2">
+                      {m.notes}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 

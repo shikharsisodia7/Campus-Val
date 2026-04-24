@@ -11,6 +11,8 @@ import GpaPage from "@/pages/gpa";
 import TransferPage from "@/pages/transfer";
 import Policies from "@/pages/policies";
 import Advisor from "@/pages/advisor";
+import GraduationPaths from "@/pages/graduation-paths";
+import Evaluation from "@/pages/evaluation";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +34,8 @@ function Router() {
       <Route path="/transfer" component={TransferPage} />
       <Route path="/policies" component={Policies} />
       <Route path="/advisor" component={Advisor} />
+      <Route path="/graduation-paths" component={GraduationPaths} />
+      <Route path="/evaluation" component={Evaluation} />
       <Route component={NotFound} />
     </Switch>
   );

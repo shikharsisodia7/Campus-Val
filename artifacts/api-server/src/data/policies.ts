@@ -34,26 +34,37 @@ export const POLICIES: PolicyEntry[] = [
     tags: ["transfer", "post-enrollment", "community-college", "approval"],
   },
   {
-    id: "unit-load-cap-19",
-    title: "Standard Quarterly Unit Load Cap (19 units)",
+    id: "unit-load-cap-standing",
+    title: "Standard Quarterly Unit Load Cap (by class standing)",
     category: "Registration",
     summary:
-      "Undergraduates may register for a maximum of 19 units per quarter without special permission.",
+      "First-year and sophomore students may register for up to 20 units per quarter without approval; juniors and seniors up to 22 units.",
     body:
-      "The standard maximum unit load for a regular quarter (fall, winter, spring) is 19 units. Students attempting to register for more than 19 units will be blocked unless they qualify for an overload and have it approved.",
-    source: "SCU Registrar — Registration Policies",
-    tags: ["units", "registration", "cap", "overload"],
+      "The standard maximum unit load varies by class standing. First-year and sophomore students may register for up to 20 quarter units in a regular quarter (fall, winter, spring) without approval. Juniors and seniors may register for up to 22 quarter units. Class standing is determined by total units completed (including transfer credit): freshman <44, sophomore 44-86, junior 87-130, senior 131+. Above the standard cap requires advisor/dean approval and overload eligibility.",
+    source: "SCU Registrar — Registration Policies / Undergraduate Bulletin",
+    tags: ["units", "registration", "cap", "standing"],
   },
   {
-    id: "overload-eligibility-25",
-    title: "Unit Overload Eligibility (up to 25 units)",
+    id: "overload-eligibility",
+    title: "Unit Overload Eligibility (up to approved cap)",
     category: "Registration",
     summary:
-      "To overload above 19 units (up to 25), a student needs a cumulative GPA of at least 3.0 AND priority registration eligibility, plus dean approval.",
+      "To overload above the standard cap (up to 22 units freshman/sophomore, 24 units junior/senior), a student needs a cumulative GPA ≥ 3.0 AND priority registration plus dean approval.",
     body:
-      "To register for more than 19 units in a quarter (up to a hard ceiling of 25 units), a student must: (1) have a cumulative SCU GPA of at least 3.0, (2) have priority registration eligibility for the term, and (3) obtain approval from their dean's office. Approval is not automatic — the dean considers academic history and the specific course load. Petitions are typically opened during late registration windows.",
+      "To register for more units than the standard cap allows, a student must: (1) have a cumulative SCU GPA of at least 3.0, (2) have priority registration eligibility for the term, and (3) obtain approval from their dean's office. The maximum approved cap is 22 units for freshmen/sophomores and 24 units for juniors/seniors. Approval is not automatic — the dean considers academic history and the specific course load. Petitions are typically opened during late registration windows.",
     source: "SCU Undergraduate Bulletin — Unit Load and Overload",
     tags: ["overload", "gpa", "priority", "units"],
+  },
+  {
+    id: "major-restriction",
+    title: "Major / College Course Restrictions",
+    category: "Registration",
+    summary:
+      "Some courses are restricted to students in a specific SCU college (e.g., COEN courses are limited to School of Engineering students).",
+    body:
+      "Many engineering courses (COEN, ELEN, MECH, CENG, ENGR) are restricted to students enrolled in the School of Engineering and require an inter-college permission number to register if you're in another college. Business core courses similarly restrict to Leavey School of Business students. Always check the prerequisites/restrictions field in the schedule of classes; the registration system will silently block you otherwise. Permission numbers are typically issued by the offering department, not your home college's dean.",
+    source: "SCU Bulletin — Inter-College Registration",
+    tags: ["college", "restriction", "permission", "engineering"],
   },
   {
     id: "prereq-grade-requirement",

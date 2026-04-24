@@ -17,4 +17,6 @@ export interface Course {
   coreAreas: string[];
   offeredTerms: Term[];
   difficulty?: CourseDifficulty;
+  /** If non-empty, only students in one of these SCU colleges may register */
+  restrictedToColleges: string[];
 }

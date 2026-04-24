@@ -94,6 +94,7 @@ export default function Planner() {
       data: {
         term: term as "fall" | "winter" | "spring" | "summer",
         year,
+        college: profile?.college ?? "School of Engineering",
         plannedCourses: planned.map((p) => ({
           code: p.code,
           units: p.units,
@@ -260,7 +261,7 @@ export default function Planner() {
                 <div>
                   <div className="flex items-baseline justify-between">
                     <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                      Units
+                      Units · {standingTitle(result.classStanding)}
                     </div>
                     <div className="text-sm font-semibold">
                       {result.totalUnits} / {result.unitCap}
@@ -273,7 +274,20 @@ export default function Planner() {
                     )}
                     className="mt-2"
                   />
+                  <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground font-mono">
+                    <span>
+                      Standard cap: {result.standardCap}
+                    </span>
+                    <span>Approved cap: {result.approvedCap}</span>
+                  </div>
                 </div>
+                {result.requiresAdvisorApproval && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 leading-snug">
+                    <strong>Advisor approval required:</strong> this plan is over
+                    your standard cap. Even if eligible to overload, you need
+                    written dean approval before registration.
+                  </div>
+                )}
                 <div className="text-xs text-muted-foreground italic">
                   {result.overloadReason}
                 </div>
@@ -310,6 +324,21 @@ export default function Planner() {
       </PageContent>
     </AppShell>
   );
+}
+
+function standingTitle(s: string): string {
+  switch (s) {
+    case "freshman":
+      return "First Year";
+    case "sophomore":
+      return "Sophomore";
+    case "junior":
+      return "Junior";
+    case "senior":
+      return "Senior";
+    default:
+      return s;
+  }
 }
 
 function IssueRow({

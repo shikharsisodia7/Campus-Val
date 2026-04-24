@@ -112,6 +112,11 @@ export const ListCoursesResponseItem = zod.object({
   coreAreas: zod.array(zod.string()),
   offeredTerms: zod.array(zod.enum(["fall", "winter", "spring", "summer"])),
   difficulty: zod.enum(["easy", "moderate", "hard", "very_hard"]).nullish(),
+  restrictedToColleges: zod
+    .array(zod.string())
+    .describe(
+      "If non-empty, only students in one of these SCU colleges may register",
+    ),
 });
 export const ListCoursesResponse = zod.array(ListCoursesResponseItem);
 
@@ -132,6 +137,11 @@ export const GetCourseResponse = zod
     coreAreas: zod.array(zod.string()),
     offeredTerms: zod.array(zod.enum(["fall", "winter", "spring", "summer"])),
     difficulty: zod.enum(["easy", "moderate", "hard", "very_hard"]).nullish(),
+    restrictedToColleges: zod
+      .array(zod.string())
+      .describe(
+        "If non-empty, only students in one of these SCU colleges may register",
+      ),
   })
   .and(
     zod.object({
@@ -167,7 +177,21 @@ export const CheckPlanBody = zod.object({
 export const CheckPlanResponse = zod.object({
   totalUnits: zod.number(),
   unitCap: zod.number(),
+  standardCap: zod
+    .number()
+    .describe(
+      "Standard per-quarter cap for this class standing (no approval required)",
+    ),
+  approvedCap: zod
+    .number()
+    .describe("Maximum cap with dean\/advisor approval and GPA ≥ 3.0"),
+  classStanding: zod.enum(["freshman", "sophomore", "junior", "senior"]),
   canOverload: zod.boolean(),
+  requiresAdvisorApproval: zod
+    .boolean()
+    .describe(
+      "True if planned units exceed the standard cap (requires written advisor\/dean approval)",
+    ),
   overloadReason: zod.string(),
   issues: zod.array(
     zod.object({
@@ -411,6 +435,190 @@ export const GetDashboardSummaryResponse = zod.object({
     }),
   ),
   warnings: zod.array(zod.string()),
+});
+
+/**
+ * @summary List scheduled sections (instructors, meeting times, ratings) for a course
+ */
+export const ListCourseSectionsParams = zod.object({
+  code: zod.coerce.string(),
+});
+
+export const ListCourseSectionsQueryParams = zod.object({
+  term: zod.enum(["fall", "winter", "spring", "summer"]).optional(),
+  year: zod.coerce.number().optional(),
+});
+
+export const ListCourseSectionsResponseItem = zod.object({
+  id: zod.string().describe('e.g. \"COEN-12-01-fall-2025\"'),
+  courseCode: zod.string(),
+  sectionNumber: zod.string(),
+  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  year: zod.number(),
+  instructor: zod.string(),
+  meetingDays: zod.array(zod.enum(["M", "T", "W", "R", "F", "S", "U"])),
+  startTime: zod.string().describe("24h HH:mm"),
+  endTime: zod.string().describe("24h HH:mm"),
+  location: zod.string(),
+  seatsTotal: zod.number(),
+  seatsOpen: zod.number(),
+  waitlist: zod.number(),
+  rating: zod
+    .object({
+      instructor: zod.string(),
+      overallRating: zod.number().nullish().describe("Average rating 1.0-5.0"),
+      difficulty: zod.number().nullish().describe("Difficulty 1.0-5.0"),
+      wouldTakeAgainPercent: zod
+        .number()
+        .nullish()
+        .describe("Percent of students who would take again (0-100)"),
+      averageGpa: zod
+        .number()
+        .nullish()
+        .describe("Historical average GPA in this professor's sections"),
+      numRatings: zod.number(),
+      sourceNote: zod
+        .string()
+        .describe(
+          'Provenance, e.g. \"RateMyProfessors + SCU Schedule Helper aggregate (cached)\"',
+        ),
+    })
+    .nullish()
+    .describe(
+      "Aggregated professor data sourced from RateMyProfessors and SCU Schedule Helper",
+    ),
+});
+export const ListCourseSectionsResponse = zod.array(
+  ListCourseSectionsResponseItem,
+);
+
+/**
+ * @summary Look up SCU equivalent for a California Community College course
+ */
+export const LookupArticulationQueryParams = zod.object({
+  institution: zod.coerce.string(),
+  courseCode: zod.coerce.string().optional(),
+  scuTarget: zod.coerce.string().optional(),
+});
+
+export const LookupArticulationResponse = zod.object({
+  institution: zod.string(),
+  matches: zod.array(
+    zod.object({
+      institution: zod.string(),
+      sourceCourseCode: zod.string(),
+      sourceCourseTitle: zod.string(),
+      sourceUnits: zod.number(),
+      sourceUnitSystem: zod.enum(["semester", "quarter"]),
+      scuEquivalent: zod.string().describe('SCU course code, e.g. \"MATH 11\"'),
+      scuQuarterUnits: zod.number(),
+      notes: zod.string().nullish(),
+      verifiedDate: zod
+        .string()
+        .describe('When this articulation was verified, e.g. \"2024-2025\"'),
+    }),
+  ),
+  availableInstitutions: zod
+    .array(zod.string())
+    .describe("All institutions in the seeded dataset"),
+  sourceNote: zod
+    .string()
+    .describe('e.g. \"Cached from ASSIST.org 2024-2025 catalog\"'),
+});
+
+/**
+ * @summary Get a recommended 3-year or 4-year graduation path template
+ */
+export const GetGraduationPathParams = zod.object({
+  type: zod.enum(["three_year", "four_year"]),
+});
+
+export const GetGraduationPathQueryParams = zod.object({
+  major: zod.coerce.string().optional(),
+});
+
+export const GetGraduationPathResponse = zod.object({
+  type: zod.enum(["three_year", "four_year"]),
+  major: zod.string(),
+  title: zod.string(),
+  summary: zod.string(),
+  feasibilityNote: zod.string(),
+  averageUnitsPerQuarter: zod.number(),
+  requiresOverload: zod.boolean(),
+  quarters: zod.array(
+    zod.object({
+      year: zod.number().describe("1-based year, 1=freshman year"),
+      term: zod.enum(["fall", "winter", "spring", "summer"]),
+      label: zod.string().describe('e.g. \"Y1 Fall\"'),
+      courses: zod.array(zod.string().describe("SCU course code")),
+      plannedUnits: zod.number(),
+      notes: zod.string().nullish(),
+    }),
+  ),
+  risks: zod.array(zod.string()),
+});
+
+/**
+ * @summary List benchmark scenarios used to evaluate the AI advisor
+ */
+export const ListEvaluationScenariosResponseItem = zod.object({
+  id: zod.string(),
+  category: zod
+    .string()
+    .describe(
+      'e.g. \"unit_cap\", \"transfer_cap\", \"prereq\", \"policy\", \"trap\"',
+    ),
+  prompt: zod.string().describe("User question to ask the AI advisor"),
+  expectedKeywords: zod
+    .array(zod.string())
+    .describe("Phrases or concepts that MUST appear in a correct answer"),
+  forbiddenKeywords: zod
+    .array(zod.string())
+    .describe("Phrases that indicate a wrong\/hallucinated answer"),
+  risk: zod.enum(["low", "medium", "high", "critical"]),
+  rubric: zod
+    .string()
+    .describe("Human-readable explanation of what a correct answer looks like"),
+});
+export const ListEvaluationScenariosResponse = zod.array(
+  ListEvaluationScenariosResponseItem,
+);
+
+/**
+ * @summary Run all benchmark scenarios against the AI advisor and return scored results
+ */
+export const RunEvaluationBody = zod.object({
+  scenarioIds: zod
+    .array(zod.string())
+    .optional()
+    .describe(
+      "Optional subset of scenario IDs. If omitted, all scenarios run.",
+    ),
+});
+
+export const RunEvaluationResponse = zod.object({
+  ranAt: zod.coerce.date(),
+  model: zod.string(),
+  totalScenarios: zod.number(),
+  passed: zod.number(),
+  failed: zod.number(),
+  averageScore: zod.number(),
+  criticalFailures: zod.number(),
+  results: zod.array(
+    zod.object({
+      scenarioId: zod.string(),
+      category: zod.string(),
+      risk: zod.string(),
+      prompt: zod.string(),
+      response: zod.string(),
+      matchedKeywords: zod.array(zod.string()),
+      missedKeywords: zod.array(zod.string()),
+      triggeredForbidden: zod.array(zod.string()),
+      score: zod.number().describe("0.0 to 1.0"),
+      passed: zod.boolean(),
+      latencyMs: zod.number(),
+    }),
+  ),
 });
 
 /**

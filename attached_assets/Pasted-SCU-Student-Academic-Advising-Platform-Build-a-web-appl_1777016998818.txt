@@ -1,0 +1,22 @@
+SCU Student Academic Advising Platform
+Build a web application to help Santa Clara University (SCU) students with academic advising tasks. The platform should use SCU's official colors and branding throughout.
+Core Features
+The AI advisor should be powered by a RAG pipeline that ingests SCU's course catalog, degree requirements, and policies from the SCU Undergraduate Bulletin and the Drahmann Advising Center. The system must validate prerequisites in real time, checking that a student has satisfied all required prior courses before recommending or approving enrollment. It should also enforce major-based enrollment restrictions (e.g., some COEN courses are restricted to School of Engineering students only).
+Student Profiles
+The platform must clearly distinguish between first-year students and transfer students, with a dedicated section for each. Transfer students should be able to input prior coursework and see which SCU requirements those credits satisfy. The system should also reference ASSIST.org to check California community college articulation agreements, so students know whether a CC course can substitute for an SCU requirement. Students should be able to declare a major, a minor, or both, and the system should track outstanding requirements for each.
+Course Planner
+Include an interactive course planner displayed in a spreadsheet/grid format organized by academic year and quarter (Fall, Winter, Spring — SCU is on the quarter system). Students should be able to add, remove, and swap courses across quarters. The planner must display running unit totals per quarter and enforce the following unit caps:
+
+Freshmen and Sophomores: maximum 20 units per quarter (22 with advisor approval)
+Juniors and Seniors: maximum 22 units per quarter (24 with written advisor approval, i.e., overloading)
+Overloading requires a cumulative GPA of 3.0 or higher
+
+Also include planning paths for students targeting 3-year vs. 4-year graduation, noting when overloading would be required to stay on track.
+Professor Ratings
+Integrate professor rating data using the RateMyProfessors GraphQL API. For each course section, display the assigned professor's rating, difficulty score, and "would retake" percentage. If a professor has no SCU-specific rating, fall back to ratings from their previous institution. Supplement this with data from the SCU Schedule Helper Chrome extension, which provides SCU-specific professor ratings.
+Real-Time Scheduling
+Display live course availability, meeting times, and lab section options for the current quarter, so students can plan around scheduling conflicts.
+GPA Calculator
+Include a built-in GPA calculator where students can input past and projected courses with grades to calculate their current and projected GPA.
+Evaluation Framework
+Build a benchmark dataset of real advising scenarios (prerequisite eligibility, transfer credit evaluation, overloading requests, major restriction questions, graduation timeline checks) and include a testing interface that measures where the AI gives correct, helpful answers versus where it may mislead or hallucinate. Flag high-risk response categories clearly.
