@@ -422,6 +422,48 @@ export interface ArticulationEntry {
   verifiedDate: string;
 }
 
+export interface WorkdaySyncRequest {
+  /** Raw text/HTML pasted from Workday's Find Course Sections view */
+  rawText: string;
+  term: Term;
+  /**
+   * @minimum 2024
+   * @maximum 2030
+   */
+  year: number;
+  /** If true, delete all existing sections for this term/year before inserting parsed rows */
+  replaceTerm?: boolean;
+}
+
+export interface WorkdaySyncParseError {
+  line: string;
+  reason: string;
+}
+
+export interface WorkdaySyncResult {
+  parsedCount: number;
+  insertedCount: number;
+  deletedCount: number;
+  term: Term;
+  year: number;
+  /** First 5 parsed sections for confirmation in the UI */
+  sampleSections: CourseSection[];
+  errors: WorkdaySyncParseError[];
+}
+
+export interface SectionsSyncTermSummary {
+  term: Term;
+  year: number;
+  count: number;
+  lastSyncedAt: string;
+}
+
+export interface SectionsSyncStatus {
+  totalSections: number;
+  lastSyncedAt?: string | null;
+  byTerm: SectionsSyncTermSummary[];
+}
+
 export interface ArticulationCollege {
   name: string;
   /** Deep-link to the ASSIST.org agreement page for this CC -> SCU */

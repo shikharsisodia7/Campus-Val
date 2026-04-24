@@ -493,6 +493,112 @@ export const ListCourseSectionsResponse = zod.array(
 );
 
 /**
+ * Accepts text copied from SCU's Workday "Find Course Sections" view.
+The user's Workday password is never sent to or stored by the server —
+only the visible section table is parsed and saved. Re-syncing the
+same term overwrites prior rows for that term.
+
+ * @summary Parse pasted Workday section data and upsert into the database
+ */
+export const syncWorkdaySectionsBodyYearMin = 2024;
+export const syncWorkdaySectionsBodyYearMax = 2030;
+
+export const syncWorkdaySectionsBodyReplaceTermDefault = true;
+
+export const SyncWorkdaySectionsBody = zod.object({
+  rawText: zod
+    .string()
+    .describe("Raw text\/HTML pasted from Workday's Find Course Sections view"),
+  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  year: zod
+    .number()
+    .min(syncWorkdaySectionsBodyYearMin)
+    .max(syncWorkdaySectionsBodyYearMax),
+  replaceTerm: zod
+    .boolean()
+    .default(syncWorkdaySectionsBodyReplaceTermDefault)
+    .describe(
+      "If true, delete all existing sections for this term\/year before inserting parsed rows",
+    ),
+});
+
+export const SyncWorkdaySectionsResponse = zod.object({
+  parsedCount: zod.number(),
+  insertedCount: zod.number(),
+  deletedCount: zod.number(),
+  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  year: zod.number(),
+  sampleSections: zod
+    .array(
+      zod.object({
+        id: zod.string().describe('e.g. \"COEN-12-01-fall-2025\"'),
+        courseCode: zod.string(),
+        sectionNumber: zod.string(),
+        term: zod.enum(["fall", "winter", "spring", "summer"]),
+        year: zod.number(),
+        instructor: zod.string(),
+        meetingDays: zod.array(zod.enum(["M", "T", "W", "R", "F", "S", "U"])),
+        startTime: zod.string().describe("24h HH:mm"),
+        endTime: zod.string().describe("24h HH:mm"),
+        location: zod.string(),
+        seatsTotal: zod.number(),
+        seatsOpen: zod.number(),
+        waitlist: zod.number(),
+        rating: zod
+          .object({
+            instructor: zod.string(),
+            overallRating: zod
+              .number()
+              .nullish()
+              .describe("Average rating 1.0-5.0"),
+            difficulty: zod.number().nullish().describe("Difficulty 1.0-5.0"),
+            wouldTakeAgainPercent: zod
+              .number()
+              .nullish()
+              .describe("Percent of students who would take again (0-100)"),
+            averageGpa: zod
+              .number()
+              .nullish()
+              .describe("Historical average GPA in this professor's sections"),
+            numRatings: zod.number(),
+            sourceNote: zod
+              .string()
+              .describe(
+                'Provenance, e.g. \"RateMyProfessors + SCU Schedule Helper aggregate (cached)\"',
+              ),
+          })
+          .nullish()
+          .describe(
+            "Aggregated professor data sourced from RateMyProfessors and SCU Schedule Helper",
+          ),
+      }),
+    )
+    .describe("First 5 parsed sections for confirmation in the UI"),
+  errors: zod.array(
+    zod.object({
+      line: zod.string(),
+      reason: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Per-term summary of pasted Workday sections
+ */
+export const GetSectionsSyncStatusResponse = zod.object({
+  totalSections: zod.number(),
+  lastSyncedAt: zod.coerce.date().nullish(),
+  byTerm: zod.array(
+    zod.object({
+      term: zod.enum(["fall", "winter", "spring", "summer"]),
+      year: zod.number(),
+      count: zod.number(),
+      lastSyncedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
  * @summary Look up SCU equivalent for a California Community College course
  */
 export const LookupArticulationQueryParams = zod.object({

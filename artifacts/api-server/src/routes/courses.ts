@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
+import { and, eq } from "drizzle-orm";
+import { db, courseSectionsTable } from "@workspace/db";
 import { COURSES, findCourse } from "../data/courses";
-import { SECTIONS, ratingFor } from "../data/sections";
+import { ratingFor } from "../data/sections";
 
 const router: IRouter = Router();
 
@@ -42,27 +44,47 @@ router.get("/courses", (req, res) => {
   );
 });
 
-router.get("/courses/:code/sections", (req, res) => {
+router.get("/courses/:code/sections", async (req, res) => {
   const course = findCourse(req.params.code);
   if (!course) return res.status(404).json({ error: "Course not found" });
 
-  const term = req.query.term as string | undefined;
+  const VALID_TERMS = new Set(["fall", "winter", "spring", "summer"]);
+  const termRaw = req.query.term as string | undefined;
+  const term =
+    termRaw && VALID_TERMS.has(termRaw) ? termRaw : undefined;
   const yearRaw = req.query.year as string | undefined;
-  const year = yearRaw ? Number(yearRaw) : undefined;
+  let year: number | undefined;
+  if (yearRaw !== undefined) {
+    const n = Number(yearRaw);
+    if (Number.isInteger(n) && n >= 2024 && n <= 2030) year = n;
+  }
 
   const matchedCode = course.code.toUpperCase().replace(/\s+/g, " ");
-  const all = SECTIONS.filter(
-    (s) => s.courseCode.toUpperCase().replace(/\s+/g, " ") === matchedCode,
-  );
-  const filtered = all.filter((s) => {
-    if (term && s.term !== term) return false;
-    if (year !== undefined && s.year !== year) return false;
-    return true;
-  });
+
+  const conds = [eq(courseSectionsTable.courseCode, matchedCode)];
+  if (term) conds.push(eq(courseSectionsTable.term, term));
+  if (year !== undefined) conds.push(eq(courseSectionsTable.year, year));
+
+  const rows = await db
+    .select()
+    .from(courseSectionsTable)
+    .where(and(...conds));
 
   res.json(
-    filtered.map((s) => ({
-      ...s,
+    rows.map((s) => ({
+      id: `${s.courseCode}-${s.sectionNumber}-${s.term}-${s.year}`,
+      courseCode: s.courseCode,
+      sectionNumber: s.sectionNumber,
+      term: s.term,
+      year: s.year,
+      instructor: s.instructor,
+      meetingDays: s.meetingDays,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      location: s.location,
+      seatsTotal: s.seatsTotal,
+      seatsOpen: s.seatsOpen,
+      waitlist: s.waitlist,
       rating: ratingFor(s.instructor),
     })),
   );

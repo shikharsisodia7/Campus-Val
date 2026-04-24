@@ -285,6 +285,43 @@ paths:
                 items:
                   $ref: "#/components/schemas/CourseSection"
 
+  /sections/sync:
+    post:
+      operationId: syncWorkdaySections
+      tags: [sections]
+      summary: Parse pasted Workday section data and upsert into the database
+      description: |
+        Accepts text copied from SCU's Workday "Find Course Sections" view.
+        The user's Workday password is never sent to or stored by the server —
+        only the visible section table is parsed and saved. Re-syncing the
+        same term overwrites prior rows for that term.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkdaySyncRequest"
+      responses:
+        "200":
+          description: Sync result with parse summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkdaySyncResult"
+
+  /sections/sync/status:
+    get:
+      operationId: getSectionsSyncStatus
+      tags: [sections]
+      summary: Per-term summary of pasted Workday sections
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SectionsSyncStatus"
+
   /articulation:
     get:
       operationId: lookupArticulation
@@ -1306,6 +1343,104 @@ components:
         - scuEquivalent
         - scuQuarterUnits
         - verifiedDate
+    WorkdaySyncRequest:
+      type: object
+      properties:
+        rawText:
+          type: string
+          description: Raw text/HTML pasted from Workday's Find Course Sections view
+        term:
+          $ref: "#/components/schemas/Term"
+        year:
+          type: integer
+          minimum: 2024
+          maximum: 2030
+        replaceTerm:
+          type: boolean
+          description: If true, delete all existing sections for this term/year before inserting parsed rows
+          default: true
+      required:
+        - rawText
+        - term
+        - year
+
+    WorkdaySyncParseError:
+      type: object
+      properties:
+        line:
+          type: string
+        reason:
+          type: string
+      required:
+        - line
+        - reason
+
+    WorkdaySyncResult:
+      type: object
+      properties:
+        parsedCount:
+          type: integer
+        insertedCount:
+          type: integer
+        deletedCount:
+          type: integer
+        term:
+          $ref: "#/components/schemas/Term"
+        year:
+          type: integer
+        sampleSections:
+          type: array
+          description: First 5 parsed sections for confirmation in the UI
+          items:
+            $ref: "#/components/schemas/CourseSection"
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkdaySyncParseError"
+      required:
+        - parsedCount
+        - insertedCount
+        - deletedCount
+        - term
+        - year
+        - sampleSections
+        - errors
+
+    SectionsSyncTermSummary:
+      type: object
+      properties:
+        term:
+          $ref: "#/components/schemas/Term"
+        year:
+          type: integer
+        count:
+          type: integer
+        lastSyncedAt:
+          type: string
+          format: date-time
+      required:
+        - term
+        - year
+        - count
+        - lastSyncedAt
+
+    SectionsSyncStatus:
+      type: object
+      properties:
+        totalSections:
+          type: integer
+        lastSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        byTerm:
+          type: array
+          items:
+            $ref: "#/components/schemas/SectionsSyncTermSummary"
+      required:
+        - totalSections
+        - byTerm
+
     ArticulationCollege:
       type: object
       properties:

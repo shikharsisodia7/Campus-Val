@@ -11,6 +11,7 @@ import openaiRouter from "./openai";
 import articulationRouter from "./articulation";
 import graduationPathsRouter from "./graduation-paths";
 import evaluationRouter from "./evaluation";
+import sectionsRouter from "./sections";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(openaiRouter);
 router.use(articulationRouter);
 router.use(graduationPathsRouter);
 router.use(evaluationRouter);
+router.use(sectionsRouter);
 
 export default router;

@@ -11,6 +11,7 @@ import {
   UserCog,
   Route,
   Gauge,
+  ClipboardPaste,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const NAV = [
   { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
   { path: "/gpa", label: "GPA Calculator", icon: Calculator },
   { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },
+  { path: "/sync-workday", label: "Sync Workday", icon: ClipboardPaste },
   { path: "/advisor", label: "AI Advisor", icon: MessageSquareText },
   { path: "/policies", label: "SCU Policies", icon: Library },
   { path: "/evaluation", label: "AI Evaluation", icon: Gauge },

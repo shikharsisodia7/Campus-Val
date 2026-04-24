@@ -46,11 +46,14 @@ import type {
   Policy,
   PrereqCheckResult,
   RunEvaluationBody,
+  SectionsSyncStatus,
   SendOpenaiMessageBody,
   SimulateGpaBody,
   StudentProfile,
   TransferEvaluationResult,
   UpsertProfileBody,
+  WorkdaySyncRequest,
+  WorkdaySyncResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -1181,6 +1184,172 @@ export function useListCourseSections<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListCourseSectionsQueryOptions(code, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Accepts text copied from SCU's Workday "Find Course Sections" view.
+The user's Workday password is never sent to or stored by the server —
+only the visible section table is parsed and saved. Re-syncing the
+same term overwrites prior rows for that term.
+
+ * @summary Parse pasted Workday section data and upsert into the database
+ */
+export const getSyncWorkdaySectionsUrl = () => {
+  return `/api/sections/sync`;
+};
+
+export const syncWorkdaySections = async (
+  workdaySyncRequest: WorkdaySyncRequest,
+  options?: RequestInit,
+): Promise<WorkdaySyncResult> => {
+  return customFetch<WorkdaySyncResult>(getSyncWorkdaySectionsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(workdaySyncRequest),
+  });
+};
+
+export const getSyncWorkdaySectionsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof syncWorkdaySections>>,
+    TError,
+    { data: BodyType<WorkdaySyncRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof syncWorkdaySections>>,
+  TError,
+  { data: BodyType<WorkdaySyncRequest> },
+  TContext
+> => {
+  const mutationKey = ["syncWorkdaySections"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof syncWorkdaySections>>,
+    { data: BodyType<WorkdaySyncRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return syncWorkdaySections(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SyncWorkdaySectionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof syncWorkdaySections>>
+>;
+export type SyncWorkdaySectionsMutationBody = BodyType<WorkdaySyncRequest>;
+export type SyncWorkdaySectionsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Parse pasted Workday section data and upsert into the database
+ */
+export const useSyncWorkdaySections = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof syncWorkdaySections>>,
+    TError,
+    { data: BodyType<WorkdaySyncRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof syncWorkdaySections>>,
+  TError,
+  { data: BodyType<WorkdaySyncRequest> },
+  TContext
+> => {
+  return useMutation(getSyncWorkdaySectionsMutationOptions(options));
+};
+
+/**
+ * @summary Per-term summary of pasted Workday sections
+ */
+export const getGetSectionsSyncStatusUrl = () => {
+  return `/api/sections/sync/status`;
+};
+
+export const getSectionsSyncStatus = async (
+  options?: RequestInit,
+): Promise<SectionsSyncStatus> => {
+  return customFetch<SectionsSyncStatus>(getGetSectionsSyncStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSectionsSyncStatusQueryKey = () => {
+  return [`/api/sections/sync/status`] as const;
+};
+
+export const getGetSectionsSyncStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSectionsSyncStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSectionsSyncStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSectionsSyncStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSectionsSyncStatus>>
+  > = ({ signal }) => getSectionsSyncStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSectionsSyncStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSectionsSyncStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSectionsSyncStatus>>
+>;
+export type GetSectionsSyncStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Per-term summary of pasted Workday sections
+ */
+
+export function useGetSectionsSyncStatus<
+  TData = Awaited<ReturnType<typeof getSectionsSyncStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSectionsSyncStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSectionsSyncStatusQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

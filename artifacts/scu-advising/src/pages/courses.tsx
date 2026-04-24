@@ -321,10 +321,7 @@ function CourseDrawer({
 }
 
 function SectionsList({ code }: { code: string }) {
-  const { data: sections = [], isLoading } = useListCourseSections(code, {
-    term: "fall",
-    year: 2025,
-  });
+  const { data: sections = [], isLoading } = useListCourseSections(code);
   return (
     <div>
       <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
@@ -357,8 +354,13 @@ function SectionsList({ code }: { code: string }) {
               className="rounded-md border border-border p-3 bg-muted/10"
             >
               <div className="flex items-baseline justify-between gap-2">
-                <div className="font-mono text-sm font-bold">
-                  {s.courseCode} · {s.sectionNumber}
+                <div className="font-mono text-sm font-bold flex items-baseline gap-2">
+                  <span>
+                    {s.courseCode} · {s.sectionNumber}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    {s.term} {s.year}
+                  </span>
                 </div>
                 <Badge
                   variant={s.seatsOpen > 0 ? "default" : "destructive"}
