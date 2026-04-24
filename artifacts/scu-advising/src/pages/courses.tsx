@@ -330,13 +330,24 @@ function SectionsList({ code }: { code: string }) {
     <div>
       <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
         <Users className="h-3 w-3" />
-        Fall 2025 sections
+        Live sections & instructor info
       </div>
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Loading sections…</div>
       ) : sections.length === 0 ? (
-        <div className="text-sm text-muted-foreground">
-          No section data cached for this course.
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 flex gap-2 text-sm text-amber-900">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
+          <div>
+            <div className="font-semibold mb-1">
+              Live data source not connected
+            </div>
+            Real-time section info (instructor, meeting time, seats) and
+            professor ratings require a connection to SCU's Workday/Camino
+            course catalog and a verified ratings source. We don't show
+            placeholder data here on purpose — it would mislead students
+            picking sections. Ask your developer to wire up an SCU course-avails
+            feed to populate this panel.
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

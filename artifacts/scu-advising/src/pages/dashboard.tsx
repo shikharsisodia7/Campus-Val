@@ -47,11 +47,7 @@ export default function Dashboard() {
     <AppShell>
       <PageHeader
         title={sp ? `Welcome back, ${sp.name.split(" ")[0]}` : "CampusVal"}
-        subtitle={
-          sp
-            ? `${sp.major}${sp.secondMajor ? ` & ${sp.secondMajor}` : ""} · ${sp.college} · started ${termLabel(sp.startTerm)} ${sp.startYear}`
-            : "Your SCU academic command center."
-        }
+        subtitle="Personalized academic advising for Santa Clara University students — grounded in real SCU policy, your transcript, and your degree progress."
         right={
           <Badge
             variant="secondary"
