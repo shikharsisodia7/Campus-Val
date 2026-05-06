@@ -23,7 +23,14 @@ import {
   Database,
   Loader2,
   Info,
+  Beaker,
 } from "lucide-react";
+
+const SAMPLE_DATA = `CSEN 12-01\tIntroduction to Embedded Systems\tSmith, Alice\tMWF | 9:15 AM - 10:20 AM\tEngineering 105\t12/35\t0
+CSEN 12L-01\tEmbedded Systems Lab\tSmith, Alice\tT | 2:00 PM - 4:30 PM\tEngineering 305\t8/20\t0
+MATH 11-02\tCalculus I\tDoe, Jane\tTR | 10:00 AM - 11:30 AM\tBannan 100\t3/40\t5
+PHYS 31-04\tPhysics for Engineers\tLee, Carol\tMWF | 11:00 AM - 12:05 PM\tDaly Science 102\t22/60\t0
+ENGL 1A-12\tCritical Thinking & Writing 1\tNguyen, Thomas\tTR | 2:00 PM - 3:40 PM\tO'Connor 207\t4/19\t2`;
 
 const TERMS = ["fall", "winter", "spring", "summer"] as const;
 const YEARS = [2025, 2026, 2027] as const;
@@ -150,11 +157,22 @@ export default function SyncWorkdayPage() {
             className="w-full h-48 font-mono text-xs border border-input rounded-md p-3 bg-muted/30 focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
 
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-xs text-muted-foreground">
-              {rawText.length > 0
-                ? `${rawText.split(/\r?\n/).filter((l) => l.trim()).length} non-empty lines`
-                : "Empty"}
+          <div className="flex items-center justify-between mt-4 gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-muted-foreground">
+                {rawText.length > 0
+                  ? `${rawText.split(/\r?\n/).filter((l) => l.trim()).length} non-empty lines`
+                  : "Empty"}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRawText(SAMPLE_DATA)}
+                data-testid="button-sample"
+              >
+                <Beaker className="h-4 w-4 mr-1.5" />
+                Load sample data
+              </Button>
             </div>
             <Button
               data-testid="button-sync"
@@ -261,7 +279,52 @@ export default function SyncWorkdayPage() {
 
         {sync.isError && (
           <Card className="p-4 mb-6 border-destructive bg-destructive/10 text-sm text-destructive">
-            Sync failed. Check the pasted text and try again.
+            <div className="font-semibold mb-1">Sync failed</div>
+            <div className="text-xs">
+              {(() => {
+                const err = sync.error as unknown;
+                if (
+                  err &&
+                  typeof err === "object" &&
+                  "message" in err &&
+                  typeof (err as { message: unknown }).message === "string"
+                ) {
+                  return (err as { message: string }).message;
+                }
+                return "The server rejected the paste. Try the 'Load sample data' button to confirm sync works, then compare its format to your paste.";
+              })()}
+            </div>
+          </Card>
+        )}
+
+        {result && result.parsedCount === 0 && (
+          <Card className="p-4 mb-6 border-amber-300 bg-amber-50 text-sm text-amber-900">
+            <div className="font-semibold mb-1 flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4" />
+              Parsed 0 sections
+            </div>
+            <div className="text-xs space-y-1">
+              <p>
+                Your paste didn't contain anything that looks like a SCU course
+                code (e.g. <code>CSEN 12-01</code>, <code>MATH 11-02</code>).
+                A few things to try:
+              </p>
+              <ul className="list-disc pl-5 space-y-0.5">
+                <li>
+                  Click <strong>Load sample data</strong> below the textbox
+                  and re-sync — that proves the pipeline works end-to-end.
+                </li>
+                <li>
+                  In Workday, switch to the <em>table</em> view (not the card
+                  detail view), then select rows and copy.
+                </li>
+                <li>
+                  Make sure each section line includes the course code AND the
+                  meeting time on the same line (or paste the whole detail
+                  block — the parser handles both).
+                </li>
+              </ul>
+            </div>
           </Card>
         )}
 

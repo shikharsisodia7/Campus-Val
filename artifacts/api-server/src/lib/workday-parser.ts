@@ -97,19 +97,70 @@ function extractInstructor(line: string): string {
   return "Unknown Instructor";
 }
 
-export function parseWorkdaySections(rawText: string): ParseResult {
-  const parsed: ParsedSection[] = [];
-  const errors: { line: string; reason: string }[] = [];
+/**
+ * Workday cells often contain newlines, so a single section can span many
+ * lines like "CSEN 12-01\nLecture\nMWF | 9:15 AM - 10:20 AM\nSmith, Alice".
+ *
+ * We first try line-based parsing (each line = one section). If that yields
+ * meaningfully fewer sections than the number of distinct course codes we
+ * can spot in the text, we fall back to "block" mode: group consecutive
+ * lines under whichever course code they appear after, then run the same
+ * field extractors on the joined block.
+ */
+function buildBlocks(lines: string[]): string[] {
+  const blocks: string[] = [];
+  let current: string[] = [];
+  for (const line of lines) {
+    if (COURSE_CODE_RE.test(line) && current.length > 0) {
+      blocks.push(current.join(" \t "));
+      current = [];
+    }
+    current.push(line);
+  }
+  if (current.length > 0) blocks.push(current.join(" \t "));
+  // Filter blocks that don't contain a course code at all
+  return blocks.filter((b) => COURSE_CODE_RE.test(b));
+}
 
-  // Split on newlines but keep tabs as field separators within a line
+export function parseWorkdaySections(rawText: string): ParseResult {
   const lines = rawText
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  // De-duplicate identical lines (Workday often duplicates header rows)
+  // Decide between line-mode and block-mode by counting distinct course
+  // codes vs lines that look like complete sections (have both a code AND
+  // a meeting pattern OR seats info on the same line).
+  const linesWithCode = lines.filter((l) => COURSE_CODE_RE.test(l));
+  const completeLines = lines.filter(
+    (l) =>
+      COURSE_CODE_RE.test(l) &&
+      (TIME_RE.test(l) ||
+        SEATS_SLASH_RE.test(l) ||
+        SEATS_OF_RE.test(l)),
+  );
+
+  // If most code-bearing lines are incomplete, switch to block mode
+  const useBlocks =
+    linesWithCode.length > 0 &&
+    completeLines.length / linesWithCode.length < 0.5;
+
+  const units = useBlocks ? buildBlocks(lines) : lines;
+  const result = parseUnits(units);
+
+  // If line mode produced too few results, retry as blocks once.
+  if (!useBlocks && result.parsed.length === 0 && linesWithCode.length > 0) {
+    return parseUnits(buildBlocks(lines));
+  }
+  return result;
+}
+
+function parseUnits(units: string[]): ParseResult {
+  const parsed: ParsedSection[] = [];
+  const errors: { line: string; reason: string }[] = [];
   const seen = new Set<string>();
-  for (const rawLine of lines) {
+
+  for (const rawLine of units) {
     if (seen.has(rawLine)) continue;
     seen.add(rawLine);
 
