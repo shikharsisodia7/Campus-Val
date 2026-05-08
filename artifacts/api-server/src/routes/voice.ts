@@ -11,6 +11,63 @@ import { buildSystemPrompt } from "../data/advisor-prompt";
 
 const router: IRouter = Router();
 
+// ElevenLabs TTS — natural-sounding voices. Falls back to OpenAI on failure.
+// Voice "Bella" (hpp4J3VqNfWAUOO0d1Us) — professional, bright, warm; tagged
+// for "informative_educational" — fits an academic advisor.
+// Override with VOICE_TTS_VOICE_ID env var to swap voices without redeploy.
+const ELEVENLABS_VOICE_ID =
+  process.env["VOICE_TTS_VOICE_ID"] || "hpp4J3VqNfWAUOO0d1Us";
+const ELEVENLABS_MODEL = "eleven_turbo_v2_5";
+
+async function elevenLabsTts(text: string): Promise<Buffer> {
+  const apiKey = process.env["ELEVENLABS_API_KEY"];
+  if (!apiKey) throw new Error("ELEVENLABS_API_KEY not configured");
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}?output_format=mp3_44100_128`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "xi-api-key": apiKey,
+      "Content-Type": "application/json",
+      Accept: "audio/mpeg",
+    },
+    body: JSON.stringify({
+      text,
+      model_id: ELEVENLABS_MODEL,
+      voice_settings: {
+        stability: 0.5,
+        similarity_boost: 0.75,
+        style: 0.0,
+        use_speaker_boost: true,
+      },
+    }),
+  });
+  if (!resp.ok) {
+    const detail = await resp.text().catch(() => "");
+    throw new Error(`ElevenLabs ${resp.status}: ${detail.slice(0, 300)}`);
+  }
+  const ab = await resp.arrayBuffer();
+  return Buffer.from(ab);
+}
+
+// Synthesize speech with ElevenLabs first; on any error, fall back to OpenAI's
+// gpt-audio so the voice flow keeps working even if the EL key is rate-limited
+// or revoked. Returns the audio buffer plus the provider name for logging.
+async function synthesizeSpeech(
+  text: string,
+  log: { warn: (...args: unknown[]) => void },
+): Promise<{ audio: Buffer; provider: "elevenlabs" | "openai" }> {
+  if (process.env["ELEVENLABS_API_KEY"]) {
+    try {
+      const audio = await elevenLabsTts(text);
+      return { audio, provider: "elevenlabs" };
+    } catch (err) {
+      log.warn({ err }, "elevenlabs TTS failed; falling back to openai");
+    }
+  }
+  const audio = await textToSpeech(text, "alloy", "mp3");
+  return { audio, provider: "openai" };
+}
+
 const RAW_AUDIO = express.raw({
   type: ["audio/*", "application/octet-stream"],
   limit: "25mb",
@@ -76,9 +133,10 @@ router.post("/voice/speak", express.json({ limit: "1mb" }), async (req, res) => 
     if (!text) return res.status(400).json({ error: "text required" });
     if (text.length > 4000)
       return res.status(400).json({ error: "text too long (max 4000 chars)" });
-    const audio = await textToSpeech(text, "alloy", "mp3");
+    const { audio, provider } = await synthesizeSpeech(text, req.log);
     res.setHeader("Content-Type", "audio/mpeg");
     res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Voice-Provider", provider);
     return res.send(audio);
   } catch (err) {
     req.log.error({ err }, "voice/speak failed");
@@ -121,12 +179,13 @@ router.post("/voice/ask", RAW_AUDIO, async (req, res) => {
       completion.choices[0]?.message?.content?.trim() ||
       "Sorry, I couldn't generate an answer.";
 
-    const audio = await textToSpeech(answer, "alloy", "mp3");
+    const { audio, provider } = await synthesizeSpeech(answer, req.log);
     return res.json({
       transcript,
       answer,
       audioBase64: audio.toString("base64"),
       audioMime: "audio/mpeg",
+      voiceProvider: provider,
     });
   } catch (err) {
     req.log.error({ err }, "voice/ask failed");
