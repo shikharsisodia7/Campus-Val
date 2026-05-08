@@ -13,6 +13,7 @@ import SyncWorkdayPage from "@/pages/sync-workday";
 import SchedulePage from "@/pages/schedule";
 import Policies from "@/pages/policies";
 import Advisor from "@/pages/advisor";
+import VoiceAdvisor from "@/pages/voice";
 import GraduationPaths from "@/pages/graduation-paths";
 import Evaluation from "@/pages/evaluation";
 
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/sync-workday" component={SyncWorkdayPage} />
       <Route path="/policies" component={Policies} />
       <Route path="/advisor" component={Advisor} />
+      <Route path="/voice" component={VoiceAdvisor} />
       <Route path="/graduation-paths" component={GraduationPaths} />
       <Route path="/evaluation" component={Evaluation} />
       <Route component={NotFound} />

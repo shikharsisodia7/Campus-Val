@@ -13,6 +13,7 @@ import {
   Gauge,
   ClipboardPaste,
   Calendar,
+  Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const NAV = [
   { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },
   { path: "/sync-workday", label: "Sync Workday", icon: ClipboardPaste },
   { path: "/advisor", label: "AI Advisor", icon: MessageSquareText },
+  { path: "/voice", label: "Voice Advisor", icon: Mic },
   { path: "/policies", label: "SCU Policies", icon: Library },
   { path: "/evaluation", label: "AI Evaluation", icon: Gauge },
 ];
