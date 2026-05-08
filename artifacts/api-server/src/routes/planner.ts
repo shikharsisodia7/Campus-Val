@@ -7,6 +7,8 @@ import {
   approvedCapFor,
 } from "../lib/standing";
 import { db, studentProfilesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
@@ -67,7 +69,7 @@ function checkPrereqsFor(
   };
 }
 
-router.post("/planner/prereqs", (req, res) => {
+router.post("/planner/prereqs", requireAuth, (req, res) => {
   const body = CheckPrereqsBody.parse(req.body);
   res.json(
     checkPrereqsFor(
@@ -78,12 +80,16 @@ router.post("/planner/prereqs", (req, res) => {
   );
 });
 
-router.post("/planner/check", async (req, res) => {
+router.post("/planner/check", requireAuth, async (req, res) => {
   const body = CheckPlanBody.parse(req.body);
 
   // Pull profile to determine class standing (units completed) without
   // forcing the client to send it. Falls back to freshman caps if absent.
-  const rows = await db.select().from(studentProfilesTable).limit(1);
+  const rows = await db
+    .select()
+    .from(studentProfilesTable)
+    .where(eq(studentProfilesTable.userId, req.userId!))
+    .limit(1);
   const profile = rows[0];
   const totalUnitsCompleted = profile
     ? Number(profile.unitsCompletedAtScu) + Number(profile.unitsTransferredIn)

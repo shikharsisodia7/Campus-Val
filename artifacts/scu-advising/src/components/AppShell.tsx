@@ -14,8 +14,10 @@ import {
   ClipboardPaste,
   Calendar,
   Mic,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUser, useClerk } from "@clerk/react";
 
 const NAV = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -82,21 +84,54 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="px-3 py-3 border-t border-sidebar-border">
+          <UserMenu />
           <Link
             href="/onboarding"
             data-testid="nav-profile"
             className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors"
           >
             <UserCog className="h-4 w-4" />
-            <span>Profile</span>
+            <span>Edit profile</span>
           </Link>
-          <div className="px-3 pt-4 pb-2 flex items-center gap-2 text-xs text-sidebar-foreground/50">
+          <div className="px-3 pt-3 pb-1 flex items-center gap-2 text-xs text-sidebar-foreground/50">
             <GraduationCap className="h-3.5 w-3.5" />
             <span>Santa Clara University</span>
           </div>
         </div>
       </aside>
       <main className="flex-1 min-w-0 overflow-y-auto">{children}</main>
+    </div>
+  );
+}
+
+function UserMenu() {
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
+  if (!isLoaded || !user) return null;
+  const email = user.primaryEmailAddress?.emailAddress ?? "";
+  const displayName =
+    user.fullName ||
+    user.firstName ||
+    (email.includes("@") ? email.split("@")[0] : "Student");
+  return (
+    <div className="px-2 pb-2 mb-2 border-b border-sidebar-border/40">
+      <div className="px-2 py-1.5">
+        <div className="text-sm font-medium text-sidebar-foreground truncate">
+          {displayName}
+        </div>
+        <div className="text-[11px] text-sidebar-foreground/50 truncate font-mono">
+          {email}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => signOut({ redirectUrl: "/" })}
+        className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors"
+        data-testid="button-sign-out"
+      >
+        <LogOut className="h-4 w-4" />
+        <span>Sign out</span>
+      </button>
     </div>
   );
 }

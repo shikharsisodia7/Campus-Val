@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, asc, desc } from "drizzle-orm";
+import { and, eq, asc, desc } from "drizzle-orm";
 import {
   db,
   conversations,
@@ -12,13 +12,28 @@ import {
 } from "@workspace/api-zod";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { buildSystemPrompt } from "../data/advisor-prompt";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
-router.get("/openai/conversations", async (_req, res) => {
+
+async function ownsConversation(
+  id: number,
+  userId: string,
+): Promise<typeof conversations.$inferSelect | null> {
+  const conv = await db
+    .select()
+    .from(conversations)
+    .where(and(eq(conversations.id, id), eq(conversations.userId, userId)))
+    .limit(1);
+  return conv[0] ?? null;
+}
+
+router.get("/openai/conversations", requireAuth, async (req, res) => {
   const rows = await db
     .select()
     .from(conversations)
+    .where(eq(conversations.userId, req.userId!))
     .orderBy(desc(conversations.createdAt));
   res.json(
     rows.map((r) => ({
@@ -29,11 +44,11 @@ router.get("/openai/conversations", async (_req, res) => {
   );
 });
 
-router.post("/openai/conversations", async (req, res) => {
+router.post("/openai/conversations", requireAuth, async (req, res) => {
   const body = CreateOpenaiConversationBody.parse(req.body);
   const [created] = await db
     .insert(conversations)
-    .values({ title: body.title })
+    .values({ userId: req.userId!, title: body.title })
     .returning();
   res.status(201).json({
     id: created!.id,
@@ -42,24 +57,20 @@ router.post("/openai/conversations", async (req, res) => {
   });
 });
 
-router.get("/openai/conversations/:id", async (req, res) => {
+router.get("/openai/conversations/:id", requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(404).json({ error: "Not found" });
-  const conv = await db
-    .select()
-    .from(conversations)
-    .where(eq(conversations.id, id))
-    .limit(1);
-  if (conv.length === 0) return res.status(404).json({ error: "Not found" });
+  const conv = await ownsConversation(id, req.userId!);
+  if (!conv) return res.status(404).json({ error: "Not found" });
   const msgs = await db
     .select()
     .from(messages)
     .where(eq(messages.conversationId, id))
     .orderBy(asc(messages.createdAt));
   res.json({
-    id: conv[0]!.id,
-    title: conv[0]!.title,
-    createdAt: conv[0]!.createdAt.toISOString(),
+    id: conv.id,
+    title: conv.title,
+    createdAt: conv.createdAt.toISOString(),
     messages: msgs.map((m) => ({
       id: m.id,
       conversationId: m.conversationId,
@@ -70,22 +81,21 @@ router.get("/openai/conversations/:id", async (req, res) => {
   });
 });
 
-router.delete("/openai/conversations/:id", async (req, res) => {
+router.delete("/openai/conversations/:id", requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(404).json({ error: "Not found" });
+  const conv = await ownsConversation(id, req.userId!);
+  if (!conv) return res.status(404).json({ error: "Not found" });
   await db.delete(messages).where(eq(messages.conversationId, id));
-  const deleted = await db
-    .delete(conversations)
-    .where(eq(conversations.id, id))
-    .returning();
-  if (deleted.length === 0)
-    return res.status(404).json({ error: "Not found" });
+  await db.delete(conversations).where(eq(conversations.id, id));
   res.status(204).end();
 });
 
-router.get("/openai/conversations/:id/messages", async (req, res) => {
+router.get("/openai/conversations/:id/messages", requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(404).json({ error: "Not found" });
+  const conv = await ownsConversation(id, req.userId!);
+  if (!conv) return res.status(404).json({ error: "Not found" });
   const msgs = await db
     .select()
     .from(messages)
@@ -102,25 +112,23 @@ router.get("/openai/conversations/:id/messages", async (req, res) => {
   );
 });
 
-router.post("/openai/conversations/:id/messages", async (req, res) => {
+router.post("/openai/conversations/:id/messages", requireAuth, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(404).json({ error: "Not found" });
   const body = SendOpenaiMessageBody.parse(req.body);
 
-  const conv = await db
-    .select()
-    .from(conversations)
-    .where(eq(conversations.id, id))
-    .limit(1);
-  if (conv.length === 0) return res.status(404).json({ error: "Not found" });
+  const conv = await ownsConversation(id, req.userId!);
+  if (!conv) return res.status(404).json({ error: "Not found" });
 
-  // Persist the user message
   await db
     .insert(messages)
     .values({ conversationId: id, role: "user", content: body.content });
 
-  // Build system prompt with optional profile context
-  const profileRows = await db.select().from(studentProfilesTable).limit(1);
+  const profileRows = await db
+    .select()
+    .from(studentProfilesTable)
+    .where(eq(studentProfilesTable.userId, req.userId!))
+    .limit(1);
   let profileSummary: string | undefined;
   if (profileRows.length > 0) {
     const p = profileRows[0]!;
@@ -188,9 +196,7 @@ router.post("/openai/conversations/:id/messages", async (req, res) => {
     res.end();
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    res.write(
-      `data: ${JSON.stringify({ error: message })}\n\n`,
-    );
+    res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
     res.end();
   }
 });

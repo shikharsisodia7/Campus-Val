@@ -7,9 +7,12 @@ import {
   openai,
 } from "@workspace/integrations-openai-ai-server/audio";
 import { db, studentProfilesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { buildSystemPrompt } from "../data/advisor-prompt";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
+
 
 // ElevenLabs TTS — natural-sounding voices. Falls back to OpenAI on failure.
 // Voice "Bella" (hpp4J3VqNfWAUOO0d1Us) — professional, bright, warm; tagged
@@ -93,8 +96,12 @@ async function normalizeAudio(
   return out;
 }
 
-async function buildProfileSummary(): Promise<string | undefined> {
-  const rows = await db.select().from(studentProfilesTable).limit(1);
+async function buildProfileSummary(userId: string): Promise<string | undefined> {
+  const rows = await db
+    .select()
+    .from(studentProfilesTable)
+    .where(eq(studentProfilesTable.userId, userId))
+    .limit(1);
   if (rows.length === 0) return undefined;
   const p = rows[0]!;
   return [
@@ -110,7 +117,7 @@ async function buildProfileSummary(): Promise<string | undefined> {
 }
 
 // POST /voice/transcribe — raw audio in body, returns { text }
-router.post("/voice/transcribe", RAW_AUDIO, async (req, res) => {
+router.post("/voice/transcribe", requireAuth, RAW_AUDIO, async (req, res) => {
   try {
     const buf = req.body as Buffer;
     if (!Buffer.isBuffer(buf) || buf.length === 0) {
@@ -127,7 +134,7 @@ router.post("/voice/transcribe", RAW_AUDIO, async (req, res) => {
 });
 
 // POST /voice/speak — { text } in JSON, returns audio/mpeg buffer
-router.post("/voice/speak", express.json({ limit: "1mb" }), async (req, res) => {
+router.post("/voice/speak", requireAuth, express.json({ limit: "1mb" }), async (req, res) => {
   try {
     const text = String((req.body ?? {}).text ?? "").trim();
     if (!text) return res.status(400).json({ error: "text required" });
@@ -147,7 +154,7 @@ router.post("/voice/speak", express.json({ limit: "1mb" }), async (req, res) => 
 
 // POST /voice/ask — raw audio → { transcript, answer, audioBase64 }
 // One-shot: transcribe → ask advisor → synthesize answer.
-router.post("/voice/ask", RAW_AUDIO, async (req, res) => {
+router.post("/voice/ask", requireAuth, RAW_AUDIO, async (req, res) => {
   try {
     const buf = req.body as Buffer;
     if (!Buffer.isBuffer(buf) || buf.length === 0) {
@@ -161,7 +168,7 @@ router.post("/voice/ask", RAW_AUDIO, async (req, res) => {
       });
     }
 
-    const profileSummary = await buildProfileSummary();
+    const profileSummary = await buildProfileSummary(req.userId!);
     const completion = await openai.chat.completions.create({
       model: "gpt-5.2",
       max_completion_tokens: 1200,

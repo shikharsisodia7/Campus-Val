@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { eq } from "drizzle-orm";
 import { db, studentProfilesTable } from "@workspace/db";
 import {
   classifyStanding,
@@ -6,6 +7,7 @@ import {
   approvedCapFor,
   standingLabel,
 } from "../lib/standing";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
@@ -52,8 +54,12 @@ function rowToDto(row: typeof studentProfilesTable.$inferSelect) {
   };
 }
 
-router.get("/dashboard/summary", async (_req, res) => {
-  const rows = await db.select().from(studentProfilesTable).limit(1);
+router.get("/dashboard/summary", requireAuth, async (req, res) => {
+  const rows = await db
+    .select()
+    .from(studentProfilesTable)
+    .where(eq(studentProfilesTable.userId, req.userId!))
+    .limit(1);
   const profile = rows.length === 0 ? null : rowToDto(rows[0]!);
 
   if (!profile) {

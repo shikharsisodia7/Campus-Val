@@ -1,5 +1,20 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import {
+  Switch,
+  Route,
+  Router as WouterRouter,
+  Redirect,
+  useLocation,
+} from "wouter";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import {
+  ClerkProvider,
+  Show,
+  useClerk,
+  useUser,
+} from "@clerk/react";
+import { publishableKeyFromHost } from "@clerk/react/internal";
+import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -16,6 +31,8 @@ import Advisor from "@/pages/advisor";
 import VoiceAdvisor from "@/pages/voice";
 import GraduationPaths from "@/pages/graduation-paths";
 import Evaluation from "@/pages/evaluation";
+import Landing from "@/pages/landing";
+import { SignInPage, SignUpPage } from "@/pages/auth";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,38 +43,199 @@ const queryClient = new QueryClient({
   },
 });
 
-function Router() {
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function stripBase(path: string): string {
+  return basePath && path.startsWith(basePath)
+    ? path.slice(basePath.length) || "/"
+    : path;
+}
+
+if (!clerkPubKey) {
+  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
+}
+
+const clerkAppearance = {
+  theme: shadcn,
+  options: {
+    logoPlacement: "inside" as const,
+    logoLinkUrl: basePath || "/",
+    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+  },
+  variables: {
+    colorPrimary: "#8C1515",
+    colorForeground: "#1a1a1a",
+    colorMutedForeground: "#6b6b6b",
+    colorDanger: "#b91c1c",
+    colorBackground: "#ffffff",
+    colorInput: "#ffffff",
+    colorInputForeground: "#1a1a1a",
+    colorNeutral: "#e5e7eb",
+    fontFamily: "Inter, system-ui, sans-serif",
+    borderRadius: "0.5rem",
+  },
+  elements: {
+    rootBox: "w-full flex justify-center",
+    cardBox:
+      "bg-white rounded-2xl shadow-lg w-[440px] max-w-full overflow-hidden border border-gray-200",
+    card: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
+  },
+};
+
+function HomeRedirect() {
+  return (
+    <>
+      <Show when="signed-in">
+        <AuthedAppGate />
+      </Show>
+      <Show when="signed-out">
+        <Landing />
+      </Show>
+    </>
+  );
+}
+
+// After sign-in, send users straight to Dashboard (or Onboarding if missing).
+// Dashboard itself decides if they need onboarding via /api/profile 404.
+function AuthedAppGate() {
+  return <Dashboard />;
+}
+
+function Protected({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <Show when="signed-in">{children}</Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
+    </>
+  );
+}
+
+function ClerkQueryClientCacheInvalidator() {
+  const { addListener } = useClerk();
+  const qc = useQueryClient();
+  const prevUserIdRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const unsub = addListener(({ user }) => {
+      const uid = user?.id ?? null;
+      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== uid) {
+        qc.clear();
+      }
+      prevUserIdRef.current = uid;
+    });
+    return unsub;
+  }, [addListener, qc]);
+  return null;
+}
+
+function AppRoutes() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/onboarding" component={Onboarding} />
-      <Route path="/courses" component={Courses} />
-      <Route path="/planner" component={Planner} />
-      <Route path="/schedule" component={SchedulePage} />
-      <Route path="/gpa" component={GpaPage} />
-      <Route path="/transfer" component={TransferPage} />
-      <Route path="/sync-workday" component={SyncWorkdayPage} />
-      <Route path="/policies" component={Policies} />
-      <Route path="/advisor" component={Advisor} />
-      <Route path="/voice" component={VoiceAdvisor} />
-      <Route path="/graduation-paths" component={GraduationPaths} />
-      <Route path="/evaluation" component={Evaluation} />
+      <Route path="/" component={HomeRedirect} />
+      <Route path="/sign-in/*?" component={SignInPage} />
+      <Route path="/sign-up/*?" component={SignUpPage} />
+      <Route path="/onboarding">
+        <Protected>
+          <Onboarding />
+        </Protected>
+      </Route>
+      <Route path="/courses">
+        <Protected>
+          <Courses />
+        </Protected>
+      </Route>
+      <Route path="/planner">
+        <Protected>
+          <Planner />
+        </Protected>
+      </Route>
+      <Route path="/schedule">
+        <Protected>
+          <SchedulePage />
+        </Protected>
+      </Route>
+      <Route path="/gpa">
+        <Protected>
+          <GpaPage />
+        </Protected>
+      </Route>
+      <Route path="/transfer">
+        <Protected>
+          <TransferPage />
+        </Protected>
+      </Route>
+      <Route path="/sync-workday">
+        <Protected>
+          <SyncWorkdayPage />
+        </Protected>
+      </Route>
+      <Route path="/policies">
+        <Protected>
+          <Policies />
+        </Protected>
+      </Route>
+      <Route path="/advisor">
+        <Protected>
+          <Advisor />
+        </Protected>
+      </Route>
+      <Route path="/voice">
+        <Protected>
+          <VoiceAdvisor />
+        </Protected>
+      </Route>
+      <Route path="/graduation-paths">
+        <Protected>
+          <GraduationPaths />
+        </Protected>
+      </Route>
+      <Route path="/evaluation">
+        <Protected>
+          <Evaluation />
+        </Protected>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-function App() {
+function ClerkRouterBridge() {
+  const [, setLocation] = useLocation();
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ClerkProvider
+      publishableKey={clerkPubKey}
+      proxyUrl={clerkProxyUrl}
+      appearance={clerkAppearance}
+      signInUrl={`${basePath}/sign-in`}
+      signUpUrl={`${basePath}/sign-up`}
+      routerPush={(to) => setLocation(stripBase(to))}
+      routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
+    >
+      <QueryClientProvider client={queryClient}>
+        <ClerkQueryClientCacheInvalidator />
+        <TooltipProvider>
+          <AppRoutes />
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
   );
 }
 
+function App() {
+  return (
+    <WouterRouter base={basePath}>
+      <ClerkRouterBridge />
+    </WouterRouter>
+  );
+}
+
+export { useUser };
 export default App;

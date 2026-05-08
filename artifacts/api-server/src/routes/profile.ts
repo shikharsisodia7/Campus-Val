@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, studentProfilesTable } from "@workspace/db";
 import { UpsertProfileBody } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
@@ -30,19 +31,29 @@ function rowToDto(row: typeof studentProfilesTable.$inferSelect) {
   };
 }
 
-router.get("/profile", async (_req, res) => {
-  const rows = await db.select().from(studentProfilesTable).limit(1);
+router.get("/profile", requireAuth, async (req, res) => {
+  const rows = await db
+    .select()
+    .from(studentProfilesTable)
+    .where(eq(studentProfilesTable.userId, req.userId!))
+    .limit(1);
   if (rows.length === 0) {
     return res.status(404).json({ error: "No profile yet" });
   }
   res.json(rowToDto(rows[0]!));
 });
 
-router.put("/profile", async (req, res) => {
+router.put("/profile", requireAuth, async (req, res) => {
   const body = UpsertProfileBody.parse(req.body);
-  const existing = await db.select().from(studentProfilesTable).limit(1);
+  const existing = await db
+    .select()
+    .from(studentProfilesTable)
+    .where(eq(studentProfilesTable.userId, req.userId!))
+    .limit(1);
 
   const values = {
+    userId: req.userId!,
+    email: req.userEmail ?? null,
     name: body.name,
     studentType: body.studentType,
     college: body.college,
@@ -74,7 +85,12 @@ router.put("/profile", async (req, res) => {
   const [updated] = await db
     .update(studentProfilesTable)
     .set(values)
-    .where(eq(studentProfilesTable.id, existing[0]!.id))
+    .where(
+      and(
+        eq(studentProfilesTable.id, existing[0]!.id),
+        eq(studentProfilesTable.userId, req.userId!),
+      ),
+    )
     .returning();
   res.json(rowToDto(updated!));
 });
