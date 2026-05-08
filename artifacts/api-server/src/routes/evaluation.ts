@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { EVALUATION_SCENARIOS } from "../data/evaluation-bench";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { buildSystemPrompt } from "../data/advisor-prompt";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
@@ -11,7 +12,7 @@ router.get("/evaluation/scenarios", (_req, res) => {
   res.json(EVALUATION_SCENARIOS);
 });
 
-router.post("/evaluation/run", async (req, res) => {
+router.post("/evaluation/run", requireAuth, async (req, res) => {
   const body = (req.body ?? {}) as { scenarioIds?: string[] };
   const scenarios =
     body.scenarioIds && body.scenarioIds.length > 0

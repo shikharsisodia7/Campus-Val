@@ -3,10 +3,11 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db, courseSectionsTable } from "@workspace/db";
 import { SyncWorkdaySectionsBody } from "@workspace/api-zod";
 import { parseWorkdaySections } from "../lib/workday-parser";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
-router.post("/sections/sync", async (req, res) => {
+router.post("/sections/sync", requireAuth, async (req, res) => {
   const parseResult = SyncWorkdaySectionsBody.safeParse(req.body);
   if (!parseResult.success) {
     return res
