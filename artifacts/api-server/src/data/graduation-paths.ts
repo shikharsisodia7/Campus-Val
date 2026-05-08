@@ -152,6 +152,16 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     upperDiv: ["OMIS 105", "OMIS 108", "OMIS 109", "OMIS 111", "OMIS 113", "OMIS 114", "FNCE 121", "MGMT 160", "MKTG 181"],
     capstone: "MGMT 162",
   },
+  AIS: {
+    major: "AIS",
+    title: "Accounting Information Systems (B.S. Commerce)",
+    college: "LSB",
+    mathTrack: "calc-business",
+    lowerDiv: ["ACTG 11", "ACTG 12", "OMIS 30", "OMIS 31"],
+    upperDiv: ["ACTG 130", "ACTG 131", "ACTG 132", "ACTG 134", "ACTG 138", "OMIS 105", "OMIS 108", "OMIS 111", "FNCE 121", "MGMT 160", "MKTG 181"],
+    capstone: "MGMT 162",
+    notes: ["Joint Accounting + MIS major — combines ACTG financial/managerial sequence with OMIS systems & analytics core."],
+  },
   BANL: {
     major: "BANL",
     title: "Business Analytics (B.S. Commerce)",
@@ -780,19 +790,155 @@ export function getAvailableMajors(): {
 export function getGraduationPath(
   type: PathType,
   major = "CSE",
+  completedCourseCodes: string[] = [],
 ): GraduationPathEntry {
   // Normalize legacy COEN code to current CSEN/CSE.
   const normalizedMajor = major === "COEN" ? "CSE" : major;
   // Hand-tuned CSE plans take precedence (well-documented, in production).
+  let base: GraduationPathEntry;
   if (normalizedMajor === "CSE") {
-    return type === "three_year" ? THREE_YEAR_CSE : FOUR_YEAR_CSE;
+    base = type === "three_year" ? THREE_YEAR_CSE : FOUR_YEAR_CSE;
+  } else {
+    const recipe = MAJOR_RECIPES[normalizedMajor];
+    if (!recipe) {
+      base = type === "three_year" ? THREE_YEAR_CSE : FOUR_YEAR_CSE;
+    } else {
+      base = type === "three_year"
+        ? generateThreeYear(recipe)
+        : generateFourYear(recipe);
+    }
   }
+
+  // Strip already-completed courses from the per-quarter plan so the
+  // student sees only what they still need. Core slot placeholders
+  // (e.g. "Core: Arts") are never auto-stripped — students mark Core
+  // satisfaction explicitly.
+  if (completedCourseCodes.length === 0) return base;
+  const completed = new Set(
+    completedCourseCodes.map((c) => c.trim().toUpperCase().replace(/\s+/g, " ")),
+  );
+  const isCorePlaceholder = (c: string) =>
+    c.startsWith("Core:") || c === "Core: Pathway";
+  const quarters = base.quarters.map((q) => {
+    const remaining = q.courses.filter(
+      (c) => isCorePlaceholder(c) || !completed.has(c.toUpperCase().replace(/\s+/g, " ")),
+    );
+    const removed = q.courses.length - remaining.length;
+    const plannedUnits = remaining.reduce((acc, c) => acc + estimateUnits(c), 0);
+    const noteParts: string[] = [];
+    if (q.notes) noteParts.push(q.notes);
+    if (removed > 0)
+      noteParts.push(
+        `${removed} course${removed === 1 ? "" : "s"} hidden — already completed.`,
+      );
+    return {
+      ...q,
+      courses: remaining,
+      plannedUnits,
+      ...(noteParts.length ? { notes: noteParts.join(" ") } : {}),
+    };
+  });
+  const totalUnits = quarters.reduce((s, q) => s + q.plannedUnits, 0);
+  const avg = quarters.length ? totalUnits / quarters.length : 0;
+  return {
+    ...base,
+    quarters,
+    averageUnitsPerQuarter: Math.round(avg * 10) / 10,
+    summary: `${base.summary} Adjusted for ${completed.size} course${completed.size === 1 ? "" : "s"} you've already completed.`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Major Requirements (full course list with titles + descriptions)
+// ---------------------------------------------------------------------------
+
+export interface MajorRequirementCourse {
+  code: string;
+  title: string;
+  units: number;
+  description: string;
+  completed: boolean;
+  category: "lower-division" | "upper-division" | "capstone";
+}
+
+export interface MajorRequirements {
+  major: string;
+  title: string;
+  college: College;
+  mathTrack: string;
+  notes: string[];
+  totalListed: number;
+  completedCount: number;
+  groups: {
+    label: string;
+    courses: MajorRequirementCourse[];
+  }[];
+}
+
+export function getMajorRequirements(
+  major: string,
+  completedCourseCodes: string[],
+  catalogLookup: (code: string) => { code: string; title: string; units: number; description: string } | undefined,
+): MajorRequirements | null {
+  const normalizedMajor = major === "COEN" ? "CSE" : major;
   const recipe = MAJOR_RECIPES[normalizedMajor];
-  if (!recipe) {
-    // Fall back to CSE 4-year plan with a feasibility note.
-    return type === "three_year" ? THREE_YEAR_CSE : FOUR_YEAR_CSE;
+  if (!recipe) return null;
+  const completed = new Set(
+    completedCourseCodes.map((c) => c.trim().toUpperCase().replace(/\s+/g, " ")),
+  );
+  const isDone = (code: string) =>
+    completed.has(code.toUpperCase().replace(/\s+/g, " "));
+  const buildEntry = (
+    code: string,
+    category: MajorRequirementCourse["category"],
+  ): MajorRequirementCourse => {
+    const found = catalogLookup(code);
+    return {
+      code,
+      title: found?.title ?? code,
+      units: found?.units ?? 4,
+      description:
+        found?.description ??
+        "Course details not in current catalog snapshot — verify in the SCU 2025-26 Bulletin.",
+      completed: isDone(code),
+      category,
+    };
+  };
+  const math = mathSequenceFor(recipe.mathTrack);
+  const groups: MajorRequirements["groups"] = [];
+  if (math.length > 0) {
+    groups.push({
+      label: "Math sequence",
+      courses: math.map((c) => buildEntry(c, "lower-division")),
+    });
   }
-  return type === "three_year"
-    ? generateThreeYear(recipe)
-    : generateFourYear(recipe);
+  if (recipe.lowerDiv.length > 0) {
+    groups.push({
+      label: "Lower-division major requirements",
+      courses: recipe.lowerDiv.map((c) => buildEntry(c, "lower-division")),
+    });
+  }
+  if (recipe.upperDiv.length > 0) {
+    groups.push({
+      label: "Upper-division major requirements",
+      courses: recipe.upperDiv.map((c) => buildEntry(c, "upper-division")),
+    });
+  }
+  if (recipe.capstone) {
+    groups.push({
+      label: "Capstone",
+      courses: [buildEntry(recipe.capstone, "capstone")],
+    });
+  }
+  const all = groups.flatMap((g) => g.courses);
+  return {
+    major: recipe.major,
+    title: recipe.title,
+    college: recipe.college,
+    mathTrack: recipe.mathTrack,
+    notes: recipe.notes ?? [],
+    totalListed: all.length,
+    completedCount: all.filter((c) => c.completed).length,
+    groups,
+  };
 }

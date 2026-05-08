@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useGetGraduationPath } from "@workspace/api-client-react";
+import { useEffect, useMemo, useState } from "react";
+import { useGetProfile } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,8 @@ import {
   Calendar,
   TrendingUp,
   ShieldCheck,
+  CheckCircle2,
+  BookOpen,
 } from "lucide-react";
 import { termLabel } from "@/lib/api";
 
@@ -19,6 +21,46 @@ interface MajorOption {
   code: string;
   title: string;
   college: "SOE" | "LSB" | "CAS";
+}
+
+interface PathQuarter {
+  year: number;
+  term: "fall" | "winter" | "spring" | "summer";
+  label: string;
+  courses: string[];
+  plannedUnits: number;
+  notes?: string | null;
+}
+
+interface PathData {
+  type: PathType;
+  major: string;
+  title: string;
+  summary: string;
+  feasibilityNote: string;
+  averageUnitsPerQuarter: number;
+  requiresOverload: boolean;
+  quarters: PathQuarter[];
+  risks: string[];
+}
+
+interface RequirementCourse {
+  code: string;
+  title: string;
+  units: number;
+  description: string;
+  completed: boolean;
+  category: "lower-division" | "upper-division" | "capstone";
+}
+
+interface RequirementsData {
+  major: string;
+  title: string;
+  college: "SOE" | "LSB" | "CAS";
+  notes: string[];
+  totalListed: number;
+  completedCount: number;
+  groups: { label: string; courses: RequirementCourse[] }[];
 }
 
 const COLLEGE_LABEL: Record<MajorOption["college"], string> = {
@@ -31,7 +73,32 @@ export default function GraduationPaths() {
   const [type, setType] = useState<PathType>("four_year");
   const [major, setMajor] = useState<string>("CSE");
   const [majors, setMajors] = useState<MajorOption[]>([]);
-  const { data, isLoading } = useGetGraduationPath(type, { major });
+  const { data: profile } = useGetProfile();
+  const completedCsv = useMemo(
+    () => (profile?.completedCourseCodes ?? []).join(","),
+    [profile?.completedCourseCodes],
+  );
+  const [data, setData] = useState<PathData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [requirements, setRequirements] = useState<RequirementsData | null>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const url = `${import.meta.env.BASE_URL}api/graduation-paths/${type}?major=${encodeURIComponent(major)}${completedCsv ? `&completed=${encodeURIComponent(completedCsv)}` : ""}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((j) => setData(j))
+      .catch(() => setData(null))
+      .finally(() => setIsLoading(false));
+  }, [type, major, completedCsv]);
+
+  useEffect(() => {
+    const url = `${import.meta.env.BASE_URL}api/graduation-paths/requirements?major=${encodeURIComponent(major)}${completedCsv ? `&completed=${encodeURIComponent(completedCsv)}` : ""}`;
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setRequirements(j))
+      .catch(() => setRequirements(null));
+  }, [major, completedCsv]);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}api/graduation-paths/majors`)
@@ -185,6 +252,73 @@ export default function GraduationPaths() {
                 ))}
               </ul>
             </Card>
+
+            {requirements && (
+              <Card className="p-6">
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+                  <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    All courses for {requirements.title}
+                  </div>
+                  <Badge variant="outline" className="text-xs font-mono">
+                    {requirements.completedCount}/{requirements.totalListed} done
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Every required course in this major (not just the suggested per-quarter plan). Courses you've marked completed in onboarding are checked off and skipped from the plan above.
+                </p>
+                {requirements.notes.length > 0 && (
+                  <div className="rounded-md border border-secondary/30 bg-secondary/5 p-3 text-xs text-foreground mb-4">
+                    {requirements.notes.map((n, i) => (
+                      <div key={i}>{n}</div>
+                    ))}
+                  </div>
+                )}
+                <div className="space-y-5">
+                  {requirements.groups.map((g) => (
+                    <div key={g.label}>
+                      <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+                        {g.label}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {g.courses.map((c) => (
+                          <div
+                            key={c.code}
+                            data-testid={`req-course-${c.code.replace(/\s+/g, "-")}`}
+                            className={`rounded-md border p-3 ${c.completed ? "border-emerald-300 bg-emerald-50/60" : "border-border bg-card"}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-xs font-semibold text-foreground">
+                                    {c.code}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground font-mono">
+                                    {c.units}u
+                                  </span>
+                                  {c.completed && (
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                  )}
+                                </div>
+                                <div className="text-sm font-medium text-foreground mt-0.5 truncate">
+                                  {c.title}
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-3">
+                              {c.description}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-[11px] text-muted-foreground italic">
+                  Need help with any of these courses? Ask the AI advisor — it knows the SCU tutoring centers (Drahmann, HUB Writing, Math/CS Tutoring, Engineering Tutoring, Leavey Business Tutoring) and free video resources (Khan Academy, Professor Leonard, 3Blue1Brown).
+                </div>
+              </Card>
+            )}
           </>
         )}
       </PageContent>
