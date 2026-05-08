@@ -89,7 +89,7 @@ export default function Landing() {
             {
               icon: GraduationCap,
               title: "Graduation Paths",
-              desc: "3-year and 4-year CSE plans with quarter-by-quarter breakdowns.",
+              desc: "3-year and 4-year plans for every SCU undergrad major, quarter by quarter.",
             },
             {
               icon: MessageSquareText,

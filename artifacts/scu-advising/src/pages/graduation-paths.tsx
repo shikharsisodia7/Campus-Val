@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useGetGraduationPath } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -15,15 +15,47 @@ import { termLabel } from "@/lib/api";
 
 type PathType = "four_year" | "three_year";
 
+interface MajorOption {
+  code: string;
+  title: string;
+  college: "SOE" | "LSB" | "CAS";
+}
+
+const COLLEGE_LABEL: Record<MajorOption["college"], string> = {
+  SOE: "School of Engineering",
+  LSB: "Leavey School of Business",
+  CAS: "College of Arts & Sciences",
+};
+
 export default function GraduationPaths() {
   const [type, setType] = useState<PathType>("four_year");
-  const { data, isLoading } = useGetGraduationPath(type, { major: "CSE" });
+  const [major, setMajor] = useState<string>("CSE");
+  const [majors, setMajors] = useState<MajorOption[]>([]);
+  const { data, isLoading } = useGetGraduationPath(type, { major });
+
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}api/graduation-paths/majors`)
+      .then((r) => r.json())
+      .then((j) => {
+        const list: MajorOption[] = (j.majors || []).slice().sort(
+          (a: MajorOption, b: MajorOption) =>
+            a.college.localeCompare(b.college) || a.title.localeCompare(b.title),
+        );
+        setMajors(list);
+      })
+      .catch(() => setMajors([]));
+  }, []);
+
+  const grouped = majors.reduce<Record<string, MajorOption[]>>((acc, m) => {
+    (acc[m.college] = acc[m.college] || []).push(m);
+    return acc;
+  }, {});
 
   return (
     <AppShell>
       <PageHeader
         title="Graduation Paths"
-        subtitle="Compare standard 4-year and aggressive 3-year degree plans for Computer Science & Engineering. See unit load per quarter and feasibility risks."
+        subtitle="Compare standard 4-year and aggressive 3-year degree plans for any SCU undergraduate major. See unit load per quarter and feasibility risks."
         right={
           <div className="flex gap-2">
             <Button
@@ -43,6 +75,27 @@ export default function GraduationPaths() {
           </div>
         }
       />
+      <div className="px-6 pt-2 pb-1">
+        <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+          Major
+        </label>
+        <select
+          data-testid="select-major"
+          value={major}
+          onChange={(e) => setMajor(e.target.value)}
+          className="mt-1 block w-full md:w-[420px] rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+        >
+          {Object.entries(grouped).map(([college, list]) => (
+            <optgroup key={college} label={COLLEGE_LABEL[college as MajorOption["college"]]}>
+              {list.map((m) => (
+                <option key={m.code} value={m.code}>
+                  {m.title}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </div>
       <PageContent>
         {isLoading || !data ? (
           <div className="text-muted-foreground">Loading path…</div>

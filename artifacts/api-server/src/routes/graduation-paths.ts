@@ -1,7 +1,15 @@
 import { Router, type IRouter } from "express";
-import { getGraduationPath, type PathType } from "../data/graduation-paths";
+import {
+  getGraduationPath,
+  getAvailableMajors,
+  type PathType,
+} from "../data/graduation-paths";
 
 const router: IRouter = Router();
+
+router.get("/graduation-paths/majors", (_req, res) => {
+  res.json({ majors: getAvailableMajors() });
+});
 
 router.get("/graduation-paths/:type", (req, res) => {
   const type = req.params.type;
