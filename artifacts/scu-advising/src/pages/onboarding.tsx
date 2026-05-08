@@ -78,27 +78,35 @@ export default function Onboarding() {
     setCurrentYear(existing.currentYear);
   }, [existing]);
 
+  const isNoneToken = (s: string) =>
+    ["none", "n/a", "na"].includes(s.trim().toLowerCase());
+
   const onSubmit = async () => {
+    const secondMajorClean = isNoneToken(secondMajor) ? null : secondMajor.trim();
+    const minorClean = isNoneToken(minor) ? null : minor.trim();
+    const completedClean = isNoneToken(completedCourses)
+      ? []
+      : completedCourses
+          .split(",")
+          .map((s) => s.trim().toUpperCase())
+          .filter(Boolean);
     await upsert.mutateAsync({
       data: {
         name: name.trim(),
         studentType: studentType as "first_year" | "transfer" | "continuing",
         college,
         major: major.trim(),
-        secondMajor: secondMajor.trim() || null,
-        minor: minor.trim() || null,
+        secondMajor: secondMajorClean,
+        minor: minorClean,
         startTerm: startTerm as "fall" | "winter" | "spring" | "summer",
         startYear,
         expectedGradTerm: expectedGradTerm as "fall" | "winter" | "spring" | "summer",
         expectedGradYear,
         unitsCompletedAtSCU,
         unitsTransferredIn,
-        cumulativeGpa: cumulativeGpa.trim() ? Number(cumulativeGpa) : null,
-        majorGpa: majorGpa.trim() ? Number(majorGpa) : null,
-        completedCourseCodes: completedCourses
-          .split(",")
-          .map((s) => s.trim().toUpperCase())
-          .filter(Boolean),
+        cumulativeGpa: Number(cumulativeGpa),
+        majorGpa: Number(majorGpa),
+        completedCourseCodes: completedClean,
         priorityRegistration,
         currentTerm: currentTerm as "fall" | "winter" | "spring" | "summer",
         currentYear,
@@ -108,9 +116,25 @@ export default function Onboarding() {
     setLocation("/");
   };
 
-  const canNext0 = name.trim().length > 0 && major.trim().length > 0;
+  const canNext0 =
+    name.trim().length > 0 &&
+    major.trim().length > 0 &&
+    secondMajor.trim().length > 0 &&
+    minor.trim().length > 0 &&
+    startYear > 0;
   const canNext1 =
-    !Number.isNaN(unitsCompletedAtSCU) && !Number.isNaN(unitsTransferredIn);
+    !Number.isNaN(unitsCompletedAtSCU) &&
+    !Number.isNaN(unitsTransferredIn) &&
+    cumulativeGpa.trim().length > 0 &&
+    !Number.isNaN(Number(cumulativeGpa)) &&
+    Number(cumulativeGpa) >= 0 &&
+    Number(cumulativeGpa) <= 4 &&
+    majorGpa.trim().length > 0 &&
+    !Number.isNaN(Number(majorGpa)) &&
+    Number(majorGpa) >= 0 &&
+    Number(majorGpa) <= 4 &&
+    completedCourses.trim().length > 0;
+  const canFinish = currentYear > 0 && expectedGradYear > 0;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -218,23 +242,25 @@ export default function Onboarding() {
                       placeholder="Computer Science & Engineering"
                     />
                   </Field>
-                  <Field label="Second major (optional)">
+                  <Field label="Second major" required>
                     <Input
                       data-testid="input-second-major"
                       value={secondMajor}
                       onChange={(e) => setSecondMajor(e.target.value)}
+                      placeholder='Type "none" if not applicable'
                     />
                   </Field>
                 </div>
-                <Field label="Minor (optional)">
+                <Field label="Minor" required>
                   <Input
                     data-testid="input-minor"
                     value={minor}
                     onChange={(e) => setMinor(e.target.value)}
+                    placeholder='Type "none" if not applicable'
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Start term">
+                  <Field label="Start term" required>
                     <Select value={startTerm} onValueChange={setStartTerm}>
                       <SelectTrigger data-testid="select-start-term">
                         <SelectValue />
@@ -248,7 +274,7 @@ export default function Onboarding() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Start year">
+                  <Field label="Start year" required>
                     <Input
                       data-testid="input-start-year"
                       type="number"
@@ -263,7 +289,7 @@ export default function Onboarding() {
             {step === 1 && (
               <>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Units completed at SCU">
+                  <Field label="Units completed at SCU" required>
                     <Input
                       data-testid="input-units-scu"
                       type="number"
@@ -274,7 +300,7 @@ export default function Onboarding() {
                       }
                     />
                   </Field>
-                  <Field label="Units transferred in (quarter units)">
+                  <Field label="Units transferred in (quarter units)" required>
                     <Input
                       data-testid="input-units-transfer"
                       type="number"
@@ -287,7 +313,7 @@ export default function Onboarding() {
                   </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Cumulative GPA (optional)">
+                  <Field label="Cumulative GPA" required>
                     <Input
                       data-testid="input-cumulative-gpa"
                       type="number"
@@ -299,25 +325,26 @@ export default function Onboarding() {
                       onChange={(e) => setCumulativeGpa(e.target.value)}
                     />
                   </Field>
-                  <Field label="Major GPA (optional)">
+                  <Field label="Major GPA" required>
                     <Input
                       data-testid="input-major-gpa"
                       type="number"
                       step="0.001"
                       min="0"
                       max="4"
+                      placeholder="e.g. 3.500"
                       value={majorGpa}
                       onChange={(e) => setMajorGpa(e.target.value)}
                     />
                   </Field>
                 </div>
-                <Field label="Completed course codes (comma-separated)">
+                <Field label="Completed course codes (comma-separated)" required>
                   <Textarea
                     data-testid="textarea-completed-courses"
                     rows={3}
                     value={completedCourses}
                     onChange={(e) => setCompletedCourses(e.target.value)}
-                    placeholder="MATH 11, MATH 12, ENGL 1A, CSEN 10"
+                    placeholder='MATH 11, MATH 12, ENGL 1A, CSEN 10  (or type "none")'
                   />
                 </Field>
                 <div className="flex items-center justify-between rounded-md border border-border p-4 bg-muted/30">
@@ -341,7 +368,7 @@ export default function Onboarding() {
             {step === 2 && (
               <>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Current term">
+                  <Field label="Current term" required>
                     <Select value={currentTerm} onValueChange={setCurrentTerm}>
                       <SelectTrigger data-testid="select-current-term">
                         <SelectValue />
@@ -355,7 +382,7 @@ export default function Onboarding() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Current year">
+                  <Field label="Current year" required>
                     <Input
                       data-testid="input-current-year"
                       type="number"
@@ -365,7 +392,7 @@ export default function Onboarding() {
                   </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Expected graduation term">
+                  <Field label="Expected graduation term" required>
                     <Select
                       value={expectedGradTerm}
                       onValueChange={setExpectedGradTerm}
@@ -382,7 +409,7 @@ export default function Onboarding() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Expected graduation year">
+                  <Field label="Expected graduation year" required>
                     <Input
                       data-testid="input-grad-year"
                       type="number"
@@ -425,7 +452,7 @@ export default function Onboarding() {
             ) : (
               <Button
                 onClick={onSubmit}
-                disabled={upsert.isPending}
+                disabled={upsert.isPending || !canFinish}
                 data-testid="button-finish"
               >
                 {upsert.isPending ? "Saving..." : "Open my dashboard"}
