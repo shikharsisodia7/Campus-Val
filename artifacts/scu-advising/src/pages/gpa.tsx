@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   useCalculateGpa,
   useGetProfile,
+  getGetProfileQueryKey,
   useSimulateGpa,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
@@ -73,7 +74,7 @@ function CalculateTab() {
         courses: rows
           .filter((r) => r.units > 0)
           .map((r) => ({
-            code: r.code || null,
+            code: r.code || "",
             units: r.units,
             grade: r.grade as (typeof GRADE_OPTIONS)[number],
           })),
@@ -193,7 +194,9 @@ function CalculateTab() {
 }
 
 function SimulateTab() {
-  const { data: profile } = useGetProfile({ query: { retry: false } });
+  const { data: profile } = useGetProfile({
+    query: { retry: false, queryKey: getGetProfileQueryKey() },
+  });
   const [currentGpa, setCurrentGpa] = useState<number>(
     profile?.cumulativeGpa ?? 3.5,
   );
@@ -217,7 +220,7 @@ function SimulateTab() {
         currentGpa,
         currentGradedUnits,
         projected: projected.map((p) => ({
-          code: p.code || null,
+          code: p.code || "",
           units: p.units,
           grade: p.grade as (typeof GRADE_OPTIONS)[number],
         })),

@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import {
   useGetDashboardSummary,
   useGetProfile,
+  getGetProfileQueryKey,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -24,7 +25,9 @@ import { termLabel } from "@/lib/api";
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { data: profile, isLoading: profileLoading, isError: profileError } =
-    useGetProfile({ query: { retry: false } });
+    useGetProfile({
+      query: { retry: false, queryKey: getGetProfileQueryKey() },
+    });
 
   useEffect(() => {
     if (!profileLoading && (profileError || !profile)) {

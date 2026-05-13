@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   useCheckPlan,
   useGetProfile,
+  getGetProfileQueryKey,
   useListCourses,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
@@ -35,7 +36,9 @@ interface PlannedCourse {
 const STORAGE_KEY = "campusval.planner.v1";
 
 export default function Planner() {
-  const { data: profile } = useGetProfile({ query: { retry: false } });
+  const { data: profile } = useGetProfile({
+    query: { retry: false, queryKey: getGetProfileQueryKey() },
+  });
   const { data: catalog = [] } = useListCourses({});
   const checkPlan = useCheckPlan();
 

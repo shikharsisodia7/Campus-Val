@@ -2,7 +2,9 @@ import { useState } from "react";
 import {
   useEvaluateTransfer,
   useGetProfile,
+  getGetProfileQueryKey,
   useLookupArticulation,
+  getLookupArticulationQueryKey,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -34,22 +36,24 @@ import { EXAM_CREDITS } from "@/lib/apib";
 interface TransferRow {
   institution: string;
   courseCode: string;
-  title: string;
+  courseTitle: string;
   units: number;
   unitSystem: "semester" | "quarter";
   grade: string;
   takenAfterSCUEnrollment: boolean;
-  institutionType: "community_college" | "four_year_us" | "international" | "other";
+  institutionType: "community_college" | "four_year" | "ap_ib" | "online";
 }
 
 export default function TransferPage() {
-  const { data: profile } = useGetProfile({ query: { retry: false } });
+  const { data: profile } = useGetProfile({
+    query: { retry: false, queryKey: getGetProfileQueryKey() },
+  });
   const evaluate = useEvaluateTransfer();
   const [rows, setRows] = useState<TransferRow[]>([
     {
       institution: "",
       courseCode: "",
-      title: "",
+      courseTitle: "",
       units: 3,
       unitSystem: "semester",
       grade: "A",
@@ -76,7 +80,7 @@ export default function TransferPage() {
         courses: rows.map((r) => ({
           institution: r.institution,
           courseCode: r.courseCode,
-          title: r.title,
+          courseTitle: r.courseTitle,
           units: r.units,
           unitSystem: r.unitSystem,
           grade: r.grade,
@@ -159,8 +163,8 @@ export default function TransferPage() {
                   />
                 </div>
                 <Input
-                  value={r.title}
-                  onChange={(e) => update(i, "title", e.target.value)}
+                  value={r.courseTitle}
+                  onChange={(e) => update(i, "courseTitle", e.target.value)}
                   placeholder="Course title"
                 />
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -236,13 +240,13 @@ export default function TransferPage() {
                         <SelectItem value="community_college">
                           Community college
                         </SelectItem>
-                        <SelectItem value="four_year_us">
-                          4-year U.S.
+                        <SelectItem value="four_year">
+                          4-year college / university
                         </SelectItem>
-                        <SelectItem value="international">
-                          International
+                        <SelectItem value="ap_ib">AP / IB exam</SelectItem>
+                        <SelectItem value="online">
+                          Online / other
                         </SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -275,7 +279,7 @@ export default function TransferPage() {
                   {
                     institution: "",
                     courseCode: "",
-                    title: "",
+                    courseTitle: "",
                     units: 3,
                     unitSystem: "semester",
                     grade: "A",
@@ -348,7 +352,7 @@ export default function TransferPage() {
                         {ev.input.courseCode}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {ev.input.title} · {ev.input.institution}
+                        {ev.input.courseTitle} · {ev.input.institution}
                       </div>
                     </div>
                     <Badge
@@ -491,6 +495,12 @@ function ArticulationLookup() {
     {
       query: {
         enabled: !!submitted,
+        queryKey: getLookupArticulationQueryKey({
+          institution: submitted?.institution ?? "",
+          ...(submitted?.courseCode
+            ? { courseCode: submitted.courseCode }
+            : {}),
+        }),
       },
     },
   );

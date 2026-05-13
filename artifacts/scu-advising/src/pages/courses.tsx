@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   useListCourses,
   useGetCourse,
+  getGetCourseQueryKey,
   useListCourseSections,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
@@ -213,7 +214,10 @@ function CourseDrawer({
   onClose: () => void;
 }) {
   const { data, isLoading } = useGetCourse(code ?? "", {
-    query: { enabled: !!code },
+    query: {
+      enabled: !!code,
+      queryKey: getGetCourseQueryKey(code ?? ""),
+    },
   });
   return (
     <Sheet open={!!code} onOpenChange={(open) => !open && onClose()}>
