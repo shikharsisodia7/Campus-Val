@@ -27,6 +27,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { TERM_OPTIONS, termLabel, getCurrentSCUTerm } from "@/lib/api";
+import { creditedCourses, loadStoredExams } from "@/lib/apib";
 
 interface PlannedCourse {
   code: string;
@@ -103,31 +104,56 @@ export default function Planner() {
     if (!profile) return;
     setComparing(true);
     try {
-      const url = `${import.meta.env.BASE_URL}api/graduation-paths/requirements?major=${encodeURIComponent(profile.major)}`;
-      const r = await fetch(url);
-      if (!r.ok) throw new Error("Could not load major requirements.");
-      const reqs = await r.json();
-      const required: { code: string; group: string }[] = [];
-      for (const g of reqs.groups ?? []) {
-        if (g.label.startsWith("University Core")) continue;
-        for (const c of g.courses ?? []) {
-          required.push({ code: c.code.toUpperCase(), group: g.label });
+      const apIb = creditedCourses(loadStoredExams());
+      const apIbCsv = apIb.join(",");
+      const majorsToCheck = [profile.major, profile.secondMajor].filter(
+        (m): m is string => !!m,
+      );
+      const required: { code: string; group: string; major: string }[] = [];
+      for (const m of majorsToCheck) {
+        const params = new URLSearchParams();
+        params.set("major", m);
+        if (apIbCsv) params.set("apIbCredits", apIbCsv);
+        const url = `${import.meta.env.BASE_URL}api/graduation-paths/requirements?${params.toString()}`;
+        const r = await fetch(url);
+        if (!r.ok) continue;
+        const reqs = await r.json();
+        for (const g of reqs.groups ?? []) {
+          if (g.label.startsWith("University Core")) continue;
+          for (const c of g.courses ?? []) {
+            required.push({
+              code: c.code.toUpperCase(),
+              group:
+                majorsToCheck.length > 1 ? `${m} · ${g.label}` : g.label,
+              major: m,
+            });
+          }
         }
       }
-      const requiredSet = new Map(required.map((r) => [r.code, r.group]));
+      // Dedupe: same course required by both majors → keep first occurrence.
+      const seen = new Set<string>();
+      const dedup = required.filter((r) => {
+        if (seen.has(r.code)) return false;
+        seen.add(r.code);
+        return true;
+      });
+      const requiredSet = new Map(dedup.map((r) => [r.code, r.group]));
       const inPlan = planned.map((p) => {
         const upper = p.code.toUpperCase();
         const group = requiredSet.get(upper);
         return { code: p.code, matched: !!group, group };
       });
       const plannedSet = new Set(planned.map((p) => p.code.toUpperCase()));
-      const completedSet = new Set(
-        (profile.completedCourseCodes ?? []).map((c) => c.toUpperCase()),
-      );
-      const missingFromPath = required
+      const completedSet = new Set([
+        ...(profile.completedCourseCodes ?? []).map((c) => c.toUpperCase()),
+        ...apIb.map((c) => c.toUpperCase()),
+      ]);
+      const missingFromPath = dedup
         .filter((r) => !plannedSet.has(r.code) && !completedSet.has(r.code))
-        .slice(0, 12)
-        .map((r) => r.code);
+        .slice(0, 16)
+        .map((r) =>
+          majorsToCheck.length > 1 ? `${r.code} (${r.major})` : r.code,
+        );
       setComparison({ inPlan, missingFromPath });
     } catch {
       setComparison({ inPlan: [], missingFromPath: [] });
@@ -141,6 +167,16 @@ export default function Planner() {
   };
 
   const onCheck = () => {
+    // Merge AP/IB-credited courses into the completed list so the server's
+    // prereq checker treats them as satisfied (e.g. AP Calc BC → MATH 11/12).
+    const apIb = creditedCourses(loadStoredExams());
+    const mergedCompleted = Array.from(
+      new Set(
+        [...(profile?.completedCourseCodes ?? []), ...apIb].map((c) =>
+          c.toUpperCase(),
+        ),
+      ),
+    );
     checkPlan.mutate({
       data: {
         term: term as "fall" | "winter" | "spring" | "summer",
@@ -150,7 +186,7 @@ export default function Planner() {
           code: p.code,
           units: p.units,
         })),
-        completedCourseCodes: profile?.completedCourseCodes ?? [],
+        completedCourseCodes: mergedCompleted,
         cumulativeGpa: profile?.cumulativeGpa ?? null,
         priorityRegistration: profile?.priorityRegistration ?? false,
       },
