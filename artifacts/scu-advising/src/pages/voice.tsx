@@ -60,6 +60,7 @@ export default function VoiceAdvisor() {
       setPhase("error");
       return;
     }
+    const inIframe = typeof window !== "undefined" && window.self !== window.top;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -85,7 +86,18 @@ export default function VoiceAdvisor() {
       setElapsed(0);
       tickRef.current = window.setInterval(() => setElapsed((e) => e + 1), 1000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Microphone access denied";
+      const name = (err as { name?: string } | null)?.name ?? "";
+      const raw = err instanceof Error ? err.message : "Microphone access denied";
+      let msg = raw;
+      if (name === "NotAllowedError" || /permission|denied|allowed/i.test(raw)) {
+        msg = inIframe
+          ? "Microphone is blocked inside the embedded preview. Open the app in a new tab (click the ↗ icon in the preview header) and try again — Replit's Canvas iframe doesn't grant mic permission."
+          : "Microphone permission was denied. Click the lock icon in the address bar and allow microphone access for this site, then reload.";
+      } else if (name === "NotFoundError" || /no.*device|not.*found/i.test(raw)) {
+        msg = "No microphone detected. Plug one in (or check your OS sound settings) and try again.";
+      } else if (name === "NotReadableError") {
+        msg = "Your microphone is in use by another app. Close other apps using the mic and try again.";
+      }
       setError(msg);
       setPhase("error");
       stopStream();
