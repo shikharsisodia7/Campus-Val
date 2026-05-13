@@ -89,6 +89,18 @@ export default function Advisor() {
   }, [messages.length, streamingContent]);
 
   const newConversation = async () => {
+    // If the conversation we're already looking at has zero messages, just
+    // stay on it instead of spawning another empty placeholder. This is the
+    // truthful check — we ask the server (via the loaded detail) rather than
+    // guessing from the sidebar title, so users with many real conversations
+    // can still create new ones freely.
+    if (
+      activeId !== null &&
+      convDetail &&
+      (convDetail.messages?.length ?? 0) === 0
+    ) {
+      return;
+    }
     const created = await createConv.mutateAsync({
       data: { title: "New conversation" },
     });

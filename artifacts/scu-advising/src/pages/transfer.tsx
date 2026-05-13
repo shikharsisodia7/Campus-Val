@@ -29,6 +29,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { GRADE_OPTIONS, gradeLabel } from "@/lib/api";
+import { EXAM_CREDITS } from "@/lib/apib";
 
 interface TransferRow {
   institution: string;
@@ -95,6 +96,7 @@ export default function TransferPage() {
         subtitle="Check whether outside coursework will count at SCU. Handles the 87.5-quarter-unit cap, semester→quarter conversion, and post-enrollment restrictions."
       />
       <PageContent>
+        <ApIbReferenceCard />
         <ArticulationLookup />
 
         {profile && (
@@ -390,6 +392,86 @@ export default function TransferPage() {
         )}
       </PageContent>
     </AppShell>
+  );
+}
+
+function ApIbReferenceCard() {
+  const ap = EXAM_CREDITS.filter((e) => e.category === "AP");
+  const ib = EXAM_CREDITS.filter((e) => e.category === "IB");
+  return (
+    <Card className="p-6 border-l-4 border-l-secondary/40" data-testid="card-ap-ib-reference">
+      <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+        <CheckCircle2 className="h-4 w-4 text-secondary" />
+        AP / IB credit equivalents
+      </div>
+      <p className="text-xs text-muted-foreground mt-1.5 mb-4">
+        Standard SCU equivalents for the most common AP and IB exams. Score thresholds shown are the minimum to receive course credit. Always verify with the SCU Office of the Registrar before relying on these for graduation planning.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+            Advanced Placement (AP)
+          </div>
+          <div className="space-y-1.5">
+            {ap.map((e) => (
+              <div
+                key={e.id}
+                className="flex items-start justify-between gap-3 text-xs"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium text-foreground truncate">
+                    {e.exam}
+                  </div>
+                  {e.notes && (
+                    <div className="text-[10px] text-muted-foreground italic">
+                      {e.notes}
+                    </div>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-mono text-foreground">
+                    {e.scuEquivalents.join(", ")}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    score ≥ {e.minScore}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+            International Baccalaureate (IB HL)
+          </div>
+          <div className="space-y-1.5">
+            {ib.map((e) => (
+              <div
+                key={e.id}
+                className="flex items-start justify-between gap-3 text-xs"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium text-foreground truncate">
+                    {e.exam}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-mono text-foreground">
+                    {e.scuEquivalents.join(", ")}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    score ≥ {e.minScore}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 text-[11px] text-muted-foreground italic">
+        Tip: enter your AP/IB scores during onboarding (Step 2). They'll automatically be treated as completed coursework on your graduation path.
+      </div>
+    </Card>
   );
 }
 

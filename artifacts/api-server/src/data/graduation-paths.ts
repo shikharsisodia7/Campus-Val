@@ -49,6 +49,9 @@ interface MajorRecipe {
   // Departments restricted to the School of Engineering for course gating;
   // also signals the SOE math/physics core
   isEngineering?: boolean;
+  // When true, the 3-quarter foreign-language sequence is NOT required.
+  // Defaults to true for SOE/LSB and B.S. CAS majors (calc-stem/calc-life).
+  noLanguage?: boolean;
 }
 
 const MAJOR_RECIPES: Record<string, MajorRecipe> = {
@@ -601,9 +604,16 @@ function generateFourYear(recipe: MajorRecipe): GraduationPathEntry {
     // never overwritten; lower-div majors slot in alongside the core.
     const ld = [...lowerDiv]; const nextLd = () => ld.shift();
     const mathQ = math[0] || "MATH 8";
-    quarters.push(makeQuarter(1, "fall",   [CORE_CTW1, LANG_1, mathQ, nextLd()].filter(Boolean) as string[]));
-    quarters.push(makeQuarter(1, "winter", [CORE_CTW2, LANG_2, math[1] || CORE_NS, nextLd()].filter(Boolean) as string[]));
-    quarters.push(makeQuarter(1, "spring", [CORE_CI1, LANG_3, CORE_ARTS, nextLd()].filter(Boolean) as string[]));
+    // B.S. degrees in CAS (calc-stem / calc-life) and any recipe with
+    // noLanguage:true substitute Natural Science / Social Science / STS in
+    // place of the 3-quarter foreign-language intro sequence.
+    const skipLang = recipe.noLanguage || mathTrack === "calc-stem" || mathTrack === "calc-life";
+    const lang1 = skipLang ? CORE_NS : LANG_1;
+    const lang2 = skipLang ? CORE_SS : LANG_2;
+    const lang3 = skipLang ? CORE_STS : LANG_3;
+    quarters.push(makeQuarter(1, "fall",   [CORE_CTW1, lang1, mathQ, nextLd()].filter(Boolean) as string[]));
+    quarters.push(makeQuarter(1, "winter", [CORE_CTW2, lang2, math[1] || CORE_NS, nextLd()].filter(Boolean) as string[]));
+    quarters.push(makeQuarter(1, "spring", [CORE_CI1, lang3, CORE_ARTS, nextLd()].filter(Boolean) as string[]));
     quarters.push(makeQuarter(2, "fall",   [CORE_CI2, CORE_RTC1, CORE_DIV, nextLd()].filter(Boolean) as string[]));
     quarters.push(makeQuarter(2, "winter", [CORE_CI3, CORE_RTC2, CORE_ETHICS, nextLd()].filter(Boolean) as string[]));
     quarters.push(makeQuarter(2, "spring", [CORE_RTC3, CORE_SS, CORE_STS, nextLd()].filter(Boolean) as string[]));
@@ -809,42 +819,21 @@ export function getGraduationPath(
     }
   }
 
-  // Strip already-completed courses from the per-quarter plan so the
-  // student sees only what they still need. Core slot placeholders
-  // (e.g. "Core: Arts") are never auto-stripped — students mark Core
-  // satisfaction explicitly.
+  // We keep ALL courses visible in the plan and let the frontend mark
+  // already-completed ones with a different style. Stripping them out
+  // hides the structure of the major and confuses students about what
+  // each quarter is supposed to look like. The summary call-out lets
+  // the user know how many we matched.
   if (completedCourseCodes.length === 0) return base;
   const completed = new Set(
     completedCourseCodes.map((c) => c.trim().toUpperCase().replace(/\s+/g, " ")),
   );
-  const isCorePlaceholder = (c: string) =>
-    c.startsWith("Core:") || c === "Core: Pathway";
-  const quarters = base.quarters.map((q) => {
-    const remaining = q.courses.filter(
-      (c) => isCorePlaceholder(c) || !completed.has(c.toUpperCase().replace(/\s+/g, " ")),
-    );
-    const removed = q.courses.length - remaining.length;
-    const plannedUnits = remaining.reduce((acc, c) => acc + estimateUnits(c), 0);
-    const noteParts: string[] = [];
-    if (q.notes) noteParts.push(q.notes);
-    if (removed > 0)
-      noteParts.push(
-        `${removed} course${removed === 1 ? "" : "s"} hidden — already completed.`,
-      );
-    return {
-      ...q,
-      courses: remaining,
-      plannedUnits,
-      ...(noteParts.length ? { notes: noteParts.join(" ") } : {}),
-    };
-  });
-  const totalUnits = quarters.reduce((s, q) => s + q.plannedUnits, 0);
-  const avg = quarters.length ? totalUnits / quarters.length : 0;
+  const matched = base.quarters.flatMap((q) => q.courses).filter((c) =>
+    completed.has(c.toUpperCase().replace(/\s+/g, " ")),
+  ).length;
   return {
     ...base,
-    quarters,
-    averageUnitsPerQuarter: Math.round(avg * 10) / 10,
-    summary: `${base.summary} Adjusted for ${completed.size} course${completed.size === 1 ? "" : "s"} you've already completed.`,
+    summary: `${base.summary} ${matched} course${matched === 1 ? "" : "s"} on this plan are already marked completed in your profile (shown struck-through).`,
   };
 }
 
@@ -858,8 +847,48 @@ export interface MajorRequirementCourse {
   units: number;
   description: string;
   completed: boolean;
-  category: "lower-division" | "upper-division" | "capstone";
+  category: "lower-division" | "upper-division" | "capstone" | "business-core" | "university-core";
 }
+
+// ---------------------------------------------------------------------------
+// LSB Common Curriculum (a.k.a. "Business Core") — required of every Leavey
+// School of Business undergraduate, regardless of major. Source: SCU 2025-26
+// Bulletin, Leavey School of Business, "Common Curriculum".
+// ---------------------------------------------------------------------------
+export const BUSINESS_CORE_CODES: readonly string[] = [
+  "BUSN 70", "OMIS 15",
+  "ECON 1", "ECON 2", "ECON 3",
+  "ACTG 11", "ACTG 12",
+  "OMIS 40", "OMIS 41",
+  "MGMT 71", "MGMT 72",
+  "BUSN 85",
+];
+
+// SCU University Core Curriculum requirement areas. These are not specific
+// course codes — students pick any approved course from the area's list in
+// the bulletin. We surface them as informational requirement entries so
+// students see what they still owe outside their major.
+const UNIVERSITY_CORE_AREAS: { label: string; description: string }[] = [
+  { label: "Critical Thinking & Writing 1", description: "ENGL 1A or honors equivalent." },
+  { label: "Critical Thinking & Writing 2", description: "ENGL 1B or honors equivalent." },
+  { label: "Cultures & Ideas 1", description: "Typically HIST 11A or an approved C&I 1 course." },
+  { label: "Cultures & Ideas 2", description: "Typically HIST 11B or an approved C&I 2 course." },
+  { label: "Cultures & Ideas 3", description: "Pick any approved C&I 3 course." },
+  { label: "Religion, Theology & Culture 1", description: "Approved RTC 1 (e.g. RSOC 7)." },
+  { label: "Religion, Theology & Culture 2", description: "Approved RTC 2 course." },
+  { label: "Religion, Theology & Culture 3", description: "Approved RTC 3 course." },
+  { label: "Ethics", description: "Typically PHIL 9. Business majors fulfill via MGMT 6." },
+  { label: "Diversity", description: "Pick any approved Diversity course." },
+  { label: "Arts", description: "Pick any approved Arts course." },
+  { label: "Social Science", description: "Pick any approved Social Science course (Business: ECON 1 fulfills)." },
+  { label: "Natural Science (lab)", description: "1 lab science course (often satisfied by your major)." },
+  { label: "Science, Technology & Society", description: "Pick an approved STS (Business: OMIS 34 fulfills)." },
+  { label: "Civic Engagement", description: "Approved CE course (Business: MGMT 162 capstone fulfills)." },
+  { label: "ELSJ", description: "Experiential Learning for Social Justice — community-based course." },
+  { label: "Advanced Writing", description: "Typically ENGL 2 (Business: BUSN 179)." },
+  { label: "Pathway", description: "4 themed courses tied together by a Pathway theme." },
+  { label: "Foreign Language (3 quarters)", description: "B.A. only — 3-quarter intro sequence (waivable with AP/IB 4+ or proficiency exam)." },
+];
 
 export interface MajorRequirements {
   major: string;
@@ -888,55 +917,103 @@ export function getMajorRequirements(
   );
   const isDone = (code: string) =>
     completed.has(code.toUpperCase().replace(/\s+/g, " "));
+
+  const missingFromCatalog: string[] = [];
   const buildEntry = (
     code: string,
     category: MajorRequirementCourse["category"],
-  ): MajorRequirementCourse => {
+  ): MajorRequirementCourse | null => {
     const found = catalogLookup(code);
+    if (!found) {
+      // Filter the placeholder courses out of the displayed list and surface
+      // them in a single "not in catalog snapshot" note instead.
+      missingFromCatalog.push(code);
+      return null;
+    }
     return {
       code,
-      title: found?.title ?? code,
-      units: found?.units ?? 4,
-      description:
-        found?.description ??
-        "Course details not in current catalog snapshot — verify in the SCU 2025-26 Bulletin.",
+      title: found.title,
+      units: found.units,
+      description: found.description,
       completed: isDone(code),
       category,
     };
   };
+  const buildGroup = (
+    label: string,
+    codes: readonly string[],
+    category: MajorRequirementCourse["category"],
+  ) => {
+    const courses = codes
+      .map((c) => buildEntry(c, category))
+      .filter((c): c is MajorRequirementCourse => c !== null);
+    if (courses.length > 0) groups.push({ label, courses });
+  };
+
   const math = mathSequenceFor(recipe.mathTrack);
   const groups: MajorRequirements["groups"] = [];
-  if (math.length > 0) {
-    groups.push({
-      label: "Math sequence",
-      courses: math.map((c) => buildEntry(c, "lower-division")),
-    });
+  if (math.length > 0) buildGroup("Math sequence", math, "lower-division");
+
+  // For LSB majors, surface the Common Curriculum (Business Core) as its
+  // own group separate from the major-specific lower division.
+  if (recipe.college === "LSB") {
+    buildGroup("Business Core (LSB Common Curriculum)", BUSINESS_CORE_CODES, "business-core");
+    const businessCoreSet = new Set<string>(BUSINESS_CORE_CODES);
+    const majorSpecificLD = recipe.lowerDiv.filter((c) => !businessCoreSet.has(c));
+    buildGroup("Major lower-division requirements", majorSpecificLD, "lower-division");
+  } else if (recipe.lowerDiv.length > 0) {
+    buildGroup("Major lower-division requirements", recipe.lowerDiv, "lower-division");
   }
-  if (recipe.lowerDiv.length > 0) {
-    groups.push({
-      label: "Lower-division major requirements",
-      courses: recipe.lowerDiv.map((c) => buildEntry(c, "lower-division")),
-    });
-  }
+
   if (recipe.upperDiv.length > 0) {
-    groups.push({
-      label: "Upper-division major requirements",
-      courses: recipe.upperDiv.map((c) => buildEntry(c, "upper-division")),
-    });
+    buildGroup("Major upper-division requirements", recipe.upperDiv, "upper-division");
   }
   if (recipe.capstone) {
-    groups.push({
-      label: "Capstone",
-      courses: [buildEntry(recipe.capstone, "capstone")],
-    });
+    buildGroup("Capstone", [recipe.capstone], "capstone");
   }
-  const all = groups.flatMap((g) => g.courses);
+
+  // University Core (informational areas — not real course codes).
+  const skipLang =
+    recipe.noLanguage ||
+    recipe.college === "SOE" ||
+    recipe.college === "LSB" ||
+    recipe.mathTrack === "calc-stem" ||
+    recipe.mathTrack === "calc-life";
+  const coreAreas = UNIVERSITY_CORE_AREAS.filter(
+    (a) => !(skipLang && a.label.startsWith("Foreign Language")),
+  );
+  groups.push({
+    label: "University Core (areas — pick approved courses)",
+    courses: coreAreas.map((a) => ({
+      code: a.label,
+      title: a.label,
+      units: 4,
+      description: a.description,
+      completed: false,
+      category: "university-core" as const,
+    })),
+  });
+
+  const notes: string[] = [...(recipe.notes ?? [])];
+  if (missingFromCatalog.length > 0) {
+    notes.push(
+      `${missingFromCatalog.length} required course${missingFromCatalog.length === 1 ? "" : "s"} not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: ${missingFromCatalog.join(", ")}.`,
+    );
+  }
+  if (skipLang) {
+    notes.push(
+      "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
+    );
+  }
+
+  const realCourseGroups = groups.filter((g) => g.label !== "University Core (areas — pick approved courses)");
+  const all = realCourseGroups.flatMap((g) => g.courses);
   return {
     major: recipe.major,
     title: recipe.title,
     college: recipe.college,
     mathTrack: recipe.mathTrack,
-    notes: recipe.notes ?? [],
+    notes,
     totalListed: all.length,
     completedCount: all.filter((c) => c.completed).length,
     groups,

@@ -12,4 +12,6 @@ export const StudentType = {
   first_year: "first_year",
   transfer: "transfer",
   continuing: "continuing",
+  graduate: "graduate",
+  postgrad: "postgrad",
 } as const;

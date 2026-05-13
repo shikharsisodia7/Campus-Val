@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, eq } from "drizzle-orm";
-import { db, studentProfilesTable } from "@workspace/db";
+import { db, studentProfilesTable, conversations } from "@workspace/db";
 import { UpsertProfileBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 
@@ -93,6 +93,19 @@ router.put("/profile", requireAuth, async (req, res) => {
     )
     .returning();
   res.json(rowToDto(updated!));
+});
+
+router.delete("/profile", requireAuth, async (req, res) => {
+  // Wipe everything tied to this user. Messages cascade-delete from conversations.
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(conversations)
+      .where(eq(conversations.userId, req.userId!));
+    await tx
+      .delete(studentProfilesTable)
+      .where(eq(studentProfilesTable.userId, req.userId!));
+  });
+  res.status(204).end();
 });
 
 export default router;

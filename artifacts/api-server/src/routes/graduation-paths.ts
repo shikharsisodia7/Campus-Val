@@ -14,13 +14,22 @@ function parseCompleted(q: unknown): string[] {
   return q.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
+// Treat AP/IB credit equivalents the same as completed coursework so
+// students don't see courses they've already cleared via test scores.
+function mergeCompleted(req: { query: Record<string, unknown> }): string[] {
+  return [
+    ...parseCompleted(req.query.completed),
+    ...parseCompleted(req.query.apIbCredits),
+  ];
+}
+
 router.get("/graduation-paths/majors", (_req, res) => {
   res.json({ majors: getAvailableMajors() });
 });
 
 router.get("/graduation-paths/requirements", (req, res) => {
   const major = (req.query.major as string | undefined) ?? "CSE";
-  const completed = parseCompleted(req.query.completed);
+  const completed = mergeCompleted(req);
   const reqs = getMajorRequirements(major, completed, (code) => {
     const c = findCourse(code);
     if (!c) return undefined;
@@ -38,7 +47,7 @@ router.get("/graduation-paths/:type", (req, res) => {
       .json({ error: "type must be 'three_year' or 'four_year'" });
   }
   const major = (req.query.major as string | undefined) ?? "CSE";
-  const completed = parseCompleted(req.query.completed);
+  const completed = mergeCompleted(req);
   const path = getGraduationPath(type as PathType, major, completed);
   res.json(path);
 });

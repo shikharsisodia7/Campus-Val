@@ -44,6 +44,12 @@ export default function Planner() {
   const [planned, setPlanned] = useState<PlannedCourse[]>([]);
   const [draftCode, setDraftCode] = useState("");
   const [draftUnits, setDraftUnits] = useState<number>(4);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [comparison, setComparison] = useState<{
+    inPlan: { code: string; matched: boolean; group?: string }[];
+    missingFromPath: string[];
+  } | null>(null);
+  const [comparing, setComparing] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -76,6 +82,11 @@ export default function Planner() {
   const addCourse = () => {
     const code = draftCode.trim().toUpperCase().replace(/\s+/g, " ");
     if (!code) return;
+    const dup = planned.find((p) => p.code.toUpperCase() === code);
+    if (dup) {
+      setAddError(`${code} is already on this quarter's plan.`);
+      return;
+    }
     const known = catalog.find((c) => c.code.toUpperCase() === code);
     setPlanned([
       ...planned,
@@ -83,6 +94,45 @@ export default function Planner() {
     ]);
     setDraftCode("");
     setDraftUnits(4);
+    setAddError(null);
+    setComparison(null);
+  };
+
+  const compareToGradPath = async () => {
+    if (!profile) return;
+    setComparing(true);
+    try {
+      const url = `${import.meta.env.BASE_URL}api/graduation-paths/requirements?major=${encodeURIComponent(profile.major)}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("Could not load major requirements.");
+      const reqs = await r.json();
+      const required: { code: string; group: string }[] = [];
+      for (const g of reqs.groups ?? []) {
+        if (g.label.startsWith("University Core")) continue;
+        for (const c of g.courses ?? []) {
+          required.push({ code: c.code.toUpperCase(), group: g.label });
+        }
+      }
+      const requiredSet = new Map(required.map((r) => [r.code, r.group]));
+      const inPlan = planned.map((p) => {
+        const upper = p.code.toUpperCase();
+        const group = requiredSet.get(upper);
+        return { code: p.code, matched: !!group, group };
+      });
+      const plannedSet = new Set(planned.map((p) => p.code.toUpperCase()));
+      const completedSet = new Set(
+        (profile.completedCourseCodes ?? []).map((c) => c.toUpperCase()),
+      );
+      const missingFromPath = required
+        .filter((r) => !plannedSet.has(r.code) && !completedSet.has(r.code))
+        .slice(0, 12)
+        .map((r) => r.code);
+      setComparison({ inPlan, missingFromPath });
+    } catch {
+      setComparison({ inPlan: [], missingFromPath: [] });
+    } finally {
+      setComparing(false);
+    }
   };
 
   const removeCourse = (idx: number) => {
@@ -186,6 +236,11 @@ export default function Planner() {
                   <Plus className="h-4 w-4 mr-1" /> Add
                 </Button>
               </div>
+              {addError && (
+                <div className="mt-2 text-xs text-destructive" data-testid="planner-add-error">
+                  {addError}
+                </div>
+              )}
             </div>
 
             <div className="mt-6 border-t border-border pt-4">
@@ -236,14 +291,65 @@ export default function Planner() {
                   ))}
                 </div>
               )}
-              <Button
-                onClick={onCheck}
-                disabled={planned.length === 0 || checkPlan.isPending}
-                className="w-full mt-4"
-                data-testid="button-check-plan"
-              >
-                {checkPlan.isPending ? "Checking…" : "Check this plan"}
-              </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+                <Button
+                  onClick={onCheck}
+                  disabled={planned.length === 0 || checkPlan.isPending}
+                  data-testid="button-check-plan"
+                >
+                  {checkPlan.isPending ? "Checking…" : "Check this plan"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={compareToGradPath}
+                  disabled={planned.length === 0 || comparing || !profile}
+                  data-testid="button-compare-grad-path"
+                >
+                  {comparing ? "Comparing…" : "Compare to grad path"}
+                </Button>
+              </div>
+              {comparison && (
+                <div className="mt-4 rounded-md border border-border bg-muted/20 p-3 space-y-2 text-sm">
+                  <div className="font-semibold text-foreground">
+                    Versus your {profile?.major} grad path
+                  </div>
+                  <div className="space-y-1">
+                    {comparison.inPlan.map((p, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <span className="font-mono w-20 shrink-0">{p.code}</span>
+                        {p.matched ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-700">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Required: {p.group}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground italic">
+                            Not in major requirements (elective / Core)
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {comparison.missingFromPath.length > 0 && (
+                    <div className="pt-2 border-t border-border">
+                      <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                        Still missing from your major
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {comparison.missingFromPath.map((c) => (
+                          <Badge
+                            key={c}
+                            variant="outline"
+                            className="font-mono text-[11px]"
+                          >
+                            {c}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </Card>
 

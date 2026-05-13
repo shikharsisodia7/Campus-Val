@@ -76,6 +76,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StudentProfile"
+    delete:
+      operationId: deleteProfile
+      tags: [profile]
+      summary: Permanently delete the current student profile and associated data
+      responses:
+        "204":
+          description: Profile deleted
 
   /courses:
     get:
@@ -538,7 +545,7 @@ components:
 
     StudentType:
       type: string
-      enum: [first_year, transfer, continuing]
+      enum: [first_year, transfer, continuing, graduate, postgrad]
     Term:
       type: string
       enum: [fall, winter, spring, summer]

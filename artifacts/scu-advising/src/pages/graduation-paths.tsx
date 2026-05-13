@@ -14,6 +14,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { termLabel } from "@/lib/api";
+import { creditedCourses, loadStoredExams } from "@/lib/apib";
 
 type PathType = "four_year" | "three_year";
 
@@ -50,7 +51,7 @@ interface RequirementCourse {
   units: number;
   description: string;
   completed: boolean;
-  category: "lower-division" | "upper-division" | "capstone";
+  category: "lower-division" | "upper-division" | "capstone" | "business-core" | "university-core";
 }
 
 interface RequirementsData {
@@ -74,31 +75,50 @@ export default function GraduationPaths() {
   const [major, setMajor] = useState<string>("CSE");
   const [majors, setMajors] = useState<MajorOption[]>([]);
   const { data: profile } = useGetProfile();
+  // Merge profile-completed courses with AP/IB credits stored locally so
+  // the plan reflects exam credit too.
+  const apIbCsv = useMemo(() => creditedCourses(loadStoredExams()).join(","), []);
   const completedCsv = useMemo(
     () => (profile?.completedCourseCodes ?? []).join(","),
     [profile?.completedCourseCodes],
   );
+  const completedSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of profile?.completedCourseCodes ?? [])
+      set.add(c.toUpperCase().replace(/\s+/g, " "));
+    for (const c of apIbCsv.split(",")) {
+      const t = c.trim().toUpperCase().replace(/\s+/g, " ");
+      if (t) set.add(t);
+    }
+    return set;
+  }, [profile?.completedCourseCodes, apIbCsv]);
   const [data, setData] = useState<PathData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [requirements, setRequirements] = useState<RequirementsData | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
-    const url = `${import.meta.env.BASE_URL}api/graduation-paths/${type}?major=${encodeURIComponent(major)}${completedCsv ? `&completed=${encodeURIComponent(completedCsv)}` : ""}`;
+    const params = new URLSearchParams({ major });
+    if (completedCsv) params.set("completed", completedCsv);
+    if (apIbCsv) params.set("apIbCredits", apIbCsv);
+    const url = `${import.meta.env.BASE_URL}api/graduation-paths/${type}?${params.toString()}`;
     fetch(url)
       .then((r) => r.json())
       .then((j) => setData(j))
       .catch(() => setData(null))
       .finally(() => setIsLoading(false));
-  }, [type, major, completedCsv]);
+  }, [type, major, completedCsv, apIbCsv]);
 
   useEffect(() => {
-    const url = `${import.meta.env.BASE_URL}api/graduation-paths/requirements?major=${encodeURIComponent(major)}${completedCsv ? `&completed=${encodeURIComponent(completedCsv)}` : ""}`;
+    const params = new URLSearchParams({ major });
+    if (completedCsv) params.set("completed", completedCsv);
+    if (apIbCsv) params.set("apIbCredits", apIbCsv);
+    const url = `${import.meta.env.BASE_URL}api/graduation-paths/requirements?${params.toString()}`;
     fetch(url)
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => setRequirements(j))
       .catch(() => setRequirements(null));
-  }, [major, completedCsv]);
+  }, [major, completedCsv, apIbCsv]);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}api/graduation-paths/majors`)
@@ -225,6 +245,7 @@ export default function GraduationPaths() {
                               year={y}
                               term={t}
                               quarter={q}
+                              completedSet={completedSet}
                             />
                           );
                         })}
@@ -281,35 +302,57 @@ export default function GraduationPaths() {
                         {g.label}
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {g.courses.map((c) => (
-                          <div
-                            key={c.code}
-                            data-testid={`req-course-${c.code.replace(/\s+/g, "-")}`}
-                            className={`rounded-md border p-3 ${c.completed ? "border-emerald-300 bg-emerald-50/60" : "border-border bg-card"}`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono text-xs font-semibold text-foreground">
-                                    {c.code}
-                                  </span>
-                                  <span className="text-[10px] text-muted-foreground font-mono">
-                                    {c.units}u
-                                  </span>
-                                  {c.completed && (
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                        {g.courses.map((c) => {
+                          const isCore = c.category === "university-core";
+                          const completed = c.completed;
+                          return (
+                            <div
+                              key={c.code}
+                              data-testid={`req-course-${c.code.replace(/\s+/g, "-")}`}
+                              className={`rounded-md border p-3 ${
+                                completed
+                                  ? "border-emerald-300 bg-emerald-50/60"
+                                  : isCore
+                                    ? "border-secondary/30 bg-secondary/5"
+                                    : c.category === "business-core"
+                                      ? "border-primary/30 bg-primary/5"
+                                      : "border-border bg-card"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {isCore ? (
+                                      <span className="text-sm font-semibold text-foreground">
+                                        {c.code}
+                                      </span>
+                                    ) : (
+                                      <>
+                                        <span className="font-mono text-xs font-semibold text-foreground">
+                                          {c.code}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground font-mono">
+                                          {c.units}u
+                                        </span>
+                                      </>
+                                    )}
+                                    {completed && (
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                    )}
+                                  </div>
+                                  {!isCore && (
+                                    <div className="text-sm font-medium text-foreground mt-0.5 truncate">
+                                      {c.title}
+                                    </div>
                                   )}
                                 </div>
-                                <div className="text-sm font-medium text-foreground mt-0.5 truncate">
-                                  {c.title}
-                                </div>
                               </div>
+                              <p className="text-xs text-muted-foreground mt-1.5 line-clamp-3">
+                                {c.description}
+                              </p>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1.5 line-clamp-3">
-                              {c.description}
-                            </p>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -330,6 +373,7 @@ function QuarterCard({
   year,
   term,
   quarter,
+  completedSet,
 }: {
   year: number;
   term: "fall" | "winter" | "spring";
@@ -341,6 +385,7 @@ function QuarterCard({
         notes?: string | null;
       }
     | undefined;
+  completedSet: Set<string>;
 }) {
   if (!quarter) {
     return (
@@ -381,14 +426,27 @@ function QuarterCard({
             (electives / open)
           </div>
         ) : (
-          quarter.courses.map((c) => (
-            <div
-              key={c}
-              className="font-mono text-xs px-1.5 py-1 rounded bg-background border border-border/60"
-            >
-              {c}
-            </div>
-          ))
+          quarter.courses.map((c) => {
+            const isCompleted = completedSet.has(
+              c.toUpperCase().replace(/\s+/g, " "),
+            );
+            return (
+              <div
+                key={c}
+                data-testid={`gp-course-${c.replace(/\s+/g, "-")}`}
+                className={`font-mono text-xs px-1.5 py-1 rounded border flex items-center gap-1.5 ${
+                  isCompleted
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-800 line-through"
+                    : "bg-background border-border/60"
+                }`}
+              >
+                {isCompleted && (
+                  <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0 no-underline" />
+                )}
+                <span>{c}</span>
+              </div>
+            );
+          })
         )}
       </div>
       {quarter.notes && (

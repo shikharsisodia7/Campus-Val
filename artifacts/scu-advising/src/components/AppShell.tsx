@@ -38,8 +38,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   return (
     <div className="min-h-screen flex bg-background text-foreground">
-      <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
-        <div className="px-6 py-6 border-b border-sidebar-border">
+      <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border sticky top-0 h-screen overflow-hidden">
+        <div className="px-6 py-6 border-b border-sidebar-border shrink-0">
           <Link
             href="/"
             className="flex items-center gap-3 group"
@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </Link>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
           {NAV.map((item) => {
             const active =
               item.path === "/"

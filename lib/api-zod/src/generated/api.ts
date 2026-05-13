@@ -20,7 +20,13 @@ export const HealthCheckResponse = zod.object({
 export const GetProfileResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
-  studentType: zod.enum(["first_year", "transfer", "continuing"]),
+  studentType: zod.enum([
+    "first_year",
+    "transfer",
+    "continuing",
+    "graduate",
+    "postgrad",
+  ]),
   college: zod
     .string()
     .describe('e.g. \"Arts and Sciences\", \"Engineering\", \"Business\"'),
@@ -47,7 +53,13 @@ export const GetProfileResponse = zod.object({
  */
 export const UpsertProfileBody = zod.object({
   name: zod.string(),
-  studentType: zod.enum(["first_year", "transfer", "continuing"]),
+  studentType: zod.enum([
+    "first_year",
+    "transfer",
+    "continuing",
+    "graduate",
+    "postgrad",
+  ]),
   college: zod.string(),
   major: zod.string(),
   secondMajor: zod.string().nullish(),
@@ -69,7 +81,13 @@ export const UpsertProfileBody = zod.object({
 export const UpsertProfileResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
-  studentType: zod.enum(["first_year", "transfer", "continuing"]),
+  studentType: zod.enum([
+    "first_year",
+    "transfer",
+    "continuing",
+    "graduate",
+    "postgrad",
+  ]),
   college: zod
     .string()
     .describe('e.g. \"Arts and Sciences\", \"Engineering\", \"Business\"'),
@@ -393,7 +411,13 @@ export const GetDashboardSummaryResponse = zod.object({
     .object({
       id: zod.number(),
       name: zod.string(),
-      studentType: zod.enum(["first_year", "transfer", "continuing"]),
+      studentType: zod.enum([
+        "first_year",
+        "transfer",
+        "continuing",
+        "graduate",
+        "postgrad",
+      ]),
       college: zod
         .string()
         .describe('e.g. \"Arts and Sciences\", \"Engineering\", \"Business\"'),
