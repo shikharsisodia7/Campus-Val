@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   BookOpen,
 } from "lucide-react";
-import { termLabel } from "@/lib/api";
+import { termLabel, getCurrentSCUTerm } from "@/lib/api";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
 
 type PathType = "four_year" | "three_year";
@@ -75,6 +75,25 @@ export default function GraduationPaths() {
   const [major, setMajor] = useState<string>("CSE");
   const [majors, setMajors] = useState<MajorOption[]>([]);
   const { data: profile } = useGetProfile();
+  const today = useMemo(() => getCurrentSCUTerm(), []);
+
+  // Double-major support: when a second major is on file, show a toggle so
+  // students can flip the entire path view (4yr/3yr grid + requirements list)
+  // between their primary and secondary major. We default to the primary.
+  const primaryMajor = profile?.major ?? null;
+  const secondaryMajor = profile?.secondMajor ?? null;
+  const [activeMajorChoice, setActiveMajorChoice] = useState<"primary" | "secondary">("primary");
+
+  // When the profile loads, lock the catalog to whichever side of the toggle
+  // is active. This means the page automatically reflects the student's real
+  // major(s) instead of staying on the hardcoded CSE default.
+  useEffect(() => {
+    if (activeMajorChoice === "secondary" && secondaryMajor) {
+      setMajor(secondaryMajor);
+    } else if (primaryMajor) {
+      setMajor(primaryMajor);
+    }
+  }, [primaryMajor, secondaryMajor, activeMajorChoice]);
   // Merge profile-completed courses with AP/IB credits stored locally so
   // the plan reflects exam credit too.
   const apIbCsv = useMemo(() => creditedCourses(loadStoredExams()).join(","), []);
@@ -162,26 +181,69 @@ export default function GraduationPaths() {
           </div>
         }
       />
-      <div className="px-6 pt-2 pb-1">
-        <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-          Major
-        </label>
-        <select
-          data-testid="select-major"
-          value={major}
-          onChange={(e) => setMajor(e.target.value)}
-          className="mt-1 block w-full md:w-[420px] rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-        >
-          {Object.entries(grouped).map(([college, list]) => (
-            <optgroup key={college} label={COLLEGE_LABEL[college as MajorOption["college"]]}>
-              {list.map((m) => (
-                <option key={m.code} value={m.code}>
-                  {m.title}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+      <div className="px-6 pt-2 pb-1 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Calendar className="h-4 w-4 text-primary" />
+            <span>
+              You are currently in{" "}
+              <span className="font-semibold text-foreground capitalize">
+                {today.term} {today.year}
+              </span>
+              .
+            </span>
+          </div>
+          {primaryMajor && secondaryMajor && (
+            <div className="flex items-center gap-2" data-testid="dual-major-toggle">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                Showing
+              </span>
+              <Button
+                size="sm"
+                variant={activeMajorChoice === "primary" ? "default" : "outline"}
+                onClick={() => setActiveMajorChoice("primary")}
+                data-testid="button-major-primary"
+              >
+                {primaryMajor}
+              </Button>
+              <Button
+                size="sm"
+                variant={activeMajorChoice === "secondary" ? "default" : "outline"}
+                onClick={() => setActiveMajorChoice("secondary")}
+                data-testid="button-major-secondary"
+              >
+                {secondaryMajor}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            {primaryMajor && secondaryMajor ? "Or browse any major" : "Major"}
+          </label>
+          <select
+            data-testid="select-major"
+            value={major}
+            onChange={(e) => setMajor(e.target.value)}
+            className="mt-1 block w-full md:w-[420px] rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            {Object.entries(grouped).map(([college, list]) => (
+              <optgroup key={college} label={COLLEGE_LABEL[college as MajorOption["college"]]}>
+                {list.map((m) => (
+                  <option key={m.code} value={m.code}>
+                    {m.title}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          {primaryMajor && secondaryMajor && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Tip: as a double major, plan ~4-5 quarters past a normal 12-quarter timeline. Many shared core/UC courses count for both — verify with your advisor.
+            </p>
+          )}
+        </div>
       </div>
       <PageContent>
         {isLoading || !data ? (

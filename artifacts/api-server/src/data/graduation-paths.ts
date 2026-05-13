@@ -1019,3 +1019,104 @@ export function getMajorRequirements(
     groups,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Minors
+// ---------------------------------------------------------------------------
+//
+// Curated list of SCU undergraduate minors. Pulled from the SCU 2025-26
+// Bulletin minor offerings across CAS, SOE, and LSB. Codes are short,
+// human-readable identifiers — not formal SCU department codes — so they're
+// safe to display as-is. The minors list is intentionally separate from
+// majors because many minors (e.g. Italian, Sustainability, Catholic
+// Studies) have no corresponding major.
+
+export interface MinorOption {
+  code: string;
+  title: string;
+  college: College;
+}
+
+const MINORS: MinorOption[] = [
+  // College of Arts & Sciences
+  { code: "ANTH-MIN", title: "Anthropology", college: "CAS" },
+  { code: "ARTH-MIN", title: "Art History", college: "CAS" },
+  { code: "ARTS-MIN", title: "Art Studio", college: "CAS" },
+  { code: "ASCI-MIN", title: "Asian Studies", college: "CAS" },
+  { code: "BIOL-MIN", title: "Biology", college: "CAS" },
+  { code: "BIOC-MIN", title: "Biochemistry", college: "CAS" },
+  { code: "CTHL-MIN", title: "Catholic Studies", college: "CAS" },
+  { code: "CHEM-MIN", title: "Chemistry", college: "CAS" },
+  { code: "CHST-MIN", title: "Child Studies", college: "CAS" },
+  { code: "CLAS-MIN", title: "Classical Studies", college: "CAS" },
+  { code: "COMM-MIN", title: "Communication", college: "CAS" },
+  { code: "CWRT-MIN", title: "Creative Writing", college: "CAS" },
+  { code: "DANC-MIN", title: "Dance", college: "CAS" },
+  { code: "ECON-MIN-CAS", title: "Economics (CAS)", college: "CAS" },
+  { code: "ENGL-MIN", title: "English", college: "CAS" },
+  { code: "ENVS-MIN", title: "Environmental Studies", college: "CAS" },
+  { code: "ETHN-MIN", title: "Ethnic Studies", college: "CAS" },
+  { code: "FREN-MIN", title: "French & Francophone Studies", college: "CAS" },
+  { code: "GERM-MIN", title: "German Studies", college: "CAS" },
+  { code: "HIST-MIN", title: "History", college: "CAS" },
+  { code: "INTL-MIN", title: "International Studies", college: "CAS" },
+  { code: "ITAL-MIN", title: "Italian Studies", college: "CAS" },
+  { code: "JAPN-MIN", title: "Japanese Studies", college: "CAS" },
+  { code: "JWST-MIN", title: "Jewish Studies", college: "CAS" },
+  { code: "LATN-MIN", title: "Latin", college: "CAS" },
+  { code: "LAS-MIN", title: "Latin American Studies", college: "CAS" },
+  { code: "LGBT-MIN", title: "LGBTQ+ Studies", college: "CAS" },
+  { code: "MATH-MIN", title: "Mathematics", college: "CAS" },
+  { code: "MDVL-MIN", title: "Medieval & Renaissance Studies", college: "CAS" },
+  { code: "MUSC-MIN", title: "Music", college: "CAS" },
+  { code: "NEUR-MIN", title: "Neuroscience", college: "CAS" },
+  { code: "PHIL-MIN", title: "Philosophy", college: "CAS" },
+  { code: "PHYS-MIN", title: "Physics", college: "CAS" },
+  { code: "POLI-MIN", title: "Political Science", college: "CAS" },
+  { code: "PSYC-MIN", title: "Psychology", college: "CAS" },
+  { code: "PUBH-MIN", title: "Public Health Science", college: "CAS" },
+  { code: "RSOC-MIN", title: "Religion & Society (Religious Studies)", college: "CAS" },
+  { code: "SOCI-MIN", title: "Sociology", college: "CAS" },
+  { code: "SPAN-MIN", title: "Spanish Studies", college: "CAS" },
+  { code: "SUST-MIN", title: "Sustainability", college: "CAS" },
+  { code: "THTR-MIN", title: "Theatre Arts", college: "CAS" },
+  { code: "URBN-MIN", title: "Urban Education", college: "CAS" },
+  { code: "WGST-MIN", title: "Women's & Gender Studies", college: "CAS" },
+  { code: "DTSC-MIN", title: "Data Science", college: "CAS" },
+  { code: "MUSP-MIN", title: "Music Performance", college: "CAS" },
+  { code: "ARAB-MIN", title: "Arabic, Islamic & Middle Eastern Studies", college: "CAS" },
+  { code: "PEAC-MIN", title: "Peace & Justice Studies", college: "CAS" },
+
+  // School of Engineering
+  { code: "AERO-MIN", title: "Aerospace Engineering", college: "SOE" },
+  { code: "BIOE-MIN", title: "Bioengineering", college: "SOE" },
+  { code: "CENG-MIN", title: "Civil Engineering", college: "SOE" },
+  { code: "CSEN-MIN", title: "Computer Engineering", college: "SOE" },
+  { code: "CSCI-MIN-SOE", title: "Computer Science & Engineering", college: "SOE" },
+  { code: "ECEN-MIN", title: "Electrical & Computer Engineering", college: "SOE" },
+  { code: "MECH-MIN", title: "Mechanical Engineering", college: "SOE" },
+  { code: "GENG-MIN", title: "General Engineering", college: "SOE" },
+  { code: "SENG-MIN", title: "Sustainable Energy", college: "SOE" },
+  { code: "ROBO-MIN", title: "Robotics & Automation", college: "SOE" },
+
+  // Leavey School of Business
+  { code: "ACTG-MIN", title: "Accounting", college: "LSB" },
+  { code: "ANLY-MIN", title: "Business Analytics", college: "LSB" },
+  { code: "ECON-MIN-LSB", title: "Economics (LSB)", college: "LSB" },
+  { code: "ENTR-MIN", title: "Entrepreneurship", college: "LSB" },
+  { code: "FNCE-MIN", title: "Finance", college: "LSB" },
+  { code: "MGMT-MIN", title: "Management", college: "LSB" },
+  { code: "MIS-MIN", title: "Management Information Systems", college: "LSB" },
+  { code: "MKTG-MIN", title: "Marketing", college: "LSB" },
+  { code: "RLES-MIN", title: "Real Estate", college: "LSB" },
+  { code: "SCHM-MIN", title: "Supply Chain Management", college: "LSB" },
+  { code: "SPMG-MIN", title: "Sports Management", college: "LSB" },
+  { code: "RTLM-MIN", title: "Retail Studies", college: "LSB" },
+  { code: "BUSS-MIN", title: "Business for Non-Business Majors (Business minor)", college: "LSB" },
+];
+
+export function getAvailableMinors(): MinorOption[] {
+  return MINORS.slice().sort((a, b) =>
+    a.college.localeCompare(b.college) || a.title.localeCompare(b.title),
+  );
+}

@@ -26,7 +26,7 @@ import {
   XCircle,
   CheckCircle2,
 } from "lucide-react";
-import { TERM_OPTIONS, termLabel } from "@/lib/api";
+import { TERM_OPTIONS, termLabel, getCurrentSCUTerm } from "@/lib/api";
 
 interface PlannedCourse {
   code: string;
@@ -42,8 +42,9 @@ export default function Planner() {
   const { data: catalog = [] } = useListCourses({});
   const checkPlan = useCheckPlan();
 
-  const [term, setTerm] = useState<string>("fall");
-  const [year, setYear] = useState<number>(2025);
+  const today = getCurrentSCUTerm();
+  const [term, setTerm] = useState<string>(today.term);
+  const [year, setYear] = useState<number>(today.year);
   const [planned, setPlanned] = useState<PlannedCourse[]>([]);
   const [draftCode, setDraftCode] = useState("");
   const [draftUnits, setDraftUnits] = useState<number>(4);
@@ -54,12 +55,9 @@ export default function Planner() {
   } | null>(null);
   const [comparing, setComparing] = useState(false);
 
-  useEffect(() => {
-    if (profile) {
-      setTerm(profile.currentTerm);
-      setYear(profile.currentYear);
-    }
-  }, [profile]);
+  // Note: planner default = today's actual term/year (set above). We
+  // intentionally do NOT seed from profile.currentTerm because that's a
+  // stored value from onboarding that goes stale when the calendar flips.
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);

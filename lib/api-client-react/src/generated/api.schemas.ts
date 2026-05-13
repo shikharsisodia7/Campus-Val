@@ -314,6 +314,9 @@ export interface DashboardSummary {
   registrationWindowNote: string;
   nextTerm: Term;
   nextTermYear: number;
+  /** Live "right now" SCU term, derived server-side from today's date. */
+  todayTerm?: Term;
+  todayYear?: number;
   upcomingDeadlines: Deadline[];
   warnings: string[];
 }

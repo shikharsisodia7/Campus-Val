@@ -67,8 +67,11 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { getCurrentSCUTerm } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useClerk } from "@clerk/react";
+
+const TODAY = getCurrentSCUTerm();
 
 const STEPS = [
   { title: "Who you are", subtitle: "Basics about you and your program" },
@@ -102,9 +105,9 @@ export default function Onboarding() {
   const [secondMajor, setSecondMajor] = useState<string>(NONE_VALUE);
   const [minor, setMinor] = useState<string>(NONE_VALUE);
   const [startTerm, setStartTerm] = useState<string>("fall");
-  const [startYear, setStartYear] = useState<number>(2025);
+  const [startYear, setStartYear] = useState<number>(TODAY.year);
   const [expectedGradTerm, setExpectedGradTerm] = useState<string>("spring");
-  const [expectedGradYear, setExpectedGradYear] = useState<number>(2029);
+  const [expectedGradYear, setExpectedGradYear] = useState<number>(TODAY.year + 4);
   const [unitsCompletedAtSCU, setUnitsCompletedAtSCU] = useState<number>(0);
   const [unitsTransferredIn, setUnitsTransferredIn] = useState<number>(0);
   const [cumulativeGpa, setCumulativeGpa] = useState<string>("");
@@ -112,15 +115,20 @@ export default function Onboarding() {
   const [completedCourses, setCompletedCourses] = useState<string[]>([]);
   const [storedExams, setStoredExams] = useState<StoredExam[]>([]);
   const [priorityRegistration, setPriorityRegistration] = useState<boolean>(false);
-  const [currentTerm, setCurrentTerm] = useState<string>("fall");
-  const [currentYear, setCurrentYear] = useState<number>(2025);
+  const [currentTerm, setCurrentTerm] = useState<string>(TODAY.term);
+  const [currentYear, setCurrentYear] = useState<number>(TODAY.year);
 
   const [majors, setMajors] = useState<MajorOption[]>([]);
+  const [minors, setMinors] = useState<MajorOption[]>([]);
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}api/graduation-paths/majors`)
       .then((r) => r.json())
       .then((j) => setMajors(j.majors || []))
       .catch(() => setMajors([]));
+    fetch(`${import.meta.env.BASE_URL}api/graduation-paths/minors`)
+      .then((r) => r.json())
+      .then((j) => setMinors(j.minors || []))
+      .catch(() => setMinors([]));
   }, []);
 
   useEffect(() => {
@@ -370,7 +378,7 @@ export default function Onboarding() {
                     <MajorPicker
                       value={minor === NONE_VALUE ? "" : minor}
                       onChange={(v) => setMinor(v || NONE_VALUE)}
-                      options={majors}
+                      options={minors}
                       placeholder="None"
                       allowNone
                       testId="select-minor"

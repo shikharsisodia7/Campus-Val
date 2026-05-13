@@ -1122,6 +1122,11 @@ components:
           $ref: "#/components/schemas/Term"
         nextTermYear:
           type: integer
+        todayTerm:
+          $ref: "#/components/schemas/Term"
+          description: Live "right now" SCU term, derived server-side from today's date.
+        todayYear:
+          type: integer
         upcomingDeadlines:
           type: array
           items:

@@ -451,6 +451,13 @@ export const GetDashboardSummaryResponse = zod.object({
   registrationWindowNote: zod.string(),
   nextTerm: zod.enum(["fall", "winter", "spring", "summer"]),
   nextTermYear: zod.number(),
+  todayTerm: zod
+    .enum(["fall", "winter", "spring", "summer"])
+    .optional()
+    .describe(
+      'Live \"right now\" SCU term, derived server-side from today\'s date.',
+    ),
+  todayYear: zod.number().optional(),
   upcomingDeadlines: zod.array(
     zod.object({
       title: zod.string(),

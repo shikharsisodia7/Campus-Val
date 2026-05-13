@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import {
   getGraduationPath,
   getAvailableMajors,
+  getAvailableMinors,
   getMajorRequirements,
   type PathType,
 } from "../data/graduation-paths";
@@ -25,6 +26,10 @@ function mergeCompleted(req: { query: Record<string, unknown> }): string[] {
 
 router.get("/graduation-paths/majors", (_req, res) => {
   res.json({ majors: getAvailableMajors() });
+});
+
+router.get("/graduation-paths/minors", (_req, res) => {
+  res.json({ minors: getAvailableMinors() });
 });
 
 router.get("/graduation-paths/requirements", (req, res) => {

@@ -128,9 +128,15 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <Card className="p-6 lg:col-span-2">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground flex-wrap">
               <CalendarClock className="h-4 w-4 text-primary" />
-              Next term: {termLabel(summary.nextTerm)} {summary.nextTermYear}
+              <span>
+                Today: <span className="capitalize">{summary.todayTerm ?? ""}</span> {summary.todayYear ?? ""}
+              </span>
+              <span className="text-muted-foreground font-normal">→</span>
+              <span>
+                Next term: {termLabel(summary.nextTerm)} {summary.nextTermYear}
+              </span>
             </div>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
               {summary.registrationWindowNote}
@@ -228,7 +234,7 @@ export default function Dashboard() {
               />
               <Detail
                 label="Currently in"
-                value={`${termLabel(sp.currentTerm)} ${sp.currentYear}`}
+                value={`${termLabel(summary.todayTerm ?? sp.currentTerm)} ${summary.todayYear ?? sp.currentYear}`}
               />
             </div>
           </Card>

@@ -13,17 +13,32 @@ const router: IRouter = Router();
 
 const REQUIRED_TO_GRADUATE = 175;
 
+type SCUTerm = "fall" | "winter" | "spring" | "summer";
+
+// Date-aware "what term is it right now". Mirrors getCurrentSCUTerm() in the
+// frontend so the server reports a live term instead of relying on a stored
+// value that becomes stale the moment the calendar flips.
+function getCurrentSCUTerm(now: Date = new Date()): { term: SCUTerm; year: number } {
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  const y = now.getFullYear();
+  if (m < 3 || (m === 3 && d <= 20)) return { term: "winter", year: y };
+  if (m < 6 || (m === 6 && d <= 15)) return { term: "spring", year: y };
+  if (m < 9 || (m === 9 && d <= 15)) return { term: "summer", year: y };
+  return { term: "fall", year: y };
+}
+
 function nextTerm(
-  term: "fall" | "winter" | "spring" | "summer",
+  term: SCUTerm,
   year: number,
-): { term: "fall" | "winter" | "spring" | "summer"; year: number } {
+): { term: SCUTerm; year: number } {
   switch (term) {
     case "fall":
       return { term: "winter", year: year + 1 };
     case "winter":
       return { term: "spring", year };
     case "spring":
-      return { term: "fall", year };
+      return { term: "summer", year };
     case "summer":
       return { term: "fall", year };
   }
@@ -62,13 +77,14 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
     .limit(1);
   const profile = rows.length === 0 ? null : rowToDto(rows[0]!);
 
+  const today = getCurrentSCUTerm();
+
   if (!profile) {
-    const today = new Date();
-    const month = today.getMonth() + 1;
-    const term: "fall" | "winter" | "spring" | "summer" =
-      month >= 9 ? "fall" : month >= 6 ? "summer" : month >= 3 ? "spring" : "winter";
+    const term = today.term;
     return res.json({
       profile: null,
+      todayTerm: today.term,
+      todayYear: today.year,
       classification: "Unknown",
       totalUnitsAllSources: 0,
       unitsToGraduation: REQUIRED_TO_GRADUATE,
@@ -79,7 +95,7 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
       registrationWindowNote:
         "Registration windows open by class standing. Priority groups go first.",
       nextTerm: term,
-      nextTermYear: today.getFullYear(),
+      nextTermYear: today.year,
       upcomingDeadlines: [],
       warnings: ["No student profile yet. Complete onboarding to personalize CampusVal."],
     });
@@ -112,7 +128,11 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
     overloadReason = `Priority registration is required to overload above the ${standardCap}-unit ${classification.toLowerCase()} cap.`;
   }
 
-  const next = nextTerm(profile.currentTerm as "fall" | "winter" | "spring" | "summer", profile.currentYear);
+  // Always derive "next term" from today's calendar, not from the stale
+  // currentTerm a student set during onboarding months ago. This guarantees
+  // the dashboard reflects reality (e.g. in May 2026 it should say
+  // "Spring 2026 → next: Summer 2026", not whatever was first stored).
+  const next = nextTerm(today.term, today.year);
   const warnings: string[] = [];
   if (totalUnits >= 87.5 - 5 && profile.unitsTransferredIn > 0) {
     warnings.push(
@@ -141,6 +161,8 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
 
   res.json({
     profile,
+    todayTerm: today.term,
+    todayYear: today.year,
     classification,
     totalUnitsAllSources: totalUnits,
     unitsToGraduation,

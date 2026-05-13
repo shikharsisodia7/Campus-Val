@@ -46,3 +46,43 @@ export function gradeLabel(g: string): string {
 export function termLabel(t: string): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
+
+export type SCUTerm = "fall" | "winter" | "spring" | "summer";
+
+// Approximate SCU quarter calendar windows (close enough for "what term is it
+// right now"). Winter Jan-mid Mar; Spring late Mar-mid Jun; Summer mid Jun-mid
+// Sept; Fall mid Sept-Dec. We use day-of-year boundaries so the result flips
+// over on roughly the right calendar day.
+export function getCurrentSCUTerm(now: Date = new Date()): {
+  term: SCUTerm;
+  year: number;
+} {
+  const m = now.getMonth() + 1; // 1-12
+  const d = now.getDate();
+  const y = now.getFullYear();
+  // Winter: Jan 1 – Mar 20
+  if (m < 3 || (m === 3 && d <= 20)) return { term: "winter", year: y };
+  // Spring: Mar 21 – Jun 15
+  if (m < 6 || (m === 6 && d <= 15)) return { term: "spring", year: y };
+  // Summer: Jun 16 – Sep 15
+  if (m < 9 || (m === 9 && d <= 15)) return { term: "summer", year: y };
+  // Fall: Sep 16 – Dec 31
+  return { term: "fall", year: y };
+}
+
+export function nextSCUTerm(t: SCUTerm, year: number): { term: SCUTerm; year: number } {
+  switch (t) {
+    case "fall":
+      return { term: "winter", year: year + 1 };
+    case "winter":
+      return { term: "spring", year };
+    case "spring":
+      return { term: "summer", year };
+    case "summer":
+      return { term: "fall", year };
+  }
+}
+
+export function termAndYearLabel(t: string, y: number): string {
+  return `${termLabel(t)} ${y}`;
+}
