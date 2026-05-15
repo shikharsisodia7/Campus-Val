@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Mic, Square, Loader2, Volume2, AlertCircle, Sparkles } from "lucide-react";
+import { Mic, Square, Loader2, Volume2, AlertCircle, Sparkles, Quote } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { getApiUrl } from "@/lib/api";
 
@@ -264,41 +265,126 @@ export default function VoiceAdvisor() {
             </p>
           </Card>
 
-          {turns.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-sm uppercase tracking-wide text-muted-foreground">
-                Conversation history
-              </h3>
-              {turns.map((t, i) => (
-                <Card key={i} className="p-5 space-y-3" data-testid={`voice-turn-${i}`}>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">You said</div>
-                    <p className="text-sm font-medium" data-testid={`voice-transcript-${i}`}>
-                      "{t.transcript}"
-                    </p>
-                  </div>
-                  <div className="border-t pt-3">
-                    <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
-                      <Sparkles className="h-3 w-3" /> Advisor
+          {/* Live current-turn panel: large, prominent, animated. */}
+          <AnimatePresence mode="wait">
+            {turns[0] && (
+              <motion.div
+                key={`live-${turns[0].transcript}`}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+              >
+                <Card className="p-6 space-y-5 border-primary/30 bg-gradient-to-br from-primary/5 via-card to-card" data-testid="voice-current-turn">
+                  <motion.div
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.05 }}
+                    className="flex gap-3"
+                  >
+                    <div className="shrink-0 mt-0.5">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                        <Quote className="h-4 w-4" />
+                      </div>
                     </div>
-                    <p className="text-sm whitespace-pre-wrap" data-testid={`voice-answer-${i}`}>
-                      {t.answer}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (audioRef.current) {
-                          audioRef.current.src = t.audioUrl;
-                          audioRef.current.play().catch(() => {});
-                        }
-                      }}
-                      className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                    >
-                      <Volume2 className="h-3 w-3" /> Replay answer
-                    </button>
-                  </div>
+                    <div className="flex-1">
+                      <div className="text-[11px] uppercase tracking-wider font-semibold text-primary mb-1">
+                        Your question
+                      </div>
+                      <p className="text-base font-medium leading-snug" data-testid="voice-current-transcript">
+                        {turns[0].transcript}
+                      </p>
+                    </div>
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.18 }}
+                    className="flex gap-3 border-t pt-5"
+                  >
+                    <div className="shrink-0 mt-0.5">
+                      <div className="h-8 w-8 rounded-full bg-secondary/15 text-secondary flex items-center justify-center">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-[11px] uppercase tracking-wider font-semibold text-secondary mb-1 flex items-center gap-2">
+                        Advisor reply
+                        {phase === "speaking" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-primary normal-case font-normal">
+                            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                            speaking…
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-base leading-relaxed whitespace-pre-wrap" data-testid="voice-current-answer">
+                        {turns[0].answer}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (audioRef.current && turns[0]) {
+                            audioRef.current.src = turns[0].audioUrl;
+                            audioRef.current.play().catch(() => {});
+                          }
+                        }}
+                        className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+                        data-testid="voice-replay-current"
+                      >
+                        <Volume2 className="h-3.5 w-3.5" /> Replay answer
+                      </button>
+                    </div>
+                  </motion.div>
                 </Card>
-              ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {turns.length > 1 && (
+            <div className="space-y-3">
+              <h3 className="text-sm uppercase tracking-wide text-muted-foreground">
+                Earlier in this conversation
+              </h3>
+              <AnimatePresence initial={false}>
+                {turns.slice(1).map((t, i) => (
+                  <motion.div
+                    key={`${t.transcript}-${i}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25, delay: i * 0.04 }}
+                  >
+                    <Card className="p-5 space-y-3" data-testid={`voice-turn-${i + 1}`}>
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-1">You said</div>
+                        <p className="text-sm font-medium" data-testid={`voice-transcript-${i + 1}`}>
+                          "{t.transcript}"
+                        </p>
+                      </div>
+                      <div className="border-t pt-3">
+                        <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                          <Sparkles className="h-3 w-3" /> Advisor
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap" data-testid={`voice-answer-${i + 1}`}>
+                          {t.answer}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (audioRef.current) {
+                              audioRef.current.src = t.audioUrl;
+                              audioRef.current.play().catch(() => {});
+                            }
+                          }}
+                          className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <Volume2 className="h-3 w-3" /> Replay answer
+                        </button>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>
