@@ -6,13 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type GetGraduationPathParams = {
+export type GetMajorRequirementsParams = {
   /**
-   * Major code, e.g. "CSE" (Computer Science & Engineering). Defaults to CSE.
+   * Major code (e.g. "CSE", "ACTG"). Defaults to CSE.
    */
   major?: string;
   /**
-   * Comma-separated list of course codes the student has already completed. Completed courses are excluded from the suggested per-quarter plan.
+   * Comma-separated list of course codes the student has already completed.
    */
   completed?: string;
   /**

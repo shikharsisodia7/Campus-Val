@@ -89,6 +89,9 @@ export default function Advisor() {
   }, [messages.length, streamingContent]);
 
   const newConversation = async () => {
+    // Guard against rapid double-clicks: refuse while a create is already
+    // in flight.
+    if (createConv.isPending) return;
     // If the conversation we're already looking at has zero messages, just
     // stay on it instead of spawning another empty placeholder. This is the
     // truthful check — we ask the server (via the loaded detail) rather than
@@ -99,6 +102,18 @@ export default function Advisor() {
       convDetail &&
       (convDetail.messages?.length ?? 0) === 0
     ) {
+      return;
+    }
+    // Belt and suspenders: if there's *any* existing conversation in the
+    // sidebar that the server reports as empty, switch to it instead of
+    // creating yet another placeholder. The sidebar list is authoritative
+    // for titles but not message counts, so we trust convDetail when it
+    // matches and fall back to title-sniffing for the rest.
+    const looksEmpty = conversations.find(
+      (c) => c.id !== activeId && (c.title ?? "") === "New conversation",
+    );
+    if (looksEmpty) {
+      setActiveId(looksEmpty.id);
       return;
     }
     const created = await createConv.mutateAsync({

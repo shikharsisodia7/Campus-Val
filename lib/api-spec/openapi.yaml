@@ -359,6 +359,63 @@ paths:
               schema:
                 $ref: "#/components/schemas/ArticulationLookupResult"
 
+  /graduation-paths/majors:
+    get:
+      operationId: listGraduationMajors
+      tags: [graduation-paths]
+      summary: List majors that have a graduation-path recipe configured
+      responses:
+        "200":
+          description: Available majors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MajorList"
+
+  /graduation-paths/minors:
+    get:
+      operationId: listGraduationMinors
+      tags: [graduation-paths]
+      summary: List minors available at SCU
+      responses:
+        "200":
+          description: Available minors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MinorList"
+
+  /graduation-paths/requirements:
+    get:
+      operationId: getMajorRequirements
+      tags: [graduation-paths]
+      summary: Get the grouped, all-courses requirement list for a major
+      parameters:
+        - name: major
+          in: query
+          schema:
+            type: string
+            description: Major code (e.g. "CSE", "ACTG"). Defaults to CSE.
+        - name: completed
+          in: query
+          schema:
+            type: string
+            description: Comma-separated list of course codes the student has already completed.
+        - name: apIbCredits
+          in: query
+          schema:
+            type: string
+            description: Comma-separated list of course codes earned via AP/IB. Treated identically to `completed` server-side.
+      responses:
+        "200":
+          description: Major requirements grouped by category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MajorRequirements"
+        "404":
+          description: Unknown major
+
   /graduation-paths/{type}:
     get:
       operationId: getGraduationPath
@@ -376,6 +433,16 @@ paths:
           schema:
             type: string
             description: Major code, e.g. "CSE" (Computer Science & Engineering). Defaults to CSE.
+        - name: completed
+          in: query
+          schema:
+            type: string
+            description: Comma-separated list of course codes the student has already completed. Completed courses are excluded from the suggested per-quarter plan.
+        - name: apIbCredits
+          in: query
+          schema:
+            type: string
+            description: Comma-separated list of course codes earned via AP/IB. Treated identically to `completed` server-side.
       responses:
         "200":
           description: Path template
@@ -1557,6 +1624,97 @@ components:
         - requiresOverload
         - quarters
         - risks
+
+    MajorOption:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        college:
+          type: string
+          enum: [CAS, SOE, LSB]
+      required: [code, title, college]
+    MajorList:
+      type: object
+      properties:
+        majors:
+          type: array
+          items:
+            $ref: "#/components/schemas/MajorOption"
+      required: [majors]
+    MinorOption:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        college:
+          type: string
+          enum: [CAS, SOE, LSB]
+      required: [code, title, college]
+    MinorList:
+      type: object
+      properties:
+        minors:
+          type: array
+          items:
+            $ref: "#/components/schemas/MinorOption"
+      required: [minors]
+    MajorRequirementCourse:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        units:
+          type: number
+        description:
+          type: string
+        completed:
+          type: boolean
+        category:
+          type: string
+          enum: [lower-division, upper-division, capstone, business-core, university-core]
+      required: [code, title, units, description, completed, category]
+    MajorRequirementGroup:
+      type: object
+      properties:
+        label:
+          type: string
+        courses:
+          type: array
+          items:
+            $ref: "#/components/schemas/MajorRequirementCourse"
+      required: [label, courses]
+    MajorRequirements:
+      type: object
+      properties:
+        major:
+          type: string
+        title:
+          type: string
+        college:
+          type: string
+          enum: [CAS, SOE, LSB]
+        mathTrack:
+          type: string
+        notes:
+          type: array
+          items:
+            type: string
+        totalListed:
+          type: integer
+        completedCount:
+          type: integer
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/MajorRequirementGroup"
+      required: [major, title, college, mathTrack, notes, totalListed, completedCount, groups]
 
     EvaluationScenario:
       type: object

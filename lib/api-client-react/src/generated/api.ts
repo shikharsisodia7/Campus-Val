@@ -30,6 +30,7 @@ import type {
   EvaluationRunResult,
   EvaluationScenario,
   GetGraduationPathParams,
+  GetMajorRequirementsParams,
   GpaResult,
   GpaSimulationResult,
   GraduationPath,
@@ -38,6 +39,9 @@ import type {
   ListCoursesParams,
   ListPoliciesParams,
   LookupArticulationParams,
+  MajorList,
+  MajorRequirements,
+  MinorList,
   OpenaiConversation,
   OpenaiConversationWithMessages,
   OpenaiError,
@@ -1529,6 +1533,259 @@ export function useLookupArticulation<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getLookupArticulationQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List majors that have a graduation-path recipe configured
+ */
+export const getListGraduationMajorsUrl = () => {
+  return `/api/graduation-paths/majors`;
+};
+
+export const listGraduationMajors = async (
+  options?: RequestInit,
+): Promise<MajorList> => {
+  return customFetch<MajorList>(getListGraduationMajorsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListGraduationMajorsQueryKey = () => {
+  return [`/api/graduation-paths/majors`] as const;
+};
+
+export const getListGraduationMajorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listGraduationMajors>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listGraduationMajors>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListGraduationMajorsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listGraduationMajors>>
+  > = ({ signal }) => listGraduationMajors({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listGraduationMajors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListGraduationMajorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listGraduationMajors>>
+>;
+export type ListGraduationMajorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List majors that have a graduation-path recipe configured
+ */
+
+export function useListGraduationMajors<
+  TData = Awaited<ReturnType<typeof listGraduationMajors>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listGraduationMajors>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListGraduationMajorsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List minors available at SCU
+ */
+export const getListGraduationMinorsUrl = () => {
+  return `/api/graduation-paths/minors`;
+};
+
+export const listGraduationMinors = async (
+  options?: RequestInit,
+): Promise<MinorList> => {
+  return customFetch<MinorList>(getListGraduationMinorsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListGraduationMinorsQueryKey = () => {
+  return [`/api/graduation-paths/minors`] as const;
+};
+
+export const getListGraduationMinorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listGraduationMinors>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listGraduationMinors>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListGraduationMinorsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listGraduationMinors>>
+  > = ({ signal }) => listGraduationMinors({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listGraduationMinors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListGraduationMinorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listGraduationMinors>>
+>;
+export type ListGraduationMinorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List minors available at SCU
+ */
+
+export function useListGraduationMinors<
+  TData = Awaited<ReturnType<typeof listGraduationMinors>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listGraduationMinors>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListGraduationMinorsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the grouped, all-courses requirement list for a major
+ */
+export const getGetMajorRequirementsUrl = (
+  params?: GetMajorRequirementsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/graduation-paths/requirements?${stringifiedParams}`
+    : `/api/graduation-paths/requirements`;
+};
+
+export const getMajorRequirements = async (
+  params?: GetMajorRequirementsParams,
+  options?: RequestInit,
+): Promise<MajorRequirements> => {
+  return customFetch<MajorRequirements>(getGetMajorRequirementsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMajorRequirementsQueryKey = (
+  params?: GetMajorRequirementsParams,
+) => {
+  return [
+    `/api/graduation-paths/requirements`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetMajorRequirementsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMajorRequirements>>,
+  TError = ErrorType<void>,
+>(
+  params?: GetMajorRequirementsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMajorRequirements>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMajorRequirementsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMajorRequirements>>
+  > = ({ signal }) =>
+    getMajorRequirements(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMajorRequirements>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMajorRequirementsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMajorRequirements>>
+>;
+export type GetMajorRequirementsQueryError = ErrorType<void>;
+
+/**
+ * @summary Get the grouped, all-courses requirement list for a major
+ */
+
+export function useGetMajorRequirements<
+  TData = Awaited<ReturnType<typeof getMajorRequirements>>,
+  TError = ErrorType<void>,
+>(
+  params?: GetMajorRequirementsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMajorRequirements>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMajorRequirementsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

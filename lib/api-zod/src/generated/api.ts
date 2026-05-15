@@ -680,6 +680,72 @@ export const LookupArticulationResponse = zod.object({
 });
 
 /**
+ * @summary List majors that have a graduation-path recipe configured
+ */
+export const ListGraduationMajorsResponse = zod.object({
+  majors: zod.array(
+    zod.object({
+      code: zod.string(),
+      title: zod.string(),
+      college: zod.enum(["CAS", "SOE", "LSB"]),
+    }),
+  ),
+});
+
+/**
+ * @summary List minors available at SCU
+ */
+export const ListGraduationMinorsResponse = zod.object({
+  minors: zod.array(
+    zod.object({
+      code: zod.string(),
+      title: zod.string(),
+      college: zod.enum(["CAS", "SOE", "LSB"]),
+    }),
+  ),
+});
+
+/**
+ * @summary Get the grouped, all-courses requirement list for a major
+ */
+export const GetMajorRequirementsQueryParams = zod.object({
+  major: zod.coerce.string().optional(),
+  completed: zod.coerce.string().optional(),
+  apIbCredits: zod.coerce.string().optional(),
+});
+
+export const GetMajorRequirementsResponse = zod.object({
+  major: zod.string(),
+  title: zod.string(),
+  college: zod.enum(["CAS", "SOE", "LSB"]),
+  mathTrack: zod.string(),
+  notes: zod.array(zod.string()),
+  totalListed: zod.number(),
+  completedCount: zod.number(),
+  groups: zod.array(
+    zod.object({
+      label: zod.string(),
+      courses: zod.array(
+        zod.object({
+          code: zod.string(),
+          title: zod.string(),
+          units: zod.number(),
+          description: zod.string(),
+          completed: zod.boolean(),
+          category: zod.enum([
+            "lower-division",
+            "upper-division",
+            "capstone",
+            "business-core",
+            "university-core",
+          ]),
+        }),
+      ),
+    }),
+  ),
+});
+
+/**
  * @summary Get a recommended 3-year or 4-year graduation path template
  */
 export const GetGraduationPathParams = zod.object({
@@ -688,6 +754,8 @@ export const GetGraduationPathParams = zod.object({
 
 export const GetGraduationPathQueryParams = zod.object({
   major: zod.coerce.string().optional(),
+  completed: zod.coerce.string().optional(),
+  apIbCredits: zod.coerce.string().optional(),
 });
 
 export const GetGraduationPathResponse = zod.object({

@@ -191,6 +191,24 @@ export default function Onboarding() {
   })();
   const unitsScuError = unitsCompletedAtSCU < 0 ? "Cannot be negative." : null;
   const unitsXferError = unitsTransferredIn < 0 ? "Cannot be negative." : null;
+  const nameError = name.trim().length === 0 ? "Required." : null;
+  const majorError = major.trim().length === 0 ? "Pick your major." : null;
+  const currentYearMin = 2015;
+  const currentYearMax = TODAY.year + 1;
+  const startYearError =
+    startYear < currentYearMin || startYear > TODAY.year + 6
+      ? `Enter a 4-digit year between ${currentYearMin} and ${TODAY.year + 6}.`
+      : null;
+  const currentYearError =
+    currentYear < currentYearMin || currentYear > currentYearMax
+      ? `Enter a 4-digit year between ${currentYearMin} and ${currentYearMax}.`
+      : null;
+  const expectedGradYearError =
+    expectedGradYear < TODAY.year || expectedGradYear > TODAY.year + 10
+      ? `Enter a 4-digit year between ${TODAY.year} and ${TODAY.year + 10}.`
+      : expectedGradYear < startYear
+        ? "Cannot be before your start year."
+        : null;
 
   const onSubmit = async () => {
     saveStoredExams(storedExams);
@@ -237,16 +255,13 @@ export default function Onboarding() {
     await signOut({ redirectUrl: "/" });
   };
 
-  const canNext0 =
-    name.trim().length > 0 &&
-    major.trim().length > 0 &&
-    startYear > 0;
+  const canNext0 = !nameError && !majorError && !startYearError;
   const canNext1 =
     !cumulativeGpaError &&
     !majorGpaError &&
     !unitsScuError &&
     !unitsXferError;
-  const canFinish = currentYear > 0 && expectedGradYear > 0;
+  const canFinish = !currentYearError && !expectedGradYearError;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -304,7 +319,7 @@ export default function Onboarding() {
           <div className="mt-6 space-y-5">
             {step === 0 && (
               <>
-                <Field label="Your name" required>
+                <Field label="Your name" required error={nameError}>
                   <Input
                     data-testid="input-name"
                     value={name}
@@ -348,7 +363,7 @@ export default function Onboarding() {
                     </SelectContent>
                   </Select>
                 </Field>
-                <Field label="Major" required>
+                <Field label="Major" required error={majorError}>
                   <MajorPicker
                     value={major}
                     onChange={setMajor}
@@ -400,7 +415,7 @@ export default function Onboarding() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Start year" required>
+                  <Field label="Start year" required error={startYearError}>
                     <Input
                       data-testid="input-start-year"
                       type="number"
@@ -523,7 +538,7 @@ export default function Onboarding() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Current year" required>
+                  <Field label="Current year" required error={currentYearError}>
                     <Input
                       data-testid="input-current-year"
                       type="number"
@@ -550,7 +565,7 @@ export default function Onboarding() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Expected graduation year" required>
+                  <Field label="Expected graduation year" required error={expectedGradYearError}>
                     <Input
                       data-testid="input-grad-year"
                       type="number"

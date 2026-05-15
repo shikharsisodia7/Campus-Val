@@ -517,6 +517,89 @@ export interface GraduationPath {
   risks: string[];
 }
 
+export type MajorOptionCollege =
+  (typeof MajorOptionCollege)[keyof typeof MajorOptionCollege];
+
+export const MajorOptionCollege = {
+  CAS: "CAS",
+  SOE: "SOE",
+  LSB: "LSB",
+} as const;
+
+export interface MajorOption {
+  code: string;
+  title: string;
+  college: MajorOptionCollege;
+}
+
+export interface MajorList {
+  majors: MajorOption[];
+}
+
+export type MinorOptionCollege =
+  (typeof MinorOptionCollege)[keyof typeof MinorOptionCollege];
+
+export const MinorOptionCollege = {
+  CAS: "CAS",
+  SOE: "SOE",
+  LSB: "LSB",
+} as const;
+
+export interface MinorOption {
+  code: string;
+  title: string;
+  college: MinorOptionCollege;
+}
+
+export interface MinorList {
+  minors: MinorOption[];
+}
+
+export type MajorRequirementCourseCategory =
+  (typeof MajorRequirementCourseCategory)[keyof typeof MajorRequirementCourseCategory];
+
+export const MajorRequirementCourseCategory = {
+  "lower-division": "lower-division",
+  "upper-division": "upper-division",
+  capstone: "capstone",
+  "business-core": "business-core",
+  "university-core": "university-core",
+} as const;
+
+export interface MajorRequirementCourse {
+  code: string;
+  title: string;
+  units: number;
+  description: string;
+  completed: boolean;
+  category: MajorRequirementCourseCategory;
+}
+
+export interface MajorRequirementGroup {
+  label: string;
+  courses: MajorRequirementCourse[];
+}
+
+export type MajorRequirementsCollege =
+  (typeof MajorRequirementsCollege)[keyof typeof MajorRequirementsCollege];
+
+export const MajorRequirementsCollege = {
+  CAS: "CAS",
+  SOE: "SOE",
+  LSB: "LSB",
+} as const;
+
+export interface MajorRequirements {
+  major: string;
+  title: string;
+  college: MajorRequirementsCollege;
+  mathTrack: string;
+  notes: string[];
+  totalListed: number;
+  completedCount: number;
+  groups: MajorRequirementGroup[];
+}
+
 export type EvaluationScenarioRisk =
   (typeof EvaluationScenarioRisk)[keyof typeof EvaluationScenarioRisk];
 
@@ -607,9 +690,32 @@ export type LookupArticulationParams = {
   scuTarget?: string;
 };
 
+export type GetMajorRequirementsParams = {
+  /**
+   * Major code (e.g. "CSE", "ACTG"). Defaults to CSE.
+   */
+  major?: string;
+  /**
+   * Comma-separated list of course codes the student has already completed.
+   */
+  completed?: string;
+  /**
+   * Comma-separated list of course codes earned via AP/IB. Treated identically to `completed` server-side.
+   */
+  apIbCredits?: string;
+};
+
 export type GetGraduationPathParams = {
   /**
    * Major code, e.g. "CSE" (Computer Science & Engineering). Defaults to CSE.
    */
   major?: string;
+  /**
+   * Comma-separated list of course codes the student has already completed. Completed courses are excluded from the suggested per-quarter plan.
+   */
+  completed?: string;
+  /**
+   * Comma-separated list of course codes earned via AP/IB. Treated identically to `completed` server-side.
+   */
+  apIbCredits?: string;
 };
