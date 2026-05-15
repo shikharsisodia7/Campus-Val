@@ -208,10 +208,10 @@ export default function VoiceAdvisor() {
               className={cn(
                 "relative w-40 h-40 rounded-full flex items-center justify-center transition-all shadow-lg focus:outline-none focus:ring-4 focus:ring-primary/30",
                 isRecording
-                  ? "bg-red-600 text-white scale-105"
+                  ? "bg-red-600 text-white scale-105 cv-pulse-ring"
                   : isBusy
                     ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-primary text-primary-foreground hover:scale-105",
+                    : "bg-primary text-primary-foreground hover:scale-105 cv-pulse-ring",
               )}
               aria-label={buttonLabel}
               data-testid="voice-mic-button"
