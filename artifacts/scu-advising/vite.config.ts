@@ -43,6 +43,39 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1024,
+    rollupOptions: {
+      onwarn(warning, defaultHandler) {
+        // Silence "Can't resolve original location of error" sourcemap
+        // warnings from third-party UI packages (Radix/shadcn) whose source
+        // maps reference files not shipped to npm. Harmless, not our code.
+        if (
+          warning.code === "SOURCEMAP_ERROR" ||
+          (typeof warning.message === "string" &&
+            warning.message.includes("Can't resolve original location"))
+        ) {
+          return;
+        }
+        defaultHandler(warning);
+      },
+      output: {
+        manualChunks: {
+          "ui-vendor": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-select",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-progress",
+            "@radix-ui/react-label",
+            "lucide-react",
+          ],
+          motion: ["framer-motion"],
+          query: ["@tanstack/react-query"],
+        },
+      },
+    },
   },
   server: {
     port,
