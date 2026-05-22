@@ -70,6 +70,7 @@ import {
 import { getCurrentSCUTerm } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useClerk } from "@clerk/react";
+import { useToast } from "@/hooks/use-toast";
 
 const TODAY = getCurrentSCUTerm();
 
@@ -91,6 +92,7 @@ export default function Onboarding() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { signOut } = useClerk();
+  const { toast } = useToast();
   const { data: existing } = useGetProfile();
   const upsert = useUpsertProfile();
   const { data: catalog = [] } = useListCourses({});
@@ -211,31 +213,48 @@ export default function Onboarding() {
         : null;
 
   const onSubmit = async () => {
+    if (nameError || majorError || startYearError || cumulativeGpaError || majorGpaError || unitsScuError || unitsXferError || currentYearError || expectedGradYearError) {
+      toast({
+        title: "Please fix the highlighted fields",
+        description: "Some required fields are missing or invalid. Step back through the wizard and check the red error messages.",
+        variant: "destructive",
+      });
+      return;
+    }
     saveStoredExams(storedExams);
-    await upsert.mutateAsync({
-      data: {
-        name: name.trim(),
-        studentType,
-        college,
-        major: major.trim(),
-        secondMajor: secondMajor === NONE_VALUE ? null : secondMajor.trim(),
-        minor: minor === NONE_VALUE ? null : minor.trim(),
-        startTerm: startTerm as "fall" | "winter" | "spring" | "summer",
-        startYear,
-        expectedGradTerm: expectedGradTerm as "fall" | "winter" | "spring" | "summer",
-        expectedGradYear,
-        unitsCompletedAtSCU,
-        unitsTransferredIn,
-        cumulativeGpa: Number(cumulativeGpa),
-        majorGpa: Number(majorGpa),
-        completedCourseCodes: completedCourses,
-        priorityRegistration,
-        currentTerm: currentTerm as "fall" | "winter" | "spring" | "summer",
-        currentYear,
-      },
-    });
-    await queryClient.invalidateQueries();
-    setLocation("/");
+    try {
+      await upsert.mutateAsync({
+        data: {
+          name: name.trim(),
+          studentType,
+          college,
+          major: major.trim(),
+          secondMajor: secondMajor === NONE_VALUE ? null : secondMajor.trim(),
+          minor: minor === NONE_VALUE ? null : minor.trim(),
+          startTerm: startTerm as "fall" | "winter" | "spring" | "summer",
+          startYear,
+          expectedGradTerm: expectedGradTerm as "fall" | "winter" | "spring" | "summer",
+          expectedGradYear,
+          unitsCompletedAtSCU,
+          unitsTransferredIn,
+          cumulativeGpa: Number(cumulativeGpa),
+          majorGpa: Number(majorGpa),
+          completedCourseCodes: completedCourses,
+          priorityRegistration,
+          currentTerm: currentTerm as "fall" | "winter" | "spring" | "summer",
+          currentYear,
+        },
+      });
+      await queryClient.invalidateQueries();
+      setLocation("/");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error saving your profile.";
+      toast({
+        title: "Couldn't save your profile",
+        description: msg,
+        variant: "destructive",
+      });
+    }
   };
 
   const onDeleteAccount = async () => {
