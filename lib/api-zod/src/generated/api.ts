@@ -33,6 +33,8 @@ export const GetProfileResponse = zod.object({
   major: zod.string(),
   secondMajor: zod.string().nullish(),
   minor: zod.string().nullish(),
+  additionalMajors: zod.array(zod.string()),
+  additionalMinors: zod.array(zod.string()),
   startTerm: zod.enum(["fall", "winter", "spring", "summer"]),
   startYear: zod.number(),
   expectedGradTerm: zod.enum(["fall", "winter", "spring", "summer"]),
@@ -64,6 +66,8 @@ export const UpsertProfileBody = zod.object({
   major: zod.string(),
   secondMajor: zod.string().nullish(),
   minor: zod.string().nullish(),
+  additionalMajors: zod.array(zod.string()),
+  additionalMinors: zod.array(zod.string()),
   startTerm: zod.enum(["fall", "winter", "spring", "summer"]),
   startYear: zod.number(),
   expectedGradTerm: zod.enum(["fall", "winter", "spring", "summer"]),
@@ -94,6 +98,8 @@ export const UpsertProfileResponse = zod.object({
   major: zod.string(),
   secondMajor: zod.string().nullish(),
   minor: zod.string().nullish(),
+  additionalMajors: zod.array(zod.string()),
+  additionalMinors: zod.array(zod.string()),
   startTerm: zod.enum(["fall", "winter", "spring", "summer"]),
   startYear: zod.number(),
   expectedGradTerm: zod.enum(["fall", "winter", "spring", "summer"]),
@@ -424,6 +430,8 @@ export const GetDashboardSummaryResponse = zod.object({
       major: zod.string(),
       secondMajor: zod.string().nullish(),
       minor: zod.string().nullish(),
+      additionalMajors: zod.array(zod.string()),
+      additionalMinors: zod.array(zod.string()),
       startTerm: zod.enum(["fall", "winter", "spring", "summer"]),
       startYear: zod.number(),
       expectedGradTerm: zod.enum(["fall", "winter", "spring", "summer"]),
@@ -466,6 +474,40 @@ export const GetDashboardSummaryResponse = zod.object({
     }),
   ),
   warnings: zod.array(zod.string()),
+  currentRegistrationWindow: zod
+    .object({
+      targetTerm: zod.enum(["fall", "winter", "spring", "summer"]),
+      targetYear: zod.number(),
+      status: zod.enum(["upcoming", "open", "closed"]),
+      headline: zod
+        .string()
+        .describe(
+          'A short human-readable status line, e.g. \"Fall 2026 priority registration opens May 27\".',
+        ),
+      detail: zod
+        .string()
+        .describe(
+          "Plain-language detail about the current state and the user's wave.",
+        ),
+      myWaveDate: zod
+        .string()
+        .nullish()
+        .describe("ISO date when this user's wave opens, if known."),
+      myWaveLabel: zod
+        .string()
+        .nullish()
+        .describe('e.g. \"Senior priority — Tier 1\".'),
+      nextMilestone: zod
+        .string()
+        .nullish()
+        .describe("Free-form description of the next milestone."),
+      publishedSource: zod
+        .string()
+        .describe(
+          'e.g. \"SCU Office of the Registrar, Spring 2026 communication\".',
+        ),
+    })
+    .nullish(),
 });
 
 /**
@@ -777,6 +819,80 @@ export const GetGraduationPathResponse = zod.object({
     }),
   ),
   risks: zod.array(zod.string()),
+});
+
+/**
+ * @summary List instructors derived from synced Workday sections (deduped, grouped by department)
+ */
+export const ListProfessorsQueryParams = zod.object({
+  q: zod.coerce.string().optional(),
+});
+
+export const ListProfessorsResponse = zod.object({
+  professors: zod.array(
+    zod.object({
+      name: zod.string(),
+      departments: zod.array(zod.string()),
+      courses: zod
+        .array(zod.string())
+        .describe(
+          "Course codes this instructor has been seen teaching in synced sections.",
+        ),
+      sectionsCount: zod.number(),
+      latestTerm: zod
+        .string()
+        .describe(
+          'Most recent synced term they appeared in, e.g. \"Fall 2026\".',
+        ),
+      rmpDeepLinkUrl: zod
+        .string()
+        .describe(
+          "Direct link to RateMyProfessor search for this professor at SCU (school 882).",
+        ),
+    }),
+  ),
+  totalSyncedSections: zod.number(),
+  emptyReason: zod
+    .string()
+    .nullish()
+    .describe(
+      'When the list is empty, a short human-readable reason (e.g. \"No Workday sections synced yet\").',
+    ),
+});
+
+/**
+ * @summary Look up a professor's live RateMyProfessor rating (best-effort, with 24h cache and graceful fallback)
+ */
+export const GetProfessorRmpParams = zod.object({
+  name: zod.coerce.string(),
+});
+
+export const GetProfessorRmpResponse = zod.object({
+  found: zod.boolean(),
+  name: zod.string(),
+  deepLinkUrl: zod.string(),
+  avgRating: zod.number().nullish(),
+  avgDifficulty: zod.number().nullish(),
+  wouldTakeAgainPercent: zod.number().nullish(),
+  numRatings: zod.number().nullish(),
+  department: zod.string().nullish(),
+  topTags: zod.array(zod.string()),
+  recentComments: zod.array(
+    zod.object({
+      comment: zod.string(),
+      date: zod.string(),
+      quality: zod.number().nullish(),
+      difficulty: zod.number().nullish(),
+      course: zod.string().nullish(),
+    }),
+  ),
+  cachedAt: zod.coerce.date().nullish(),
+  error: zod
+    .string()
+    .nullish()
+    .describe(
+      'When found is false, a short explanation (e.g. \"RMP returned no match\" or \"Upstream RMP error — using deep-link only\").',
+    ),
 });
 
 /**

@@ -59,6 +59,8 @@ export interface StudentProfile {
   major: string;
   secondMajor?: string | null;
   minor?: string | null;
+  additionalMajors: string[];
+  additionalMinors: string[];
   startTerm: Term;
   startYear: number;
   expectedGradTerm: Term;
@@ -81,6 +83,8 @@ export interface UpsertProfileBody {
   major: string;
   secondMajor?: string | null;
   minor?: string | null;
+  additionalMajors: string[];
+  additionalMinors: string[];
   startTerm: Term;
   startYear: number;
   expectedGradTerm: Term;
@@ -301,6 +305,33 @@ export interface Deadline {
   description: string;
 }
 
+export type RegistrationWindowStatus =
+  (typeof RegistrationWindowStatus)[keyof typeof RegistrationWindowStatus];
+
+export const RegistrationWindowStatus = {
+  upcoming: "upcoming",
+  open: "open",
+  closed: "closed",
+} as const;
+
+export interface RegistrationWindow {
+  targetTerm: Term;
+  targetYear: number;
+  status: RegistrationWindowStatus;
+  /** A short human-readable status line, e.g. "Fall 2026 priority registration opens May 27". */
+  headline: string;
+  /** Plain-language detail about the current state and the user's wave. */
+  detail: string;
+  /** ISO date when this user's wave opens, if known. */
+  myWaveDate?: string | null;
+  /** e.g. "Senior priority — Tier 1". */
+  myWaveLabel?: string | null;
+  /** Free-form description of the next milestone. */
+  nextMilestone?: string | null;
+  /** e.g. "SCU Office of the Registrar, Spring 2026 communication". */
+  publishedSource: string;
+}
+
 export interface DashboardSummary {
   profile?: StudentProfile | null;
   /** First Year, Sophomore, Junior, Senior based on units */
@@ -319,6 +350,50 @@ export interface DashboardSummary {
   todayYear?: number;
   upcomingDeadlines: Deadline[];
   warnings: string[];
+  currentRegistrationWindow?: RegistrationWindow | null;
+}
+
+export interface ProfessorEntry {
+  name: string;
+  departments: string[];
+  /** Course codes this instructor has been seen teaching in synced sections. */
+  courses: string[];
+  sectionsCount: number;
+  /** Most recent synced term they appeared in, e.g. "Fall 2026". */
+  latestTerm: string;
+  /** Direct link to RateMyProfessor search for this professor at SCU (school 882). */
+  rmpDeepLinkUrl: string;
+}
+
+export interface ProfessorList {
+  professors: ProfessorEntry[];
+  totalSyncedSections: number;
+  /** When the list is empty, a short human-readable reason (e.g. "No Workday sections synced yet"). */
+  emptyReason?: string | null;
+}
+
+export interface ProfessorRmpComment {
+  comment: string;
+  date: string;
+  quality?: number | null;
+  difficulty?: number | null;
+  course?: string | null;
+}
+
+export interface ProfessorRmp {
+  found: boolean;
+  name: string;
+  deepLinkUrl: string;
+  avgRating?: number | null;
+  avgDifficulty?: number | null;
+  wouldTakeAgainPercent?: number | null;
+  numRatings?: number | null;
+  department?: string | null;
+  topTags: string[];
+  recentComments: ProfessorRmpComment[];
+  cachedAt?: string | null;
+  /** When found is false, a short explanation (e.g. "RMP returned no match" or "Upstream RMP error — using deep-link only"). */
+  error?: string | null;
 }
 
 export interface OpenaiConversation {
@@ -718,4 +793,11 @@ export type GetGraduationPathParams = {
    * Comma-separated list of course codes earned via AP/IB. Treated identically to `completed` server-side.
    */
   apIbCredits?: string;
+};
+
+export type ListProfessorsParams = {
+  /**
+   * Optional case-insensitive substring match on instructor name or department.
+   */
+  q?: string;
 };

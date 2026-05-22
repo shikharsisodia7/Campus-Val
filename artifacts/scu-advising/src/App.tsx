@@ -31,6 +31,7 @@ import Advisor from "@/pages/advisor";
 import VoiceAdvisor from "@/pages/voice";
 import GraduationPaths from "@/pages/graduation-paths";
 import Evaluation from "@/pages/evaluation";
+import ProfessorsPage from "@/pages/professors";
 import Landing from "@/pages/landing";
 import { SignInPage, SignUpPage } from "@/pages/auth";
 
@@ -194,6 +195,11 @@ function AppRoutes() {
       <Route path="/graduation-paths">
         <Protected>
           <GraduationPaths />
+        </Protected>
+      </Route>
+      <Route path="/professors">
+        <Protected>
+          <ProfessorsPage />
         </Protected>
       </Route>
       <Route path="/evaluation">

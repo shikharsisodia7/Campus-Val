@@ -38,6 +38,7 @@ import type {
   ListCourseSectionsParams,
   ListCoursesParams,
   ListPoliciesParams,
+  ListProfessorsParams,
   LookupArticulationParams,
   MajorList,
   MajorRequirements,
@@ -49,6 +50,8 @@ import type {
   PlanCheckResult,
   Policy,
   PrereqCheckResult,
+  ProfessorList,
+  ProfessorRmp,
   RunEvaluationBody,
   SectionsSyncStatus,
   SendOpenaiMessageBody,
@@ -1899,6 +1902,187 @@ export function useGetGraduationPath<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetGraduationPathQueryOptions(type, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List instructors derived from synced Workday sections (deduped, grouped by department)
+ */
+export const getListProfessorsUrl = (params?: ListProfessorsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/professors?${stringifiedParams}`
+    : `/api/professors`;
+};
+
+export const listProfessors = async (
+  params?: ListProfessorsParams,
+  options?: RequestInit,
+): Promise<ProfessorList> => {
+  return customFetch<ProfessorList>(getListProfessorsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProfessorsQueryKey = (params?: ListProfessorsParams) => {
+  return [`/api/professors`, ...(params ? [params] : [])] as const;
+};
+
+export const getListProfessorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProfessors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListProfessorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProfessors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListProfessorsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProfessors>>> = ({
+    signal,
+  }) => listProfessors(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProfessors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProfessorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProfessors>>
+>;
+export type ListProfessorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List instructors derived from synced Workday sections (deduped, grouped by department)
+ */
+
+export function useListProfessors<
+  TData = Awaited<ReturnType<typeof listProfessors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListProfessorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProfessors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProfessorsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Look up a professor's live RateMyProfessor rating (best-effort, with 24h cache and graceful fallback)
+ */
+export const getGetProfessorRmpUrl = (name: string) => {
+  return `/api/professors/${name}/rmp`;
+};
+
+export const getProfessorRmp = async (
+  name: string,
+  options?: RequestInit,
+): Promise<ProfessorRmp> => {
+  return customFetch<ProfessorRmp>(getGetProfessorRmpUrl(name), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProfessorRmpQueryKey = (name: string) => {
+  return [`/api/professors/${name}/rmp`] as const;
+};
+
+export const getGetProfessorRmpQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProfessorRmp>>,
+  TError = ErrorType<unknown>,
+>(
+  name: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProfessorRmp>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProfessorRmpQueryKey(name);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfessorRmp>>> = ({
+    signal,
+  }) => getProfessorRmp(name, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!name,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProfessorRmp>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProfessorRmpQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProfessorRmp>>
+>;
+export type GetProfessorRmpQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Look up a professor's live RateMyProfessor rating (best-effort, with 24h cache and graceful fallback)
+ */
+
+export function useGetProfessorRmp<
+  TData = Awaited<ReturnType<typeof getProfessorRmp>>,
+  TError = ErrorType<unknown>,
+>(
+  name: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProfessorRmp>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProfessorRmpQueryOptions(name, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

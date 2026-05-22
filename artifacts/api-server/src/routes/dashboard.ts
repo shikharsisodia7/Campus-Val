@@ -8,6 +8,13 @@ import {
   standingLabel,
 } from "../lib/standing";
 import { requireAuth } from "../middlewares/requireAuth";
+import {
+  pickCurrentWindow,
+  audienceFor,
+  termTitle,
+  todayInPacific,
+  type RegistrationTermWindow,
+} from "../data/registration-windows";
 
 const router: IRouter = Router();
 
@@ -53,6 +60,8 @@ function rowToDto(row: typeof studentProfilesTable.$inferSelect) {
     major: row.major,
     secondMajor: row.secondMajor ?? null,
     minor: row.minor ?? null,
+    additionalMajors: row.additionalMajors ?? [],
+    additionalMinors: row.additionalMinors ?? [],
     startTerm: row.startTerm,
     startYear: row.startYear,
     expectedGradTerm: row.expectedGradTerm,
@@ -78,6 +87,69 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
   const profile = rows.length === 0 ? null : rowToDto(rows[0]!);
 
   const today = getCurrentSCUTerm();
+  const todayDate = new Date();
+  const isoToday = todayInPacific(todayDate);
+  const liveWindow = pickCurrentWindow(todayDate);
+
+  function buildLiveWindow(
+    standing: "first_year" | "sophomore" | "junior" | "senior" | null,
+    priority: boolean,
+  ) {
+    if (!liveWindow) return null;
+    const targetLabel = termTitle(liveWindow.targetTerm, liveWindow.targetYear);
+    let status: "upcoming" | "open" | "closed";
+    if (isoToday < liveWindow.priorityOpensOn) status = "upcoming";
+    else if (isoToday <= liveWindow.lastDayToAddDrop) status = "open";
+    else status = "closed";
+
+    let myWaveDate: string | null = null;
+    let myWaveLabel: string | null = null;
+    if (standing) {
+      const audience = audienceFor(standing, priority);
+      const wave = liveWindow.waves.find((w) => w.audience === audience);
+      if (wave) {
+        myWaveDate = wave.opensOn;
+        myWaveLabel = wave.label;
+      }
+    }
+
+    const headline =
+      status === "upcoming"
+        ? `${targetLabel} priority registration opens ${liveWindow.priorityOpensOn}.`
+        : status === "open"
+        ? `${targetLabel} registration is open — add/drop closes ${liveWindow.lastDayToAddDrop}.`
+        : `${targetLabel} registration has closed.`;
+
+    const myWaveLine =
+      myWaveDate && myWaveLabel
+        ? ` Your wave (${myWaveLabel}) opens ${myWaveDate}.`
+        : "";
+    const detail =
+      status === "upcoming"
+        ? `Priority week begins ${liveWindow.priorityOpensOn}; open enrollment ${liveWindow.openEnrollmentOn}.${myWaveLine}`
+        : status === "open"
+        ? `Open enrollment began ${liveWindow.openEnrollmentOn}. Last day to add/drop without W: ${liveWindow.lastDayToAddDrop}.${myWaveLine}`
+        : `Last day to add/drop was ${liveWindow.lastDayToAddDrop}. Withdraw deadline: ${liveWindow.withdrawalDeadline}.`;
+
+    const nextMilestone =
+      status === "upcoming"
+        ? `Open enrollment for everyone: ${liveWindow.openEnrollmentOn}`
+        : status === "open"
+        ? `Withdraw (with W) deadline: ${liveWindow.withdrawalDeadline}`
+        : null;
+
+    return {
+      targetTerm: liveWindow.targetTerm,
+      targetYear: liveWindow.targetYear,
+      status,
+      headline,
+      detail,
+      myWaveDate,
+      myWaveLabel,
+      nextMilestone,
+      publishedSource: liveWindow.publishedSource,
+    };
+  }
 
   if (!profile) {
     const term = today.term;
@@ -98,6 +170,7 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
       nextTermYear: today.year,
       upcomingDeadlines: [],
       warnings: ["No student profile yet. Complete onboarding to personalize CampusVal."],
+      currentRegistrationWindow: buildLiveWindow(null, false),
     });
   }
 
@@ -187,6 +260,10 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
       },
     ],
     warnings,
+    currentRegistrationWindow: buildLiveWindow(
+      standing === "freshman" ? "first_year" : standing,
+      profile.priorityRegistration,
+    ),
   });
 });
 

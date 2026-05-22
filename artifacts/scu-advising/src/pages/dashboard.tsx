@@ -63,6 +63,51 @@ export default function Dashboard() {
         }
       />
       <PageContent>
+        {summary.currentRegistrationWindow && (
+          <Card
+            className={
+              summary.currentRegistrationWindow.status === "open"
+                ? "border-primary/40 bg-primary/5 p-5"
+                : "border-amber-300 bg-amber-50/60 p-5"
+            }
+            data-testid="registration-banner"
+          >
+            <div className="flex items-start gap-3">
+              <CalendarClock
+                className={
+                  summary.currentRegistrationWindow.status === "open"
+                    ? "h-5 w-5 text-primary shrink-0 mt-0.5"
+                    : "h-5 w-5 text-amber-700 shrink-0 mt-0.5"
+                }
+              />
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-foreground">
+                    {summary.currentRegistrationWindow.headline}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="uppercase text-[10px] tracking-wider"
+                  >
+                    {summary.currentRegistrationWindow.status}
+                  </Badge>
+                </div>
+                <p className="text-sm text-foreground/85 leading-relaxed">
+                  {summary.currentRegistrationWindow.detail}
+                </p>
+                {summary.currentRegistrationWindow.nextMilestone && (
+                  <p className="text-xs text-muted-foreground">
+                    Next milestone: {summary.currentRegistrationWindow.nextMilestone}
+                  </p>
+                )}
+                <p className="text-[11px] text-muted-foreground/80">
+                  Source: {summary.currentRegistrationWindow.publishedSource}
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         <Card className="border-blue-200 bg-blue-50/60 p-4">
           <div className="flex items-start gap-2.5">
             <Info className="h-4 w-4 text-blue-700 shrink-0 mt-0.5" />

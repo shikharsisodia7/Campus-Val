@@ -22,6 +22,14 @@ export const studentProfilesTable = pgTable(
     major: text("major").notNull(),
     secondMajor: text("second_major"),
     minor: text("minor"),
+    additionalMajors: jsonb("additional_majors")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    additionalMinors: jsonb("additional_minors")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
     startTerm: text("start_term").notNull(),
     startYear: integer("start_year").notNull(),
     expectedGradTerm: text("expected_grad_term").notNull(),

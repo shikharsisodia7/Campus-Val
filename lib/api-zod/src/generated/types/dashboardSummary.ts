@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Deadline } from "./deadline";
+import type { RegistrationWindow } from "./registrationWindow";
 import type { StudentProfile } from "./studentProfile";
 import type { Term } from "./term";
 
@@ -27,4 +28,5 @@ export interface DashboardSummary {
   todayYear?: number;
   upcomingDeadlines: Deadline[];
   warnings: string[];
+  currentRegistrationWindow?: RegistrationWindow | null;
 }

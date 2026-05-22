@@ -15,6 +15,8 @@ export interface UpsertProfileBody {
   major: string;
   secondMajor?: string | null;
   minor?: string | null;
+  additionalMajors: string[];
+  additionalMinors: string[];
   startTerm: Term;
   startYear: number;
   expectedGradTerm: Term;

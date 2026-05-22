@@ -13,6 +13,7 @@ import graduationPathsRouter from "./graduation-paths";
 import evaluationRouter from "./evaluation";
 import sectionsRouter from "./sections";
 import voiceRouter from "./voice";
+import professorsRouter from "./professors";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(graduationPathsRouter);
 router.use(evaluationRouter);
 router.use(sectionsRouter);
 router.use(voiceRouter);
+router.use(professorsRouter);
 
 export default router;

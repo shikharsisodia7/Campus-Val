@@ -451,6 +451,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/GraduationPath"
 
+  /professors:
+    get:
+      operationId: listProfessors
+      tags: [professors]
+      summary: List instructors derived from synced Workday sections (deduped, grouped by department)
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            description: Optional case-insensitive substring match on instructor name or department.
+      responses:
+        "200":
+          description: Professor directory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfessorList"
+
+  /professors/{name}/rmp:
+    get:
+      operationId: getProfessorRmp
+      tags: [professors]
+      summary: Look up a professor's live RateMyProfessor rating (best-effort, with 24h cache and graceful fallback)
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: RMP lookup result. If found is false the UI should fall back to the deepLinkUrl.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfessorRmp"
+
   /evaluation/scenarios:
     get:
       operationId: listEvaluationScenarios
@@ -640,6 +678,14 @@ components:
         minor:
           type: string
           nullable: true
+        additionalMajors:
+          type: array
+          items:
+            type: string
+        additionalMinors:
+          type: array
+          items:
+            type: string
         startTerm:
           $ref: "#/components/schemas/Term"
         startYear:
@@ -677,6 +723,8 @@ components:
         - studentType
         - college
         - major
+        - additionalMajors
+        - additionalMinors
         - startTerm
         - startYear
         - expectedGradTerm
@@ -705,6 +753,14 @@ components:
         minor:
           type: string
           nullable: true
+        additionalMajors:
+          type: array
+          items:
+            type: string
+        additionalMinors:
+          type: array
+          items:
+            type: string
         startTerm:
           $ref: "#/components/schemas/Term"
         startYear:
@@ -738,6 +794,8 @@ components:
         - studentType
         - college
         - major
+        - additionalMajors
+        - additionalMinors
         - startTerm
         - startYear
         - expectedGradTerm
@@ -1202,6 +1260,9 @@ components:
           type: array
           items:
             type: string
+        currentRegistrationWindow:
+          $ref: "#/components/schemas/RegistrationWindow"
+          nullable: true
       required:
         - classification
         - totalUnitsAllSources
@@ -1215,6 +1276,44 @@ components:
         - nextTermYear
         - upcomingDeadlines
         - warnings
+    RegistrationWindow:
+      type: object
+      properties:
+        targetTerm:
+          $ref: "#/components/schemas/Term"
+        targetYear:
+          type: integer
+        status:
+          type: string
+          enum: [upcoming, open, closed]
+        headline:
+          type: string
+          description: A short human-readable status line, e.g. "Fall 2026 priority registration opens May 27".
+        detail:
+          type: string
+          description: Plain-language detail about the current state and the user's wave.
+        myWaveDate:
+          type: string
+          nullable: true
+          description: ISO date when this user's wave opens, if known.
+        myWaveLabel:
+          type: string
+          nullable: true
+          description: e.g. "Senior priority — Tier 1".
+        nextMilestone:
+          type: string
+          nullable: true
+          description: Free-form description of the next milestone.
+        publishedSource:
+          type: string
+          description: e.g. "SCU Office of the Registrar, Spring 2026 communication".
+      required:
+        - targetTerm
+        - targetYear
+        - status
+        - headline
+        - detail
+        - publishedSource
     Deadline:
       type: object
       properties:
@@ -1228,6 +1327,117 @@ components:
         - title
         - date
         - description
+
+    ProfessorEntry:
+      type: object
+      properties:
+        name:
+          type: string
+        departments:
+          type: array
+          items:
+            type: string
+        courses:
+          type: array
+          items:
+            type: string
+          description: Course codes this instructor has been seen teaching in synced sections.
+        sectionsCount:
+          type: integer
+        latestTerm:
+          type: string
+          description: Most recent synced term they appeared in, e.g. "Fall 2026".
+        rmpDeepLinkUrl:
+          type: string
+          description: Direct link to RateMyProfessor search for this professor at SCU (school 882).
+      required:
+        - name
+        - departments
+        - courses
+        - sectionsCount
+        - latestTerm
+        - rmpDeepLinkUrl
+    ProfessorList:
+      type: object
+      properties:
+        professors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfessorEntry"
+        totalSyncedSections:
+          type: integer
+        emptyReason:
+          type: string
+          nullable: true
+          description: When the list is empty, a short human-readable reason (e.g. "No Workday sections synced yet").
+      required:
+        - professors
+        - totalSyncedSections
+    ProfessorRmpComment:
+      type: object
+      properties:
+        comment:
+          type: string
+        date:
+          type: string
+        quality:
+          type: number
+          nullable: true
+        difficulty:
+          type: number
+          nullable: true
+        course:
+          type: string
+          nullable: true
+      required:
+        - comment
+        - date
+    ProfessorRmp:
+      type: object
+      properties:
+        found:
+          type: boolean
+        name:
+          type: string
+        deepLinkUrl:
+          type: string
+        avgRating:
+          type: number
+          nullable: true
+        avgDifficulty:
+          type: number
+          nullable: true
+        wouldTakeAgainPercent:
+          type: number
+          nullable: true
+        numRatings:
+          type: integer
+          nullable: true
+        department:
+          type: string
+          nullable: true
+        topTags:
+          type: array
+          items:
+            type: string
+        recentComments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfessorRmpComment"
+        cachedAt:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          type: string
+          nullable: true
+          description: When found is false, a short explanation (e.g. "RMP returned no match" or "Upstream RMP error — using deep-link only").
+      required:
+        - found
+        - name
+        - deepLinkUrl
+        - topTags
+        - recentComments
 
     OpenaiConversation:
       type: object

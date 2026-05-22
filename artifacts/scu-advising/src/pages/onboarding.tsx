@@ -106,6 +106,8 @@ export default function Onboarding() {
   const [major, setMajor] = useState("");
   const [secondMajor, setSecondMajor] = useState<string>(NONE_VALUE);
   const [minor, setMinor] = useState<string>(NONE_VALUE);
+  const [additionalMajors, setAdditionalMajors] = useState<string[]>([]);
+  const [additionalMinors, setAdditionalMinors] = useState<string[]>([]);
   const [startTerm, setStartTerm] = useState<string>("fall");
   const [startYear, setStartYear] = useState<number>(TODAY.year);
   const [expectedGradTerm, setExpectedGradTerm] = useState<string>("spring");
@@ -145,6 +147,24 @@ export default function Onboarding() {
     setMajor(existing.major);
     setSecondMajor(existing.secondMajor && existing.secondMajor !== "" ? existing.secondMajor : NONE_VALUE);
     setMinor(existing.minor && existing.minor !== "" ? existing.minor : NONE_VALUE);
+    // Migrate legacy single secondMajor/minor into the new arrays ONCE —
+    // only when the new arrays are still empty (fresh load of a profile
+    // that predates the multi-major feature). After the first save sets
+    // additionalMajors[]/additionalMinors[], the legacy fields are still
+    // in the DB but we no longer re-inject them, so removing a chip and
+    // re-opening this page keeps it removed.
+    const existingMajors = existing.additionalMajors ?? [];
+    if (existingMajors.length === 0 && existing.secondMajor && existing.secondMajor.trim() !== "") {
+      setAdditionalMajors([existing.secondMajor.trim()]);
+    } else {
+      setAdditionalMajors(existingMajors);
+    }
+    const existingMinors = existing.additionalMinors ?? [];
+    if (existingMinors.length === 0 && existing.minor && existing.minor.trim() !== "") {
+      setAdditionalMinors([existing.minor.trim()]);
+    } else {
+      setAdditionalMinors(existingMinors);
+    }
     setStartTerm(existing.startTerm);
     setStartYear(existing.startYear);
     setExpectedGradTerm(existing.expectedGradTerm);
@@ -229,8 +249,10 @@ export default function Onboarding() {
           studentType,
           college,
           major: major.trim(),
-          secondMajor: secondMajor === NONE_VALUE ? null : secondMajor.trim(),
-          minor: minor === NONE_VALUE ? null : minor.trim(),
+          secondMajor: null,
+          minor: null,
+          additionalMajors: additionalMajors.map((s) => s.trim()).filter((s) => s.length > 0),
+          additionalMinors: additionalMinors.map((s) => s.trim()).filter((s) => s.length > 0),
           startTerm: startTerm as "fall" | "winter" | "spring" | "summer",
           startYear,
           expectedGradTerm: expectedGradTerm as "fall" | "winter" | "spring" | "summer",
@@ -391,34 +413,30 @@ export default function Onboarding() {
                     testId="select-major"
                   />
                 </Field>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field
-                    label="Second major"
-                    hint='Optional — leave as "None" if not applicable.'
-                  >
-                    <MajorPicker
-                      value={secondMajor === NONE_VALUE ? "" : secondMajor}
-                      onChange={(v) => setSecondMajor(v || NONE_VALUE)}
-                      options={majors}
-                      placeholder="None"
-                      allowNone
-                      testId="select-second-major"
-                    />
-                  </Field>
-                  <Field
-                    label="Minor"
-                    hint='Optional — leave as "None" if not applicable.'
-                  >
-                    <MajorPicker
-                      value={minor === NONE_VALUE ? "" : minor}
-                      onChange={(v) => setMinor(v || NONE_VALUE)}
-                      options={minors}
-                      placeholder="None"
-                      allowNone
-                      testId="select-minor"
-                    />
-                  </Field>
-                </div>
+                <Field
+                  label="Additional majors"
+                  hint="Stack as many declared/intended majors as you like — pick from the list or type a free-form name."
+                >
+                  <MultiPicker
+                    values={additionalMajors}
+                    onChange={setAdditionalMajors}
+                    options={majors}
+                    placeholder="Add a major…"
+                    testId="multi-additional-majors"
+                  />
+                </Field>
+                <Field
+                  label="Minors"
+                  hint="Stack as many minors as you like — pick from the list or type a free-form name."
+                >
+                  <MultiPicker
+                    values={additionalMinors}
+                    onChange={setAdditionalMinors}
+                    options={minors}
+                    placeholder="Add a minor…"
+                    testId="multi-minors"
+                  />
+                </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="Start term" required>
                     <Select value={startTerm} onValueChange={setStartTerm}>
@@ -802,6 +820,141 @@ function MajorPicker({
         </Command>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function MultiPicker({
+  values,
+  onChange,
+  options,
+  placeholder,
+  testId,
+}: {
+  values: string[];
+  onChange: (next: string[]) => void;
+  options: MajorOption[];
+  placeholder: string;
+  testId?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [free, setFree] = useState("");
+
+  function labelFor(v: string): string {
+    const hit = options.find((o) => o.code === v || o.title === v);
+    return hit ? `${hit.code} — ${hit.title}` : v;
+  }
+  function add(v: string) {
+    const trimmed = v.trim();
+    if (!trimmed) return;
+    if (values.includes(trimmed)) return;
+    onChange([...values, trimmed]);
+  }
+  function remove(v: string) {
+    onChange(values.filter((x) => x !== v));
+  }
+
+  return (
+    <div className="space-y-2">
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-2" data-testid={`${testId}-chips`}>
+          {values.map((v) => (
+            <Badge
+              key={v}
+              variant="secondary"
+              className="pl-2.5 pr-1 py-1 gap-1"
+            >
+              <span className="text-xs">{labelFor(v)}</span>
+              <button
+                type="button"
+                onClick={() => remove(v)}
+                className="rounded-full p-0.5 hover:bg-foreground/10"
+                aria-label={`Remove ${v}`}
+                data-testid={`${testId}-remove-${v.replace(/\s+/g, "_")}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              data-testid={testId}
+              className={cn(
+                "flex h-10 flex-1 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm",
+                "hover:bg-accent/30 focus:outline-none focus:ring-1 focus:ring-ring",
+              )}
+            >
+              <span className="text-muted-foreground truncate text-left">
+                {placeholder}
+              </span>
+              <ChevronRight className="h-4 w-4 opacity-50" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-[var(--radix-popover-trigger-width)] p-0"
+            align="start"
+          >
+            <Command>
+              <CommandInput placeholder="Search…" />
+              <CommandList>
+                <CommandEmpty>No matches.</CommandEmpty>
+                <CommandGroup>
+                  {options
+                    .filter((o) => !values.includes(o.code) && !values.includes(o.title))
+                    .map((o) => (
+                      <CommandItem
+                        key={o.code}
+                        value={`${o.code} ${o.title}`}
+                        onSelect={() => {
+                          add(o.code);
+                          setOpen(false);
+                        }}
+                      >
+                        <span className="font-mono text-xs mr-2 text-muted-foreground">
+                          {o.code}
+                        </span>
+                        <span className="truncate">{o.title}</span>
+                      </CommandItem>
+                    ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+      <div className="flex gap-2">
+        <Input
+          value={free}
+          onChange={(e) => setFree(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add(free);
+              setFree("");
+            }
+          }}
+          placeholder="Or type a custom name and press Enter…"
+          className="text-sm"
+          data-testid={`${testId}-freeform`}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            add(free);
+            setFree("");
+          }}
+          disabled={!free.trim()}
+        >
+          Add
+        </Button>
+      </div>
+    </div>
   );
 }
 
