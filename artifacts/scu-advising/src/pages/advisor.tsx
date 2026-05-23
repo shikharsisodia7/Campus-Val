@@ -231,9 +231,9 @@ export default function Advisor() {
         title="AI Advisor"
         subtitle="Grounded in verified SCU policies. The advisor knows your profile and uses it to personalize answers."
       />
-      <div className="max-w-7xl mx-auto px-8 py-6">
-        <Card className="p-0 overflow-hidden grid grid-cols-12 h-[calc(100vh-220px)] min-h-[500px]">
-          <aside className="col-span-3 border-r border-border bg-muted/20 flex flex-col">
+      <div className="max-w-7xl mx-auto px-8 py-6 flex-1 min-h-0 flex flex-col">
+        <Card className="p-0 overflow-hidden grid grid-cols-12 flex-1 min-h-[500px] max-h-[calc(100vh-180px)]">
+          <aside className="col-span-3 border-r border-border bg-muted/20 flex flex-col min-h-0 min-w-0">
             <div className="p-3 border-b border-border">
               <Button
                 onClick={newConversation}
@@ -288,8 +288,11 @@ export default function Advisor() {
             <ProfessorLookup />
           </aside>
 
-          <section className="col-span-9 flex flex-col">
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6">
+          <section className="col-span-9 flex flex-col min-h-0 min-w-0">
+            <div
+              ref={scrollRef}
+              className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-6"
+            >
               {messages.length === 0 ? (
                 <EmptyState onPick={sendMessage} disabled={isStreaming} />
               ) : (
@@ -384,7 +387,7 @@ function MessageBubble({ message }: { message: Message }) {
       )}
       <div
         className={cn(
-          "max-w-[80%] rounded-lg px-4 py-3 text-sm leading-relaxed",
+          "max-w-[80%] min-w-0 rounded-lg px-4 py-3 text-sm leading-relaxed break-words overflow-hidden",
           isUser
             ? "bg-primary text-primary-foreground rounded-br-sm"
             : "bg-muted text-foreground rounded-bl-sm border border-border",

@@ -11,8 +11,8 @@ router.get("/courses", (req, res) => {
   const department = (req.query.department as string | undefined)
     ?.toLowerCase()
     .trim();
-  const coreParam = req.query.core as string | undefined;
-  const coreOnly = coreParam === "true";
+  const coreParam = req.query.core;
+  const coreOnly = coreParam === "true" || coreParam === "1";
 
   let result = COURSES.slice();
   if (search) {

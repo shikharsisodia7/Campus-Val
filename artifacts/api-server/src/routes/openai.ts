@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, asc, desc } from "drizzle-orm";
+import { and, eq, asc, desc, sql } from "drizzle-orm";
 import {
   db,
   conversations,
@@ -16,6 +16,20 @@ import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
+
+function summarizeForTitle(text: string): string {
+  const cleaned = text
+    .replace(/\s+/g, " ")
+    .replace(/[`*_~#>]/g, "")
+    .trim();
+  if (!cleaned) return "";
+  const max = 60;
+  if (cleaned.length <= max) return cleaned.replace(/[.?!,;:]+$/, "");
+  const slice = cleaned.slice(0, max);
+  const lastSpace = slice.lastIndexOf(" ");
+  const cut = lastSpace > 20 ? slice.slice(0, lastSpace) : slice;
+  return cut.replace(/[.?!,;:]+$/, "") + "…";
+}
 
 async function ownsConversation(
   id: number,
@@ -123,6 +137,35 @@ router.post("/openai/conversations/:id/messages", requireAuth, async (req, res) 
   await db
     .insert(messages)
     .values({ conversationId: id, role: "user", content: body.content });
+
+  // Auto-summarize the conversation title from the user's first message so
+  // sidebar entries aren't all "New conversation". We only rewrite the title
+  // when it's still the default placeholder, so a user-set title is never
+  // clobbered. The summary is derived locally (no extra LLM call) to keep
+  // this fast and free: trim, collapse whitespace, drop trailing punctuation,
+  // and cap at ~60 chars on a word boundary.
+  const placeholderTitles = new Set([
+    "new conversation",
+    "new chat",
+    "untitled",
+    "",
+  ]);
+  if (placeholderTitles.has((conv.title ?? "").trim().toLowerCase())) {
+    const prevCount = await db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(messages)
+      .where(eq(messages.conversationId, id));
+    const isFirstUserMessage = (prevCount[0]?.c ?? 0) === 1; // just inserted
+    if (isFirstUserMessage) {
+      const summary = summarizeForTitle(body.content);
+      if (summary) {
+        await db
+          .update(conversations)
+          .set({ title: summary })
+          .where(eq(conversations.id, id));
+      }
+    }
+  }
 
   const profileRows = await db
     .select()

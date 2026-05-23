@@ -44,7 +44,7 @@ export default function Courses() {
   const { data: courses = [], isLoading } = useListCourses({
     search: search || undefined,
     department: department ?? undefined,
-    core: coreOnly ? ("true" as unknown as boolean) : undefined,
+    core: coreOnly ? true : undefined,
   });
 
   const departments = Array.from(new Set(courses.map((c) => c.department))).sort();

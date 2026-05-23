@@ -97,6 +97,23 @@ const clerkAppearance = {
       "bg-white rounded-2xl shadow-lg w-[440px] max-w-full overflow-hidden border border-gray-200",
     card: "!shadow-none !border-0 !bg-transparent !rounded-none",
     footer: "!shadow-none !border-0 !bg-transparent !rounded-none",
+    // Input fields: visible border + focus ring so they don't blend in.
+    formFieldInput:
+      "!border !border-gray-300 !bg-white !text-gray-900 !shadow-sm focus:!border-[#8C1515] focus:!ring-2 focus:!ring-[#8C1515]/20",
+    formFieldLabel: "!text-gray-800 !font-medium",
+    // Social buttons (Google / etc.): full opacity, visible border, hover tint.
+    // Default Clerk styling renders these almost greyed-out which reads as disabled.
+    socialButtonsBlockButton:
+      "!border !border-gray-300 !bg-white !text-gray-900 !opacity-100 hover:!bg-gray-50 hover:!border-[#8C1515]/40 !shadow-sm transition-colors",
+    socialButtonsBlockButtonText: "!text-gray-900 !font-medium !opacity-100",
+    socialButtonsBlockButtonArrow: "!text-gray-700 !opacity-100",
+    socialButtonsProviderIcon: "!opacity-100",
+    // Primary submit (continue / sign in) — strong cardinal.
+    formButtonPrimary:
+      "!bg-[#8C1515] hover:!bg-[#7a1212] !text-white !shadow-md !shadow-[#8C1515]/20 !border-0",
+    // Divider that says "or" between social + email — readable, not invisible.
+    dividerLine: "!bg-gray-200",
+    dividerText: "!text-gray-500 !font-medium",
   },
 };
 
