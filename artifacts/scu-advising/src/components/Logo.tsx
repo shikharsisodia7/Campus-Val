@@ -7,9 +7,9 @@ interface LogoProps {
 }
 
 /**
- * CampusVal mark — original shield + mission bell motif evoking SCU's
- * Mission Santa Clara heritage without copying the university seal.
- * Cardinal (#8C1515) shield, gold (#B08850) bell + star, "CV" monogram.
+ * CampusVal Bronco mark — stylized horse-head silhouette in profile on a
+ * cardinal shield, evoking SCU's Bronco mascot heritage without copying
+ * the official athletics mark. Gold mane accents on cardinal field.
  */
 export function Logo({ size = 40, className = "", animated = true }: LogoProps) {
   const inner = (
@@ -19,7 +19,7 @@ export function Logo({ size = 40, className = "", animated = true }: LogoProps) 
       viewBox="0 0 64 64"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      aria-label="CampusVal logo"
+      aria-label="CampusVal Bronco logo"
       role="img"
     >
       <defs>
@@ -28,12 +28,13 @@ export function Logo({ size = 40, className = "", animated = true }: LogoProps) 
           <stop offset="100%" stopColor="#8C1515" />
         </linearGradient>
         <linearGradient id="cv-gold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#D4AC6B" />
+          <stop offset="0%" stopColor="#E2BE7E" />
           <stop offset="100%" stopColor="#B08850" />
         </linearGradient>
-        <filter id="cv-soft" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="0.4" />
-        </filter>
+        <linearGradient id="cv-mane" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#F2D9A8" />
+          <stop offset="100%" stopColor="#B08850" />
+        </linearGradient>
       </defs>
 
       {/* Shield */}
@@ -43,47 +44,82 @@ export function Logo({ size = 40, className = "", animated = true }: LogoProps) 
         stroke="#6B0F0F"
         strokeWidth="1"
       />
-
       {/* Inner gold border */}
       <path
         d="M32 6 L54 12.5 L54 30 C54 43.5 44.5 54 32 57.5 C19.5 54 10 43.5 10 30 L10 12.5 Z"
         fill="none"
         stroke="url(#cv-gold)"
         strokeWidth="1"
-        opacity="0.7"
+        opacity="0.75"
       />
 
-      {/* Mission bell silhouette */}
-      <g transform="translate(32 22)" filter="url(#cv-soft)">
+      {/* Bronco — stylized horse head in profile, facing right.
+          Built from a few smooth bezier curves: muzzle → jaw → chest →
+          neck/mane → head crown → forehead → muzzle close. */}
+      <g transform="translate(0 0)">
+        {/* Flowing mane behind the head */}
         <path
-          d="M-7 8 C-7 1 -4 -5 0 -5 C4 -5 7 1 7 8 L8 9 L-8 9 Z"
+          d="M 22 18
+             C 17 21, 14 26, 14 31
+             C 14 36, 16 40, 19 43
+             C 16 41, 15 37, 16 33
+             C 14 36, 14 41, 17 45
+             C 19 41, 22 38, 25 36
+             Z"
+          fill="url(#cv-mane)"
+          opacity="0.95"
+        />
+        {/* Head — main silhouette */}
+        <path
+          d="M 44 22
+             C 47 24, 48 28, 47 31
+             C 46 34, 44 36, 42 37
+             L 41 41
+             C 41 43, 39 44, 37 44
+             L 35 44
+             C 33 44, 32 43, 31 41
+             L 30 39
+             L 27 39
+             C 25 39, 23 37, 23 35
+             L 23 33
+             C 23 30, 24 27, 26 24
+             C 28 21, 31 19, 35 18
+             C 38 17, 41 18, 44 22 Z"
           fill="url(#cv-gold)"
         />
-        <rect x="-9" y="9" width="18" height="2" rx="0.5" fill="url(#cv-gold)" />
-        <circle cx="0" cy="13" r="1.6" fill="url(#cv-gold)" />
+        {/* Forelock peak — small mane tuft over the forehead */}
+        <path
+          d="M 30 19
+             C 31 17, 33 16, 34 17
+             C 33 19, 32 20, 31 21 Z"
+          fill="url(#cv-mane)"
+        />
+        {/* Eye */}
+        <circle cx="36" cy="28" r="1.1" fill="#3B0808" />
+        {/* Nostril */}
+        <ellipse cx="43" cy="34" rx="0.9" ry="0.6" fill="#3B0808" opacity="0.7" />
+        {/* Ear */}
+        <path
+          d="M 31 16 L 33 14 L 33.5 17 Z"
+          fill="url(#cv-gold)"
+          stroke="#6B0F0F"
+          strokeWidth="0.3"
+        />
       </g>
 
-      {/* CV monogram */}
+      {/* CV monogram across the bottom */}
       <text
         x="32"
-        y="50"
+        y="55"
         textAnchor="middle"
         fontFamily="Georgia, serif"
         fontWeight="700"
-        fontSize="13"
+        fontSize="7.5"
         fill="#F8F1E4"
-        letterSpacing="0.5"
+        letterSpacing="2"
       >
-        CV
+        CAMPUSVAL
       </text>
-
-      {/* Gold star — represents student / north star */}
-      <g transform="translate(32 56)">
-        <polygon
-          points="0,-2.4 0.7,-0.7 2.4,-0.7 1,0.3 1.5,2 0,1 -1.5,2 -1,0.3 -2.4,-0.7 -0.7,-0.7"
-          fill="url(#cv-gold)"
-        />
-      </g>
     </svg>
   );
 
