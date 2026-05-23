@@ -32,6 +32,9 @@ import VoiceAdvisor from "@/pages/voice";
 import GraduationPaths from "@/pages/graduation-paths";
 import Evaluation from "@/pages/evaluation";
 import ProfessorsPage from "@/pages/professors";
+import CoreReqs from "@/pages/core-reqs";
+import ComparePage from "@/pages/compare";
+import AdvicePage from "@/pages/advice";
 import Landing from "@/pages/landing";
 import { SignInPage, SignUpPage } from "@/pages/auth";
 
@@ -200,6 +203,21 @@ function AppRoutes() {
       <Route path="/professors">
         <Protected>
           <ProfessorsPage />
+        </Protected>
+      </Route>
+      <Route path="/core-reqs">
+        <Protected>
+          <CoreReqs />
+        </Protected>
+      </Route>
+      <Route path="/compare">
+        <Protected>
+          <ComparePage />
+        </Protected>
+      </Route>
+      <Route path="/advice">
+        <Protected>
+          <AdvicePage />
         </Protected>
       </Route>
       <Route path="/evaluation">

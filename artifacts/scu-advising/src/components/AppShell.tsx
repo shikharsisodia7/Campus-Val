@@ -17,13 +17,19 @@ import {
   Mic,
   Users,
   LogOut,
+  CheckSquare,
+  Scale,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/react";
+import { Logo } from "@/components/Logo";
 
 const NAV = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/core-reqs", label: "Core Curriculum", icon: CheckSquare },
   { path: "/courses", label: "Course Catalog", icon: BookOpen },
+  { path: "/compare", label: "Compare Courses", icon: Scale },
   { path: "/planner", label: "Quarter Planner", icon: CalendarRange },
   { path: "/schedule", label: "Weekly Schedule", icon: Calendar },
   { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
@@ -31,6 +37,7 @@ const NAV = [
   { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },
   { path: "/sync-workday", label: "Sync Workday", icon: ClipboardPaste },
   { path: "/professors", label: "Professors", icon: Users },
+  { path: "/advice", label: "Advice Board", icon: Lightbulb },
   { path: "/advisor", label: "AI Advisor", icon: MessageSquareText },
   { path: "/voice", label: "Voice Advisor", icon: Mic },
   { path: "/policies", label: "SCU Policies", icon: Library },
@@ -48,11 +55,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-3 group"
             data-testid="link-home"
           >
-            <div className="h-10 w-10 rounded-md bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center font-serif font-bold text-lg shadow-sm">
-              CV
-            </div>
+            <Logo size={42} />
             <div>
-              <div className="font-serif font-bold text-lg leading-none">
+              <div className="font-serif font-bold text-lg leading-none tracking-tight">
                 CampusVal
               </div>
               <div className="text-[11px] uppercase tracking-widest text-sidebar-primary mt-1">
@@ -62,27 +67,46 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
         <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
-          {NAV.map((item) => {
+          {NAV.map((item, i) => {
             const active =
               item.path === "/"
                 ? location === "/"
                 : location.startsWith(item.path);
             const Icon = item.icon;
             return (
-              <Link
+              <motion.div
                 key={item.path}
-                href={item.path}
-                data-testid={`nav-${item.label.toLowerCase().replace(/ /g, "-")}`}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-foreground border-l-2 border-sidebar-primary"
-                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground border-l-2 border-transparent",
-                )}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.02 * i, duration: 0.25 }}
               >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span>{item.label}</span>
-              </Link>
+                <Link
+                  href={item.path}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/ /g, "-")}`}
+                  className={cn(
+                    "group flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 relative overflow-hidden",
+                    active
+                      ? "bg-sidebar-accent text-sidebar-foreground border-l-2 border-sidebar-primary"
+                      : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground border-l-2 border-transparent hover:translate-x-0.5",
+                  )}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="nav-active-glow"
+                      className="absolute inset-0 bg-gradient-to-r from-sidebar-primary/10 to-transparent pointer-events-none"
+                    />
+                  )}
+                  <Icon
+                    className={cn(
+                      "h-4 w-4 shrink-0 transition-transform duration-200 relative",
+                      active
+                        ? "text-sidebar-primary"
+                        : "group-hover:scale-110 group-hover:text-sidebar-primary",
+                    )}
+                  />
+                  <span className="relative">{item.label}</span>
+                </Link>
+              </motion.div>
             );
           })}
         </nav>
