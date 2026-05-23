@@ -38,11 +38,19 @@ import AdvicePage from "@/pages/advice";
 import Landing from "@/pages/landing";
 import { SignInPage, SignUpPage } from "@/pages/auth";
 
+// Keep data feeling live without hammering the server:
+// - 30s stale time so quick navigations don't re-fetch needlessly
+// - 60s background refetch for any visible query
+// - Refetch whenever the tab regains focus or the network reconnects
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      refetchOnWindowFocus: false,
+      refetchInterval: 60_000,
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      retry: 1,
     },
   },
 });
