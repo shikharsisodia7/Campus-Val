@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import {
   Switch,
   Route,
@@ -18,25 +18,26 @@ import { shadcn } from "@clerk/themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import Onboarding from "@/pages/onboarding";
-import Dashboard from "@/pages/dashboard";
-import Courses from "@/pages/courses";
-import Planner from "@/pages/planner";
-import GpaPage from "@/pages/gpa";
-import TransferPage from "@/pages/transfer";
-import SyncWorkdayPage from "@/pages/sync-workday";
-import SchedulePage from "@/pages/schedule";
-import Policies from "@/pages/policies";
-import Advisor from "@/pages/advisor";
-import VoiceAdvisor from "@/pages/voice";
-import GraduationPaths from "@/pages/graduation-paths";
-import Evaluation from "@/pages/evaluation";
-import ProfessorsPage from "@/pages/professors";
-import CoreReqs from "@/pages/core-reqs";
-import ComparePage from "@/pages/compare";
-import AdvicePage from "@/pages/advice";
 import Landing from "@/pages/landing";
 import { SignInPage, SignUpPage } from "@/pages/auth";
+
+const Onboarding = lazy(() => import("@/pages/onboarding"));
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const Courses = lazy(() => import("@/pages/courses"));
+const Planner = lazy(() => import("@/pages/planner"));
+const GpaPage = lazy(() => import("@/pages/gpa"));
+const TransferPage = lazy(() => import("@/pages/transfer"));
+const SyncWorkdayPage = lazy(() => import("@/pages/sync-workday"));
+const SchedulePage = lazy(() => import("@/pages/schedule"));
+const Policies = lazy(() => import("@/pages/policies"));
+const Advisor = lazy(() => import("@/pages/advisor"));
+const VoiceAdvisor = lazy(() => import("@/pages/voice"));
+const GraduationPaths = lazy(() => import("@/pages/graduation-paths"));
+const Evaluation = lazy(() => import("@/pages/evaluation"));
+const ProfessorsPage = lazy(() => import("@/pages/professors"));
+const CoreReqs = lazy(() => import("@/pages/core-reqs"));
+const ComparePage = lazy(() => import("@/pages/compare"));
+const AdvicePage = lazy(() => import("@/pages/advice"));
 
 // Keep data feeling live without hammering the server:
 // - 30s stale time so quick navigations don't re-fetch needlessly
@@ -121,19 +122,15 @@ function HomeRedirect() {
   return (
     <>
       <Show when="signed-in">
-        <AuthedAppGate />
+        <Suspense fallback={null}>
+          <Dashboard />
+        </Suspense>
       </Show>
       <Show when="signed-out">
         <Landing />
       </Show>
     </>
   );
-}
-
-// After sign-in, send users straight to Dashboard (or Onboarding if missing).
-// Dashboard itself decides if they need onboarding via /api/profile 404.
-function AuthedAppGate() {
-  return <Dashboard />;
 }
 
 function Protected({ children }: { children: React.ReactNode }) {
@@ -166,92 +163,94 @@ function ClerkQueryClientCacheInvalidator() {
 
 function AppRoutes() {
   return (
-    <Switch>
-      <Route path="/" component={HomeRedirect} />
-      <Route path="/sign-in/*?" component={SignInPage} />
-      <Route path="/sign-up/*?" component={SignUpPage} />
-      <Route path="/onboarding">
-        <Protected>
-          <Onboarding />
-        </Protected>
-      </Route>
-      <Route path="/courses">
-        <Protected>
-          <Courses />
-        </Protected>
-      </Route>
-      <Route path="/planner">
-        <Protected>
-          <Planner />
-        </Protected>
-      </Route>
-      <Route path="/schedule">
-        <Protected>
-          <SchedulePage />
-        </Protected>
-      </Route>
-      <Route path="/gpa">
-        <Protected>
-          <GpaPage />
-        </Protected>
-      </Route>
-      <Route path="/transfer">
-        <Protected>
-          <TransferPage />
-        </Protected>
-      </Route>
-      <Route path="/sync-workday">
-        <Protected>
-          <SyncWorkdayPage />
-        </Protected>
-      </Route>
-      <Route path="/policies">
-        <Protected>
-          <Policies />
-        </Protected>
-      </Route>
-      <Route path="/advisor">
-        <Protected>
-          <Advisor />
-        </Protected>
-      </Route>
-      <Route path="/voice">
-        <Protected>
-          <VoiceAdvisor />
-        </Protected>
-      </Route>
-      <Route path="/graduation-paths">
-        <Protected>
-          <GraduationPaths />
-        </Protected>
-      </Route>
-      <Route path="/professors">
-        <Protected>
-          <ProfessorsPage />
-        </Protected>
-      </Route>
-      <Route path="/core-reqs">
-        <Protected>
-          <CoreReqs />
-        </Protected>
-      </Route>
-      <Route path="/compare">
-        <Protected>
-          <ComparePage />
-        </Protected>
-      </Route>
-      <Route path="/advice">
-        <Protected>
-          <AdvicePage />
-        </Protected>
-      </Route>
-      <Route path="/evaluation">
-        <Protected>
-          <Evaluation />
-        </Protected>
-      </Route>
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={null}>
+      <Switch>
+        <Route path="/" component={HomeRedirect} />
+        <Route path="/sign-in/*?" component={SignInPage} />
+        <Route path="/sign-up/*?" component={SignUpPage} />
+        <Route path="/onboarding">
+          <Protected>
+            <Onboarding />
+          </Protected>
+        </Route>
+        <Route path="/courses">
+          <Protected>
+            <Courses />
+          </Protected>
+        </Route>
+        <Route path="/planner">
+          <Protected>
+            <Planner />
+          </Protected>
+        </Route>
+        <Route path="/schedule">
+          <Protected>
+            <SchedulePage />
+          </Protected>
+        </Route>
+        <Route path="/gpa">
+          <Protected>
+            <GpaPage />
+          </Protected>
+        </Route>
+        <Route path="/transfer">
+          <Protected>
+            <TransferPage />
+          </Protected>
+        </Route>
+        <Route path="/sync-workday">
+          <Protected>
+            <SyncWorkdayPage />
+          </Protected>
+        </Route>
+        <Route path="/policies">
+          <Protected>
+            <Policies />
+          </Protected>
+        </Route>
+        <Route path="/advisor">
+          <Protected>
+            <Advisor />
+          </Protected>
+        </Route>
+        <Route path="/voice">
+          <Protected>
+            <VoiceAdvisor />
+          </Protected>
+        </Route>
+        <Route path="/graduation-paths">
+          <Protected>
+            <GraduationPaths />
+          </Protected>
+        </Route>
+        <Route path="/professors">
+          <Protected>
+            <ProfessorsPage />
+          </Protected>
+        </Route>
+        <Route path="/core-reqs">
+          <Protected>
+            <CoreReqs />
+          </Protected>
+        </Route>
+        <Route path="/compare">
+          <Protected>
+            <ComparePage />
+          </Protected>
+        </Route>
+        <Route path="/advice">
+          <Protected>
+            <AdvicePage />
+          </Protected>
+        </Route>
+        <Route path="/evaluation">
+          <Protected>
+            <Evaluation />
+          </Protected>
+        </Route>
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
