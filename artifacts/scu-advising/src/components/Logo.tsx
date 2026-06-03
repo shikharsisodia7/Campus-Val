@@ -5,8 +5,8 @@ interface LogoProps {
 }
 
 /**
- * CampusVal Bronco mark — a cardinal-and-gold bronco head emblem evoking
- * SCU's Bronco spirit. Original artwork, not the official athletics mark.
+ * CampusVal Bronco mark — served from the public/logo.svg vector asset.
+ * Using the SVG avoids bundling the large raster PNG for the landing page.
  */
 export function Logo({ size = 40, className = "", animated: _animated = false }: LogoProps) {
   return (

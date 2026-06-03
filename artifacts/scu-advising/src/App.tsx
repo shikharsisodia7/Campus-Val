@@ -6,7 +6,6 @@ import {
   Redirect,
   useLocation,
 } from "wouter";
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   ClerkProvider,
   Show,
@@ -15,8 +14,10 @@ import {
 } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import { SignInPage, SignUpPage } from "@/pages/auth";
