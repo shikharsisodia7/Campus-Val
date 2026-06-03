@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://campusval.replit.app/sitemap.xml

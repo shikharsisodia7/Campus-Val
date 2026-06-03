@@ -1,0 +1,4 @@
+# CampusVal
+> AI academic advisor and planning tool for Santa Clara University students.
+
+/ : Public landing page for CampusVal — AI-powered advising, course planning, GPA simulation, and graduation path tools for SCU undergraduates.

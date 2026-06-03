@@ -63,12 +63,46 @@ const candidates = [
 ];
 const staticDir = candidates.find((p) => fs.existsSync(path.join(p, "index.html")));
 
+const CRAWLER_FILES = new Set(["/robots.txt", "/sitemap.xml", "/llms.txt"]);
+
+const SPA_ROUTES = new Set([
+  "/",
+  "/sign-in",
+  "/sign-up",
+  "/onboarding",
+  "/courses",
+  "/planner",
+  "/schedule",
+  "/gpa",
+  "/transfer",
+  "/sync-workday",
+  "/policies",
+  "/advisor",
+  "/voice",
+  "/graduation-paths",
+  "/professors",
+  "/core-reqs",
+  "/compare",
+  "/advice",
+  "/evaluation",
+]);
+
 if (staticDir) {
   logger.info({ staticDir }, "Serving static frontend");
   app.use(express.static(staticDir));
-  app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
-    res.sendFile(path.join(staticDir, "index.html"));
+
+  app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {
+    if (CRAWLER_FILES.has(req.path)) {
+      return res.status(404).end();
+    }
+
+    if (SPA_ROUTES.has(req.path)) {
+      return res.sendFile(path.join(staticDir, "index.html"));
+    }
+
+    return res.status(404).sendFile(path.join(staticDir, "index.html"));
   });
+
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Not Found" });
   });
