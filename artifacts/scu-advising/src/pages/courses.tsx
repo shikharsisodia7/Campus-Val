@@ -53,7 +53,7 @@ export default function Courses() {
     <AppShell>
       <PageHeader
         title="Course Catalog"
-        subtitle="Search SCU's 2025-2026 undergraduate bulletin (~2,300 courses). Per-quarter offerings, instructors, and seat availability live in Workday Student / Camino."
+        subtitle="Search every SCU department. Live offerings and seats live in Workday / Camino."
       />
       <PageContent>
         <Card className="p-4">

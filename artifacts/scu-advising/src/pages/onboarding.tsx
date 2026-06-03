@@ -68,6 +68,7 @@ import {
   X,
 } from "lucide-react";
 import { getCurrentSCUTerm } from "@/lib/api";
+import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 import { useClerk } from "@clerk/react";
 import { useToast } from "@/hooks/use-toast";
@@ -302,15 +303,28 @@ export default function Onboarding() {
     !majorGpaError &&
     !unitsScuError &&
     !unitsXferError;
-  const canFinish = !currentYearError && !expectedGradYearError;
+
+  const handleNext = () => {
+    const ok = step === 0 ? canNext0 : step === 1 ? canNext1 : true;
+    if (!ok) {
+      toast({
+        title: "A few things to finish first",
+        description:
+          step === 0 && majorError
+            ? "Pick your primary major from the Major dropdown (Additional majors are optional extras)."
+            : "Please fill in the highlighted fields before continuing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setStep(step + 1);
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
         <div className="flex items-center gap-3 mb-8">
-          <div className="h-12 w-12 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-serif font-bold text-xl shadow-md">
-            CV
-          </div>
+          <Logo size={48} />
           <div>
             <div className="font-serif font-bold text-2xl text-foreground">
               CampusVal
@@ -686,8 +700,7 @@ export default function Onboarding() {
             </Button>
             {step < STEPS.length - 1 ? (
               <Button
-                onClick={() => setStep(step + 1)}
-                disabled={(step === 0 && !canNext0) || (step === 1 && !canNext1)}
+                onClick={handleNext}
                 data-testid="button-next"
               >
                 Next <ChevronRight className="h-4 w-4 ml-1" />
@@ -695,7 +708,7 @@ export default function Onboarding() {
             ) : (
               <Button
                 onClick={onSubmit}
-                disabled={upsert.isPending || !canFinish}
+                disabled={upsert.isPending}
                 data-testid="button-finish"
               >
                 {upsert.isPending ? "Saving..." : existing ? "Save changes" : "Open my dashboard"}

@@ -112,12 +112,9 @@ export default function Dashboard() {
           <div className="flex items-start gap-2.5">
             <Info className="h-4 w-4 text-blue-700 shrink-0 mt-0.5" />
             <div className="text-xs text-blue-900/90 leading-relaxed">
-              <span className="font-semibold">Data scope:</span> The course
-              catalog covers SCU's 2025-2026 undergraduate bulletin
-              (~2,300 courses across all departments). Per-quarter section
-              schedules, instructors, and seat counts live in Workday Student /
-              Camino and require SCU login — not shown here. The 2026-2027
-              bulletin publishes June 2026.
+              <span className="font-semibold">Heads up:</span> Live section
+              schedules, instructors, and seats live in Workday / Camino and
+              need an SCU login — they're not shown here.
             </div>
           </div>
         </Card>
