@@ -63,8 +63,6 @@ const candidates = [
 ];
 const staticDir = candidates.find((p) => fs.existsSync(path.join(p, "index.html")));
 
-const CRAWLER_FILES = new Set(["/robots.txt", "/sitemap.xml", "/llms.txt"]);
-
 const SPA_ROUTES = new Set([
   "/",
   "/sign-in",
@@ -217,12 +215,20 @@ if (staticDir) {
   // handler so GET / is handled above, not by the directory index.
   app.use(express.static(staticDir));
 
-  app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {
-    if (CRAWLER_FILES.has(req.path)) {
-      return res.status(404).end();
+  // Crawler governance files: serve from static if present, otherwise real 404.
+  app.get(["/robots.txt", "/sitemap.xml", "/llms.txt"], (req, res) => {
+    const filePath = path.join(staticDir, req.path);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).end();
     }
+  });
 
-    if (SPA_ROUTES.has(req.path)) {
+  app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {
+    const firstSegment = "/" + (req.path.split("/").filter(Boolean)[0] ?? "");
+    const known = SPA_ROUTES.has(req.path) || SPA_ROUTES.has(firstSegment);
+    if (known) {
       return res.sendFile(path.join(staticDir, "index.html"));
     }
 
