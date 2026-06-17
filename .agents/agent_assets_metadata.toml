@@ -1,8 +1,13 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "zN7jRQq2Sp3Ho8dLq4ypY"
 uri = "file://artifacts/scu-advising/src/assets/bronco-logo.png"
 type = "image"
 title = "bronco head emblem logo"
+
+[[outputs]]
+id = "u3qHzncibhTBXSoDHEhXx"
+uri = "file://campusval-source.zip"
+type = "unspecified"
+title = "CampusVal — clean source (safe for GitHub)"
