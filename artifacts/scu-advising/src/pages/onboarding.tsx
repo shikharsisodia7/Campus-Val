@@ -379,7 +379,7 @@ export default function Onboarding() {
                     data-testid="input-name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Bronco Buster"
+                    placeholder="Your full name"
                   />
                 </Field>
                 <Field label="Student type" required>

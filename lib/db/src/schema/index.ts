@@ -21,3 +21,4 @@ export * from "./conversations";
 export * from "./messages";
 export * from "./profile";
 export * from "./sections";
+export * from "./feedback";

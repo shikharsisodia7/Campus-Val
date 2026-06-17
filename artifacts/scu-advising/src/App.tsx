@@ -39,6 +39,7 @@ const ProfessorsPage = lazy(() => import("@/pages/professors"));
 const CoreReqs = lazy(() => import("@/pages/core-reqs"));
 const ComparePage = lazy(() => import("@/pages/compare"));
 const AdvicePage = lazy(() => import("@/pages/advice"));
+const FeedbackPage = lazy(() => import("@/pages/feedback"));
 
 // Keep data feeling live without hammering the server:
 // - 30s stale time so quick navigations don't re-fetch needlessly
@@ -247,6 +248,11 @@ function AppRoutes() {
         <Route path="/evaluation">
           <Protected>
             <Evaluation />
+          </Protected>
+        </Route>
+        <Route path="/feedback">
+          <Protected>
+            <FeedbackPage />
           </Protected>
         </Route>
         <Route component={NotFound} />

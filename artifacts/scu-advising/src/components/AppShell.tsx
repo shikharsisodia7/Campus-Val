@@ -20,6 +20,7 @@ import {
   CheckSquare,
   Scale,
   Lightbulb,
+  MessageSquarePlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/react";
@@ -42,6 +43,7 @@ const NAV = [
   { path: "/voice", label: "Voice Advisor", icon: Mic },
   { path: "/policies", label: "SCU Policies", icon: Library },
   { path: "/evaluation", label: "AI Evaluation", icon: Gauge },
+  { path: "/feedback", label: "Feedback", icon: MessageSquarePlus },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

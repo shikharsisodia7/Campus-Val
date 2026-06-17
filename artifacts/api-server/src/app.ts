@@ -83,6 +83,7 @@ const SPA_ROUTES = new Set([
   "/compare",
   "/advice",
   "/evaluation",
+  "/feedback",
 ]);
 
 // Static prerendered landing HTML injected for crawlers that don't execute JS.
@@ -92,7 +93,7 @@ const LANDING_PRERENDER = `
   <header style="position:sticky;top:0;z-index:40;border-bottom:1px solid #e5e7eb;background:rgba(255,255,255,0.8);backdrop-filter:blur(8px)">
     <div style="max-width:64rem;margin:0 auto;padding:0 1.5rem;height:4rem;display:flex;align-items:center;justify-content:space-between">
       <a href="/" style="display:flex;align-items:center;gap:0.625rem;text-decoration:none;color:inherit">
-        <img src="/logo.svg" width="36" height="36" alt="CampusVal Bronco logo" />
+        <img src="/logo-bronco.png" width="36" height="36" alt="CampusVal Bronco logo" />
         <span style="font-weight:700;font-size:1.125rem;letter-spacing:-0.025em">CampusVal</span>
       </a>
       <div style="display:flex;align-items:center;gap:0.5rem">
@@ -102,7 +103,7 @@ const LANDING_PRERENDER = `
     </div>
   </header>
   <section style="max-width:64rem;margin:0 auto;padding:5rem 1.5rem 6rem;text-align:center">
-    <img src="/logo.svg" width="88" height="88" alt="CampusVal Bronco logo" style="display:inline-block;margin-bottom:2rem" />
+    <img src="/logo-bronco.png" width="88" height="88" alt="CampusVal Bronco logo" style="display:inline-block;margin-bottom:2rem" />
     <h1 style="font-size:3rem;font-weight:700;line-height:1.2;letter-spacing:-0.025em;max-width:40rem;margin:0 auto">
       Your AI academic advisor for <span style="color:#8C1515">Santa Clara</span>
     </h1>

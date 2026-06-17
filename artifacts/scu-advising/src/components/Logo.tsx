@@ -5,13 +5,14 @@ interface LogoProps {
 }
 
 /**
- * CampusVal Bronco mark — served from the public/logo.svg vector asset.
- * Using the SVG avoids bundling the large raster PNG for the landing page.
+ * CampusVal Bronco mark — served from public/logo-bronco.png (optimized 256px,
+ * ~23KB) as a static public asset, so it is NOT bundled into the JS and stays
+ * cheap for the landing page while looking like a real bronco.
  */
 export function Logo({ size = 40, className = "", animated: _animated = false }: LogoProps) {
   return (
     <img
-      src="/logo.svg"
+      src="/logo-bronco.png"
       width={size}
       height={size}
       alt="CampusVal Bronco logo"

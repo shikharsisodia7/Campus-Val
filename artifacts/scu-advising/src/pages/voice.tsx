@@ -1,18 +1,61 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Mic, Square, Loader2, Volume2, AlertCircle, Sparkles, Quote } from "lucide-react";
+import { Mic, Square, Loader2, Volume2, AlertCircle, Sparkles, Quote, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { getApiUrl } from "@/lib/api";
 
 type Phase = "idle" | "recording" | "thinking" | "speaking" | "error";
 
+interface NavTarget {
+  path: string;
+  label: string;
+}
+
 interface Turn {
   transcript: string;
   answer: string;
   audioUrl: string;
+  nav: NavTarget | null;
+}
+
+// Spoken-phrase → site section. Order matters: more specific phrases first so
+// e.g. "graduation plan" doesn't match the generic "plan" → planner.
+const NAV_TARGETS: { path: string; label: string; keywords: string[] }[] = [
+  { path: "/graduation-paths", label: "Graduation Paths", keywords: ["graduation path", "graduation plan", "grad plan", "four year plan", "4 year plan", "three year plan", "degree plan"] },
+  { path: "/core-reqs", label: "Core Curriculum", keywords: ["core curriculum", "core requirement", "core req", "university core"] },
+  { path: "/sync-workday", label: "Sync Workday", keywords: ["sync workday", "workday", "paste sections", "import sections"] },
+  { path: "/courses", label: "Course Catalog", keywords: ["course catalog", "catalog", "browse courses", "find a course", "find a class", "search courses", "look up a course"] },
+  { path: "/compare", label: "Compare Courses", keywords: ["compare course", "compare class"] },
+  { path: "/planner", label: "Quarter Planner", keywords: ["planner", "plan my quarter", "quarter plan", "plan my classes", "plan my schedule"] },
+  { path: "/schedule", label: "Weekly Schedule", keywords: ["weekly schedule", "my schedule", "calendar", "time conflict"] },
+  { path: "/gpa", label: "GPA Calculator", keywords: ["gpa calculator", "calculate my gpa", "gpa calc", "simulate my gpa", "what's my gpa", "grade point"] },
+  { path: "/transfer", label: "Transfer Credit", keywords: ["transfer credit", "transfer course", "articulation", "assist.org", "community college", "transfer my"] },
+  { path: "/professors", label: "Professors", keywords: ["professor", "instructor", "rate my professor", "ratemyprofessor", "who teaches"] },
+  { path: "/advice", label: "Advice Board", keywords: ["advice board", "student advice", "tips board"] },
+  { path: "/advisor", label: "AI Advisor", keywords: ["ai advisor", "chat advisor", "text advisor", "type to the advisor"] },
+  { path: "/policies", label: "SCU Policies", keywords: ["policy", "policies", "academic rules", "regulation"] },
+  { path: "/feedback", label: "Feedback", keywords: ["feedback", "report a bug", "feature request", "suggestion"] },
+  { path: "/", label: "Dashboard", keywords: ["dashboard", "home page", "homepage", "main page", "overview"] },
+];
+
+const NAV_VERBS =
+  /\b(take me|go to|open|show me|navigate|bring me|jump to|head to|pull up|switch to|let'?s go|can you open|can you show)\b/i;
+
+function parseNavIntent(transcript: string): NavTarget | null {
+  const t = transcript.toLowerCase();
+  const hasVerb = NAV_VERBS.test(t);
+  for (const target of NAV_TARGETS) {
+    if (target.keywords.some((k) => t.includes(k))) {
+      // Only auto-suggest navigation when the user framed it as a command,
+      // OR the phrase is unmistakably a section name request.
+      if (hasVerb) return { path: target.path, label: target.label };
+    }
+  }
+  return null;
 }
 
 const TIPS = [
@@ -23,11 +66,14 @@ const TIPS = [
 ];
 
 export default function VoiceAdvisor() {
+  const [, navigate] = useLocation();
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [partialTranscript, setPartialTranscript] = useState("");
   const [elapsed, setElapsed] = useState(0);
+  // Pending navigation requested by voice; fires after the answer finishes.
+  const navTargetRef = useRef<NavTarget | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -144,10 +190,13 @@ export default function VoiceAdvisor() {
       const audioBlob = new Blob([bytes], { type: data.audioMime });
       const audioUrl = URL.createObjectURL(audioBlob);
       createdUrlsRef.current.add(audioUrl);
+      const nav = parseNavIntent(data.transcript);
+      navTargetRef.current = nav;
       const turn: Turn = {
         transcript: data.transcript,
         answer: data.answer,
         audioUrl,
+        nav,
       };
       // Cap history at 10 turns; revoke URLs that fall off the end.
       setTurns((prev) => {
@@ -254,7 +303,15 @@ export default function VoiceAdvisor() {
               ref={audioRef}
               controls
               className="mt-6 w-full max-w-md"
-              onEnded={() => setPhase("idle")}
+              onEnded={() => {
+                setPhase("idle");
+                // Honor a spoken navigation request once the answer finishes.
+                const target = navTargetRef.current;
+                if (target) {
+                  navTargetRef.current = null;
+                  navigate(target.path);
+                }
+              }}
               onPlay={() => setPhase("speaking")}
               data-testid="voice-audio-player"
             />
@@ -320,19 +377,35 @@ export default function VoiceAdvisor() {
                       <p className="text-base leading-relaxed whitespace-pre-wrap" data-testid="voice-current-answer">
                         {turns[0].answer}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (audioRef.current && turns[0]) {
-                            audioRef.current.src = turns[0].audioUrl;
-                            audioRef.current.play().catch(() => {});
-                          }
-                        }}
-                        className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
-                        data-testid="voice-replay-current"
-                      >
-                        <Volume2 className="h-3.5 w-3.5" /> Replay answer
-                      </button>
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (audioRef.current && turns[0]) {
+                              audioRef.current.src = turns[0].audioUrl;
+                              audioRef.current.play().catch(() => {});
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+                          data-testid="voice-replay-current"
+                        >
+                          <Volume2 className="h-3.5 w-3.5" /> Replay answer
+                        </button>
+                        {turns[0].nav && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              navTargetRef.current = null;
+                              navigate(turns[0]!.nav!.path);
+                            }}
+                            className="h-8 gap-1.5"
+                            data-testid="voice-nav-button"
+                          >
+                            Open {turns[0].nav.label}
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 </Card>
