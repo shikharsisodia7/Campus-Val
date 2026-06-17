@@ -231,7 +231,6 @@ if (staticDir) {
     if (known) {
       return res.sendFile(path.join(staticDir, "index.html"));
     }
-
     return res.status(404).sendFile(path.join(staticDir, "index.html"));
   });
 
