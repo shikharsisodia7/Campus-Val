@@ -1,0 +1,2046 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: CampusVal — SCU AI Academic Advising API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: profile
+    description: Student profile
+  - name: courses
+    description: SCU course catalog and prerequisites
+  - name: planner
+    description: Course planning, unit-load and prereq validation
+  - name: gpa
+    description: GPA calculation and simulation
+  - name: transfer
+    description: Transfer credit evaluation
+  - name: policies
+    description: Verified SCU academic policies
+  - name: dashboard
+    description: Dashboard summary
+  - name: openai
+    description: AI advisor chat (OpenAI integration)
+  - name: articulation
+    description: California Community College → SCU course articulation lookup (ASSIST.org-style)
+  - name: graduation-paths
+    description: 3-year and 4-year recommended graduation path templates
+  - name: evaluation
+    description: AI advisor evaluation framework (benchmark scenarios + scoring)
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      summary: Get the current student profile
+      responses:
+        "200":
+          description: Student profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentProfile"
+        "404":
+          description: No profile yet
+    put:
+      operationId: upsertProfile
+      tags: [profile]
+      summary: Create or update the student profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertProfileBody"
+      responses:
+        "200":
+          description: Saved profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentProfile"
+    delete:
+      operationId: deleteProfile
+      tags: [profile]
+      summary: Permanently delete the current student profile and associated data
+      responses:
+        "204":
+          description: Profile deleted
+
+  /courses:
+    get:
+      operationId: listCourses
+      tags: [courses]
+      summary: List SCU courses
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: department
+          in: query
+          schema:
+            type: string
+        - name: core
+          in: query
+          description: Filter to courses fulfilling SCU Core requirements
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+  /courses/{code}:
+    get:
+      operationId: getCourse
+      tags: [courses]
+      summary: Get a course with prerequisites
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Course detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseDetail"
+        "404":
+          description: Not found
+
+  /planner/check:
+    post:
+      operationId: checkPlan
+      tags: [planner]
+      summary: Validate a planned quarter (units, prereqs, overload)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckPlanBody"
+      responses:
+        "200":
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanCheckResult"
+  /planner/prereqs:
+    post:
+      operationId: checkPrereqs
+      tags: [planner]
+      summary: Check whether the student has met prerequisites for a course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckPrereqsBody"
+      responses:
+        "200":
+          description: Prereq result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrereqCheckResult"
+
+  /gpa/calculate:
+    post:
+      operationId: calculateGpa
+      tags: [gpa]
+      summary: Calculate GPA from a list of graded courses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalculateGpaBody"
+      responses:
+        "200":
+          description: GPA result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GpaResult"
+  /gpa/simulate:
+    post:
+      operationId: simulateGpa
+      tags: [gpa]
+      summary: Simulate next-term GPA, including overload eligibility (>=3.0)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulateGpaBody"
+      responses:
+        "200":
+          description: Simulation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GpaSimulationResult"
+
+  /transfer/evaluate:
+    post:
+      operationId: evaluateTransfer
+      tags: [transfer]
+      summary: Evaluate transfer credits against SCU rules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvaluateTransferBody"
+      responses:
+        "200":
+          description: Transfer evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferEvaluationResult"
+
+  /policies:
+    get:
+      operationId: listPolicies
+      tags: [policies]
+      summary: List verified SCU academic policies
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Policies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Policy"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Combined dashboard data for the current student
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /courses/{code}/sections:
+    get:
+      operationId: listCourseSections
+      tags: [courses]
+      summary: List scheduled sections (instructors, meeting times, ratings) for a course
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: term
+          in: query
+          schema:
+            $ref: "#/components/schemas/Term"
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourseSection"
+
+  /sections/sync:
+    post:
+      operationId: syncWorkdaySections
+      tags: [sections]
+      summary: Parse pasted Workday section data and upsert into the database
+      description: |
+        Accepts text copied from SCU's Workday "Find Course Sections" view.
+        The user's Workday password is never sent to or stored by the server —
+        only the visible section table is parsed and saved. Re-syncing the
+        same term overwrites prior rows for that term.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkdaySyncRequest"
+      responses:
+        "200":
+          description: Sync result with parse summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkdaySyncResult"
+
+  /sections/sync/status:
+    get:
+      operationId: getSectionsSyncStatus
+      tags: [sections]
+      summary: Per-term summary of pasted Workday sections
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SectionsSyncStatus"
+
+  /articulation:
+    get:
+      operationId: lookupArticulation
+      tags: [articulation]
+      summary: Look up SCU equivalent for a California Community College course
+      parameters:
+        - name: institution
+          in: query
+          required: true
+          schema:
+            type: string
+            description: e.g. "De Anza College"
+        - name: courseCode
+          in: query
+          schema:
+            type: string
+            description: Source course code, e.g. "CIS 22A"
+        - name: scuTarget
+          in: query
+          schema:
+            type: string
+            description: Optional target SCU course code to filter on
+      responses:
+        "200":
+          description: Lookup result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticulationLookupResult"
+
+  /graduation-paths/majors:
+    get:
+      operationId: listGraduationMajors
+      tags: [graduation-paths]
+      summary: List majors that have a graduation-path recipe configured
+      responses:
+        "200":
+          description: Available majors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MajorList"
+
+  /graduation-paths/minors:
+    get:
+      operationId: listGraduationMinors
+      tags: [graduation-paths]
+      summary: List minors available at SCU
+      responses:
+        "200":
+          description: Available minors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MinorList"
+
+  /graduation-paths/requirements:
+    get:
+      operationId: getMajorRequirements
+      tags: [graduation-paths]
+      summary: Get the grouped, all-courses requirement list for a major
+      parameters:
+        - name: major
+          in: query
+          schema:
+            type: string
+            description: Major code (e.g. "CSE", "ACTG"). Defaults to CSE.
+        - name: completed
+          in: query
+          schema:
+            type: string
+            description: Comma-separated list of course codes the student has already completed.
+        - name: apIbCredits
+          in: query
+          schema:
+            type: string
+            description: Comma-separated list of course codes earned via AP/IB. Treated identically to `completed` server-side.
+      responses:
+        "200":
+          description: Major requirements grouped by category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MajorRequirements"
+        "404":
+          description: Unknown major
+
+  /graduation-paths/{type}:
+    get:
+      operationId: getGraduationPath
+      tags: [graduation-paths]
+      summary: Get a recommended 3-year or 4-year graduation path template
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [three_year, four_year]
+        - name: major
+          in: query
+          schema:
+            type: string
+            description: Major code, e.g. "CSE" (Computer Science & Engineering). Defaults to CSE.
+        - name: completed
+          in: query
+          schema:
+            type: string
+            description: Comma-separated list of course codes the student has already completed. Completed courses are excluded from the suggested per-quarter plan.
+        - name: apIbCredits
+          in: query
+          schema:
+            type: string
+            description: Comma-separated list of course codes earned via AP/IB. Treated identically to `completed` server-side.
+      responses:
+        "200":
+          description: Path template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraduationPath"
+
+  /professors:
+    get:
+      operationId: listProfessors
+      tags: [professors]
+      summary: List instructors derived from synced Workday sections (deduped, grouped by department)
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+            description: Optional case-insensitive substring match on instructor name or department.
+      responses:
+        "200":
+          description: Professor directory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfessorList"
+
+  /professors/{name}/rmp:
+    get:
+      operationId: getProfessorRmp
+      tags: [professors]
+      summary: Look up a professor's live RateMyProfessor rating (best-effort, with 24h cache and graceful fallback)
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: RMP lookup result. If found is false the UI should fall back to the deepLinkUrl.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfessorRmp"
+
+  /evaluation/scenarios:
+    get:
+      operationId: listEvaluationScenarios
+      tags: [evaluation]
+      summary: List benchmark scenarios used to evaluate the AI advisor
+      responses:
+        "200":
+          description: Benchmark scenarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EvaluationScenario"
+  /evaluation/run:
+    post:
+      operationId: runEvaluation
+      tags: [evaluation]
+      summary: Run all benchmark scenarios against the AI advisor and return scored results
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunEvaluationBody"
+      responses:
+        "200":
+          description: Evaluation run result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluationRunResult"
+
+  /openai/conversations:
+    get:
+      operationId: listOpenaiConversations
+      tags: [openai]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiConversation"
+    post:
+      operationId: createOpenaiConversation
+      tags: [openai]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOpenaiConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversation"
+  /openai/conversations/{id}:
+    get:
+      operationId: getOpenaiConversation
+      tags: [openai]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+    delete:
+      operationId: deleteOpenaiConversation
+      tags: [openai]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenaiError"
+  /openai/conversations/{id}/messages:
+    get:
+      operationId: listOpenaiMessages
+      tags: [openai]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OpenaiMessage"
+    post:
+      operationId: sendOpenaiMessage
+      tags: [openai]
+      summary: Send a text message and receive a streaming text response
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOpenaiMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant text chunks
+          content:
+            text/event-stream: {}
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    StudentType:
+      type: string
+      enum: [first_year, transfer, continuing, graduate, postgrad]
+    Term:
+      type: string
+      enum: [fall, winter, spring, summer]
+    Grade:
+      type: string
+      enum: [A_PLUS, A, A_MINUS, B_PLUS, B, B_MINUS, C_PLUS, C, C_MINUS, D_PLUS, D, D_MINUS, F, P, NP, IP, W]
+
+    StudentProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        studentType:
+          $ref: "#/components/schemas/StudentType"
+        college:
+          type: string
+          description: e.g. "Arts and Sciences", "Engineering", "Business"
+        major:
+          type: string
+        secondMajor:
+          type: string
+          nullable: true
+        minor:
+          type: string
+          nullable: true
+        additionalMajors:
+          type: array
+          items:
+            type: string
+        additionalMinors:
+          type: array
+          items:
+            type: string
+        startTerm:
+          $ref: "#/components/schemas/Term"
+        startYear:
+          type: integer
+        expectedGradTerm:
+          $ref: "#/components/schemas/Term"
+        expectedGradYear:
+          type: integer
+        unitsCompletedAtSCU:
+          type: number
+        unitsTransferredIn:
+          type: number
+        cumulativeGpa:
+          type: number
+          nullable: true
+        majorGpa:
+          type: number
+          nullable: true
+        completedCourseCodes:
+          type: array
+          items:
+            type: string
+        priorityRegistration:
+          type: boolean
+        currentTerm:
+          $ref: "#/components/schemas/Term"
+        currentYear:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - studentType
+        - college
+        - major
+        - additionalMajors
+        - additionalMinors
+        - startTerm
+        - startYear
+        - expectedGradTerm
+        - expectedGradYear
+        - unitsCompletedAtSCU
+        - unitsTransferredIn
+        - completedCourseCodes
+        - priorityRegistration
+        - currentTerm
+        - currentYear
+        - updatedAt
+    UpsertProfileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        studentType:
+          $ref: "#/components/schemas/StudentType"
+        college:
+          type: string
+        major:
+          type: string
+        secondMajor:
+          type: string
+          nullable: true
+        minor:
+          type: string
+          nullable: true
+        additionalMajors:
+          type: array
+          items:
+            type: string
+        additionalMinors:
+          type: array
+          items:
+            type: string
+        startTerm:
+          $ref: "#/components/schemas/Term"
+        startYear:
+          type: integer
+        expectedGradTerm:
+          $ref: "#/components/schemas/Term"
+        expectedGradYear:
+          type: integer
+        unitsCompletedAtSCU:
+          type: number
+        unitsTransferredIn:
+          type: number
+        cumulativeGpa:
+          type: number
+          nullable: true
+        majorGpa:
+          type: number
+          nullable: true
+        completedCourseCodes:
+          type: array
+          items:
+            type: string
+        priorityRegistration:
+          type: boolean
+        currentTerm:
+          $ref: "#/components/schemas/Term"
+        currentYear:
+          type: integer
+      required:
+        - name
+        - studentType
+        - college
+        - major
+        - additionalMajors
+        - additionalMinors
+        - startTerm
+        - startYear
+        - expectedGradTerm
+        - expectedGradYear
+        - unitsCompletedAtSCU
+        - unitsTransferredIn
+        - completedCourseCodes
+        - priorityRegistration
+        - currentTerm
+        - currentYear
+
+    Course:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        department:
+          type: string
+        units:
+          type: number
+        description:
+          type: string
+        coreAreas:
+          type: array
+          items:
+            type: string
+        offeredTerms:
+          type: array
+          items:
+            $ref: "#/components/schemas/Term"
+        difficulty:
+          type: string
+          enum: [easy, moderate, hard, very_hard]
+          nullable: true
+        restrictedToColleges:
+          type: array
+          description: If non-empty, only students in one of these SCU colleges may register
+          items:
+            type: string
+      required:
+        - code
+        - title
+        - department
+        - units
+        - description
+        - coreAreas
+        - offeredTerms
+        - restrictedToColleges
+    CourseDetail:
+      allOf:
+        - $ref: "#/components/schemas/Course"
+        - type: object
+          properties:
+            prereqLogic:
+              type: string
+              description: Human-readable prerequisite expression
+            prereqGroups:
+              type: array
+              description: Groups of OR'd alternatives that are AND'd together
+              items:
+                type: array
+                items:
+                  type: string
+            corequisites:
+              type: array
+              items:
+                type: string
+            notes:
+              type: string
+              nullable: true
+          required:
+            - prereqLogic
+            - prereqGroups
+            - corequisites
+
+    PlannedCourse:
+      type: object
+      properties:
+        code:
+          type: string
+        units:
+          type: number
+      required:
+        - code
+        - units
+    CheckPlanBody:
+      type: object
+      properties:
+        term:
+          $ref: "#/components/schemas/Term"
+        year:
+          type: integer
+        plannedCourses:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlannedCourse"
+        completedCourseCodes:
+          type: array
+          items:
+            type: string
+        cumulativeGpa:
+          type: number
+          nullable: true
+        priorityRegistration:
+          type: boolean
+        college:
+          type: string
+      required:
+        - term
+        - year
+        - plannedCourses
+        - completedCourseCodes
+        - priorityRegistration
+        - college
+    PlanIssue:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [error, warning, info]
+        code:
+          type: string
+        message:
+          type: string
+        relatedCourse:
+          type: string
+          nullable: true
+        policyId:
+          type: string
+          nullable: true
+      required:
+        - severity
+        - code
+        - message
+    ClassStanding:
+      type: string
+      enum: [freshman, sophomore, junior, senior]
+    PlanCheckResult:
+      type: object
+      properties:
+        totalUnits:
+          type: number
+        unitCap:
+          type: number
+        standardCap:
+          type: number
+          description: Standard per-quarter cap for this class standing (no approval required)
+        approvedCap:
+          type: number
+          description: Maximum cap with dean/advisor approval and GPA ≥ 3.0
+        classStanding:
+          $ref: "#/components/schemas/ClassStanding"
+        canOverload:
+          type: boolean
+        requiresAdvisorApproval:
+          type: boolean
+          description: True if planned units exceed the standard cap (requires written advisor/dean approval)
+        overloadReason:
+          type: string
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanIssue"
+        coreAreasFulfilled:
+          type: array
+          items:
+            type: string
+      required:
+        - totalUnits
+        - unitCap
+        - standardCap
+        - approvedCap
+        - classStanding
+        - canOverload
+        - requiresAdvisorApproval
+        - overloadReason
+        - issues
+        - coreAreasFulfilled
+
+    CheckPrereqsBody:
+      type: object
+      properties:
+        courseCode:
+          type: string
+        completedCourseCodes:
+          type: array
+          items:
+            type: string
+        plannedThisTermCodes:
+          type: array
+          items:
+            type: string
+      required:
+        - courseCode
+        - completedCourseCodes
+        - plannedThisTermCodes
+    PrereqCheckResult:
+      type: object
+      properties:
+        courseCode:
+          type: string
+        satisfied:
+          type: boolean
+        missing:
+          type: array
+          description: Each entry is one OR-group of acceptable courses, ANY of which would satisfy that requirement
+          items:
+            type: array
+            items:
+              type: string
+        notes:
+          type: string
+      required:
+        - courseCode
+        - satisfied
+        - missing
+        - notes
+
+    GradedCourse:
+      type: object
+      properties:
+        code:
+          type: string
+        units:
+          type: number
+        grade:
+          $ref: "#/components/schemas/Grade"
+      required:
+        - code
+        - units
+        - grade
+    CalculateGpaBody:
+      type: object
+      properties:
+        courses:
+          type: array
+          items:
+            $ref: "#/components/schemas/GradedCourse"
+      required:
+        - courses
+    GpaResult:
+      type: object
+      properties:
+        gpa:
+          type: number
+        totalUnits:
+          type: number
+        gradedUnits:
+          type: number
+        totalGradePoints:
+          type: number
+      required:
+        - gpa
+        - totalUnits
+        - gradedUnits
+        - totalGradePoints
+
+    SimulateGpaBody:
+      type: object
+      properties:
+        currentGpa:
+          type: number
+        currentGradedUnits:
+          type: number
+        projected:
+          type: array
+          items:
+            $ref: "#/components/schemas/GradedCourse"
+      required:
+        - currentGpa
+        - currentGradedUnits
+        - projected
+    GpaSimulationResult:
+      type: object
+      properties:
+        currentGpa:
+          type: number
+        simulatedGpa:
+          type: number
+        gpaChange:
+          type: number
+        canOverloadNextTerm:
+          type: boolean
+        overloadEligibilityNote:
+          type: string
+      required:
+        - currentGpa
+        - simulatedGpa
+        - gpaChange
+        - canOverloadNextTerm
+        - overloadEligibilityNote
+
+    TransferCourseInput:
+      type: object
+      properties:
+        institution:
+          type: string
+        courseCode:
+          type: string
+        courseTitle:
+          type: string
+        units:
+          type: number
+        unitSystem:
+          type: string
+          enum: [semester, quarter]
+        grade:
+          type: string
+          description: Letter grade earned at the other institution
+        takenAfterSCUEnrollment:
+          type: boolean
+        institutionType:
+          type: string
+          enum: [community_college, four_year, ap_ib, online]
+      required:
+        - institution
+        - courseCode
+        - courseTitle
+        - units
+        - unitSystem
+        - grade
+        - takenAfterSCUEnrollment
+        - institutionType
+    EvaluateTransferBody:
+      type: object
+      properties:
+        currentTransferUnits:
+          type: number
+        unitsCompletedAtSCU:
+          type: number
+        courses:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransferCourseInput"
+      required:
+        - currentTransferUnits
+        - unitsCompletedAtSCU
+        - courses
+    TransferCourseEvaluation:
+      type: object
+      properties:
+        input:
+          $ref: "#/components/schemas/TransferCourseInput"
+        scuQuarterUnits:
+          type: number
+        accepted:
+          type: boolean
+        reason:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        relatedPolicyIds:
+          type: array
+          items:
+            type: string
+      required:
+        - input
+        - scuQuarterUnits
+        - accepted
+        - reason
+        - warnings
+        - relatedPolicyIds
+    TransferEvaluationResult:
+      type: object
+      properties:
+        evaluations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransferCourseEvaluation"
+        totalAcceptedQuarterUnits:
+          type: number
+        runningTransferTotal:
+          type: number
+        transferCapRemaining:
+          type: number
+        cappedAt875:
+          type: boolean
+        globalWarnings:
+          type: array
+          items:
+            type: string
+      required:
+        - evaluations
+        - totalAcceptedQuarterUnits
+        - runningTransferTotal
+        - transferCapRemaining
+        - cappedAt875
+        - globalWarnings
+
+    Policy:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        summary:
+          type: string
+        body:
+          type: string
+        source:
+          type: string
+        sourceUrl:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - title
+        - category
+        - summary
+        - body
+        - source
+        - tags
+
+    DashboardSummary:
+      type: object
+      properties:
+        profile:
+          $ref: "#/components/schemas/StudentProfile"
+          nullable: true
+        classification:
+          type: string
+          description: First Year, Sophomore, Junior, Senior based on units
+        totalUnitsAllSources:
+          type: number
+        unitsToGraduation:
+          type: number
+        progressPercent:
+          type: number
+        canOverloadNextTerm:
+          type: boolean
+        overloadReason:
+          type: string
+        unitCapNextTerm:
+          type: number
+        registrationWindowNote:
+          type: string
+        nextTerm:
+          $ref: "#/components/schemas/Term"
+        nextTermYear:
+          type: integer
+        todayTerm:
+          $ref: "#/components/schemas/Term"
+          description: Live "right now" SCU term, derived server-side from today's date.
+        todayYear:
+          type: integer
+        upcomingDeadlines:
+          type: array
+          items:
+            $ref: "#/components/schemas/Deadline"
+        warnings:
+          type: array
+          items:
+            type: string
+        currentRegistrationWindow:
+          $ref: "#/components/schemas/RegistrationWindow"
+          nullable: true
+      required:
+        - classification
+        - totalUnitsAllSources
+        - unitsToGraduation
+        - progressPercent
+        - canOverloadNextTerm
+        - overloadReason
+        - unitCapNextTerm
+        - registrationWindowNote
+        - nextTerm
+        - nextTermYear
+        - upcomingDeadlines
+        - warnings
+    RegistrationWindow:
+      type: object
+      properties:
+        targetTerm:
+          $ref: "#/components/schemas/Term"
+        targetYear:
+          type: integer
+        status:
+          type: string
+          enum: [upcoming, open, closed]
+        headline:
+          type: string
+          description: A short human-readable status line, e.g. "Fall 2026 priority registration opens May 27".
+        detail:
+          type: string
+          description: Plain-language detail about the current state and the user's wave.
+        myWaveDate:
+          type: string
+          nullable: true
+          description: ISO date when this user's wave opens, if known.
+        myWaveLabel:
+          type: string
+          nullable: true
+          description: e.g. "Senior priority — Tier 1".
+        nextMilestone:
+          type: string
+          nullable: true
+          description: Free-form description of the next milestone.
+        publishedSource:
+          type: string
+          description: e.g. "SCU Office of the Registrar, Spring 2026 communication".
+      required:
+        - targetTerm
+        - targetYear
+        - status
+        - headline
+        - detail
+        - publishedSource
+    Deadline:
+      type: object
+      properties:
+        title:
+          type: string
+        date:
+          type: string
+        description:
+          type: string
+      required:
+        - title
+        - date
+        - description
+
+    ProfessorEntry:
+      type: object
+      properties:
+        name:
+          type: string
+        departments:
+          type: array
+          items:
+            type: string
+        courses:
+          type: array
+          items:
+            type: string
+          description: Course codes this instructor has been seen teaching in synced sections.
+        sectionsCount:
+          type: integer
+        latestTerm:
+          type: string
+          description: Most recent synced term they appeared in, e.g. "Fall 2026".
+        rmpDeepLinkUrl:
+          type: string
+          description: Direct link to RateMyProfessor search for this professor at SCU (school 882).
+      required:
+        - name
+        - departments
+        - courses
+        - sectionsCount
+        - latestTerm
+        - rmpDeepLinkUrl
+    ProfessorList:
+      type: object
+      properties:
+        professors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfessorEntry"
+        totalSyncedSections:
+          type: integer
+        emptyReason:
+          type: string
+          nullable: true
+          description: When the list is empty, a short human-readable reason (e.g. "No Workday sections synced yet").
+      required:
+        - professors
+        - totalSyncedSections
+    ProfessorRmpComment:
+      type: object
+      properties:
+        comment:
+          type: string
+        date:
+          type: string
+        quality:
+          type: number
+          nullable: true
+        difficulty:
+          type: number
+          nullable: true
+        course:
+          type: string
+          nullable: true
+      required:
+        - comment
+        - date
+    ProfessorRmp:
+      type: object
+      properties:
+        found:
+          type: boolean
+        name:
+          type: string
+        deepLinkUrl:
+          type: string
+        avgRating:
+          type: number
+          nullable: true
+        avgDifficulty:
+          type: number
+          nullable: true
+        wouldTakeAgainPercent:
+          type: number
+          nullable: true
+        numRatings:
+          type: integer
+          nullable: true
+        department:
+          type: string
+          nullable: true
+        topTags:
+          type: array
+          items:
+            type: string
+        recentComments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProfessorRmpComment"
+        cachedAt:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          type: string
+          nullable: true
+          description: When found is false, a short explanation (e.g. "RMP returned no match" or "Upstream RMP error — using deep-link only").
+      required:
+        - found
+        - name
+        - deepLinkUrl
+        - topTags
+        - recentComments
+
+    OpenaiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+    OpenaiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+    CreateOpenaiConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    SendOpenaiMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+    OpenaiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenaiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+    OpenaiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    ProfessorRating:
+      type: object
+      description: Aggregated professor data sourced from RateMyProfessors and SCU Schedule Helper
+      properties:
+        instructor:
+          type: string
+        overallRating:
+          type: number
+          description: Average rating 1.0-5.0
+          nullable: true
+        difficulty:
+          type: number
+          description: Difficulty 1.0-5.0
+          nullable: true
+        wouldTakeAgainPercent:
+          type: number
+          description: Percent of students who would take again (0-100)
+          nullable: true
+        averageGpa:
+          type: number
+          description: Historical average GPA in this professor's sections
+          nullable: true
+        numRatings:
+          type: integer
+        sourceNote:
+          type: string
+          description: Provenance, e.g. "RateMyProfessors + SCU Schedule Helper aggregate (cached)"
+      required:
+        - instructor
+        - numRatings
+        - sourceNote
+    CourseSection:
+      type: object
+      properties:
+        id:
+          type: string
+          description: e.g. "COEN-12-01-fall-2025"
+        courseCode:
+          type: string
+        sectionNumber:
+          type: string
+        term:
+          $ref: "#/components/schemas/Term"
+        year:
+          type: integer
+        instructor:
+          type: string
+        meetingDays:
+          type: array
+          items:
+            type: string
+            enum: [M, T, W, R, F, S, U]
+        startTime:
+          type: string
+          description: 24h HH:mm
+        endTime:
+          type: string
+          description: 24h HH:mm
+        location:
+          type: string
+        seatsTotal:
+          type: integer
+        seatsOpen:
+          type: integer
+        waitlist:
+          type: integer
+        rating:
+          $ref: "#/components/schemas/ProfessorRating"
+          nullable: true
+      required:
+        - id
+        - courseCode
+        - sectionNumber
+        - term
+        - year
+        - instructor
+        - meetingDays
+        - startTime
+        - endTime
+        - location
+        - seatsTotal
+        - seatsOpen
+        - waitlist
+
+    ArticulationEntry:
+      type: object
+      properties:
+        institution:
+          type: string
+        sourceCourseCode:
+          type: string
+        sourceCourseTitle:
+          type: string
+        sourceUnits:
+          type: number
+        sourceUnitSystem:
+          type: string
+          enum: [semester, quarter]
+        scuEquivalent:
+          type: string
+          description: SCU course code, e.g. "MATH 11"
+        scuQuarterUnits:
+          type: number
+        notes:
+          type: string
+          nullable: true
+        verifiedDate:
+          type: string
+          description: When this articulation was verified, e.g. "2024-2025"
+      required:
+        - institution
+        - sourceCourseCode
+        - sourceCourseTitle
+        - sourceUnits
+        - sourceUnitSystem
+        - scuEquivalent
+        - scuQuarterUnits
+        - verifiedDate
+    WorkdaySyncRequest:
+      type: object
+      properties:
+        rawText:
+          type: string
+          description: Raw text/HTML pasted from Workday's Find Course Sections view
+        term:
+          $ref: "#/components/schemas/Term"
+        year:
+          type: integer
+          minimum: 2024
+          maximum: 2030
+        replaceTerm:
+          type: boolean
+          description: If true, delete all existing sections for this term/year before inserting parsed rows
+          default: true
+      required:
+        - rawText
+        - term
+        - year
+
+    WorkdaySyncParseError:
+      type: object
+      properties:
+        line:
+          type: string
+        reason:
+          type: string
+      required:
+        - line
+        - reason
+
+    WorkdaySyncResult:
+      type: object
+      properties:
+        parsedCount:
+          type: integer
+        insertedCount:
+          type: integer
+        deletedCount:
+          type: integer
+        term:
+          $ref: "#/components/schemas/Term"
+        year:
+          type: integer
+        sampleSections:
+          type: array
+          description: First 5 parsed sections for confirmation in the UI
+          items:
+            $ref: "#/components/schemas/CourseSection"
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkdaySyncParseError"
+      required:
+        - parsedCount
+        - insertedCount
+        - deletedCount
+        - term
+        - year
+        - sampleSections
+        - errors
+
+    SectionsSyncTermSummary:
+      type: object
+      properties:
+        term:
+          $ref: "#/components/schemas/Term"
+        year:
+          type: integer
+        count:
+          type: integer
+        lastSyncedAt:
+          type: string
+          format: date-time
+      required:
+        - term
+        - year
+        - count
+        - lastSyncedAt
+
+    SectionsSyncStatus:
+      type: object
+      properties:
+        totalSections:
+          type: integer
+        lastSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        byTerm:
+          type: array
+          items:
+            $ref: "#/components/schemas/SectionsSyncTermSummary"
+      required:
+        - totalSections
+        - byTerm
+
+    ArticulationCollege:
+      type: object
+      properties:
+        name:
+          type: string
+        assistUrl:
+          type: string
+          description: Deep-link to the ASSIST.org agreement page for this CC -> SCU
+      required:
+        - name
+        - assistUrl
+
+    ArticulationLookupResult:
+      type: object
+      properties:
+        institution:
+          type: string
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArticulationEntry"
+        availableInstitutions:
+          type: array
+          description: All institutions in the seeded dataset (names only, alphabetical)
+          items:
+            type: string
+        colleges:
+          type: array
+          description: All known California community colleges with ASSIST.org deep-links
+          items:
+            $ref: "#/components/schemas/ArticulationCollege"
+        sourceNote:
+          type: string
+          description: e.g. "Cached from ASSIST.org 2024-2025 catalog"
+      required:
+        - institution
+        - matches
+        - availableInstitutions
+        - colleges
+        - sourceNote
+
+    GraduationPathQuarter:
+      type: object
+      properties:
+        year:
+          type: integer
+          description: 1-based year, 1=freshman year
+        term:
+          $ref: "#/components/schemas/Term"
+        label:
+          type: string
+          description: e.g. "Y1 Fall"
+        courses:
+          type: array
+          items:
+            type: string
+            description: SCU course code
+        plannedUnits:
+          type: number
+        notes:
+          type: string
+          nullable: true
+      required:
+        - year
+        - term
+        - label
+        - courses
+        - plannedUnits
+    GraduationPath:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [three_year, four_year]
+        major:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        feasibilityNote:
+          type: string
+        averageUnitsPerQuarter:
+          type: number
+        requiresOverload:
+          type: boolean
+        quarters:
+          type: array
+          items:
+            $ref: "#/components/schemas/GraduationPathQuarter"
+        risks:
+          type: array
+          items:
+            type: string
+      required:
+        - type
+        - major
+        - title
+        - summary
+        - feasibilityNote
+        - averageUnitsPerQuarter
+        - requiresOverload
+        - quarters
+        - risks
+
+    MajorOption:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        college:
+          type: string
+          enum: [CAS, SOE, LSB]
+      required: [code, title, college]
+    MajorList:
+      type: object
+      properties:
+        majors:
+          type: array
+          items:
+            $ref: "#/components/schemas/MajorOption"
+      required: [majors]
+    MinorOption:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        college:
+          type: string
+          enum: [CAS, SOE, LSB]
+      required: [code, title, college]
+    MinorList:
+      type: object
+      properties:
+        minors:
+          type: array
+          items:
+            $ref: "#/components/schemas/MinorOption"
+      required: [minors]
+    MajorRequirementCourse:
+      type: object
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        units:
+          type: number
+        description:
+          type: string
+        completed:
+          type: boolean
+        category:
+          type: string
+          enum: [lower-division, upper-division, capstone, business-core, university-core]
+      required: [code, title, units, description, completed, category]
+    MajorRequirementGroup:
+      type: object
+      properties:
+        label:
+          type: string
+        courses:
+          type: array
+          items:
+            $ref: "#/components/schemas/MajorRequirementCourse"
+      required: [label, courses]
+    MajorRequirements:
+      type: object
+      properties:
+        major:
+          type: string
+        title:
+          type: string
+        college:
+          type: string
+          enum: [CAS, SOE, LSB]
+        mathTrack:
+          type: string
+        notes:
+          type: array
+          items:
+            type: string
+        totalListed:
+          type: integer
+        completedCount:
+          type: integer
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/MajorRequirementGroup"
+      required: [major, title, college, mathTrack, notes, totalListed, completedCount, groups]
+
+    EvaluationScenario:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+          description: e.g. "unit_cap", "transfer_cap", "prereq", "policy", "trap"
+        prompt:
+          type: string
+          description: User question to ask the AI advisor
+        expectedKeywords:
+          type: array
+          description: Phrases or concepts that MUST appear in a correct answer
+          items:
+            type: string
+        forbiddenKeywords:
+          type: array
+          description: Phrases that indicate a wrong/hallucinated answer
+          items:
+            type: string
+        risk:
+          type: string
+          enum: [low, medium, high, critical]
+        rubric:
+          type: string
+          description: Human-readable explanation of what a correct answer looks like
+      required:
+        - id
+        - category
+        - prompt
+        - expectedKeywords
+        - forbiddenKeywords
+        - risk
+        - rubric
+    EvaluationScenarioResult:
+      type: object
+      properties:
+        scenarioId:
+          type: string
+        category:
+          type: string
+        risk:
+          type: string
+        prompt:
+          type: string
+        response:
+          type: string
+        matchedKeywords:
+          type: array
+          items:
+            type: string
+        missedKeywords:
+          type: array
+          items:
+            type: string
+        triggeredForbidden:
+          type: array
+          items:
+            type: string
+        score:
+          type: number
+          description: 0.0 to 1.0
+        passed:
+          type: boolean
+        latencyMs:
+          type: integer
+      required:
+        - scenarioId
+        - category
+        - risk
+        - prompt
+        - response
+        - matchedKeywords
+        - missedKeywords
+        - triggeredForbidden
+        - score
+        - passed
+        - latencyMs
+    RunEvaluationBody:
+      type: object
+      properties:
+        scenarioIds:
+          type: array
+          description: Optional subset of scenario IDs. If omitted, all scenarios run.
+          items:
+            type: string
+    EvaluationRunResult:
+      type: object
+      properties:
+        ranAt:
+          type: string
+          format: date-time
+        model:
+          type: string
+        totalScenarios:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        averageScore:
+          type: number
+        criticalFailures:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvaluationScenarioResult"
+      required:
+        - ranAt
+        - model
+        - totalScenarios
+        - passed
+        - failed
+        - averageScore
+        - criticalFailures
+        - results

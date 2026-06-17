@@ -1,0 +1,25 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="CampusVal Bronco">
+  <defs>
+    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#A21D1D"/>
+      <stop offset="100%" stop-color="#8C1515"/>
+    </linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E2BE7E"/>
+      <stop offset="100%" stop-color="#B08850"/>
+    </linearGradient>
+    <linearGradient id="m" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F2D9A8"/>
+      <stop offset="100%" stop-color="#B08850"/>
+    </linearGradient>
+  </defs>
+  <path d="M32 2 L58 10 L58 30 C58 46 47 58 32 62 C17 58 6 46 6 30 L6 10 Z" fill="url(#s)" stroke="#6B0F0F" stroke-width="1"/>
+  <path d="M32 6 L54 12.5 L54 30 C54 43.5 44.5 54 32 57.5 C19.5 54 10 43.5 10 30 L10 12.5 Z" fill="none" stroke="url(#g)" stroke-width="1" opacity="0.75"/>
+  <path d="M 22 18 C 17 21, 14 26, 14 31 C 14 36, 16 40, 19 43 C 16 41, 15 37, 16 33 C 14 36, 14 41, 17 45 C 19 41, 22 38, 25 36 Z" fill="url(#m)" opacity="0.95"/>
+  <path d="M 44 22 C 47 24, 48 28, 47 31 C 46 34, 44 36, 42 37 L 41 41 C 41 43, 39 44, 37 44 L 35 44 C 33 44, 32 43, 31 41 L 30 39 L 27 39 C 25 39, 23 37, 23 35 L 23 33 C 23 30, 24 27, 26 24 C 28 21, 31 19, 35 18 C 38 17, 41 18, 44 22 Z" fill="url(#g)"/>
+  <path d="M 30 19 C 31 17, 33 16, 34 17 C 33 19, 32 20, 31 21 Z" fill="url(#m)"/>
+  <circle cx="36" cy="28" r="1.1" fill="#3B0808"/>
+  <ellipse cx="43" cy="34" rx="0.9" ry="0.6" fill="#3B0808" opacity="0.7"/>
+  <path d="M 31 16 L 33 14 L 33.5 17 Z" fill="url(#g)" stroke="#6B0F0F" stroke-width="0.3"/>
+  <text x="32" y="55" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="7.5" fill="#F8F1E4" letter-spacing="2">CAMPUSVAL</text>
+</svg>

@@ -1,0 +1,113 @@
+import { Router, type IRouter } from "express";
+import { and, eq } from "drizzle-orm";
+import { db, courseSectionsTable } from "@workspace/db";
+import { COURSES, findCourse } from "../data/courses";
+import { ratingFor } from "../data/sections";
+
+const router: IRouter = Router();
+
+router.get("/courses", (req, res) => {
+  const search = (req.query.search as string | undefined)?.toLowerCase().trim();
+  const department = (req.query.department as string | undefined)
+    ?.toLowerCase()
+    .trim();
+  const coreParam = req.query.core;
+  const coreOnly = coreParam === "true" || coreParam === "1";
+
+  let result = COURSES.slice();
+  if (search) {
+    result = result.filter(
+      (c) =>
+        c.code.toLowerCase().includes(search) ||
+        c.title.toLowerCase().includes(search) ||
+        c.description.toLowerCase().includes(search),
+    );
+  }
+  if (department) {
+    result = result.filter((c) => c.department.toLowerCase() === department);
+  }
+  if (coreOnly) {
+    result = result.filter((c) => c.coreAreas.length > 0);
+  }
+  res.json(
+    result.map((c) => ({
+      code: c.code,
+      title: c.title,
+      department: c.department,
+      units: c.units,
+      description: c.description,
+      coreAreas: c.coreAreas,
+      offeredTerms: c.offeredTerms,
+      difficulty: c.difficulty ?? null,
+      restrictedToColleges: c.restrictedToColleges ?? [],
+    })),
+  );
+});
+
+router.get("/courses/:code/sections", async (req, res) => {
+  const course = findCourse(req.params.code);
+  if (!course) return res.status(404).json({ error: "Course not found" });
+
+  const VALID_TERMS = new Set(["fall", "winter", "spring", "summer"]);
+  const termRaw = req.query.term as string | undefined;
+  const term =
+    termRaw && VALID_TERMS.has(termRaw) ? termRaw : undefined;
+  const yearRaw = req.query.year as string | undefined;
+  let year: number | undefined;
+  if (yearRaw !== undefined) {
+    const n = Number(yearRaw);
+    if (Number.isInteger(n) && n >= 2024 && n <= 2030) year = n;
+  }
+
+  const matchedCode = course.code.toUpperCase().replace(/\s+/g, " ");
+
+  const conds = [eq(courseSectionsTable.courseCode, matchedCode)];
+  if (term) conds.push(eq(courseSectionsTable.term, term));
+  if (year !== undefined) conds.push(eq(courseSectionsTable.year, year));
+
+  const rows = await db
+    .select()
+    .from(courseSectionsTable)
+    .where(and(...conds));
+
+  res.json(
+    rows.map((s) => ({
+      id: `${s.courseCode}-${s.sectionNumber}-${s.term}-${s.year}`,
+      courseCode: s.courseCode,
+      sectionNumber: s.sectionNumber,
+      term: s.term,
+      year: s.year,
+      instructor: s.instructor,
+      meetingDays: s.meetingDays,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      location: s.location,
+      seatsTotal: s.seatsTotal,
+      seatsOpen: s.seatsOpen,
+      waitlist: s.waitlist,
+      rating: ratingFor(s.instructor),
+    })),
+  );
+});
+
+router.get("/courses/:code", (req, res) => {
+  const course = findCourse(req.params.code);
+  if (!course) return res.status(404).json({ error: "Course not found" });
+  res.json({
+    code: course.code,
+    title: course.title,
+    department: course.department,
+    units: course.units,
+    description: course.description,
+    coreAreas: course.coreAreas,
+    offeredTerms: course.offeredTerms,
+    difficulty: course.difficulty ?? null,
+    restrictedToColleges: course.restrictedToColleges ?? [],
+    prereqLogic: course.prereqLogic,
+    prereqGroups: course.prereqGroups,
+    corequisites: course.corequisites,
+    notes: course.notes ?? null,
+  });
+});
+
+export default router;

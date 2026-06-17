@@ -1,0 +1,698 @@
+[
+  {
+    "name": "Allan Hancock College",
+    "city": "Santa Maria",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Allan%20Hancock%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "American River College",
+    "city": "Sacramento",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=American%20River%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Antelope Valley College",
+    "city": "Lancaster",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Antelope%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Bakersfield College",
+    "city": "Bakersfield",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Bakersfield%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Barstow Community College",
+    "city": "Barstow",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Barstow%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Berkeley City College",
+    "city": "Berkeley",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Berkeley%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Butte College",
+    "city": "Oroville",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Butte%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Cabrillo College",
+    "city": "Aptos",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Cabrillo%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Cañada College",
+    "city": "Redwood City",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Ca%C3%B1ada%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Cerritos College",
+    "city": "Norwalk",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Cerritos%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Cerro Coso Community College",
+    "city": "Ridgecrest",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Cerro%20Coso%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Chabot College",
+    "city": "Hayward",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Chabot%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Chaffey College",
+    "city": "Rancho Cucamonga",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Chaffey%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Citrus College",
+    "city": "Glendora",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Citrus%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "City College of San Francisco",
+    "city": "San Francisco",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=City%20College%20of%20San%20Francisco&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Clovis Community College",
+    "city": "Fresno",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Clovis%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Coastline Community College",
+    "city": "Fountain Valley",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Coastline%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "College of Alameda",
+    "city": "Alameda",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=College%20of%20Alameda&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "College of Marin",
+    "city": "Kentfield",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=College%20of%20Marin&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "College of San Mateo",
+    "city": "San Mateo",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=College%20of%20San%20Mateo&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "College of the Canyons",
+    "city": "Santa Clarita",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=College%20of%20the%20Canyons&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "College of the Desert",
+    "city": "Palm Desert",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=College%20of%20the%20Desert&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "College of the Redwoods",
+    "city": "Eureka",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=College%20of%20the%20Redwoods&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "College of the Sequoias",
+    "city": "Visalia",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=College%20of%20the%20Sequoias&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "College of the Siskiyous",
+    "city": "Weed",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=College%20of%20the%20Siskiyous&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Columbia College",
+    "city": "Sonora",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Columbia%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Compton College",
+    "city": "Compton",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Compton%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Contra Costa College",
+    "city": "San Pablo",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Contra%20Costa%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Copper Mountain College",
+    "city": "Joshua Tree",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Copper%20Mountain%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Cosumnes River College",
+    "city": "Sacramento",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Cosumnes%20River%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Crafton Hills College",
+    "city": "Yucaipa",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Crafton%20Hills%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Cuesta College",
+    "city": "San Luis Obispo",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Cuesta%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Cuyamaca College",
+    "city": "El Cajon",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Cuyamaca%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Cypress College",
+    "city": "Cypress",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Cypress%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "De Anza College",
+    "city": "Cupertino",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=De%20Anza%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Diablo Valley College",
+    "city": "Pleasant Hill",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Diablo%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "East Los Angeles College",
+    "city": "Monterey Park",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=East%20Los%20Angeles%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "El Camino College",
+    "city": "Torrance",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=El%20Camino%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Evergreen Valley College",
+    "city": "San Jose",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Evergreen%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Feather River College",
+    "city": "Quincy",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Feather%20River%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Folsom Lake College",
+    "city": "Folsom",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Folsom%20Lake%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Foothill College",
+    "city": "Los Altos Hills",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Foothill%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Fresno City College",
+    "city": "Fresno",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Fresno%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Fullerton College",
+    "city": "Fullerton",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Fullerton%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Gavilan College",
+    "city": "Gilroy",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Gavilan%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Glendale Community College",
+    "city": "Glendale",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Glendale%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Golden West College",
+    "city": "Huntington Beach",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Golden%20West%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Grossmont College",
+    "city": "El Cajon",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Grossmont%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Hartnell College",
+    "city": "Salinas",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Hartnell%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Imperial Valley College",
+    "city": "Imperial",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Imperial%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Irvine Valley College",
+    "city": "Irvine",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Irvine%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Lake Tahoe Community College",
+    "city": "South Lake Tahoe",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Lake%20Tahoe%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Laney College",
+    "city": "Oakland",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Laney%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Las Positas College",
+    "city": "Livermore",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Las%20Positas%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Lassen Community College",
+    "city": "Susanville",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Lassen%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Long Beach City College",
+    "city": "Long Beach",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Long%20Beach%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Los Angeles City College",
+    "city": "Los Angeles",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Los%20Angeles%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Los Angeles Harbor College",
+    "city": "Wilmington",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Los%20Angeles%20Harbor%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Los Angeles Mission College",
+    "city": "Sylmar",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Los%20Angeles%20Mission%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Los Angeles Pierce College",
+    "city": "Woodland Hills",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Los%20Angeles%20Pierce%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Los Angeles Southwest College",
+    "city": "Los Angeles",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Los%20Angeles%20Southwest%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Los Angeles Trade-Technical College",
+    "city": "Los Angeles",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Los%20Angeles%20Trade-Technical%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Los Angeles Valley College",
+    "city": "Valley Glen",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Los%20Angeles%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Los Medanos College",
+    "city": "Pittsburg",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Los%20Medanos%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Madera Community College",
+    "city": "Madera",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Madera%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Mendocino College",
+    "city": "Ukiah",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Mendocino%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Merced College",
+    "city": "Merced",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Merced%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Merritt College",
+    "city": "Oakland",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Merritt%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "MiraCosta College",
+    "city": "Oceanside",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=MiraCosta%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Mission College",
+    "city": "Santa Clara",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Mission%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Modesto Junior College",
+    "city": "Modesto",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Modesto%20Junior%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Monterey Peninsula College",
+    "city": "Monterey",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Monterey%20Peninsula%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Moorpark College",
+    "city": "Moorpark",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Moorpark%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Moreno Valley College",
+    "city": "Moreno Valley",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Moreno%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Mt. San Antonio College",
+    "city": "Walnut",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Mt.%20San%20Antonio%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Mt. San Jacinto College",
+    "city": "San Jacinto",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Mt.%20San%20Jacinto%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Napa Valley College",
+    "city": "Napa",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Napa%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Norco College",
+    "city": "Norco",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Norco%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Ohlone College",
+    "city": "Fremont",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Ohlone%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Orange Coast College",
+    "city": "Costa Mesa",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Orange%20Coast%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Oxnard College",
+    "city": "Oxnard",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Oxnard%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Palo Verde College",
+    "city": "Blythe",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Palo%20Verde%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Palomar College",
+    "city": "San Marcos",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Palomar%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Pasadena City College",
+    "city": "Pasadena",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Pasadena%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Porterville College",
+    "city": "Porterville",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Porterville%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Reedley College",
+    "city": "Reedley",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Reedley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Rio Hondo College",
+    "city": "Whittier",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Rio%20Hondo%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Riverside City College",
+    "city": "Riverside",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Riverside%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Sacramento City College",
+    "city": "Sacramento",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Sacramento%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Saddleback College",
+    "city": "Mission Viejo",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Saddleback%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "San Bernardino Valley College",
+    "city": "San Bernardino",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=San%20Bernardino%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "San Diego City College",
+    "city": "San Diego",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=San%20Diego%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "San Diego Mesa College",
+    "city": "San Diego",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=San%20Diego%20Mesa%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "San Diego Miramar College",
+    "city": "San Diego",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=San%20Diego%20Miramar%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "San Joaquin Delta College",
+    "city": "Stockton",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=San%20Joaquin%20Delta%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "San Jose City College",
+    "city": "San Jose",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=San%20Jose%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Santa Ana College",
+    "city": "Santa Ana",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Santa%20Ana%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Santa Barbara City College",
+    "city": "Santa Barbara",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Santa%20Barbara%20City%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Santa Monica College",
+    "city": "Santa Monica",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Santa%20Monica%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Santa Rosa Junior College",
+    "city": "Santa Rosa",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Santa%20Rosa%20Junior%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Santiago Canyon College",
+    "city": "Orange",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Santiago%20Canyon%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Sequoias District",
+    "city": "Visalia",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Sequoias%20District&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Shasta College",
+    "city": "Redding",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Shasta%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Sierra College",
+    "city": "Rocklin",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Sierra%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Skyline College",
+    "city": "San Bruno",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Skyline%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Solano Community College",
+    "city": "Fairfield",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Solano%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Southwestern College",
+    "city": "Chula Vista",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Southwestern%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Taft College",
+    "city": "Taft",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Taft%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Ventura College",
+    "city": "Ventura",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Ventura%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Victor Valley College",
+    "city": "Victorville",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Victor%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "West Hills College Coalinga",
+    "city": "Coalinga",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=West%20Hills%20College%20Coalinga&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "West Hills College Lemoore",
+    "city": "Lemoore",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=West%20Hills%20College%20Lemoore&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "West Los Angeles College",
+    "city": "Culver City",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=West%20Los%20Angeles%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "West Valley College",
+    "city": "Saratoga",
+    "region": "Bay Area",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=West%20Valley%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Woodland Community College",
+    "city": "Woodland",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Woodland%20Community%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  },
+  {
+    "name": "Yuba College",
+    "city": "Marysville",
+    "region": "California",
+    "assistUrl": "https://assist.org/transfer/results?year=75&institution=Yuba%20College&agreement=to&agreementType=to&viewBy=major&viewSendingAgreements=false"
+  }
+]

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CampusVal</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #fafafa; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+      .bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #8C1515; color: #fff; font-size: 13px; font-weight: 600; }
+      .bar .badge { width: 22px; height: 22px; border-radius: 4px; background: #fff; color: #8C1515; display: flex; align-items: center; justify-content: center; font-family: Georgia, serif; font-weight: 700; font-size: 12px; }
+      .bar a { margin-left: auto; color: #fff; font-size: 12px; text-decoration: underline; opacity: 0.85; }
+      iframe { width: 100%; height: calc(100% - 38px); border: 0; display: block; }
+      .empty { padding: 16px; font-size: 13px; color: #555; }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <span class="badge">CV</span>
+      <span>CampusVal</span>
+      <a id="open-tab" href="#">Open in tab ↗</a>
+    </div>
+    <iframe id="app" referrerpolicy="strict-origin-when-cross-origin" allow="microphone"></iframe>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>
