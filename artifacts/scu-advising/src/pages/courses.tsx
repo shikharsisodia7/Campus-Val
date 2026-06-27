@@ -4,6 +4,7 @@ import {
   useGetCourse,
   getGetCourseQueryKey,
   useListCourseSections,
+  getListCourseSectionsQueryKey,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -361,7 +362,19 @@ function CourseDrawer({
 }
 
 function SectionsList({ code }: { code: string }) {
-  const { data: sections = [], isLoading } = useListCourseSections(code);
+  // Live seat/section data: re-pull every second while the drawer is open so
+  // synced Workday seat counts and instructor changes stay current.
+  const { data: sections = [], isLoading } = useListCourseSections(
+    code,
+    undefined,
+    {
+      query: {
+        queryKey: getListCourseSectionsQueryKey(code),
+        refetchInterval: code ? 1000 : false,
+        refetchIntervalInBackground: false,
+      },
+    },
+  );
   const { toast } = useToast();
   const [scheduledIds, setScheduledIds] = useState<Set<string>>(new Set());
   useEffect(() => {

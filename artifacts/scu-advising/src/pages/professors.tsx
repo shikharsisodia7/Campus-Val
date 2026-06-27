@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useListProfessors,
   useGetProfessorRmp,
+  getListProfessorsQueryKey,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -28,7 +29,19 @@ import {
 export default function ProfessorsPage() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const { data, isLoading, refetch, isFetching } = useListProfessors({});
+  // Live directory: re-pull from the server every second so any newly synced
+  // Workday sections show up without a manual refresh.
+  const { data, isLoading, refetch, isFetching, dataUpdatedAt } =
+    useListProfessors(
+      {},
+      {
+        query: {
+          queryKey: getListProfessorsQueryKey({}),
+          refetchInterval: 1000,
+          refetchIntervalInBackground: false,
+        },
+      },
+    );
 
   const filtered = useMemo(() => {
     const lower = q.trim().toLowerCase();
@@ -77,10 +90,13 @@ export default function ProfessorsPage() {
                 className="pl-9"
               />
             </div>
-            <div className="text-xs text-muted-foreground whitespace-nowrap">
-              {data
-                ? `${filtered.length} of ${data.professors.length} instructors`
-                : "Loading…"}
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <div className="text-xs text-muted-foreground">
+                {data
+                  ? `${filtered.length} of ${data.professors.length} instructors`
+                  : "Loading…"}
+              </div>
+              <LiveBadge updatedAt={dataUpdatedAt} />
             </div>
           </div>
         </Card>
@@ -306,6 +322,30 @@ function RmpSheetBody({ name }: { name: string }) {
           )}
         </div>
     </>
+  );
+}
+
+function LiveBadge({ updatedAt }: { updatedAt: number }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  if (!updatedAt) return null;
+  const secs = Math.max(0, Math.round((Date.now() - updatedAt) / 1000));
+  const label = secs <= 1 ? "just now" : `${secs}s ago`;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+      title="This directory re-checks the server every second."
+      data-testid="live-badge-professors"
+    >
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+      </span>
+      Live · {label}
+    </span>
   );
 }
 
