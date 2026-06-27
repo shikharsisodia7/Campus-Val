@@ -21,6 +21,7 @@ import {
   Scale,
   Lightbulb,
   MessageSquarePlus,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/react";
@@ -32,6 +33,7 @@ const NAV = [
   { path: "/courses", label: "Course Catalog", icon: BookOpen },
   { path: "/compare", label: "Compare Courses", icon: Scale },
   { path: "/planner", label: "Quarter Planner", icon: CalendarRange },
+  { path: "/tentative-plans", label: "Tentative Plans", icon: FlaskConical },
   { path: "/schedule", label: "Weekly Schedule", icon: Calendar },
   { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
   { path: "/gpa", label: "GPA Calculator", icon: Calculator },

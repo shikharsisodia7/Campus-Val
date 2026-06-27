@@ -477,6 +477,10 @@ export interface CourseSection {
   seatsTotal: number;
   seatsOpen: number;
   waitlist: number;
+  /** True when live seat counts are available (pasted from Workday). False for the official Registrar schedule, which lists offerings/times but not seats. */
+  seatsKnown?: boolean;
+  /** True for tentative-schedule terms (Winter/Spring 2027) where section numbers and instructors are not yet finalized. */
+  tentative?: boolean;
   rating?: ProfessorRating | null;
 }
 

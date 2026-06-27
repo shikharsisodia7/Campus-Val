@@ -536,6 +536,18 @@ export const ListCourseSectionsResponseItem = zod.object({
   seatsTotal: zod.number(),
   seatsOpen: zod.number(),
   waitlist: zod.number(),
+  seatsKnown: zod
+    .boolean()
+    .optional()
+    .describe(
+      "True when live seat counts are available (pasted from Workday). False for the official Registrar schedule, which lists offerings\/times but not seats.",
+    ),
+  tentative: zod
+    .boolean()
+    .optional()
+    .describe(
+      "True for tentative-schedule terms (Winter\/Spring 2027) where section numbers and instructors are not yet finalized.",
+    ),
   rating: zod
     .object({
       instructor: zod.string(),
@@ -617,6 +629,18 @@ export const SyncWorkdaySectionsResponse = zod.object({
         seatsTotal: zod.number(),
         seatsOpen: zod.number(),
         waitlist: zod.number(),
+        seatsKnown: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True when live seat counts are available (pasted from Workday). False for the official Registrar schedule, which lists offerings\/times but not seats.",
+          ),
+        tentative: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True for tentative-schedule terms (Winter\/Spring 2027) where section numbers and instructors are not yet finalized.",
+          ),
         rating: zod
           .object({
             instructor: zod.string(),

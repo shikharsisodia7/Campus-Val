@@ -338,6 +338,19 @@ export default function TransferPage() {
                   <div className="text-amber-900">{w}</div>
                 </div>
               ))}
+              <div className="mt-4 flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+                <AlertTriangle className="h-3.5 w-3.5 text-blue-700 mt-0.5 shrink-0" />
+                <div>
+                  <strong>"Accepted" means the units count toward your
+                  transfer total</strong> under SCU's grade, cap, and conversion
+                  rules. It does <strong>not</strong> confirm that SCU has
+                  approved a specific course-to-course equivalency (e.g. that
+                  this course satisfies a particular major or Core requirement).
+                  Confirm each equivalency with the Articulation lookup above or
+                  on ASSIST.org — unapproved courses transfer only as elective
+                  units.
+                </div>
+              </div>
             </Card>
 
             <div className="space-y-3">
@@ -628,6 +641,13 @@ function ArticulationLookup() {
                     <span className="text-muted-foreground">
                       ({m.scuQuarterUnits} quarter units)
                     </span>
+                    <Badge
+                      variant="outline"
+                      className="ml-auto border-emerald-300 bg-emerald-50 text-emerald-800"
+                    >
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      SCU-approved · verified {m.verifiedDate}
+                    </Badge>
                   </div>
                   {m.notes && (
                     <div className="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded p-2">

@@ -70,6 +70,7 @@ const SPA_ROUTES = new Set([
   "/onboarding",
   "/courses",
   "/planner",
+  "/tentative-plans",
   "/schedule",
   "/gpa",
   "/transfer",

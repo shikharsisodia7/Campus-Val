@@ -26,6 +26,7 @@ const Onboarding = lazy(() => import("@/pages/onboarding"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const Courses = lazy(() => import("@/pages/courses"));
 const Planner = lazy(() => import("@/pages/planner"));
+const TentativePlans = lazy(() => import("@/pages/tentative-plans"));
 const GpaPage = lazy(() => import("@/pages/gpa"));
 const TransferPage = lazy(() => import("@/pages/transfer"));
 const SyncWorkdayPage = lazy(() => import("@/pages/sync-workday"));
@@ -183,6 +184,11 @@ function AppRoutes() {
         <Route path="/planner">
           <Protected>
             <Planner />
+          </Protected>
+        </Route>
+        <Route path="/tentative-plans">
+          <Protected>
+            <TentativePlans />
           </Protected>
         </Route>
         <Route path="/schedule">

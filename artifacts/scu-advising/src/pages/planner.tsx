@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { TERM_OPTIONS, termLabel, getCurrentSCUTerm } from "@/lib/api";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
+import { AcademicProgress } from "@/components/AcademicProgress";
 
 interface PlannedCourse {
   code: string;
@@ -390,6 +391,8 @@ export default function Planner() {
             </div>
           </Card>
 
+          <div className="space-y-6">
+          <AcademicProgress />
           <Card className="p-6">
             <div className="text-sm font-semibold text-foreground">
               Validation
@@ -463,6 +466,7 @@ export default function Planner() {
               </div>
             )}
           </Card>
+          </div>
         </div>
       </PageContent>
     </AppShell>

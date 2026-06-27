@@ -53,7 +53,7 @@ export default function Courses() {
     <AppShell>
       <PageHeader
         title="Course Catalog"
-        subtitle="Search every SCU department. Live offerings and seats live in Workday / Camino."
+        subtitle="Search every SCU department. Sections show the official Fall 2026, Winter 2027 & Spring 2027 schedules; add live seat counts on Sync Workday."
       />
       <PageContent>
         <Card className="p-4">
@@ -365,14 +365,12 @@ function SectionsList({ code }: { code: string }) {
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
           <div>
             <div className="font-semibold mb-1">
-              Live data source not connected
+              Not on the current published schedule
             </div>
-            Real-time section info (instructor, meeting time, seats) and
-            professor ratings require a connection to SCU's Workday/Camino
-            course catalog and a verified ratings source. We don't show
-            placeholder data here on purpose — it would mislead students
-            picking sections. Ask your developer to wire up an SCU course-avails
-            feed to populate this panel.
+            This course isn't listed in SCU's Fall 2026, Winter 2027, or Spring
+            2027 schedules. It may be offered in another term or on a rotating
+            basis — check Workday Student for the latest offerings. Live seat
+            counts can be added on the Sync Workday page.
           </div>
         </div>
       ) : (
@@ -381,7 +379,7 @@ function SectionsList({ code }: { code: string }) {
             const [term, year] = key.split("|");
             return (
               <div key={key}>
-                <div className="flex items-baseline gap-2 mb-2 pb-1.5 border-b-2 border-primary/30">
+                <div className="flex items-baseline gap-2 mb-2 pb-1.5 border-b-2 border-primary/30 flex-wrap">
                   <span className="font-serif text-lg font-bold text-primary capitalize">
                     {term} {year}
                   </span>
@@ -389,6 +387,14 @@ function SectionsList({ code }: { code: string }) {
                     {rows.length} section{rows.length === 1 ? "" : "s"}{" "}
                     offered
                   </span>
+                  {rows.some((r) => r.tentative) && (
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] px-1.5 py-0 h-5 border-amber-300 bg-amber-50 text-amber-800"
+                    >
+                      Tentative — sections & instructors may change
+                    </Badge>
+                  )}
                 </div>
                 <div className="space-y-2.5">
                   {rows.map((s) => {
@@ -417,14 +423,23 @@ function SectionsList({ code }: { code: string }) {
                               </Badge>
                             )}
                           </div>
-                          <Badge
-                            variant={s.seatsOpen > 0 ? "default" : "destructive"}
-                            className="text-[10px]"
-                          >
-                            {s.seatsOpen > 0
-                              ? `${s.seatsOpen}/${s.seatsTotal} open`
-                              : `Waitlist ${s.waitlist}`}
-                          </Badge>
+                          {s.seatsKnown ? (
+                            <Badge
+                              variant={s.seatsOpen > 0 ? "default" : "destructive"}
+                              className="text-[10px]"
+                            >
+                              {s.seatsOpen > 0
+                                ? `${s.seatsOpen}/${s.seatsTotal} open`
+                                : `Waitlist ${s.waitlist}`}
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] text-muted-foreground"
+                            >
+                              Seats: sync Workday
+                            </Badge>
+                          )}
                         </div>
 
                         <div className="space-y-1.5">

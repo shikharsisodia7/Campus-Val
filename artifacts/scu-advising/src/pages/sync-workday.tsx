@@ -61,10 +61,14 @@ export default function SyncWorkdayPage() {
             Sync Workday Sections
           </h1>
           <p className="text-muted-foreground">
-            Paste your Workday "Find Course Sections" results here so the
-            advisor and course drawer can show real instructors, meeting times,
-            and seat counts. Your Workday password is never sent to or stored
-            by CampusVal — only the section table you copy.
+            CampusVal already shows the official Fall 2026, Winter 2027 &amp;
+            Spring 2027 schedules (instructors and meeting times) everywhere. This
+            page adds the one thing those published schedules don't include:{" "}
+            <strong className="text-foreground">live seat availability</strong>.
+            Paste your Workday "Find Course Sections" results to overlay
+            real-time open/total seats onto the matching sections. Your Workday
+            password is never sent to or stored by CampusVal — only the section
+            table you copy.
           </p>
         </div>
 
