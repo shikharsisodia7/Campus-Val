@@ -811,12 +811,26 @@ export function getGraduationPath(
   } else {
     const recipe = MAJOR_RECIPES[normalizedMajor];
     if (!recipe) {
-      base = type === "three_year" ? THREE_YEAR_CSE : FOUR_YEAR_CSE;
-    } else {
-      base = type === "three_year"
-        ? generateThreeYear(recipe)
-        : generateFourYear(recipe);
+      // No curated plan exists for this major — never substitute another
+      // major's schedule (that would show students a fabricated plan).
+      // Return an explicit "not available" entry instead.
+      return {
+        type,
+        major: normalizedMajor,
+        title: `${normalizedMajor} — quarter-by-quarter plan not available yet`,
+        summary:
+          "A curated quarter-by-quarter plan hasn't been built for this major. See the Requirements view for the full official course list, and work with your advisor to sequence it.",
+        feasibilityNote:
+          "No quarter-by-quarter schedule is available for this major. Use the major requirements list plus your completed coursework to plan with your advisor.",
+        averageUnitsPerQuarter: 0,
+        requiresOverload: false,
+        quarters: [],
+        risks: [],
+      };
     }
+    base = type === "three_year"
+      ? generateThreeYear(recipe)
+      : generateFourYear(recipe);
   }
 
   // We keep ALL courses visible in the plan and let the frontend mark
