@@ -46,7 +46,7 @@ export default function ProfessorsPage() {
     <AppShell>
       <PageHeader
         title="Professors"
-        subtitle="Instructors aggregated from Workday sections you've synced. Click a name for live RateMyProfessor ratings — cached server-side for 24 hours."
+        subtitle="Every instructor from SCU's published Fall 2026 schedule (plus any Workday sections you've synced). Click a name for live RateMyProfessor ratings — cached server-side for 24 hours."
         right={
           <Button
             variant="outline"
@@ -79,7 +79,7 @@ export default function ProfessorsPage() {
             </div>
             <div className="text-xs text-muted-foreground whitespace-nowrap">
               {data
-                ? `${filtered.length} of ${data.professors.length} • ${data.totalSyncedSections} synced sections`
+                ? `${filtered.length} of ${data.professors.length} instructors`
                 : "Loading…"}
             </div>
           </div>

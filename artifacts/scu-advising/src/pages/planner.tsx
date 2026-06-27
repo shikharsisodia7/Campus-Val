@@ -314,7 +314,7 @@ export default function Planner() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="font-mono">
-                          {p.units}u
+                          {p.units} {p.units === 1 ? "unit" : "units"}
                         </Badge>
                         <Button
                           variant="ghost"

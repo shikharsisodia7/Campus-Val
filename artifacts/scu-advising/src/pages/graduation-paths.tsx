@@ -394,7 +394,7 @@ export default function GraduationPaths() {
                                           {c.code}
                                         </span>
                                         <span className="text-[10px] text-muted-foreground font-mono">
-                                          {c.units}u
+                                          {c.units} {c.units === 1 ? "unit" : "units"}
                                         </span>
                                       </>
                                     )}
@@ -479,7 +479,7 @@ function QuarterCard({
           variant={overload ? "destructive" : "outline"}
           className="text-[10px] font-mono"
         >
-          {quarter.plannedUnits}u
+          {quarter.plannedUnits} {quarter.plannedUnits === 1 ? "unit" : "units"}
         </Badge>
       </div>
       <div className="mt-2 space-y-1">

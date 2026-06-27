@@ -47,8 +47,10 @@ const HARD_RULES = `
 - Post-enrollment outside coursework requires **written advance approval** from the dean's office BEFORE enrolling. Without it, the credit will not transfer.
 - Most major prerequisites require **C- or better** to advance.
 - Many engineering courses (CSEN, ECEN, MECH, CENG, BIOE, ENGR, AMTH) are **restricted to School of Engineering students** and require an inter-college permission number for non-engineering students. (SCU renamed COEN → CSEN starting 2024-2025.)
-- Course catalog covers the **2025-2026 SCU bulletin** (~2,300 undergraduate courses across all departments). The 2026-2027 bulletin publishes June 2026 — until then, advise students to verify any course in the current bulletin.
-- **Per-quarter section schedules, instructors, and seat counts are NOT in this dataset** — they live in Workday Student / Camino. When a student asks "is X offered this fall?", direct them to Workday rather than guessing.
+- Course catalog covers the **2025-2026 SCU bulletin** (~2,300 undergraduate courses across all departments).
+- You DO have SCU's **published quarter schedules** for **Fall 2026** (definite — real section numbers and instructors), **Winter 2027** and **Spring 2027** (tentative — subject/days/times only, instructors still TBA and offerings can change). When a student asks "is X offered this fall/winter/spring?", answer from this published schedule, but flag Winter/Spring 2027 as tentative.
+- **Live seat counts are NOT in this dataset** — they live in Workday Student / Camino and are only known once the student pastes them in on the Sync Workday page. Never invent seat availability.
+- **Acceleration / graduating faster**: when a student asks whether they can finish sooner, use the "Offered schedule for your remaining requirements" block below (when present) to identify which remaining required courses are offered in Fall 2026 / Winter 2027 / Spring 2027, respect prerequisite chains and the class-standing unit caps, and lay out a concrete quarter-by-quarter sequence. Be explicit that tentative-term offerings must be confirmed once registration opens.
 - Minimum units to graduate: **175 quarter units**.
 - Residency: **at least 60 units in residence** at SCU; **35 of the final 45 units** in residence.
 - Withdrawal with "W" deadline: approximately end of **week 7** each quarter.
@@ -57,7 +59,10 @@ const HARD_RULES = `
 - Grading scale: A/A+ = 4.0, A- = 3.7, B+ = 3.3, B = 3.0, B- = 2.7, C+ = 2.3, C = 2.0, C- = 1.7, D+ = 1.3, D = 1.0, D- = 0.7, F = 0.0. P/NP/IP/W do not affect GPA.
 `;
 
-export function buildSystemPrompt(profileSummary?: string): string {
+export function buildSystemPrompt(
+  profileSummary?: string,
+  offeredScheduleBlock?: string,
+): string {
   const policiesBlock = POLICIES.map(
     (p) => `- **${p.title}** (${p.category}): ${p.summary}`,
   ).join("\n");
@@ -80,6 +85,7 @@ ${policiesBlock}
 ${TRAP_SCENARIOS}
 
 ${profileSummary ? `## Current Student Profile\n\n${profileSummary}\n\nUse this profile to personalize answers (e.g. flag overload eligibility automatically based on GPA, warn about transfer cap if close).` : "## No student profile available\n\nIf a question depends on the student's specific situation (units completed, GPA, transfer status), ASK them for the missing detail."}
+${offeredScheduleBlock ? `\n## Offered schedule for your remaining requirements\n\nThese are the courses still required for this student's declared major(s) that they have NOT yet completed, mapped to the terms each is offered in SCU's published 2026-2027 schedule. Use this to build an accelerated graduation plan on request. "(tentative)" terms can still change.\n\n${offeredScheduleBlock}` : ""}
 
 ## SCU Campus Help Resources (cite by name with link when relevant)
 

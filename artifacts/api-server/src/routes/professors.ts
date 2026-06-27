@@ -1,12 +1,12 @@
 import { Router, type IRouter } from "express";
-import { and, ilike, or, sql } from "drizzle-orm";
 import { db, courseSectionsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
-import { lookupRmp, rmpDeepLink } from "../lib/rmp-client";
+import { rmpDeepLink, lookupRmp } from "../lib/rmp-client";
+import { OFFERED_SECTIONS } from "../data/offered-sections";
 
 const router: IRouter = Router();
 
-const TERM_ORDER: Record<string, number> = {
+const TERM_RANK: Record<string, number> = {
   winter: 1,
   spring: 2,
   summer: 3,
@@ -18,53 +18,66 @@ function termTitle(term: string, year: number) {
 }
 
 function departmentOf(courseCode: string): string {
-  const m = courseCode.match(/^([A-Z]+)/);
+  const m = courseCode.toUpperCase().match(/^([A-Z]+)/);
   return m ? m[1]! : "";
 }
 
+function isRealInstructor(name: string): boolean {
+  const n = name.trim().toLowerCase();
+  return n.length > 0 && n !== "tba" && n !== "staff";
+}
+
+interface Agg {
+  name: string;
+  courses: Set<string>;
+  sections: number;
+  latestRank: number;
+}
+
 router.get("/professors", requireAuth, async (req, res) => {
-  const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const q = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : "";
 
-  // Aggregate in SQL so this stays fast as course_sections grows.
-  // Filter out blank/TBA/Staff instructors at the DB level.
-  const filters = [
-    sql`length(trim(${courseSectionsTable.instructor})) > 0`,
-    sql`lower(trim(${courseSectionsTable.instructor})) <> 'tba'`,
-    sql`lower(trim(${courseSectionsTable.instructor})) <> 'staff'`,
-  ];
-  if (q) {
-    const orCond = or(
-      ilike(courseSectionsTable.instructor, `%${q}%`),
-      ilike(courseSectionsTable.courseCode, `%${q}%`),
-    );
-    if (orCond) filters.push(orCond);
+  // Base directory: every instructor from the official published 2026-2027
+  // Registrar schedule (Fall 2026 has real instructors; the tentative Winter /
+  // Spring 2027 terms carry "TBA" and are filtered out). On top of that we
+  // merge any sections the student pasted in from Workday so newly announced
+  // instructors show up too.
+  const byName = new Map<string, Agg>();
+
+  function ingest(rows: {
+    instructor: string;
+    courseCode: string;
+    term: string;
+    year: number;
+  }[]) {
+    for (const r of rows) {
+      const name = r.instructor.trim();
+      if (!isRealInstructor(name)) continue;
+      const key = name.toLowerCase();
+      let agg = byName.get(key);
+      if (!agg) {
+        agg = { name, courses: new Set(), sections: 0, latestRank: 0 };
+        byName.set(key, agg);
+      }
+      agg.courses.add(r.courseCode.toUpperCase().replace(/\s+/g, " "));
+      agg.sections += 1;
+      const rank = r.year * 10 + (TERM_RANK[r.term.toLowerCase()] ?? 0);
+      if (rank > agg.latestRank) agg.latestRank = rank;
+    }
   }
-  const whereCond = and(...filters);
 
-  // Total synced sections (independent of `q`) for the empty-state copy.
-  const totalRow = await db
-    .select({ c: sql<number>`count(*)::int` })
-    .from(courseSectionsTable);
-  const totalCount = totalRow[0]?.c ?? 0;
+  ingest(OFFERED_SECTIONS);
 
-  const aggRows = await db
+  const workday = await db
     .select({
       instructor: courseSectionsTable.instructor,
-      sectionsCount: sql<number>`count(*)::int`,
-      courses: sql<string[]>`array_agg(distinct ${courseSectionsTable.courseCode})`,
-      latestRank: sql<number>`max(
-        ${courseSectionsTable.year} * 10 + case lower(${courseSectionsTable.term})
-          when 'winter' then 1
-          when 'spring' then 2
-          when 'summer' then 3
-          when 'fall' then 4
-          else 0 end
-      )::int`,
+      courseCode: courseSectionsTable.courseCode,
+      term: courseSectionsTable.term,
+      year: courseSectionsTable.year,
     })
-    .from(courseSectionsTable)
-    .where(whereCond)
-    .groupBy(courseSectionsTable.instructor)
-    .orderBy(courseSectionsTable.instructor);
+    .from(courseSectionsTable);
+  ingest(workday);
+  const totalSyncedSections = workday.length;
 
   function termFromRank(rank: number): string {
     if (!rank) return "—";
@@ -75,31 +88,43 @@ router.get("/professors", requireAuth, async (req, res) => {
     return term ? termTitle(term, year) : "—";
   }
 
-  const professors = aggRows.map((r) => {
-    const name = r.instructor.trim();
-    const courses = (r.courses ?? []).slice().sort();
+  let professors = [...byName.values()].map((a) => {
+    const courses = [...a.courses].sort();
     const departments = [...new Set(courses.map(departmentOf).filter(Boolean))].sort();
     return {
-      name,
+      name: a.name,
       departments,
       courses,
-      sectionsCount: Number(r.sectionsCount ?? 0),
-      latestTerm: termFromRank(Number(r.latestRank ?? 0)),
-      rmpDeepLinkUrl: rmpDeepLink(name),
+      sectionsCount: a.sections,
+      latestTerm: termFromRank(a.latestRank),
+      rmpDeepLinkUrl: rmpDeepLink(a.name),
     };
   });
+
+  const totalDirectory = professors.length;
+
+  if (q) {
+    professors = professors.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.departments.some((d) => d.toLowerCase().includes(q)) ||
+        p.courses.some((c) => c.toLowerCase().includes(q)),
+    );
+  }
+
+  professors.sort((a, b) => a.name.localeCompare(b.name));
 
   let emptyReason: string | null = null;
   if (professors.length === 0) {
     emptyReason =
-      totalCount === 0
-        ? "No Workday sections have been synced yet. Paste rows from SCU Workday's 'Find Course Sections' on the Sync page to populate this directory."
-        : `No instructors matched "${q}". Try a broader search.`;
+      totalDirectory === 0
+        ? "No instructors are available yet."
+        : `No instructors matched "${req.query.q}". Try a broader search.`;
   }
 
   res.json({
     professors,
-    totalSyncedSections: totalCount,
+    totalSyncedSections,
     emptyReason,
   });
 });

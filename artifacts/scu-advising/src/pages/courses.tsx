@@ -35,17 +35,28 @@ import { termLabel } from "@/lib/api";
 import { addToSchedule, getSchedule, subscribe } from "@/lib/schedule-store";
 import { useToast } from "@/hooks/use-toast";
 
+const PAGE_SIZE = 60;
+
 export default function Courses() {
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState<string | null>(null);
   const [coreOnly, setCoreOnly] = useState(false);
   const [openCode, setOpenCode] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const { data: courses = [], isLoading } = useListCourses({
     search: search || undefined,
     department: department ?? undefined,
     core: coreOnly ? true : undefined,
   });
+
+  // Keep the rendered card count bounded so the catalog (2,300+ courses) stays
+  // snappy. Reset back to the first page whenever the filters change.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, department, coreOnly]);
+
+  const visibleCourses = courses.slice(0, visibleCount);
 
   const departments = Array.from(new Set(courses.map((c) => c.department))).sort();
 
@@ -102,7 +113,7 @@ export default function Courses() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {courses.map((c) => (
+            {visibleCourses.map((c) => (
               <button
                 key={c.code}
                 onClick={() => setOpenCode(c.code)}
@@ -120,7 +131,7 @@ export default function Courses() {
                       </div>
                     </div>
                     <Badge variant="outline" className="text-xs shrink-0">
-                      {c.units}u
+                      {c.units} {c.units === 1 ? "unit" : "units"}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-3 line-clamp-2 leading-relaxed">
@@ -156,6 +167,25 @@ export default function Courses() {
                 </Card>
               </button>
             ))}
+          </div>
+        )}
+
+        {!isLoading && courses.length > 0 && (
+          <div className="flex flex-col items-center gap-3 pt-2">
+            <div className="text-xs text-muted-foreground">
+              Showing {visibleCourses.length} of {courses.length} courses
+            </div>
+            {visibleCount < courses.length && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setVisibleCount((n) => Math.min(n + PAGE_SIZE, courses.length))
+                }
+                data-testid="button-show-more"
+              >
+                Show more courses
+              </Button>
+            )}
           </div>
         )}
 

@@ -13,6 +13,57 @@ import {
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { buildSystemPrompt } from "../data/advisor-prompt";
 import { requireAuth } from "../middlewares/requireAuth";
+import { getMajorRequirements } from "../data/graduation-paths";
+import { findCourse } from "../data/courses";
+import { offeredSectionsFor, OFFERED_TERMS } from "../data/offered-sections";
+
+const catalogLookup = (code: string) => {
+  const c = findCourse(code);
+  if (!c) return undefined;
+  return { code: c.code, title: c.title, units: c.units, description: c.description };
+};
+
+function termLabel(term: string, year: number): string {
+  const t = term.charAt(0).toUpperCase() + term.slice(1);
+  const tentative = (term === "winter" || term === "spring") && year === 2027;
+  return `${t} ${year}${tentative ? " (tentative)" : ""}`;
+}
+
+/**
+ * For the student's declared majors, list every still-incomplete required
+ * course mapped to the term(s) it's offered in the published 2026-2027
+ * schedule. Bounded to the major requirement list (~40-70 courses), so it's
+ * safe to inject into the system prompt for acceleration advice.
+ */
+function buildOfferedScheduleBlock(
+  majors: string[],
+  completedCodes: string[],
+): string | undefined {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const major of majors) {
+    const reqs = getMajorRequirements(major, completedCodes, catalogLookup);
+    if (!reqs) continue;
+    for (const group of reqs.groups) {
+      if (group.label.startsWith("University Core")) continue;
+      for (const c of group.courses) {
+        if (c.completed) continue;
+        const key = c.code.toUpperCase().replace(/\s+/g, " ");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const terms = OFFERED_TERMS.filter(
+          (t) => offeredSectionsFor(c.code, t.term, t.year).length > 0,
+        ).map((t) => termLabel(t.term, t.year));
+        const offered =
+          terms.length > 0
+            ? terms.join("; ")
+            : "not in the published 2026-2027 schedule (confirm with the department)";
+        lines.push(`- ${c.code} — ${c.title} (${c.units} units): ${offered}`);
+      }
+    }
+  }
+  return lines.length > 0 ? lines.join("\n") : undefined;
+}
 
 const router: IRouter = Router();
 
@@ -173,8 +224,16 @@ router.post("/openai/conversations/:id/messages", requireAuth, async (req, res) 
     .where(eq(studentProfilesTable.userId, req.userId!))
     .limit(1);
   let profileSummary: string | undefined;
+  let offeredScheduleBlock: string | undefined;
   if (profileRows.length > 0) {
     const p = profileRows[0]!;
+    const majors = [p.major, p.secondMajor, ...(p.additionalMajors ?? [])].filter(
+      (m): m is string => !!m,
+    );
+    offeredScheduleBlock = buildOfferedScheduleBlock(
+      majors,
+      p.completedCourseCodes ?? [],
+    );
     profileSummary = [
       `- Name: ${p.name}`,
       `- Student type: ${p.studentType}`,
@@ -198,7 +257,10 @@ router.post("/openai/conversations/:id/messages", requireAuth, async (req, res) 
     .orderBy(asc(messages.createdAt));
 
   const chatMessages = [
-    { role: "system" as const, content: buildSystemPrompt(profileSummary) },
+    {
+      role: "system" as const,
+      content: buildSystemPrompt(profileSummary, offeredScheduleBlock),
+    },
     ...allMsgs.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
