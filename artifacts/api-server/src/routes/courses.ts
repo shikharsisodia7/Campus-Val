@@ -2,7 +2,6 @@ import { Router, type IRouter } from "express";
 import { and, eq } from "drizzle-orm";
 import { db, courseSectionsTable } from "@workspace/db";
 import { COURSES, findCourse } from "../data/courses";
-import { ratingFor } from "../data/sections";
 import {
   offeredSectionsFor,
   isTentativeTerm,
@@ -97,7 +96,6 @@ router.get("/courses/:code/sections", async (req, res) => {
     waitlist: number;
     seatsKnown: boolean;
     tentative: boolean;
-    rating: ReturnType<typeof ratingFor>;
   };
 
   const out: OutSection[] = official.map((s) => {
@@ -121,7 +119,6 @@ router.get("/courses/:code/sections", async (req, res) => {
       waitlist,
       seatsKnown: seatsTotal > 0 || waitlist > 0,
       tentative: isTentativeTerm(s.term, s.year),
-      rating: ratingFor(live?.instructor || s.instructor),
     };
   });
 
@@ -148,7 +145,6 @@ router.get("/courses/:code/sections", async (req, res) => {
       waitlist: w.waitlist,
       seatsKnown: w.seatsTotal > 0 || w.waitlist > 0,
       tentative: isTentativeTerm(w.term, w.year),
-      rating: ratingFor(w.instructor),
     });
   }
 

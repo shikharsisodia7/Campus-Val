@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, courseSectionsTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
-import { rmpDeepLink, lookupRmp } from "../lib/rmp-client";
 import { OFFERED_SECTIONS } from "../data/offered-sections";
 
 const router: IRouter = Router();
@@ -97,7 +96,6 @@ router.get("/professors", requireAuth, async (req, res) => {
       courses,
       sectionsCount: a.sections,
       latestTerm: termFromRank(a.latestRank),
-      rmpDeepLinkUrl: rmpDeepLink(a.name),
     };
   });
 
@@ -127,16 +125,6 @@ router.get("/professors", requireAuth, async (req, res) => {
     totalSyncedSections,
     emptyReason,
   });
-});
-
-router.get("/professors/:name/rmp", requireAuth, async (req, res) => {
-  const raw = req.params.name;
-  const rawName = Array.isArray(raw) ? raw[0] ?? "" : raw ?? "";
-  if (!rawName || rawName.length > 200) {
-    return res.status(400).json({ error: "Invalid name" });
-  }
-  const result = await lookupRmp(rawName);
-  res.json(result);
 });
 
 export default router;

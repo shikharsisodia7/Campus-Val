@@ -546,33 +546,6 @@ function SectionsList({ code }: { code: string }) {
                           )}
                         </Button>
 
-                        {s.rating && (
-                          <div className="mt-2 pt-2 border-t border-border/60 text-xs">
-                            <div className="flex items-center gap-3 text-foreground/90">
-                              <span className="flex items-center gap-1">
-                                <Star className="h-3 w-3 text-amber-600" />
-                                <strong>
-                                  {s.rating.overallRating ?? "—"}
-                                </strong>
-                                <span className="text-muted-foreground">
-                                  /5 ({s.rating.numRatings})
-                                </span>
-                              </span>
-                              <span>
-                                Difficulty:{" "}
-                                <strong>{s.rating.difficulty ?? "—"}</strong>
-                              </span>
-                              {s.rating.averageGpa !== null && (
-                                <span>
-                                  Avg GPA: <strong>{s.rating.averageGpa}</strong>
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground mt-1 italic">
-                              {s.rating.sourceNote}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })}

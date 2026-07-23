@@ -361,8 +361,6 @@ export interface ProfessorEntry {
   sectionsCount: number;
   /** Most recent synced term they appeared in, e.g. "Fall 2026". */
   latestTerm: string;
-  /** Direct link to RateMyProfessor search for this professor at SCU (school 882). */
-  rmpDeepLinkUrl: string;
 }
 
 export interface ProfessorList {
@@ -372,28 +370,71 @@ export interface ProfessorList {
   emptyReason?: string | null;
 }
 
-export interface ProfessorRmpComment {
-  comment: string;
-  date: string;
-  quality?: number | null;
-  difficulty?: number | null;
-  course?: string | null;
+export interface RequirementItem {
+  id: string;
+  label: string;
+  description: string;
+  /** Concrete SCU course codes that satisfy this item (any one). Empty when SCU says "choose from an approved list". */
+  courses: string[];
+  /** Core Curriculum phase (Foundations / Explorations / Integrations) when applicable. */
+  phase?: string | null;
+  /** True when completion is computed automatically from the profile's completed courses. */
+  autoTracked: boolean;
+  /** True when SCU defines this as "choose from an approved list" — the student tracks it manually rather than the app inventing a course list. */
+  needsVerification: boolean;
+  /** Completed course codes that satisfy this item. */
+  satisfiedBy: string[];
+  complete: boolean;
 }
 
-export interface ProfessorRmp {
-  found: boolean;
-  name: string;
-  deepLinkUrl: string;
-  avgRating?: number | null;
-  avgDifficulty?: number | null;
-  wouldTakeAgainPercent?: number | null;
-  numRatings?: number | null;
-  department?: string | null;
-  topTags: string[];
-  recentComments: ProfessorRmpComment[];
-  cachedAt?: string | null;
-  /** When found is false, a short explanation (e.g. "RMP returned no match" or "Upstream RMP error — using deep-link only"). */
-  error?: string | null;
+export type RequirementGroupKind =
+  (typeof RequirementGroupKind)[keyof typeof RequirementGroupKind];
+
+export const RequirementGroupKind = {
+  university_core: "university_core",
+  college: "college",
+  major: "major",
+} as const;
+
+export interface RequirementGroup {
+  id: string;
+  title: string;
+  kind: RequirementGroupKind;
+  /** Official SCU source URL this group's requirements were taken from. */
+  sourceUrl: string;
+  sourceLabel: string;
+  academicYear: string;
+  /** Date the requirements were last verified against the official SCU source (YYYY-MM-DD). */
+  lastVerified: string;
+  notes: string[];
+  items: RequirementItem[];
+  autoTrackedCount: number;
+  autoCompletedCount: number;
+  manualCount: number;
+}
+
+export type DegreeRequirementsResponseCollegeCode =
+  (typeof DegreeRequirementsResponseCollegeCode)[keyof typeof DegreeRequirementsResponseCollegeCode];
+
+export const DegreeRequirementsResponseCollegeCode = {
+  CAS: "CAS",
+  LSB: "LSB",
+  SOE: "SOE",
+} as const;
+
+export type DegreeRequirementsResponseUniversityRules = {
+  rules: string[];
+  sourceUrl: string;
+  sourceLabel: string;
+};
+
+export interface DegreeRequirementsResponse {
+  /** The student's college as stored in their profile. */
+  college: string;
+  collegeCode: DegreeRequirementsResponseCollegeCode;
+  major: string | null;
+  universityRules: DegreeRequirementsResponseUniversityRules;
+  groups: RequirementGroup[];
 }
 
 export interface OpenaiConversation {
@@ -427,24 +468,6 @@ export interface OpenaiConversationWithMessages {
 
 export interface OpenaiError {
   error: string;
-}
-
-/**
- * Aggregated professor data sourced from RateMyProfessors and SCU Schedule Helper
- */
-export interface ProfessorRating {
-  instructor: string;
-  /** Average rating 1.0-5.0 */
-  overallRating?: number | null;
-  /** Difficulty 1.0-5.0 */
-  difficulty?: number | null;
-  /** Percent of students who would take again (0-100) */
-  wouldTakeAgainPercent?: number | null;
-  /** Historical average GPA in this professor's sections */
-  averageGpa?: number | null;
-  numRatings: number;
-  /** Provenance, e.g. "RateMyProfessors + SCU Schedule Helper aggregate (cached)" */
-  sourceNote: string;
 }
 
 export type CourseSectionMeetingDaysItem =
@@ -481,7 +504,6 @@ export interface CourseSection {
   seatsKnown?: boolean;
   /** True for tentative-schedule terms (Winter/Spring 2027) where section numbers and instructors are not yet finalized. */
   tentative?: boolean;
-  rating?: ProfessorRating | null;
 }
 
 export type ArticulationEntrySourceUnitSystem =

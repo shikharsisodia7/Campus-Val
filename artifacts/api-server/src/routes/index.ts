@@ -15,6 +15,7 @@ import sectionsRouter from "./sections";
 import voiceRouter from "./voice";
 import professorsRouter from "./professors";
 import feedbackRouter from "./feedback";
+import requirementsRouter from "./requirements";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(sectionsRouter);
 router.use(voiceRouter);
 router.use(professorsRouter);
 router.use(feedbackRouter);
+router.use(requirementsRouter);
 
 export default router;

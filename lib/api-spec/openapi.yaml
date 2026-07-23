@@ -470,24 +470,20 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProfessorList"
 
-  /professors/{name}/rmp:
+  /requirements:
     get:
-      operationId: getProfessorRmp
-      tags: [professors]
-      summary: Look up a professor's live RateMyProfessor rating (best-effort, with 24h cache and graceful fallback)
-      parameters:
-        - name: name
-          in: path
-          required: true
-          schema:
-            type: string
+      operationId: getDegreeRequirements
+      tags: [requirements]
+      summary: College-aware degree requirements (University Core, college/school, and major) with official SCU source URLs and completion status
       responses:
         "200":
-          description: RMP lookup result. If found is false the UI should fall back to the deepLinkUrl.
+          description: Requirement groups for the student's college and major, with per-item completion computed from the profile's completed courses. Items SCU defines as "choose from an approved list" are flagged needsVerification instead of being fabricated.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProfessorRmp"
+                $ref: "#/components/schemas/DegreeRequirementsResponse"
+        "404":
+          description: No profile yet (onboarding incomplete)
 
   /evaluation/scenarios:
     get:
@@ -1347,16 +1343,12 @@ components:
         latestTerm:
           type: string
           description: Most recent synced term they appeared in, e.g. "Fall 2026".
-        rmpDeepLinkUrl:
-          type: string
-          description: Direct link to RateMyProfessor search for this professor at SCU (school 882).
       required:
         - name
         - departments
         - courses
         - sectionsCount
         - latestTerm
-        - rmpDeepLinkUrl
     ProfessorList:
       type: object
       properties:
@@ -1373,71 +1365,130 @@ components:
       required:
         - professors
         - totalSyncedSections
-    ProfessorRmpComment:
+    RequirementItem:
       type: object
       properties:
-        comment:
+        id:
           type: string
-        date:
+        label:
           type: string
-        quality:
-          type: number
-          nullable: true
-        difficulty:
-          type: number
-          nullable: true
-        course:
+        description:
           type: string
-          nullable: true
-      required:
-        - comment
-        - date
-    ProfessorRmp:
-      type: object
-      properties:
-        found:
-          type: boolean
-        name:
-          type: string
-        deepLinkUrl:
-          type: string
-        avgRating:
-          type: number
-          nullable: true
-        avgDifficulty:
-          type: number
-          nullable: true
-        wouldTakeAgainPercent:
-          type: number
-          nullable: true
-        numRatings:
-          type: integer
-          nullable: true
-        department:
-          type: string
-          nullable: true
-        topTags:
+        courses:
           type: array
           items:
             type: string
-        recentComments:
+          description: Concrete SCU course codes that satisfy this item (any one). Empty when SCU says "choose from an approved list".
+        phase:
+          type: string
+          nullable: true
+          description: Core Curriculum phase (Foundations / Explorations / Integrations) when applicable.
+        autoTracked:
+          type: boolean
+          description: True when completion is computed automatically from the profile's completed courses.
+        needsVerification:
+          type: boolean
+          description: True when SCU defines this as "choose from an approved list" — the student tracks it manually rather than the app inventing a course list.
+        satisfiedBy:
           type: array
           items:
-            $ref: "#/components/schemas/ProfessorRmpComment"
-        cachedAt:
-          type: string
-          format: date-time
-          nullable: true
-        error:
-          type: string
-          nullable: true
-          description: When found is false, a short explanation (e.g. "RMP returned no match" or "Upstream RMP error — using deep-link only").
+            type: string
+          description: Completed course codes that satisfy this item.
+        complete:
+          type: boolean
       required:
-        - found
-        - name
-        - deepLinkUrl
-        - topTags
-        - recentComments
+        - id
+        - label
+        - description
+        - courses
+        - autoTracked
+        - needsVerification
+        - satisfiedBy
+        - complete
+    RequirementGroup:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        kind:
+          type: string
+          enum: [university_core, college, major]
+        sourceUrl:
+          type: string
+          description: Official SCU source URL this group's requirements were taken from.
+        sourceLabel:
+          type: string
+        academicYear:
+          type: string
+        lastVerified:
+          type: string
+          description: Date the requirements were last verified against the official SCU source (YYYY-MM-DD).
+        notes:
+          type: array
+          items:
+            type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RequirementItem"
+        autoTrackedCount:
+          type: integer
+        autoCompletedCount:
+          type: integer
+        manualCount:
+          type: integer
+      required:
+        - id
+        - title
+        - kind
+        - sourceUrl
+        - sourceLabel
+        - academicYear
+        - lastVerified
+        - notes
+        - items
+        - autoTrackedCount
+        - autoCompletedCount
+        - manualCount
+    DegreeRequirementsResponse:
+      type: object
+      properties:
+        college:
+          type: string
+          description: The student's college as stored in their profile.
+        collegeCode:
+          type: string
+          enum: [CAS, LSB, SOE]
+        major:
+          type: string
+          nullable: true
+        universityRules:
+          type: object
+          properties:
+            rules:
+              type: array
+              items:
+                type: string
+            sourceUrl:
+              type: string
+            sourceLabel:
+              type: string
+          required:
+            - rules
+            - sourceUrl
+            - sourceLabel
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/RequirementGroup"
+      required:
+        - college
+        - collegeCode
+        - major
+        - universityRules
+        - groups
 
     OpenaiConversation:
       type: object
@@ -1514,37 +1565,6 @@ components:
       required:
         - error
 
-    ProfessorRating:
-      type: object
-      description: Aggregated professor data sourced from RateMyProfessors and SCU Schedule Helper
-      properties:
-        instructor:
-          type: string
-        overallRating:
-          type: number
-          description: Average rating 1.0-5.0
-          nullable: true
-        difficulty:
-          type: number
-          description: Difficulty 1.0-5.0
-          nullable: true
-        wouldTakeAgainPercent:
-          type: number
-          description: Percent of students who would take again (0-100)
-          nullable: true
-        averageGpa:
-          type: number
-          description: Historical average GPA in this professor's sections
-          nullable: true
-        numRatings:
-          type: integer
-        sourceNote:
-          type: string
-          description: Provenance, e.g. "RateMyProfessors + SCU Schedule Helper aggregate (cached)"
-      required:
-        - instructor
-        - numRatings
-        - sourceNote
     CourseSection:
       type: object
       properties:
@@ -1586,9 +1606,6 @@ components:
         tentative:
           type: boolean
           description: True for tentative-schedule terms (Winter/Spring 2027) where section numbers and instructors are not yet finalized.
-        rating:
-          $ref: "#/components/schemas/ProfessorRating"
-          nullable: true
       required:
         - id
         - courseCode

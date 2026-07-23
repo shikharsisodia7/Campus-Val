@@ -72,8 +72,8 @@ const TIPS: Tip[] = [
   {
     id: "p2",
     category: "Professors",
-    title: "RateMyProfessor is one data point",
-    body: "Use it as a starting filter, then ask upper-classmen. Some \"hard\" professors are the best teachers — and vice versa.",
+    title: "Ask around before judging a professor",
+    body: "SCU's official course evaluations (evaluations.scu.edu, SCU login) plus upper-classmen are your best sources. Some \"hard\" professors are the best teachers — and vice versa.",
   },
   {
     id: "p3",

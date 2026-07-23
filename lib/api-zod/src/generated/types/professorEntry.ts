@@ -14,6 +14,4 @@ export interface ProfessorEntry {
   sectionsCount: number;
   /** Most recent synced term they appeared in, e.g. "Fall 2026". */
   latestTerm: string;
-  /** Direct link to RateMyProfessor search for this professor at SCU (school 882). */
-  rmpDeepLinkUrl: string;
 }

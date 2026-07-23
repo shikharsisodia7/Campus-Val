@@ -548,30 +548,6 @@ export const ListCourseSectionsResponseItem = zod.object({
     .describe(
       "True for tentative-schedule terms (Winter\/Spring 2027) where section numbers and instructors are not yet finalized.",
     ),
-  rating: zod
-    .object({
-      instructor: zod.string(),
-      overallRating: zod.number().nullish().describe("Average rating 1.0-5.0"),
-      difficulty: zod.number().nullish().describe("Difficulty 1.0-5.0"),
-      wouldTakeAgainPercent: zod
-        .number()
-        .nullish()
-        .describe("Percent of students who would take again (0-100)"),
-      averageGpa: zod
-        .number()
-        .nullish()
-        .describe("Historical average GPA in this professor's sections"),
-      numRatings: zod.number(),
-      sourceNote: zod
-        .string()
-        .describe(
-          'Provenance, e.g. \"RateMyProfessors + SCU Schedule Helper aggregate (cached)\"',
-        ),
-    })
-    .nullish()
-    .describe(
-      "Aggregated professor data sourced from RateMyProfessors and SCU Schedule Helper",
-    ),
 });
 export const ListCourseSectionsResponse = zod.array(
   ListCourseSectionsResponseItem,
@@ -640,33 +616,6 @@ export const SyncWorkdaySectionsResponse = zod.object({
           .optional()
           .describe(
             "True for tentative-schedule terms (Winter\/Spring 2027) where section numbers and instructors are not yet finalized.",
-          ),
-        rating: zod
-          .object({
-            instructor: zod.string(),
-            overallRating: zod
-              .number()
-              .nullish()
-              .describe("Average rating 1.0-5.0"),
-            difficulty: zod.number().nullish().describe("Difficulty 1.0-5.0"),
-            wouldTakeAgainPercent: zod
-              .number()
-              .nullish()
-              .describe("Percent of students who would take again (0-100)"),
-            averageGpa: zod
-              .number()
-              .nullish()
-              .describe("Historical average GPA in this professor's sections"),
-            numRatings: zod.number(),
-            sourceNote: zod
-              .string()
-              .describe(
-                'Provenance, e.g. \"RateMyProfessors + SCU Schedule Helper aggregate (cached)\"',
-              ),
-          })
-          .nullish()
-          .describe(
-            "Aggregated professor data sourced from RateMyProfessors and SCU Schedule Helper",
           ),
       }),
     )
@@ -868,11 +817,6 @@ export const ListProfessorsResponse = zod.object({
         .describe(
           'Most recent synced term they appeared in, e.g. \"Fall 2026\".',
         ),
-      rmpDeepLinkUrl: zod
-        .string()
-        .describe(
-          "Direct link to RateMyProfessor search for this professor at SCU (school 882).",
-        ),
     }),
   ),
   totalSyncedSections: zod.number(),
@@ -885,38 +829,74 @@ export const ListProfessorsResponse = zod.object({
 });
 
 /**
- * @summary Look up a professor's live RateMyProfessor rating (best-effort, with 24h cache and graceful fallback)
+ * @summary College-aware degree requirements (University Core, college/school, and major) with official SCU source URLs and completion status
  */
-export const GetProfessorRmpParams = zod.object({
-  name: zod.coerce.string(),
-});
-
-export const GetProfessorRmpResponse = zod.object({
-  found: zod.boolean(),
-  name: zod.string(),
-  deepLinkUrl: zod.string(),
-  avgRating: zod.number().nullish(),
-  avgDifficulty: zod.number().nullish(),
-  wouldTakeAgainPercent: zod.number().nullish(),
-  numRatings: zod.number().nullish(),
-  department: zod.string().nullish(),
-  topTags: zod.array(zod.string()),
-  recentComments: zod.array(
+export const GetDegreeRequirementsResponse = zod.object({
+  college: zod
+    .string()
+    .describe("The student's college as stored in their profile."),
+  collegeCode: zod.enum(["CAS", "LSB", "SOE"]),
+  major: zod.string().nullable(),
+  universityRules: zod.object({
+    rules: zod.array(zod.string()),
+    sourceUrl: zod.string(),
+    sourceLabel: zod.string(),
+  }),
+  groups: zod.array(
     zod.object({
-      comment: zod.string(),
-      date: zod.string(),
-      quality: zod.number().nullish(),
-      difficulty: zod.number().nullish(),
-      course: zod.string().nullish(),
+      id: zod.string(),
+      title: zod.string(),
+      kind: zod.enum(["university_core", "college", "major"]),
+      sourceUrl: zod
+        .string()
+        .describe(
+          "Official SCU source URL this group's requirements were taken from.",
+        ),
+      sourceLabel: zod.string(),
+      academicYear: zod.string(),
+      lastVerified: zod
+        .string()
+        .describe(
+          "Date the requirements were last verified against the official SCU source (YYYY-MM-DD).",
+        ),
+      notes: zod.array(zod.string()),
+      items: zod.array(
+        zod.object({
+          id: zod.string(),
+          label: zod.string(),
+          description: zod.string(),
+          courses: zod
+            .array(zod.string())
+            .describe(
+              'Concrete SCU course codes that satisfy this item (any one). Empty when SCU says \"choose from an approved list\".',
+            ),
+          phase: zod
+            .string()
+            .nullish()
+            .describe(
+              "Core Curriculum phase (Foundations \/ Explorations \/ Integrations) when applicable.",
+            ),
+          autoTracked: zod
+            .boolean()
+            .describe(
+              "True when completion is computed automatically from the profile's completed courses.",
+            ),
+          needsVerification: zod
+            .boolean()
+            .describe(
+              'True when SCU defines this as \"choose from an approved list\" — the student tracks it manually rather than the app inventing a course list.',
+            ),
+          satisfiedBy: zod
+            .array(zod.string())
+            .describe("Completed course codes that satisfy this item."),
+          complete: zod.boolean(),
+        }),
+      ),
+      autoTrackedCount: zod.number(),
+      autoCompletedCount: zod.number(),
+      manualCount: zod.number(),
     }),
   ),
-  cachedAt: zod.coerce.date().nullish(),
-  error: zod
-    .string()
-    .nullish()
-    .describe(
-      'When found is false, a short explanation (e.g. \"RMP returned no match\" or \"Upstream RMP error — using deep-link only\").',
-    ),
 });
 
 /**

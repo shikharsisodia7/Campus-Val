@@ -26,6 +26,7 @@ import type {
   CourseSection,
   CreateOpenaiConversationBody,
   DashboardSummary,
+  DegreeRequirementsResponse,
   EvaluateTransferBody,
   EvaluationRunResult,
   EvaluationScenario,
@@ -51,7 +52,6 @@ import type {
   Policy,
   PrereqCheckResult,
   ProfessorList,
-  ProfessorRmp,
   RunEvaluationBody,
   SectionsSyncStatus,
   SendOpenaiMessageBody,
@@ -2005,84 +2005,75 @@ export function useListProfessors<
 }
 
 /**
- * @summary Look up a professor's live RateMyProfessor rating (best-effort, with 24h cache and graceful fallback)
+ * @summary College-aware degree requirements (University Core, college/school, and major) with official SCU source URLs and completion status
  */
-export const getGetProfessorRmpUrl = (name: string) => {
-  return `/api/professors/${name}/rmp`;
+export const getGetDegreeRequirementsUrl = () => {
+  return `/api/requirements`;
 };
 
-export const getProfessorRmp = async (
-  name: string,
+export const getDegreeRequirements = async (
   options?: RequestInit,
-): Promise<ProfessorRmp> => {
-  return customFetch<ProfessorRmp>(getGetProfessorRmpUrl(name), {
-    ...options,
-    method: "GET",
-  });
+): Promise<DegreeRequirementsResponse> => {
+  return customFetch<DegreeRequirementsResponse>(
+    getGetDegreeRequirementsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
 };
 
-export const getGetProfessorRmpQueryKey = (name: string) => {
-  return [`/api/professors/${name}/rmp`] as const;
+export const getGetDegreeRequirementsQueryKey = () => {
+  return [`/api/requirements`] as const;
 };
 
-export const getGetProfessorRmpQueryOptions = <
-  TData = Awaited<ReturnType<typeof getProfessorRmp>>,
-  TError = ErrorType<unknown>,
->(
-  name: string,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getProfessorRmp>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
+export const getGetDegreeRequirementsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDegreeRequirements>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDegreeRequirements>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetProfessorRmpQueryKey(name);
+  const queryKey = queryOptions?.queryKey ?? getGetDegreeRequirementsQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfessorRmp>>> = ({
-    signal,
-  }) => getProfessorRmp(name, { signal, ...requestOptions });
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDegreeRequirements>>
+  > = ({ signal }) => getDegreeRequirements({ signal, ...requestOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!name,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getProfessorRmp>>,
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDegreeRequirements>>,
     TError,
     TData
   > & { queryKey: QueryKey };
 };
 
-export type GetProfessorRmpQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getProfessorRmp>>
+export type GetDegreeRequirementsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDegreeRequirements>>
 >;
-export type GetProfessorRmpQueryError = ErrorType<unknown>;
+export type GetDegreeRequirementsQueryError = ErrorType<void>;
 
 /**
- * @summary Look up a professor's live RateMyProfessor rating (best-effort, with 24h cache and graceful fallback)
+ * @summary College-aware degree requirements (University Core, college/school, and major) with official SCU source URLs and completion status
  */
 
-export function useGetProfessorRmp<
-  TData = Awaited<ReturnType<typeof getProfessorRmp>>,
-  TError = ErrorType<unknown>,
->(
-  name: string,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof getProfessorRmp>>,
-      TError,
-      TData
-    >;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetProfessorRmpQueryOptions(name, options);
+export function useGetDegreeRequirements<
+  TData = Awaited<ReturnType<typeof getDegreeRequirements>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDegreeRequirements>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDegreeRequirementsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

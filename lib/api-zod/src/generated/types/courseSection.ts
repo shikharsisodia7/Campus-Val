@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CourseSectionMeetingDaysItem } from "./courseSectionMeetingDaysItem";
-import type { ProfessorRating } from "./professorRating";
 import type { Term } from "./term";
 
 export interface CourseSection {
@@ -30,5 +29,4 @@ export interface CourseSection {
   seatsKnown?: boolean;
   /** True for tentative-schedule terms (Winter/Spring 2027) where section numbers and instructors are not yet finalized. */
   tentative?: boolean;
-  rating?: ProfessorRating | null;
 }

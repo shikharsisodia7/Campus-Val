@@ -34,7 +34,7 @@ const NAV_TARGETS: { path: string; label: string; keywords: string[] }[] = [
   { path: "/schedule", label: "Weekly Schedule", keywords: ["weekly schedule", "my schedule", "calendar", "time conflict"] },
   { path: "/gpa", label: "GPA Calculator", keywords: ["gpa calculator", "calculate my gpa", "gpa calc", "simulate my gpa", "what's my gpa", "grade point"] },
   { path: "/transfer", label: "Transfer Credit", keywords: ["transfer credit", "transfer course", "articulation", "assist.org", "community college", "transfer my"] },
-  { path: "/professors", label: "Professors", keywords: ["professor", "instructor", "rate my professor", "ratemyprofessor", "who teaches"] },
+  { path: "/professors", label: "Professors", keywords: ["professor", "instructor", "course evaluations", "who teaches"] },
   { path: "/advice", label: "Advice Board", keywords: ["advice board", "student advice", "tips board"] },
   { path: "/advisor", label: "AI Advisor", keywords: ["ai advisor", "chat advisor", "text advisor", "type to the advisor"] },
   { path: "/policies", label: "SCU Policies", keywords: ["policy", "policies", "academic rules", "regulation"] },
