@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -7,12 +6,11 @@ import { TermColumn } from "./TermColumn";
 import { CourseCard } from "./CourseCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useUpdatePlanItem } from "@workspace/api-client-react";
+import { useOptimisticUpdatePlanItem } from "./usePlanItemMutations";
 
 export function Board({ plans }: { plans: any[] }) {
   const { activePlan, activePlanId, scheduleAvailability } = useDegreePlanContext();
-  const queryClient = useQueryClient();
-  const updatePlanItem = useUpdatePlanItem({ mutation: { onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") }) } });
+  const updatePlanItem = useOptimisticUpdatePlanItem();
 
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
@@ -85,8 +83,8 @@ export function Board({ plans }: { plans: any[] }) {
       }
 
       if (item && (item.academicYear !== targetYear || item.term !== targetTerm || targetPosition !== undefined)) {
-        // Optimistically update cache to feel snappy? 
-        // We'll rely on the invalidation for now, maybe add optimistic update if requested.
+        // Optimistic cache update (with rollback on error) keeps the board in
+        // sync with the drag immediately; the refetch reconciles afterwards.
         updatePlanItem.mutate({
           id: activePlanId,
           itemId,

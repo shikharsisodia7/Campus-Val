@@ -2,7 +2,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { PlanItem, PlanItemType, useDeletePlanItem, useUpdatePlanItem, useReplacePlanPlaceholder, useGetCourse } from "@workspace/api-client-react";
+import { PlanItem, PlanItemType, useReplacePlanPlaceholder, useGetCourse } from "@workspace/api-client-react";
+import { useOptimisticDeletePlanItem, useOptimisticUpdatePlanItem } from "./usePlanItemMutations";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,9 +52,9 @@ function CourseDetailDialog({ code, open, onOpenChange }: { code: string, open: 
 
 export function CourseCard({ item, isOverlay, availableYears, notInOfficialSchedule }: { item: PlanItem, isOverlay?: boolean, availableYears: number[], notInOfficialSchedule?: boolean }) {
   const { activePlanId, catalog, profile, requirements } = useDegreePlanContext();
-  const deletePlanItem = useDeletePlanItem({ mutation: { onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") }) } });
+  const deletePlanItem = useOptimisticDeletePlanItem();
   const queryClient = useQueryClient();
-  const updatePlanItem = useUpdatePlanItem({ mutation: { onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") }) } });
+  const updatePlanItem = useOptimisticUpdatePlanItem();
   const replacePlaceholder = useReplacePlanPlaceholder({ mutation: { onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") }) } });
   
   const [isDetailOpen, setIsDetailOpen] = useState(false);
