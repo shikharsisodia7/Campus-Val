@@ -58,7 +58,7 @@ export function TermColumn({ id, year, term, items, availableYears }: { id: stri
                 !!item.courseCode &&
                 !offeredCodes.has(item.courseCode.toUpperCase().replace(/\s+/g, " ").trim())
               }
-              conflictsWith={
+              conflicts={
                 item.itemType === 'course' && item.courseCode
                   ? timeConflicts.get(item.courseCode.toUpperCase().replace(/\s+/g, " ").trim())
                   : undefined

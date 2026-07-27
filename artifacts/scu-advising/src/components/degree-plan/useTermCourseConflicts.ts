@@ -3,7 +3,17 @@ import {
   getListCourseSectionsQueryOptions,
   type Term,
 } from "@workspace/api-client-react";
-import { sectionsAlwaysConflict } from "@/lib/conflicts";
+import {
+  sectionsAlwaysConflict,
+  sectionOverlapDetails,
+  type SectionOverlapDetail,
+} from "@/lib/conflicts";
+
+/** All conflicts of one course with another, with per-section-pair detail. */
+export interface CourseConflictDetail {
+  otherCode: string;
+  overlaps: SectionOverlapDetail[]; // this course's sections first (a-side)
+}
 
 /**
  * For a quarter with a published/tentative schedule, detect pairs of planned
@@ -12,14 +22,15 @@ import { sectionsAlwaysConflict } from "@/lib/conflicts";
  * terms without a schedule, courses still loading, or sections with TBA
  * times never produce a warning.
  *
- * Returns a map of normalized course code → conflicting course codes.
+ * Returns a map of normalized course code → conflict details (which courses
+ * clash, and exactly which section times overlap).
  */
 export function useTermCourseConflicts(
   courseCodes: string[],
   term: string,
   year: number,
   hasSchedule: boolean,
-): Map<string, string[]> {
+): Map<string, CourseConflictDetail[]> {
   const codes = Array.from(
     new Set(
       courseCodes.map((c) => c.toUpperCase().replace(/\s+/g, " ").trim()),
@@ -35,8 +46,12 @@ export function useTermCourseConflicts(
     })),
   });
 
-  const conflicts = new Map<string, string[]>();
+  const conflicts = new Map<string, CourseConflictDetail[]>();
   if (!hasSchedule || codes.length < 2) return conflicts;
+
+  const add = (code: string, detail: CourseConflictDetail) => {
+    conflicts.set(code, [...(conflicts.get(code) ?? []), detail]);
+  };
 
   for (let i = 0; i < codes.length; i++) {
     for (let j = i + 1; j < codes.length; j++) {
@@ -45,8 +60,14 @@ export function useTermCourseConflicts(
       // Only warn on real, loaded data — never guess.
       if (!a?.data || !b?.data) continue;
       if (sectionsAlwaysConflict(a.data, b.data)) {
-        conflicts.set(codes[i]!, [...(conflicts.get(codes[i]!) ?? []), codes[j]!]);
-        conflicts.set(codes[j]!, [...(conflicts.get(codes[j]!) ?? []), codes[i]!]);
+        add(codes[i]!, {
+          otherCode: codes[j]!,
+          overlaps: sectionOverlapDetails(a.data, b.data),
+        });
+        add(codes[j]!, {
+          otherCode: codes[i]!,
+          overlaps: sectionOverlapDetails(b.data, a.data),
+        });
       }
     }
   }

@@ -10,6 +10,9 @@ import { Button } from "@/components/ui/button";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { minutesToLabel } from "@/lib/conflicts";
+import type { CourseConflictDetail } from "./useTermCourseConflicts";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Trash2, GripVertical, MoveRight, BookOpen, AlertCircle, Loader2, CalendarClock } from "lucide-react";
@@ -54,7 +57,7 @@ function CourseDetailDialog({ code, term, year, termStatus, open, onOpenChange }
   );
 }
 
-export function CourseCard({ item, isOverlay, availableYears, notInOfficialSchedule, conflictsWith }: { item: PlanItem, isOverlay?: boolean, availableYears: number[], notInOfficialSchedule?: boolean, conflictsWith?: string[] }) {
+export function CourseCard({ item, isOverlay, availableYears, notInOfficialSchedule, conflicts }: { item: PlanItem, isOverlay?: boolean, availableYears: number[], notInOfficialSchedule?: boolean, conflicts?: CourseConflictDetail[] }) {
   const { activePlanId, catalog, profile, requirements, scheduleAvailability } = useDegreePlanContext();
   const deletePlanItem = useOptimisticDeletePlanItem();
   const queryClient = useQueryClient();
@@ -151,14 +154,8 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                   <span>Not in official schedule this quarter</span>
                 </div>
               )}
-              {conflictsWith && conflictsWith.length > 0 && (
-                <div
-                  className="flex items-center gap-1 mt-1.5 text-[10px] text-amber-700"
-                  data-testid={`time-conflict-note-${item.id}`}
-                >
-                  <CalendarClock className="h-3 w-3 shrink-0" />
-                  <span>All sections clash with {conflictsWith.join(" & ")}</span>
-                </div>
+              {conflicts && conflicts.length > 0 && (
+                <ConflictNote item={item} conflicts={conflicts} />
               )}
             </>
           )}
@@ -277,6 +274,66 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
         </Dialog>
       )}
     </div>
+  );
+}
+
+function ConflictNote({ item, conflicts }: { item: PlanItem, conflicts: CourseConflictDetail[] }) {
+  const names = conflicts.map(c => c.otherCode);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-1 mt-1.5 text-[10px] text-amber-700 hover:text-amber-900 underline decoration-dotted underline-offset-2 text-left"
+          data-testid={`time-conflict-note-${item.id}`}
+          onClick={e => e.stopPropagation()}
+          aria-label={`Show clashing meeting times with ${names.join(" and ")}`}
+        >
+          <CalendarClock className="h-3 w-3 shrink-0" />
+          <span>All sections clash with {names.join(" & ")}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-80 p-3"
+        align="start"
+        onClick={e => e.stopPropagation()}
+        data-testid={`time-conflict-details-${item.id}`}
+      >
+        <div className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+          <CalendarClock className="h-3.5 w-3.5 text-amber-700" />
+          Why {item.courseCode} can't fit
+        </div>
+        <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
+          {conflicts.map(c => (
+            <div key={c.otherCode}>
+              <div className="text-[11px] font-semibold text-foreground/90 mb-1">
+                vs <span className="font-mono">{c.otherCode}</span> — every section pairing overlaps:
+              </div>
+              <div className="space-y-1">
+                {c.overlaps.map((o, idx) => (
+                  <div
+                    key={idx}
+                    className="text-[11px] rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900"
+                  >
+                    <div>
+                      <span className="font-semibold">{o.aSection}</span> {o.aDays.join("")} {format12(o.aStart)}–{format12(o.aEnd)}
+                      {" ⟷ "}
+                      <span className="font-semibold">{o.bSection}</span> {o.bDays.join("")} {format12(o.bStart)}–{format12(o.bEnd)}
+                    </div>
+                    <div className="text-amber-800/90">
+                      Overlap: {o.sharedDays.join("")} {minutesToLabel(o.overlapStart)}–{minutesToLabel(o.overlapEnd)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="text-[10px] text-muted-foreground mt-2">
+          Times from SCU's published/tentative schedule.
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   findEventConflicts,
   sectionsAlwaysConflict,
+  sectionOverlapDetails,
   timeToMinutes,
   minutesToLabel,
   type TimedEvent,
@@ -142,6 +143,60 @@ describe("sectionsAlwaysConflict", () => {
         [sec(["T", "R"], "09:00", "10:05")],
       ),
     ).toBe(false);
+  });
+});
+
+describe("sectionOverlapDetails", () => {
+  it("returns the shared days and overlap window for overlapping pairs", () => {
+    const d = sectionOverlapDetails(
+      [{ ...sec(["M", "W", "F"], "08:00", "09:05"), sectionNumber: "1" }],
+      [{ ...sec(["M", "W"], "08:30", "09:35"), sectionNumber: "2" }],
+    );
+    expect(d.length).toBe(1);
+    expect(d[0]!.aSection).toBe("§1");
+    expect(d[0]!.bSection).toBe("§2");
+    expect(d[0]!.sharedDays).toEqual(["M", "W"]);
+    expect(d[0]!.overlapStart).toBe(timeToMinutes("08:30"));
+    expect(d[0]!.overlapEnd).toBe(timeToMinutes("09:05"));
+  });
+
+  it("only includes provably overlapping pairs", () => {
+    const d = sectionOverlapDetails(
+      [
+        { ...sec(["M", "W"], "09:00", "10:05"), sectionNumber: "1" },
+        { ...sec(["T", "R"], "09:00", "10:05"), sectionNumber: "2" },
+      ],
+      [{ ...sec(["M"], "09:30", "10:35"), sectionNumber: "3" }],
+    );
+    expect(d.length).toBe(1);
+    expect(d[0]!.aSection).toBe("§1");
+    expect(d[0]!.sharedDays).toEqual(["M"]);
+  });
+
+  it("skips TBA/invalid times instead of guessing", () => {
+    expect(
+      sectionOverlapDetails(
+        [{ meetingDays: ["M"], startTime: null, endTime: null }],
+        [sec(["M"], "08:30", "09:35")],
+      ),
+    ).toEqual([]);
+  });
+
+  it("labels tentative or unnumbered sections as TBA", () => {
+    const d = sectionOverlapDetails(
+      [{ ...sec(["M"], "08:00", "09:05"), tentative: true, sectionNumber: "1" }],
+      [sec(["M"], "08:30", "09:35")],
+    );
+    expect(d[0]!.aSection).toBe("Section TBA");
+    expect(d[0]!.bSection).toBe("Section TBA");
+  });
+
+  it("orders shared days canonically (M T W R F S U)", () => {
+    const d = sectionOverlapDetails(
+      [sec(["F", "M", "W"], "08:00", "09:05")],
+      [sec(["W", "F", "M"], "08:30", "09:35")],
+    );
+    expect(d[0]!.sharedDays).toEqual(["M", "W", "F"]);
   });
 });
 
