@@ -2,19 +2,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { PlanItem, PlanItemType, useReplacePlanPlaceholder, useGetCourse } from "@workspace/api-client-react";
+import { PlanItem, PlanItemType, useReplacePlanPlaceholder, useGetCourse, useListCourseSections, getListCourseSectionsQueryKey, type Term, type ScheduleAvailabilityTermStatus } from "@workspace/api-client-react";
 import { useOptimisticDeletePlanItem, useOptimisticUpdatePlanItem } from "./usePlanItemMutations";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, GripVertical, MoveRight, BookOpen, AlertCircle, Loader2 } from "lucide-react";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Trash2, GripVertical, MoveRight, BookOpen, AlertCircle, Loader2, CalendarClock } from "lucide-react";
 
-function CourseDetailDialog({ code, open, onOpenChange }: { code: string, open: boolean, onOpenChange: (o: boolean) => void }) {
+function CourseDetailDialog({ code, term, year, termStatus, open, onOpenChange }: { code: string, term?: string, year?: number, termStatus?: ScheduleAvailabilityTermStatus, open: boolean, onOpenChange: (o: boolean) => void }) {
   const { data: courseDetails, isLoading } = useGetCourse(code, { query: { enabled: open, queryKey: ['/api/courses', code] } });
 
   return (
@@ -34,6 +34,10 @@ function CourseDetailDialog({ code, open, onOpenChange }: { code: string, open: 
             </div>
             <p className="text-sm text-muted-foreground">{courseDetails?.description || "Description not available."}</p>
             
+            {term && year !== undefined && (
+              <TermSectionsPanel code={code} term={term} year={year} status={termStatus} />
+            )}
+
             <div className="p-3 bg-muted/20 rounded-md border border-border text-sm">
               <div className="font-semibold mb-1">Prerequisites</div>
               <div>{courseDetails?.prereqLogic || "Prerequisite information unavailable."}</div>
@@ -51,7 +55,7 @@ function CourseDetailDialog({ code, open, onOpenChange }: { code: string, open: 
 }
 
 export function CourseCard({ item, isOverlay, availableYears, notInOfficialSchedule }: { item: PlanItem, isOverlay?: boolean, availableYears: number[], notInOfficialSchedule?: boolean }) {
-  const { activePlanId, catalog, profile, requirements } = useDegreePlanContext();
+  const { activePlanId, catalog, profile, requirements, scheduleAvailability } = useDegreePlanContext();
   const deletePlanItem = useOptimisticDeletePlanItem();
   const queryClient = useQueryClient();
   const updatePlanItem = useOptimisticUpdatePlanItem();
@@ -190,7 +194,14 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
 
       {/* Course Detail Dialog */}
       {!isPlaceholder && item.courseCode && (
-        <CourseDetailDialog code={item.courseCode} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
+        <CourseDetailDialog
+          code={item.courseCode}
+          term={item.term}
+          year={item.academicYear}
+          termStatus={scheduleAvailability?.terms.find(t => t.year === item.academicYear && t.term === item.term)?.status}
+          open={isDetailOpen}
+          onOpenChange={setIsDetailOpen}
+        />
       )}
 
       {/* Replace Placeholder Dialog */}
@@ -255,6 +266,87 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
             </div>
           </DialogContent>
         </Dialog>
+      )}
+    </div>
+  );
+}
+
+function format12(t: string): string {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+  if (!m) return t;
+  let h = Number(m[1]);
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${m[2]} ${ampm}`;
+}
+
+function TermSectionsPanel({ code, term, year, status }: { code: string, term: string, year: number, status: ScheduleAvailabilityTermStatus | undefined }) {
+  const hasSchedule = status === "published" || status === "tentative";
+  const params = { term: term as Term, year };
+  const { data: sections = [], isLoading } = useListCourseSections(code, params, {
+    query: {
+      enabled: hasSchedule,
+      queryKey: getListCourseSectionsQueryKey(code, params),
+    },
+  });
+
+  const heading = (
+    <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1.5">
+      <CalendarClock className="h-3 w-3" />
+      <span className="capitalize">{term} {year} sections</span>
+    </div>
+  );
+
+  if (!hasSchedule) {
+    return (
+      <div className="space-y-2" data-testid="term-sections-panel">
+        {heading}
+        <div className="rounded-md border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
+          SCU hasn't published a schedule for <span className="capitalize">{term} {year}</span> yet, so section days and times aren't known.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2" data-testid="term-sections-panel">
+      <div className="flex items-center gap-2 flex-wrap">
+        {heading}
+        {status === "tentative" && (
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-amber-300 bg-amber-50 text-amber-800">
+            Tentative — sections & instructors TBA
+          </Badge>
+        )}
+      </div>
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground">Loading sections…</div>
+      ) : sections.length === 0 ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 flex gap-2 text-sm text-amber-900" data-testid="term-sections-empty">
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
+          <span>
+            Not in SCU's {status === "tentative" ? "tentative" : "official"} <span className="capitalize">{term} {year}</span> schedule. It may be offered in another quarter — check Workday Student.
+          </span>
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+          {sections.map((s) => (
+            <div key={s.id} className="rounded-md border border-border p-2.5 bg-card text-sm" data-testid={`plan-section-${s.id}`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono font-bold text-xs">
+                  {s.tentative ? "Section TBA" : `§${s.sectionNumber}`}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {s.meetingDays.length > 0 ? s.meetingDays.join("") : "Days TBA"}
+                  {s.startTime && s.endTime ? ` · ${format12(s.startTime)}–${format12(s.endTime)}` : " · Time TBA"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 mt-1 text-xs text-muted-foreground">
+                <span>{s.tentative ? "Instructor TBA" : (s.instructor || "Instructor TBA")}</span>
+                {s.location && !s.tentative && <span className="truncate">{s.location}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
