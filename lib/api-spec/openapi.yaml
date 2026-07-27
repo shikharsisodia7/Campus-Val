@@ -485,6 +485,59 @@ paths:
         "404":
           description: No profile yet (onboarding incomplete)
 
+  /requirements/completions:
+    get:
+      operationId: listRequirementCompletions
+      tags: [requirements]
+      summary: List the signed-in student's manual requirement check-offs (with provenance)
+      parameters:
+        - name: collegeCode
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Manual check-offs for that college
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RequirementCompletion"
+    put:
+      operationId: setRequirementCompletion
+      tags: [requirements]
+      summary: Mark or unmark an approved-list requirement as completed by the student
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetRequirementCompletionBody"
+      responses:
+        "200":
+          description: Updated list of check-offs for that college
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RequirementCompletion"
+    delete:
+      operationId: resetRequirementCompletions
+      tags: [requirements]
+      summary: Clear all manual check-offs for a college
+      parameters:
+        - name: collegeCode
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Cleared
+
   /evaluation/scenarios:
     get:
       operationId: listEvaluationScenarios
@@ -927,8 +980,419 @@ paths:
               schema:
                 $ref: "#/components/schemas/ScheduleAvailability"
 
+  /schedules:
+    get:
+      operationId: listSchedules
+      tags: [schedules]
+      summary: List the signed-in student's quarter schedules
+      parameters:
+        - name: term
+          in: query
+          required: false
+          schema: { type: string, enum: [fall, winter, spring, summer] }
+        - name: year
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Schedules (optionally filtered by quarter)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuarterScheduleList"
+    post:
+      operationId: createSchedule
+      tags: [schedules]
+      summary: Create a new schedule for a quarter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuarterScheduleInput"
+      responses:
+        "201":
+          description: Created schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuarterScheduleDetail"
+        "400":
+          description: Invalid input
+  /schedules/{id}:
+    get:
+      operationId: getSchedule
+      tags: [schedules]
+      summary: Get a schedule with all its events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Schedule detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuarterScheduleDetail"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateSchedule
+      tags: [schedules]
+      summary: Rename a schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuarterScheduleUpdate"
+      responses:
+        "200":
+          description: Updated schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuarterScheduleDetail"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteSchedule
+      tags: [schedules]
+      summary: Delete a schedule and its events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+  /schedules/{id}/duplicate:
+    post:
+      operationId: duplicateSchedule
+      tags: [schedules]
+      summary: Deep-copy a schedule (independent copy of all events)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 1, maxLength: 80 }
+      responses:
+        "201":
+          description: The new independent schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuarterScheduleDetail"
+        "404":
+          description: Not found
+  /schedules/{id}/events:
+    post:
+      operationId: addScheduleEvent
+      tags: [schedules]
+      summary: Add a course section or commitment to a schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleEventInput"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleEvent"
+        "400":
+          description: Invalid input (e.g. unknown section)
+        "404":
+          description: Schedule not found
+        "409":
+          description: Section already on this schedule
+  /schedules/{id}/events/{eventId}:
+    patch:
+      operationId: updateScheduleEvent
+      tags: [schedules]
+      summary: Update an event (swap section or edit a commitment)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleEventUpdate"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleEvent"
+        "400":
+          description: Invalid input
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteScheduleEvent
+      tags: [schedules]
+      summary: Remove an event from a schedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: eventId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+  /core-areas:
+    get:
+      operationId: listCoreAreas
+      tags: [schedules]
+      summary: Authoritative list of SCU Core areas present in the catalog
+      responses:
+        "200":
+          description: Core areas with course counts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [coreAreas, pathwaysAvailable]
+                properties:
+                  coreAreas:
+                    type: array
+                    items:
+                      type: object
+                      required: [name, courseCount]
+                      properties:
+                        name: { type: string }
+                        courseCount: { type: integer }
+                  pathwaysAvailable:
+                    type: boolean
+                    description: False until an authoritative Pathway-to-course mapping exists.
+  /course-search:
+    get:
+      operationId: searchCourses
+      tags: [schedules]
+      summary: Advanced course search by text and academic attributes
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string }
+        - name: coreAreas
+          in: query
+          required: false
+          description: Comma-separated Core area names
+          schema: { type: string }
+        - name: matchMode
+          in: query
+          required: false
+          schema: { type: string, enum: [all, any], default: all }
+        - name: term
+          in: query
+          required: false
+          schema: { type: string, enum: [fall, winter, spring, summer] }
+        - name: year
+          in: query
+          required: false
+          schema: { type: integer }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+      responses:
+        "200":
+          description: Search results with an explicit zero-result state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseSearchResult"
+
 components:
   schemas:
+    QuarterSchedule:
+      type: object
+      required: [id, name, term, year, eventCount, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        term: { type: string }
+        year: { type: integer }
+        eventCount: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    QuarterScheduleList:
+      type: object
+      required: [schedules]
+      properties:
+        schedules:
+          type: array
+          items: { $ref: "#/components/schemas/QuarterSchedule" }
+    QuarterScheduleInput:
+      type: object
+      required: [name, term, year]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        term: { type: string, enum: [fall, winter, spring, summer] }
+        year: { type: integer, minimum: 2000, maximum: 2100 }
+    QuarterScheduleUpdate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+    QuarterScheduleDetail:
+      type: object
+      required: [id, name, term, year, events, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        term: { type: string }
+        year: { type: integer }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/ScheduleEvent" }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    ScheduleEventKind:
+      type: string
+      enum: [section, commitment]
+    CommitmentCategory:
+      type: string
+      enum:
+        [
+          work,
+          athletics,
+          student_org,
+          special_program,
+          external_course,
+          personal,
+          other,
+        ]
+    ScheduleEvent:
+      type: object
+      required: [id, scheduleId, kind, meetingDays, startTime, endTime]
+      properties:
+        id: { type: integer }
+        scheduleId: { type: integer }
+        kind: { $ref: "#/components/schemas/ScheduleEventKind" }
+        courseCode: { type: ["string", "null"] }
+        courseTitle: { type: ["string", "null"] }
+        sectionNumber: { type: ["string", "null"] }
+        units: { type: ["number", "null"] }
+        instructor: { type: ["string", "null"] }
+        name: { type: ["string", "null"] }
+        category:
+          oneOf:
+            - $ref: "#/components/schemas/CommitmentCategory"
+            - type: "null"
+        institution: { type: ["string", "null"] }
+        externalCourseLabel: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        meetingDays:
+          type: array
+          items: { type: string }
+        startTime: { type: string }
+        endTime: { type: string }
+        location: { type: ["string", "null"] }
+    ScheduleEventInput:
+      type: object
+      required: [kind]
+      properties:
+        kind: { $ref: "#/components/schemas/ScheduleEventKind" }
+        courseCode: { type: string }
+        sectionNumber: { type: string }
+        name: { type: string, maxLength: 120 }
+        category: { $ref: "#/components/schemas/CommitmentCategory" }
+        institution: { type: string, maxLength: 120 }
+        externalCourseLabel: { type: string, maxLength: 120 }
+        notes: { type: string, maxLength: 500 }
+        meetingDays:
+          type: array
+          items: { type: string, enum: [M, T, W, R, F, S, U] }
+        startTime: { type: string }
+        endTime: { type: string }
+        location: { type: string, maxLength: 120 }
+    ScheduleEventUpdate:
+      type: object
+      properties:
+        courseCode: { type: string }
+        sectionNumber: { type: string }
+        name: { type: string, maxLength: 120 }
+        category: { $ref: "#/components/schemas/CommitmentCategory" }
+        institution: { type: string, maxLength: 120 }
+        externalCourseLabel: { type: string, maxLength: 120 }
+        notes: { type: string, maxLength: 500 }
+        meetingDays:
+          type: array
+          items: { type: string, enum: [M, T, W, R, F, S, U] }
+        startTime: { type: string }
+        endTime: { type: string }
+        location: { type: string, maxLength: 120 }
+    CourseSearchState:
+      type: string
+      enum: [results, no_matching_courses, no_sections_this_quarter]
+    CourseSearchResult:
+      type: object
+      required: [state, totalMatching, courses]
+      properties:
+        state: { $ref: "#/components/schemas/CourseSearchState" }
+        totalMatching:
+          type: integer
+          description: Courses matching the criteria regardless of quarter sections.
+        courses:
+          type: array
+          items:
+            type: object
+            required: [code, title, units, coreAreas, sectionsThisQuarter]
+            properties:
+              code: { type: string }
+              title: { type: string }
+              units: { type: number }
+              description: { type: string }
+              coreAreas:
+                type: array
+                items: { type: string }
+              sectionsThisQuarter:
+                type: ["integer", "null"]
+                description: Null when no quarter filter was applied.
     HealthStatus:
       type: object
       properties:
@@ -1729,6 +2193,10 @@ components:
         publishedSource:
           type: string
           description: e.g. "SCU Office of the Registrar, Spring 2026 communication".
+        lastVerified:
+          type: string
+          nullable: true
+          description: ISO date when these window dates were last manually verified against the Registrar's published calendar.
       required:
         - targetTerm
         - targetYear
@@ -1878,6 +2346,33 @@ components:
         - autoTrackedCount
         - autoCompletedCount
         - manualCount
+    RequirementCompletion:
+      type: object
+      properties:
+        collegeCode:
+          type: string
+        groupId:
+          type: string
+        requirementId:
+          type: string
+        source:
+          type: string
+          description: Provenance of the completion claim ("manual" = marked complete by the student).
+        completedAt:
+          type: string
+      required: [collegeCode, groupId, requirementId, source, completedAt]
+    SetRequirementCompletionBody:
+      type: object
+      properties:
+        collegeCode:
+          type: string
+        groupId:
+          type: string
+        requirementId:
+          type: string
+        completed:
+          type: boolean
+      required: [collegeCode, groupId, requirementId, completed]
     DegreeRequirementsResponse:
       type: object
       properties:

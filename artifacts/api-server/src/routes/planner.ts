@@ -106,10 +106,20 @@ router.post("/planner/check", requireAuth, async (req, res) => {
     policyId?: string | null;
   }[] = [];
 
-  const totalUnits = body.plannedCourses.reduce(
-    (sum, c) => sum + Number(c.units),
-    0,
-  );
+  // Units are AUTHORITATIVE from the catalog whenever the course is known —
+  // a client cannot inflate or shrink a known course's unit value. Client
+  // units are only trusted for courses not in our catalog (flagged below).
+  const resolvedCourses = body.plannedCourses.map((c) => {
+    const course = findCourse(c.code);
+    const catalogUnits = course ? Number(course.units) : null;
+    return {
+      code: c.code,
+      clientUnits: Number(c.units),
+      units: catalogUnits ?? Number(c.units),
+      catalogUnits,
+    };
+  });
+  const totalUnits = resolvedCourses.reduce((sum, c) => sum + c.units, 0);
   const cumulativeGpa = body.cumulativeGpa ?? null;
   const canOverloadByGpa = cumulativeGpa !== null && cumulativeGpa >= 3.0;
   const canOverload = canOverloadByGpa && body.priorityRegistration;
@@ -164,11 +174,28 @@ router.post("/planner/check", requireAuth, async (req, res) => {
       });
       continue;
     }
-    if (!course.offeredTerms.includes(body.term)) {
+    const resolved = resolvedCourses.find(
+      (r) => r.code.toUpperCase() === planned.code.toUpperCase(),
+    );
+    if (
+      resolved &&
+      resolved.catalogUnits !== null &&
+      resolved.clientUnits !== resolved.catalogUnits
+    ) {
       issues.push({
-        severity: "error",
+        severity: "info",
+        code: "UNITS_CORRECTED",
+        message: `${course.code} is ${resolved.catalogUnits} units in the SCU catalog — using the catalog value.`,
+        relatedCourse: course.code,
+      });
+    }
+    if (!course.offeredTerms.includes(body.term)) {
+      // Honest framing: this is a catalog offering *pattern*, not a
+      // published schedule. Absence of a future schedule ≠ "not offered".
+      issues.push({
+        severity: "warning",
         code: "NOT_OFFERED",
-        message: `${course.code} is not typically offered in ${body.term}. Offered: ${course.offeredTerms.join(", ")}.`,
+        message: `${course.code} is not typically offered in ${body.term} (catalog pattern: ${course.offeredTerms.join(", ")}). Verify against the published schedule in Workday before planning around it.`,
         relatedCourse: course.code,
       });
     }

@@ -49,7 +49,6 @@ export default function Planner() {
   const [year, setYear] = useState<number>(today.year);
   const [planned, setPlanned] = useState<PlannedCourse[]>([]);
   const [draftCode, setDraftCode] = useState("");
-  const [draftUnits, setDraftUnits] = useState<number>(4);
   const [addError, setAddError] = useState<string | null>(null);
   const [comparison, setComparison] = useState<{
     inPlan: { code: string; matched: boolean; group?: string }[];
@@ -90,13 +89,18 @@ export default function Planner() {
       setAddError(`${code} is already on this quarter's plan.`);
       return;
     }
+    // Courses must come from the SCU catalog — units are read from the
+    // official record, never typed in. Unknown codes are rejected honestly
+    // rather than added with invented unit values.
     const known = catalog.find((c) => c.code.toUpperCase() === code);
-    setPlanned([
-      ...planned,
-      { code: known?.code ?? code, units: known?.units ?? draftUnits },
-    ]);
+    if (!known) {
+      setAddError(
+        `${code} isn't in CampusVal's SCU catalog. Double-check the course code against Workday or the Bulletin.`,
+      );
+      return;
+    }
+    setPlanned([...planned, { code: known.code, units: known.units }]);
     setDraftCode("");
-    setDraftUnits(4);
     setAddError(null);
     setComparison(null);
   };
@@ -201,7 +205,7 @@ export default function Planner() {
     <AppShell>
       <PageHeader
         title="Quarter Planner"
-        subtitle="Build a tentative schedule. CampusVal checks unit caps, prerequisites, course offerings, and overload eligibility against your profile."
+        subtitle="Build a tentative course load. CampusVal checks unit caps, prerequisites, course offerings, and overload eligibility against your profile. When you're ready to pick actual meeting times, choose sections in the Schedule Planner."
       />
       <PageContent>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -245,6 +249,9 @@ export default function Planner() {
               <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
                 Add a course
               </div>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                Units come from the official SCU catalog record automatically.
+              </p>
               <div className="flex gap-2">
                 <Input
                   data-testid="input-add-code"
@@ -252,7 +259,7 @@ export default function Planner() {
                   value={draftCode}
                   onChange={(e) => setDraftCode(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addCourse()}
-                  placeholder="e.g. CSEN 11"
+                  placeholder="Search the SCU catalog — e.g. CSEN 11"
                   className="flex-1 font-mono"
                 />
                 <datalist id="course-codes">
@@ -262,14 +269,6 @@ export default function Planner() {
                     </option>
                   ))}
                 </datalist>
-                <Input
-                  data-testid="input-add-units"
-                  type="number"
-                  step="0.5"
-                  value={draftUnits}
-                  onChange={(e) => setDraftUnits(Number(e.target.value))}
-                  className="w-20"
-                />
                 <Button onClick={addCourse} data-testid="button-add-course">
                   <Plus className="h-4 w-4 mr-1" /> Add
                 </Button>
@@ -309,7 +308,7 @@ export default function Planner() {
                         <div className="text-sm text-foreground">
                           {catalog.find(
                             (c) => c.code.toUpperCase() === p.code.toUpperCase(),
-                          )?.title ?? "Custom course"}
+                          )?.title ?? "Not in catalog — verify code"}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

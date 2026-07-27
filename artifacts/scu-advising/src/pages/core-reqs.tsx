@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetDegreeRequirements,
   getGetDegreeRequirementsQueryKey,
+  useListRequirementCompletions,
+  getListRequirementCompletionsQueryKey,
+  useSetRequirementCompletion,
+  useResetRequirementCompletions,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -29,12 +34,11 @@ import { Link } from "wouter";
  * carries its official SCU source URL.
  *
  * Items SCU defines as "choose from an approved list" can't be auto-checked
- * against completed course codes, so those are tracked manually here —
- * saved per-college in localStorage so switching colleges never mixes
- * progress.
+ * against completed course codes, so those are tracked as student check-offs
+ * persisted server-side (per user, per college, with provenance: marked
+ * complete by the student, with a timestamp). Auto-tracked items are always
+ * "verified from your completed courses" and never stored as check-offs.
  */
-
-const MANUAL_KEY_PREFIX = "campusval.reqs.manual.v1.";
 
 const GROUP_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   university_core: GraduationCap,
@@ -47,31 +51,65 @@ export default function CoreReqs() {
     query: { queryKey: getGetDegreeRequirementsQueryKey() },
   });
 
-  const storageKey = data ? `${MANUAL_KEY_PREFIX}${data.collegeCode}` : null;
-  const [manual, setManual] = useState<Record<string, boolean>>({});
-  const [hydrated, setHydrated] = useState(false);
+  const queryClient = useQueryClient();
+  const collegeCode = data?.collegeCode ?? "";
+  const { data: completions = [] } = useListRequirementCompletions(
+    { collegeCode },
+    {
+      query: {
+        enabled: !!collegeCode,
+        queryKey: getListRequirementCompletionsQueryKey({ collegeCode }),
+      },
+    },
+  );
 
-  useEffect(() => {
-    if (!storageKey) return;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      setManual(raw ? (JSON.parse(raw) as Record<string, boolean>) : {});
-    } catch {
-      setManual({});
-    }
-    setHydrated(true);
-  }, [storageKey]);
+  const invalidateCompletions = () =>
+    queryClient.invalidateQueries({
+      predicate: (q) =>
+        String(q.queryKey[0]).startsWith("/api/requirements/completions"),
+    });
 
-  useEffect(() => {
-    if (!hydrated || !storageKey) return;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(manual));
-    } catch {
-      /* ignore */
-    }
-  }, [manual, hydrated, storageKey]);
+  const setCompletion = useSetRequirementCompletion();
+  const resetCompletions = useResetRequirementCompletions({
+    mutation: { onSuccess: invalidateCompletions },
+  });
 
-  const toggle = (id: string) => setManual((m) => ({ ...m, [id]: !m[id] }));
+  // Optimistic per-key overrides so rapid clicks are deterministic: each
+  // click flips the *effective* (server ∪ override) state, and while a
+  // mutation for a key is in flight further clicks on that key are ignored.
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const inFlight = useRef(new Set<string>());
+
+  // key = `${groupId}:${requirementId}`
+  const manual = useMemo(() => {
+    const m: Record<string, boolean> = {};
+    for (const c of completions) m[`${c.groupId}:${c.requirementId}`] = true;
+    return { ...m, ...overrides };
+  }, [completions, overrides]);
+
+  const toggle = (groupId: string, requirementId: string) => {
+    if (!collegeCode) return;
+    const key = `${groupId}:${requirementId}`;
+    if (inFlight.current.has(key)) return;
+    const next = !manual[key];
+    inFlight.current.add(key);
+    setOverrides((o) => ({ ...o, [key]: next }));
+    setCompletion.mutate(
+      { data: { collegeCode, groupId, requirementId, completed: next } },
+      {
+        onSettled: async () => {
+          inFlight.current.delete(key);
+          // Refetch server truth, then drop the override (on error this
+          // rolls the card back to the real server state).
+          await invalidateCompletions();
+          setOverrides((o) => {
+            const { [key]: _drop, ...rest } = o;
+            return rest;
+          });
+        },
+      },
+    );
+  };
 
   const totals = useMemo(() => {
     if (!data) return { total: 0, done: 0 };
@@ -240,7 +278,11 @@ export default function CoreReqs() {
                           className={`p-4 relative overflow-hidden ${
                             clickable ? "cv-card-hover cursor-pointer" : ""
                           } ${isDone ? "border-primary/40 bg-primary/[0.04]" : ""}`}
-                          onClick={clickable ? () => toggle(manualKey) : undefined}
+                          onClick={
+                            clickable
+                              ? () => toggle(group.id, item.id)
+                              : undefined
+                          }
                           data-testid={`req-${group.id}-${item.id}`}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -283,12 +325,14 @@ export default function CoreReqs() {
                           )}
                           <div className="mt-2 text-[10px] text-muted-foreground">
                             {item.complete
-                              ? `Satisfied by ${item.satisfiedBy.join(", ")}`
-                              : item.needsVerification
-                                ? item.autoTracked
-                                  ? "Auto-checks the listed courses — or check off manually if you used an approved-list alternative"
-                                  : "Approved-list requirement — check off manually once completed"
-                                : "Auto-tracked from your completed courses"}
+                              ? `Verified from your completed courses: ${item.satisfiedBy.join(", ")}`
+                              : item.needsVerification && manual[manualKey]
+                                ? "Marked complete by you — not verified against your academic record"
+                                : item.needsVerification
+                                  ? item.autoTracked
+                                    ? "Auto-checks the listed courses — or check off manually if you used an approved-list alternative"
+                                    : "Approved-list requirement — check off manually once completed"
+                                  : "Auto-tracked from your completed courses"}
                           </div>
                         </Card>
                       );
@@ -299,19 +343,22 @@ export default function CoreReqs() {
             })}
 
             <Card className="p-4 text-xs text-muted-foreground">
-              Auto-tracked items update from the completed courses in your
-              profile. Manual check-offs are saved in your browser, separately
-              per college ({data.collegeCode}). Requirements are drawn from the
-              official SCU Bulletin and school pages linked above — always
-              confirm your degree audit in Workday before registration.
+              Auto-tracked items are verified live against the completed
+              courses in your profile. Manual check-offs are saved to your
+              CampusVal account (per college — currently {data.collegeCode})
+              and are marked as student-asserted, not verified. Requirements
+              are drawn from the official SCU Bulletin and school pages linked
+              above — always confirm your degree audit in Workday before
+              registration.
             </Card>
 
             <Button
               variant="outline"
               size="sm"
+              disabled={resetCompletions.isPending}
               onClick={() => {
                 if (confirm("Clear all manually checked requirements for this college?"))
-                  setManual({});
+                  resetCompletions.mutate({ params: { collegeCode } });
               }}
               data-testid="button-reset-manual"
             >

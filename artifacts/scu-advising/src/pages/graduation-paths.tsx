@@ -256,6 +256,9 @@ export default function GraduationPaths() {
                   <h2 className="font-serif text-2xl font-bold text-foreground flex items-center gap-2">
                     <Route className="h-5 w-5 text-primary" />
                     {data.title}
+                    <Badge variant="outline" className="ml-1 text-[10px] uppercase tracking-wider">
+                      Planning scenario
+                    </Badge>
                   </h2>
                   <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
                     {data.summary}
@@ -282,6 +285,13 @@ export default function GraduationPaths() {
               <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 flex gap-2 text-sm text-amber-900">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
                 <div>{data.feasibilityNote}</div>
+              </div>
+              <PathPersonalization data={data} completedSet={completedSet} />
+              <div className="mt-3 text-[11px] text-muted-foreground">
+                "Core: …" entries are requirement slots (fill them with any
+                approved course for that Core area), not specific courses.
+                This scenario is a planning aid, not advisor approval — confirm
+                your plan against your Workday degree audit.
               </div>
             </Card>
 
@@ -428,6 +438,36 @@ export default function GraduationPaths() {
         )}
       </PageContent>
     </AppShell>
+  );
+}
+
+function PathPersonalization({
+  data,
+  completedSet,
+}: {
+  data: PathData;
+  completedSet: Set<string>;
+}) {
+  // Count only real course codes (skip "Core: …" requirement slots).
+  const allCourses = data.quarters.flatMap((q) =>
+    q.courses.filter((c) => !c.toLowerCase().startsWith("core")),
+  );
+  const done = allCourses.filter((c) =>
+    completedSet.has(c.toUpperCase().replace(/\s+/g, " ")),
+  );
+  if (completedSet.size === 0) return null;
+  return (
+    <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50/60 p-3 text-sm text-emerald-900 flex gap-2">
+      <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-700" />
+      <div>
+        Based on your profile, you've already completed{" "}
+        <strong>
+          {done.length} of the {allCourses.length}
+        </strong>{" "}
+        specific courses in this scenario — they're struck through below, so
+        your real starting point is further along than the grid's Year 1 Fall.
+      </div>
+    </div>
   );
 }
 

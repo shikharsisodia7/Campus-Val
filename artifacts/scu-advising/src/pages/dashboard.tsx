@@ -102,6 +102,9 @@ export default function Dashboard() {
                 )}
                 <p className="text-[11px] text-muted-foreground/80">
                   Source: {summary.currentRegistrationWindow.publishedSource}
+                  {summary.currentRegistrationWindow.lastVerified
+                    ? ` · dates last verified ${summary.currentRegistrationWindow.lastVerified}`
+                    : ""}
                 </p>
               </div>
             </div>
@@ -152,12 +155,14 @@ export default function Dashboard() {
             primary={
               sp?.cumulativeGpa != null
                 ? sp.cumulativeGpa.toFixed(3)
-                : "—"
+                : "No SCU GPA yet"
             }
             secondary={
-              sp?.majorGpa != null
-                ? `Major GPA ${sp.majorGpa.toFixed(3)}`
-                : "Add your GPA in Profile"
+              sp?.cumulativeGpa != null
+                ? sp.majorGpa != null
+                  ? `Major GPA ${sp.majorGpa.toFixed(3)}`
+                  : "Major GPA not provided"
+                : "Your GPA appears after your first graded quarter"
             }
           />
           <StatCard

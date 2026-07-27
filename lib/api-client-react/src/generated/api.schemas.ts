@@ -5,6 +5,207 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+export interface QuarterSchedule {
+  id: number;
+  name: string;
+  term: string;
+  year: number;
+  eventCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QuarterScheduleList {
+  schedules: QuarterSchedule[];
+}
+
+export type QuarterScheduleInputTerm =
+  (typeof QuarterScheduleInputTerm)[keyof typeof QuarterScheduleInputTerm];
+
+export const QuarterScheduleInputTerm = {
+  fall: "fall",
+  winter: "winter",
+  spring: "spring",
+  summer: "summer",
+} as const;
+
+export interface QuarterScheduleInput {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+  term: QuarterScheduleInputTerm;
+  /**
+   * @minimum 2000
+   * @maximum 2100
+   */
+  year: number;
+}
+
+export interface QuarterScheduleUpdate {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+}
+
+export type ScheduleEventKind =
+  (typeof ScheduleEventKind)[keyof typeof ScheduleEventKind];
+
+export const ScheduleEventKind = {
+  section: "section",
+  commitment: "commitment",
+} as const;
+
+export type CommitmentCategory =
+  (typeof CommitmentCategory)[keyof typeof CommitmentCategory];
+
+export const CommitmentCategory = {
+  work: "work",
+  athletics: "athletics",
+  student_org: "student_org",
+  special_program: "special_program",
+  external_course: "external_course",
+  personal: "personal",
+  other: "other",
+} as const;
+
+export interface ScheduleEvent {
+  id: number;
+  scheduleId: number;
+  kind: ScheduleEventKind;
+  /** @nullable */
+  courseCode?: string | null;
+  /** @nullable */
+  courseTitle?: string | null;
+  /** @nullable */
+  sectionNumber?: string | null;
+  /** @nullable */
+  units?: number | null;
+  /** @nullable */
+  instructor?: string | null;
+  /** @nullable */
+  name?: string | null;
+  category?: CommitmentCategory | null;
+  /** @nullable */
+  institution?: string | null;
+  /** @nullable */
+  externalCourseLabel?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  meetingDays: string[];
+  startTime: string;
+  endTime: string;
+  /** @nullable */
+  location?: string | null;
+}
+
+export interface QuarterScheduleDetail {
+  id: number;
+  name: string;
+  term: string;
+  year: number;
+  events: ScheduleEvent[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ScheduleEventInputMeetingDaysItem =
+  (typeof ScheduleEventInputMeetingDaysItem)[keyof typeof ScheduleEventInputMeetingDaysItem];
+
+export const ScheduleEventInputMeetingDaysItem = {
+  M: "M",
+  T: "T",
+  W: "W",
+  R: "R",
+  F: "F",
+  S: "S",
+  U: "U",
+} as const;
+
+export interface ScheduleEventInput {
+  kind: ScheduleEventKind;
+  courseCode?: string;
+  sectionNumber?: string;
+  /** @maxLength 120 */
+  name?: string;
+  category?: CommitmentCategory;
+  /** @maxLength 120 */
+  institution?: string;
+  /** @maxLength 120 */
+  externalCourseLabel?: string;
+  /** @maxLength 500 */
+  notes?: string;
+  meetingDays?: ScheduleEventInputMeetingDaysItem[];
+  startTime?: string;
+  endTime?: string;
+  /** @maxLength 120 */
+  location?: string;
+}
+
+export type ScheduleEventUpdateMeetingDaysItem =
+  (typeof ScheduleEventUpdateMeetingDaysItem)[keyof typeof ScheduleEventUpdateMeetingDaysItem];
+
+export const ScheduleEventUpdateMeetingDaysItem = {
+  M: "M",
+  T: "T",
+  W: "W",
+  R: "R",
+  F: "F",
+  S: "S",
+  U: "U",
+} as const;
+
+export interface ScheduleEventUpdate {
+  courseCode?: string;
+  sectionNumber?: string;
+  /** @maxLength 120 */
+  name?: string;
+  category?: CommitmentCategory;
+  /** @maxLength 120 */
+  institution?: string;
+  /** @maxLength 120 */
+  externalCourseLabel?: string;
+  /** @maxLength 500 */
+  notes?: string;
+  meetingDays?: ScheduleEventUpdateMeetingDaysItem[];
+  startTime?: string;
+  endTime?: string;
+  /** @maxLength 120 */
+  location?: string;
+}
+
+export type CourseSearchState =
+  (typeof CourseSearchState)[keyof typeof CourseSearchState];
+
+export const CourseSearchState = {
+  results: "results",
+  no_matching_courses: "no_matching_courses",
+  no_sections_this_quarter: "no_sections_this_quarter",
+} as const;
+
+export type CourseSearchResultCoursesItem = {
+  code: string;
+  title: string;
+  units: number;
+  description?: string;
+  coreAreas: string[];
+  /**
+   * Null when no quarter filter was applied.
+   * @nullable
+   */
+  sectionsThisQuarter: number | null;
+};
+
+export interface CourseSearchResult {
+  state: CourseSearchState;
+  /** Courses matching the criteria regardless of quarter sections. */
+  totalMatching: number;
+  courses: CourseSearchResultCoursesItem[];
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -482,6 +683,8 @@ export interface RegistrationWindow {
   nextMilestone?: string | null;
   /** e.g. "SCU Office of the Registrar, Spring 2026 communication". */
   publishedSource: string;
+  /** ISO date when these window dates were last manually verified against the Registrar's published calendar. */
+  lastVerified?: string | null;
 }
 
 export interface DashboardSummary {
@@ -563,6 +766,22 @@ export interface RequirementGroup {
   autoTrackedCount: number;
   autoCompletedCount: number;
   manualCount: number;
+}
+
+export interface RequirementCompletion {
+  collegeCode: string;
+  groupId: string;
+  requirementId: string;
+  /** Provenance of the completion claim ("manual" = marked complete by the student). */
+  source: string;
+  completedAt: string;
+}
+
+export interface SetRequirementCompletionBody {
+  collegeCode: string;
+  groupId: string;
+  requirementId: string;
+  completed: boolean;
 }
 
 export type DegreeRequirementsResponseCollegeCode =
@@ -979,3 +1198,79 @@ export type ListProfessorsParams = {
    */
   q?: string;
 };
+
+export type ListRequirementCompletionsParams = {
+  collegeCode: string;
+};
+
+export type ResetRequirementCompletionsParams = {
+  collegeCode: string;
+};
+
+export type ListSchedulesParams = {
+  term?: ListSchedulesTerm;
+  year?: number;
+};
+
+export type ListSchedulesTerm =
+  (typeof ListSchedulesTerm)[keyof typeof ListSchedulesTerm];
+
+export const ListSchedulesTerm = {
+  fall: "fall",
+  winter: "winter",
+  spring: "spring",
+  summer: "summer",
+} as const;
+
+export type DuplicateScheduleBody = {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name?: string;
+};
+
+export type ListCoreAreas200CoreAreasItem = {
+  name: string;
+  courseCount: number;
+};
+
+export type ListCoreAreas200 = {
+  coreAreas: ListCoreAreas200CoreAreasItem[];
+  /** False until an authoritative Pathway-to-course mapping exists. */
+  pathwaysAvailable: boolean;
+};
+
+export type SearchCoursesParams = {
+  q?: string;
+  /**
+   * Comma-separated Core area names
+   */
+  coreAreas?: string;
+  matchMode?: SearchCoursesMatchMode;
+  term?: SearchCoursesTerm;
+  year?: number;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+};
+
+export type SearchCoursesMatchMode =
+  (typeof SearchCoursesMatchMode)[keyof typeof SearchCoursesMatchMode];
+
+export const SearchCoursesMatchMode = {
+  all: "all",
+  any: "any",
+} as const;
+
+export type SearchCoursesTerm =
+  (typeof SearchCoursesTerm)[keyof typeof SearchCoursesTerm];
+
+export const SearchCoursesTerm = {
+  fall: "fall",
+  winter: "winter",
+  spring: "spring",
+  summer: "summer",
+} as const;

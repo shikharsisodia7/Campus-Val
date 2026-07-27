@@ -7,6 +7,7 @@ import {
   approvedCapFor,
   standingLabel,
 } from "../lib/standing";
+import { overloadEligibility, probationNotice } from "../lib/academic-status";
 import { requireAuth } from "../middlewares/requireAuth";
 import {
   pickCurrentWindow,
@@ -148,6 +149,7 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
       myWaveLabel,
       nextMilestone,
       publishedSource: liveWindow.publishedSource,
+      lastVerified: liveWindow.lastVerified,
     };
   }
 
@@ -186,20 +188,13 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
   );
 
   const gpa = profile.cumulativeGpa ?? null;
-  const canOverloadByGpa = gpa !== null && gpa >= 3.0;
-  const canOverload = canOverloadByGpa && profile.priorityRegistration;
-
-  let overloadReason = "";
-  if (canOverload) {
-    overloadReason = `Eligible: GPA ≥ 3.0 + priority registration. As a ${classification.toLowerCase()}, you can request up to ${approvedCap} units (standard cap is ${standardCap}). Dean approval still required to register above ${standardCap} units.`;
-  } else if (gpa === null) {
-    overloadReason =
-      "Add your cumulative GPA to your profile to evaluate overload eligibility.";
-  } else if (!canOverloadByGpa) {
-    overloadReason = `Cumulative GPA of ${gpa.toFixed(2)} is below the 3.0 overload threshold.`;
-  } else {
-    overloadReason = `Priority registration is required to overload above the ${standardCap}-unit ${classification.toLowerCase()} cap.`;
-  }
+  const overload = overloadEligibility(
+    gpa,
+    profile.priorityRegistration,
+    standing,
+  );
+  const canOverload = overload.canOverload;
+  const overloadReason = overload.reason;
 
   // Always derive "next term" from today's calendar, not from the stale
   // currentTerm a student set during onboarding months ago. This guarantees
@@ -212,10 +207,9 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
       "You're close to or at the 87.5 quarter-unit transfer cap. Any additional outside coursework may not count.",
     );
   }
-  if (gpa !== null && gpa < 2.0) {
-    warnings.push(
-      "Cumulative GPA is below 2.0 — academic probation rules apply. See the Probation policy.",
-    );
+  const probation = probationNotice(gpa);
+  if (probation) {
+    warnings.push(probation.message);
   }
   if (
     standing === "senior" &&
@@ -246,19 +240,28 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
     registrationWindowNote,
     nextTerm: next.term,
     nextTermYear: next.year,
-    upcomingDeadlines: [
-      {
-        title: "Registration opens",
-        date: `${next.term} ${next.year}`,
-        description: registrationWindowNote,
-      },
-      {
-        title: "Withdrawal deadline (with W)",
-        date: "End of week 7",
-        description:
-          "Last day to withdraw from a course and receive a W instead of a letter grade.",
-      },
-    ],
+    // Only publish deadlines we actually have dates for. No published
+    // window → no invented "end of week 7"-style placeholders.
+    upcomingDeadlines: liveWindow
+      ? [
+          {
+            title: `${termTitle(liveWindow.targetTerm, liveWindow.targetYear)} registration opens`,
+            date: liveWindow.priorityOpensOn,
+            description: registrationWindowNote,
+          },
+          {
+            title: "Last day to add/drop without W",
+            date: liveWindow.lastDayToAddDrop,
+            description: `Per ${liveWindow.publishedSource}`,
+          },
+          {
+            title: "Withdrawal deadline (with W)",
+            date: liveWindow.withdrawalDeadline,
+            description:
+              "Last day to withdraw from a course and receive a W instead of a letter grade.",
+          },
+        ]
+      : [],
     warnings,
     currentRegistrationWindow: buildLiveWindow(
       standing === "freshman" ? "first_year" : standing,

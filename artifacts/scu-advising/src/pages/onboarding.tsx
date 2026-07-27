@@ -196,8 +196,10 @@ export default function Onboarding() {
   }, [college, collegeFilteredMajors, major]);
 
   // ----- Field-level error messages -----
+  // GPA is OPTIONAL: a new student has no SCU GPA yet, and "no GPA" must
+  // never be recorded as 0.000. Empty = null = "No SCU GPA yet".
   const cumulativeGpaError = (() => {
-    if (cumulativeGpa.trim().length === 0) return "Required.";
+    if (cumulativeGpa.trim().length === 0) return null;
     const n = Number(cumulativeGpa);
     if (Number.isNaN(n)) return "Must be a number (e.g. 3.412).";
     if (n < 0) return "GPA can't be negative.";
@@ -205,7 +207,7 @@ export default function Onboarding() {
     return null;
   })();
   const majorGpaError = (() => {
-    if (majorGpa.trim().length === 0) return "Required.";
+    if (majorGpa.trim().length === 0) return null;
     const n = Number(majorGpa);
     if (Number.isNaN(n)) return "Must be a number (e.g. 3.500).";
     if (n < 0) return "GPA can't be negative.";
@@ -260,8 +262,9 @@ export default function Onboarding() {
           expectedGradYear,
           unitsCompletedAtSCU,
           unitsTransferredIn,
-          cumulativeGpa: Number(cumulativeGpa),
-          majorGpa: Number(majorGpa),
+          cumulativeGpa:
+            cumulativeGpa.trim().length === 0 ? null : Number(cumulativeGpa),
+          majorGpa: majorGpa.trim().length === 0 ? null : Number(majorGpa),
           completedCourseCodes: completedCourses,
           priorityRegistration,
           currentTerm: currentTerm as "fall" | "winter" | "spring" | "summer",
@@ -507,8 +510,7 @@ export default function Onboarding() {
                 <div className="grid grid-cols-2 gap-4">
                   <Field
                     label="Cumulative GPA"
-                    required
-                    hint="Number between 0.000 and 4.000."
+                    hint="Leave blank if you don't have an SCU GPA yet (e.g. incoming first-years)."
                     error={cumulativeGpaError}
                   >
                     <Input
@@ -524,8 +526,7 @@ export default function Onboarding() {
                   </Field>
                   <Field
                     label="Major GPA"
-                    required
-                    hint="Number between 0.000 and 4.000."
+                    hint="Leave blank if you don't have one yet."
                     error={majorGpaError}
                   >
                     <Input

@@ -84,6 +84,7 @@ const SPA_ROUTES = new Set([
   "/core-reqs",
   "/compare",
   "/advice",
+  "/resources",
   "/evaluation",
   "/feedback",
 ]);

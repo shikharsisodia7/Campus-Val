@@ -23,3 +23,5 @@ export * from "./profile";
 export * from "./sections";
 export * from "./feedback";
 export * from "./plans";
+export * from "./schedules";
+export * from "./requirement-completions";

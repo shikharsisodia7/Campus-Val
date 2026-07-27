@@ -506,6 +506,12 @@ export const GetDashboardSummaryResponse = zod.object({
         .describe(
           'e.g. \"SCU Office of the Registrar, Spring 2026 communication\".',
         ),
+      lastVerified: zod
+        .string()
+        .nullish()
+        .describe(
+          "ISO date when these window dates were last manually verified against the Registrar's published calendar.",
+        ),
     })
     .nullish(),
 });
@@ -897,6 +903,60 @@ export const GetDegreeRequirementsResponse = zod.object({
       manualCount: zod.number(),
     }),
   ),
+});
+
+/**
+ * @summary List the signed-in student's manual requirement check-offs (with provenance)
+ */
+export const ListRequirementCompletionsQueryParams = zod.object({
+  collegeCode: zod.coerce.string(),
+});
+
+export const ListRequirementCompletionsResponseItem = zod.object({
+  collegeCode: zod.string(),
+  groupId: zod.string(),
+  requirementId: zod.string(),
+  source: zod
+    .string()
+    .describe(
+      'Provenance of the completion claim (\"manual\" = marked complete by the student).',
+    ),
+  completedAt: zod.string(),
+});
+export const ListRequirementCompletionsResponse = zod.array(
+  ListRequirementCompletionsResponseItem,
+);
+
+/**
+ * @summary Mark or unmark an approved-list requirement as completed by the student
+ */
+export const SetRequirementCompletionBody = zod.object({
+  collegeCode: zod.string(),
+  groupId: zod.string(),
+  requirementId: zod.string(),
+  completed: zod.boolean(),
+});
+
+export const SetRequirementCompletionResponseItem = zod.object({
+  collegeCode: zod.string(),
+  groupId: zod.string(),
+  requirementId: zod.string(),
+  source: zod
+    .string()
+    .describe(
+      'Provenance of the completion claim (\"manual\" = marked complete by the student).',
+    ),
+  completedAt: zod.string(),
+});
+export const SetRequirementCompletionResponse = zod.array(
+  SetRequirementCompletionResponseItem,
+);
+
+/**
+ * @summary Clear all manual check-offs for a college
+ */
+export const ResetRequirementCompletionsQueryParams = zod.object({
+  collegeCode: zod.coerce.string(),
 });
 
 /**
@@ -1292,4 +1352,371 @@ export const GetScheduleAvailabilityResponse = zod.object({
     .describe(
       "Honest explanation of what unlisted terms mean (no official schedule published).",
     ),
+});
+
+/**
+ * @summary List the signed-in student's quarter schedules
+ */
+export const ListSchedulesQueryParams = zod.object({
+  term: zod.enum(["fall", "winter", "spring", "summer"]).optional(),
+  year: zod.coerce.number().optional(),
+});
+
+export const ListSchedulesResponse = zod.object({
+  schedules: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      term: zod.string(),
+      year: zod.number(),
+      eventCount: zod.number(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a new schedule for a quarter
+ */
+export const createScheduleBodyNameMax = 80;
+
+export const createScheduleBodyYearMin = 2000;
+export const createScheduleBodyYearMax = 2100;
+
+export const CreateScheduleBody = zod.object({
+  name: zod.string().min(1).max(createScheduleBodyNameMax),
+  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  year: zod
+    .number()
+    .min(createScheduleBodyYearMin)
+    .max(createScheduleBodyYearMax),
+});
+
+/**
+ * @summary Get a schedule with all its events
+ */
+export const GetScheduleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetScheduleResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  term: zod.string(),
+  year: zod.number(),
+  events: zod.array(
+    zod.object({
+      id: zod.number(),
+      scheduleId: zod.number(),
+      kind: zod.enum(["section", "commitment"]),
+      courseCode: zod.string().nullish(),
+      courseTitle: zod.string().nullish(),
+      sectionNumber: zod.string().nullish(),
+      units: zod.number().nullish(),
+      instructor: zod.string().nullish(),
+      name: zod.string().nullish(),
+      category: zod
+        .union([
+          zod.enum([
+            "work",
+            "athletics",
+            "student_org",
+            "special_program",
+            "external_course",
+            "personal",
+            "other",
+          ]),
+          zod.null(),
+        ])
+        .optional(),
+      institution: zod.string().nullish(),
+      externalCourseLabel: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      meetingDays: zod.array(zod.string()),
+      startTime: zod.string(),
+      endTime: zod.string(),
+      location: zod.string().nullish(),
+    }),
+  ),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Rename a schedule
+ */
+export const UpdateScheduleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const updateScheduleBodyNameMax = 80;
+
+export const UpdateScheduleBody = zod.object({
+  name: zod.string().min(1).max(updateScheduleBodyNameMax),
+});
+
+export const UpdateScheduleResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  term: zod.string(),
+  year: zod.number(),
+  events: zod.array(
+    zod.object({
+      id: zod.number(),
+      scheduleId: zod.number(),
+      kind: zod.enum(["section", "commitment"]),
+      courseCode: zod.string().nullish(),
+      courseTitle: zod.string().nullish(),
+      sectionNumber: zod.string().nullish(),
+      units: zod.number().nullish(),
+      instructor: zod.string().nullish(),
+      name: zod.string().nullish(),
+      category: zod
+        .union([
+          zod.enum([
+            "work",
+            "athletics",
+            "student_org",
+            "special_program",
+            "external_course",
+            "personal",
+            "other",
+          ]),
+          zod.null(),
+        ])
+        .optional(),
+      institution: zod.string().nullish(),
+      externalCourseLabel: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      meetingDays: zod.array(zod.string()),
+      startTime: zod.string(),
+      endTime: zod.string(),
+      location: zod.string().nullish(),
+    }),
+  ),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a schedule and its events
+ */
+export const DeleteScheduleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Deep-copy a schedule (independent copy of all events)
+ */
+export const DuplicateScheduleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const duplicateScheduleBodyNameMax = 80;
+
+export const DuplicateScheduleBody = zod.object({
+  name: zod.string().min(1).max(duplicateScheduleBodyNameMax).optional(),
+});
+
+/**
+ * @summary Add a course section or commitment to a schedule
+ */
+export const AddScheduleEventParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const addScheduleEventBodyNameMax = 120;
+
+export const addScheduleEventBodyInstitutionMax = 120;
+
+export const addScheduleEventBodyExternalCourseLabelMax = 120;
+
+export const addScheduleEventBodyNotesMax = 500;
+
+export const addScheduleEventBodyLocationMax = 120;
+
+export const AddScheduleEventBody = zod.object({
+  kind: zod.enum(["section", "commitment"]),
+  courseCode: zod.string().optional(),
+  sectionNumber: zod.string().optional(),
+  name: zod.string().max(addScheduleEventBodyNameMax).optional(),
+  category: zod
+    .enum([
+      "work",
+      "athletics",
+      "student_org",
+      "special_program",
+      "external_course",
+      "personal",
+      "other",
+    ])
+    .optional(),
+  institution: zod.string().max(addScheduleEventBodyInstitutionMax).optional(),
+  externalCourseLabel: zod
+    .string()
+    .max(addScheduleEventBodyExternalCourseLabelMax)
+    .optional(),
+  notes: zod.string().max(addScheduleEventBodyNotesMax).optional(),
+  meetingDays: zod
+    .array(zod.enum(["M", "T", "W", "R", "F", "S", "U"]))
+    .optional(),
+  startTime: zod.string().optional(),
+  endTime: zod.string().optional(),
+  location: zod.string().max(addScheduleEventBodyLocationMax).optional(),
+});
+
+/**
+ * @summary Update an event (swap section or edit a commitment)
+ */
+export const UpdateScheduleEventParams = zod.object({
+  id: zod.coerce.number(),
+  eventId: zod.coerce.number(),
+});
+
+export const updateScheduleEventBodyNameMax = 120;
+
+export const updateScheduleEventBodyInstitutionMax = 120;
+
+export const updateScheduleEventBodyExternalCourseLabelMax = 120;
+
+export const updateScheduleEventBodyNotesMax = 500;
+
+export const updateScheduleEventBodyLocationMax = 120;
+
+export const UpdateScheduleEventBody = zod.object({
+  courseCode: zod.string().optional(),
+  sectionNumber: zod.string().optional(),
+  name: zod.string().max(updateScheduleEventBodyNameMax).optional(),
+  category: zod
+    .enum([
+      "work",
+      "athletics",
+      "student_org",
+      "special_program",
+      "external_course",
+      "personal",
+      "other",
+    ])
+    .optional(),
+  institution: zod
+    .string()
+    .max(updateScheduleEventBodyInstitutionMax)
+    .optional(),
+  externalCourseLabel: zod
+    .string()
+    .max(updateScheduleEventBodyExternalCourseLabelMax)
+    .optional(),
+  notes: zod.string().max(updateScheduleEventBodyNotesMax).optional(),
+  meetingDays: zod
+    .array(zod.enum(["M", "T", "W", "R", "F", "S", "U"]))
+    .optional(),
+  startTime: zod.string().optional(),
+  endTime: zod.string().optional(),
+  location: zod.string().max(updateScheduleEventBodyLocationMax).optional(),
+});
+
+export const UpdateScheduleEventResponse = zod.object({
+  id: zod.number(),
+  scheduleId: zod.number(),
+  kind: zod.enum(["section", "commitment"]),
+  courseCode: zod.string().nullish(),
+  courseTitle: zod.string().nullish(),
+  sectionNumber: zod.string().nullish(),
+  units: zod.number().nullish(),
+  instructor: zod.string().nullish(),
+  name: zod.string().nullish(),
+  category: zod
+    .union([
+      zod.enum([
+        "work",
+        "athletics",
+        "student_org",
+        "special_program",
+        "external_course",
+        "personal",
+        "other",
+      ]),
+      zod.null(),
+    ])
+    .optional(),
+  institution: zod.string().nullish(),
+  externalCourseLabel: zod.string().nullish(),
+  notes: zod.string().nullish(),
+  meetingDays: zod.array(zod.string()),
+  startTime: zod.string(),
+  endTime: zod.string(),
+  location: zod.string().nullish(),
+});
+
+/**
+ * @summary Remove an event from a schedule
+ */
+export const DeleteScheduleEventParams = zod.object({
+  id: zod.coerce.number(),
+  eventId: zod.coerce.number(),
+});
+
+/**
+ * @summary Authoritative list of SCU Core areas present in the catalog
+ */
+export const ListCoreAreasResponse = zod.object({
+  coreAreas: zod.array(
+    zod.object({
+      name: zod.string(),
+      courseCount: zod.number(),
+    }),
+  ),
+  pathwaysAvailable: zod
+    .boolean()
+    .describe("False until an authoritative Pathway-to-course mapping exists."),
+});
+
+/**
+ * @summary Advanced course search by text and academic attributes
+ */
+export const searchCoursesQueryMatchModeDefault = `all`;
+export const searchCoursesQueryLimitDefault = 30;
+export const searchCoursesQueryLimitMax = 100;
+
+export const SearchCoursesQueryParams = zod.object({
+  q: zod.coerce.string().optional(),
+  coreAreas: zod.coerce
+    .string()
+    .optional()
+    .describe("Comma-separated Core area names"),
+  matchMode: zod
+    .enum(["all", "any"])
+    .default(searchCoursesQueryMatchModeDefault),
+  term: zod.enum(["fall", "winter", "spring", "summer"]).optional(),
+  year: zod.coerce.number().optional(),
+  limit: zod.coerce
+    .number()
+    .min(1)
+    .max(searchCoursesQueryLimitMax)
+    .default(searchCoursesQueryLimitDefault),
+});
+
+export const SearchCoursesResponse = zod.object({
+  state: zod.enum([
+    "results",
+    "no_matching_courses",
+    "no_sections_this_quarter",
+  ]),
+  totalMatching: zod
+    .number()
+    .describe("Courses matching the criteria regardless of quarter sections."),
+  courses: zod.array(
+    zod.object({
+      code: zod.string(),
+      title: zod.string(),
+      units: zod.number(),
+      description: zod.string().optional(),
+      coreAreas: zod.array(zod.string()),
+      sectionsThisQuarter: zod
+        .number()
+        .nullable()
+        .describe("Null when no quarter filter was applied."),
+    }),
+  ),
 });

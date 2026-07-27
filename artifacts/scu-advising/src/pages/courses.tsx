@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import {
   Search,
+  Scale,
   BookOpen,
   AlertCircle,
   Lock,
@@ -28,13 +29,11 @@ import {
   Clock,
   MapPin,
   CalendarPlus,
-  Check,
   FlaskConical,
   User,
 } from "lucide-react";
 import { termLabel } from "@/lib/api";
-import { addToSchedule, getSchedule, subscribe } from "@/lib/schedule-store";
-import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 
 const PAGE_SIZE = 60;
 
@@ -65,7 +64,7 @@ export default function Courses() {
     <AppShell>
       <PageHeader
         title="Course Catalog"
-        subtitle="Search every SCU department. Sections show the official Fall 2026, Winter 2027 & Spring 2027 schedules; add live seat counts on Sync Workday."
+        subtitle="Search every SCU department. Fall 2026 sections are from the published Registrar schedule; Winter & Spring 2027 are tentative until published. Add live seat counts on Sync Workday."
       />
       <PageContent>
         <Card className="p-4">
@@ -230,6 +229,7 @@ function DifficultyBadge({ difficulty }: { difficulty: string }) {
   const label = difficulty.replace("_", " ");
   return (
     <span
+      title="CampusVal workload estimate — not an official SCU rating"
       className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${colors[difficulty] ?? ""}`}
     >
       {label}
@@ -264,6 +264,18 @@ function CourseDrawer({
               <SheetTitle className="font-serif text-2xl">
                 {data.title}
               </SheetTitle>
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="w-fit mt-1"
+                data-testid="button-send-to-compare"
+              >
+                <Link href={`/compare?add=${encodeURIComponent(data.code)}`}>
+                  <Scale className="h-3.5 w-3.5 mr-1.5" />
+                  Compare with other courses
+                </Link>
+              </Button>
             </SheetHeader>
             <div className="mt-6 space-y-5">
               <p className="text-sm text-foreground/90 leading-relaxed">
@@ -375,14 +387,6 @@ function SectionsList({ code }: { code: string }) {
       },
     },
   );
-  const { toast } = useToast();
-  const [scheduledIds, setScheduledIds] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    const refresh = () =>
-      setScheduledIds(new Set(getSchedule().map((s) => s.id)));
-    refresh();
-    return subscribe(refresh);
-  }, []);
   // Group by term/year for prominence
   const grouped = new Map<string, typeof sections>();
   for (const s of sections) {
@@ -444,7 +448,6 @@ function SectionsList({ code }: { code: string }) {
                     const isLab =
                       /L\d*$/.test(s.courseCode.replace(/\s/g, "")) ||
                       /^L|L$/.test(s.sectionNumber);
-                    const inSchedule = scheduledIds.has(s.id);
                     return (
                       <div
                         key={s.id}
@@ -516,34 +519,16 @@ function SectionsList({ code }: { code: string }) {
                         </div>
 
                         <Button
-                          variant={inSchedule ? "secondary" : "default"}
+                          asChild
+                          variant="outline"
                           size="sm"
                           className="mt-2.5 w-full h-8 text-xs"
-                          disabled={inSchedule}
-                          onClick={() => {
-                            const r = addToSchedule(s);
-                            toast({
-                              title: r.added
-                                ? "Added to your schedule"
-                                : (r.reason ?? "Already added"),
-                              description: r.added
-                                ? `${s.courseCode} · §${s.sectionNumber} — open the Weekly Schedule to see it.`
-                                : undefined,
-                            });
-                          }}
                           data-testid={`add-${s.id}`}
                         >
-                          {inSchedule ? (
-                            <>
-                              <Check className="h-3.5 w-3.5 mr-1" />
-                              In your schedule
-                            </>
-                          ) : (
-                            <>
-                              <CalendarPlus className="h-3.5 w-3.5 mr-1" />
-                              Add to Schedule
-                            </>
-                          )}
+                          <Link href="/schedule">
+                            <CalendarPlus className="h-3.5 w-3.5 mr-1" />
+                            Plan in Schedule Planner
+                          </Link>
                         </Button>
 
                       </div>

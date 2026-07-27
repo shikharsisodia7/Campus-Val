@@ -29,10 +29,12 @@ import type {
   CheckPrereqsBody,
   Course,
   CourseDetail,
+  CourseSearchResult,
   CourseSection,
   CreateOpenaiConversationBody,
   DashboardSummary,
   DegreeRequirementsResponse,
+  DuplicateScheduleBody,
   EvaluateTransferBody,
   EvaluationRunResult,
   EvaluationScenario,
@@ -42,10 +44,13 @@ import type {
   GpaSimulationResult,
   GraduationPath,
   HealthStatus,
+  ListCoreAreas200,
   ListCourseSectionsParams,
   ListCoursesParams,
   ListPoliciesParams,
   ListProfessorsParams,
+  ListRequirementCompletionsParams,
+  ListSchedulesParams,
   LookupArticulationParams,
   MajorList,
   MajorRequirements,
@@ -63,10 +68,21 @@ import type {
   Policy,
   PrereqCheckResult,
   ProfessorList,
+  QuarterScheduleDetail,
+  QuarterScheduleInput,
+  QuarterScheduleList,
+  QuarterScheduleUpdate,
+  RequirementCompletion,
+  ResetRequirementCompletionsParams,
   RunEvaluationBody,
   ScheduleAvailability,
+  ScheduleEvent,
+  ScheduleEventInput,
+  ScheduleEventUpdate,
+  SearchCoursesParams,
   SectionsSyncStatus,
   SendOpenaiMessageBody,
+  SetRequirementCompletionBody,
   SimulateGpaBody,
   StudentProfile,
   TransferEvaluationResult,
@@ -2095,6 +2111,303 @@ export function useGetDegreeRequirements<
 }
 
 /**
+ * @summary List the signed-in student's manual requirement check-offs (with provenance)
+ */
+export const getListRequirementCompletionsUrl = (
+  params: ListRequirementCompletionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/requirements/completions?${stringifiedParams}`
+    : `/api/requirements/completions`;
+};
+
+export const listRequirementCompletions = async (
+  params: ListRequirementCompletionsParams,
+  options?: RequestInit,
+): Promise<RequirementCompletion[]> => {
+  return customFetch<RequirementCompletion[]>(
+    getListRequirementCompletionsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListRequirementCompletionsQueryKey = (
+  params?: ListRequirementCompletionsParams,
+) => {
+  return [
+    `/api/requirements/completions`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListRequirementCompletionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRequirementCompletions>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ListRequirementCompletionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRequirementCompletions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListRequirementCompletionsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRequirementCompletions>>
+  > = ({ signal }) =>
+    listRequirementCompletions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRequirementCompletions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRequirementCompletionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRequirementCompletions>>
+>;
+export type ListRequirementCompletionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the signed-in student's manual requirement check-offs (with provenance)
+ */
+
+export function useListRequirementCompletions<
+  TData = Awaited<ReturnType<typeof listRequirementCompletions>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ListRequirementCompletionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRequirementCompletions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRequirementCompletionsQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Mark or unmark an approved-list requirement as completed by the student
+ */
+export const getSetRequirementCompletionUrl = () => {
+  return `/api/requirements/completions`;
+};
+
+export const setRequirementCompletion = async (
+  setRequirementCompletionBody: SetRequirementCompletionBody,
+  options?: RequestInit,
+): Promise<RequirementCompletion[]> => {
+  return customFetch<RequirementCompletion[]>(
+    getSetRequirementCompletionUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(setRequirementCompletionBody),
+    },
+  );
+};
+
+export const getSetRequirementCompletionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setRequirementCompletion>>,
+    TError,
+    { data: BodyType<SetRequirementCompletionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setRequirementCompletion>>,
+  TError,
+  { data: BodyType<SetRequirementCompletionBody> },
+  TContext
+> => {
+  const mutationKey = ["setRequirementCompletion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setRequirementCompletion>>,
+    { data: BodyType<SetRequirementCompletionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setRequirementCompletion(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetRequirementCompletionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setRequirementCompletion>>
+>;
+export type SetRequirementCompletionMutationBody =
+  BodyType<SetRequirementCompletionBody>;
+export type SetRequirementCompletionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark or unmark an approved-list requirement as completed by the student
+ */
+export const useSetRequirementCompletion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setRequirementCompletion>>,
+    TError,
+    { data: BodyType<SetRequirementCompletionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setRequirementCompletion>>,
+  TError,
+  { data: BodyType<SetRequirementCompletionBody> },
+  TContext
+> => {
+  return useMutation(getSetRequirementCompletionMutationOptions(options));
+};
+
+/**
+ * @summary Clear all manual check-offs for a college
+ */
+export const getResetRequirementCompletionsUrl = (
+  params: ResetRequirementCompletionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/requirements/completions?${stringifiedParams}`
+    : `/api/requirements/completions`;
+};
+
+export const resetRequirementCompletions = async (
+  params: ResetRequirementCompletionsParams,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getResetRequirementCompletionsUrl(params), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getResetRequirementCompletionsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetRequirementCompletions>>,
+    TError,
+    { params: ResetRequirementCompletionsParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resetRequirementCompletions>>,
+  TError,
+  { params: ResetRequirementCompletionsParams },
+  TContext
+> => {
+  const mutationKey = ["resetRequirementCompletions"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resetRequirementCompletions>>,
+    { params: ResetRequirementCompletionsParams }
+  > = (props) => {
+    const { params } = props ?? {};
+
+    return resetRequirementCompletions(params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResetRequirementCompletionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resetRequirementCompletions>>
+>;
+
+export type ResetRequirementCompletionsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Clear all manual check-offs for a college
+ */
+export const useResetRequirementCompletions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetRequirementCompletions>>,
+    TError,
+    { params: ResetRequirementCompletionsParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resetRequirementCompletions>>,
+  TError,
+  { params: ResetRequirementCompletionsParams },
+  TContext
+> => {
+  return useMutation(getResetRequirementCompletionsMutationOptions(options));
+};
+
+/**
  * @summary List benchmark scenarios used to evaluate the AI advisor
  */
 export const getListEvaluationScenariosUrl = () => {
@@ -3844,6 +4157,960 @@ export function useGetScheduleAvailability<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetScheduleAvailabilityQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List the signed-in student's quarter schedules
+ */
+export const getListSchedulesUrl = (params?: ListSchedulesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/schedules?${stringifiedParams}`
+    : `/api/schedules`;
+};
+
+export const listSchedules = async (
+  params?: ListSchedulesParams,
+  options?: RequestInit,
+): Promise<QuarterScheduleList> => {
+  return customFetch<QuarterScheduleList>(getListSchedulesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSchedulesQueryKey = (params?: ListSchedulesParams) => {
+  return [`/api/schedules`, ...(params ? [params] : [])] as const;
+};
+
+export const getListSchedulesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSchedules>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSchedulesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSchedules>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSchedulesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSchedules>>> = ({
+    signal,
+  }) => listSchedules(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSchedules>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSchedulesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSchedules>>
+>;
+export type ListSchedulesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the signed-in student's quarter schedules
+ */
+
+export function useListSchedules<
+  TData = Awaited<ReturnType<typeof listSchedules>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListSchedulesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSchedules>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSchedulesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new schedule for a quarter
+ */
+export const getCreateScheduleUrl = () => {
+  return `/api/schedules`;
+};
+
+export const createSchedule = async (
+  quarterScheduleInput: QuarterScheduleInput,
+  options?: RequestInit,
+): Promise<QuarterScheduleDetail> => {
+  return customFetch<QuarterScheduleDetail>(getCreateScheduleUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(quarterScheduleInput),
+  });
+};
+
+export const getCreateScheduleMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSchedule>>,
+    TError,
+    { data: BodyType<QuarterScheduleInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSchedule>>,
+  TError,
+  { data: BodyType<QuarterScheduleInput> },
+  TContext
+> => {
+  const mutationKey = ["createSchedule"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSchedule>>,
+    { data: BodyType<QuarterScheduleInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createSchedule(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateScheduleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSchedule>>
+>;
+export type CreateScheduleMutationBody = BodyType<QuarterScheduleInput>;
+export type CreateScheduleMutationError = ErrorType<void>;
+
+/**
+ * @summary Create a new schedule for a quarter
+ */
+export const useCreateSchedule = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSchedule>>,
+    TError,
+    { data: BodyType<QuarterScheduleInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSchedule>>,
+  TError,
+  { data: BodyType<QuarterScheduleInput> },
+  TContext
+> => {
+  return useMutation(getCreateScheduleMutationOptions(options));
+};
+
+/**
+ * @summary Get a schedule with all its events
+ */
+export const getGetScheduleUrl = (id: number) => {
+  return `/api/schedules/${id}`;
+};
+
+export const getSchedule = async (
+  id: number,
+  options?: RequestInit,
+): Promise<QuarterScheduleDetail> => {
+  return customFetch<QuarterScheduleDetail>(getGetScheduleUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetScheduleQueryKey = (id: number) => {
+  return [`/api/schedules/${id}`] as const;
+};
+
+export const getGetScheduleQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSchedule>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSchedule>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetScheduleQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSchedule>>> = ({
+    signal,
+  }) => getSchedule(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSchedule>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetScheduleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSchedule>>
+>;
+export type GetScheduleQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a schedule with all its events
+ */
+
+export function useGetSchedule<
+  TData = Awaited<ReturnType<typeof getSchedule>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSchedule>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetScheduleQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Rename a schedule
+ */
+export const getUpdateScheduleUrl = (id: number) => {
+  return `/api/schedules/${id}`;
+};
+
+export const updateSchedule = async (
+  id: number,
+  quarterScheduleUpdate: QuarterScheduleUpdate,
+  options?: RequestInit,
+): Promise<QuarterScheduleDetail> => {
+  return customFetch<QuarterScheduleDetail>(getUpdateScheduleUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(quarterScheduleUpdate),
+  });
+};
+
+export const getUpdateScheduleMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSchedule>>,
+    TError,
+    { id: number; data: BodyType<QuarterScheduleUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSchedule>>,
+  TError,
+  { id: number; data: BodyType<QuarterScheduleUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateSchedule"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSchedule>>,
+    { id: number; data: BodyType<QuarterScheduleUpdate> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateSchedule(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateScheduleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSchedule>>
+>;
+export type UpdateScheduleMutationBody = BodyType<QuarterScheduleUpdate>;
+export type UpdateScheduleMutationError = ErrorType<void>;
+
+/**
+ * @summary Rename a schedule
+ */
+export const useUpdateSchedule = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSchedule>>,
+    TError,
+    { id: number; data: BodyType<QuarterScheduleUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSchedule>>,
+  TError,
+  { id: number; data: BodyType<QuarterScheduleUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateScheduleMutationOptions(options));
+};
+
+/**
+ * @summary Delete a schedule and its events
+ */
+export const getDeleteScheduleUrl = (id: number) => {
+  return `/api/schedules/${id}`;
+};
+
+export const deleteSchedule = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteScheduleUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteScheduleMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSchedule>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSchedule>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteSchedule"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSchedule>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSchedule(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteScheduleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSchedule>>
+>;
+
+export type DeleteScheduleMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete a schedule and its events
+ */
+export const useDeleteSchedule = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSchedule>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSchedule>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteScheduleMutationOptions(options));
+};
+
+/**
+ * @summary Deep-copy a schedule (independent copy of all events)
+ */
+export const getDuplicateScheduleUrl = (id: number) => {
+  return `/api/schedules/${id}/duplicate`;
+};
+
+export const duplicateSchedule = async (
+  id: number,
+  duplicateScheduleBody?: DuplicateScheduleBody,
+  options?: RequestInit,
+): Promise<QuarterScheduleDetail> => {
+  return customFetch<QuarterScheduleDetail>(getDuplicateScheduleUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(duplicateScheduleBody),
+  });
+};
+
+export const getDuplicateScheduleMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof duplicateSchedule>>,
+    TError,
+    { id: number; data: BodyType<DuplicateScheduleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof duplicateSchedule>>,
+  TError,
+  { id: number; data: BodyType<DuplicateScheduleBody> },
+  TContext
+> => {
+  const mutationKey = ["duplicateSchedule"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof duplicateSchedule>>,
+    { id: number; data: BodyType<DuplicateScheduleBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return duplicateSchedule(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DuplicateScheduleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof duplicateSchedule>>
+>;
+export type DuplicateScheduleMutationBody = BodyType<DuplicateScheduleBody>;
+export type DuplicateScheduleMutationError = ErrorType<void>;
+
+/**
+ * @summary Deep-copy a schedule (independent copy of all events)
+ */
+export const useDuplicateSchedule = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof duplicateSchedule>>,
+    TError,
+    { id: number; data: BodyType<DuplicateScheduleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof duplicateSchedule>>,
+  TError,
+  { id: number; data: BodyType<DuplicateScheduleBody> },
+  TContext
+> => {
+  return useMutation(getDuplicateScheduleMutationOptions(options));
+};
+
+/**
+ * @summary Add a course section or commitment to a schedule
+ */
+export const getAddScheduleEventUrl = (id: number) => {
+  return `/api/schedules/${id}/events`;
+};
+
+export const addScheduleEvent = async (
+  id: number,
+  scheduleEventInput: ScheduleEventInput,
+  options?: RequestInit,
+): Promise<ScheduleEvent> => {
+  return customFetch<ScheduleEvent>(getAddScheduleEventUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(scheduleEventInput),
+  });
+};
+
+export const getAddScheduleEventMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addScheduleEvent>>,
+    TError,
+    { id: number; data: BodyType<ScheduleEventInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addScheduleEvent>>,
+  TError,
+  { id: number; data: BodyType<ScheduleEventInput> },
+  TContext
+> => {
+  const mutationKey = ["addScheduleEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addScheduleEvent>>,
+    { id: number; data: BodyType<ScheduleEventInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addScheduleEvent(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddScheduleEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addScheduleEvent>>
+>;
+export type AddScheduleEventMutationBody = BodyType<ScheduleEventInput>;
+export type AddScheduleEventMutationError = ErrorType<void>;
+
+/**
+ * @summary Add a course section or commitment to a schedule
+ */
+export const useAddScheduleEvent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addScheduleEvent>>,
+    TError,
+    { id: number; data: BodyType<ScheduleEventInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addScheduleEvent>>,
+  TError,
+  { id: number; data: BodyType<ScheduleEventInput> },
+  TContext
+> => {
+  return useMutation(getAddScheduleEventMutationOptions(options));
+};
+
+/**
+ * @summary Update an event (swap section or edit a commitment)
+ */
+export const getUpdateScheduleEventUrl = (id: number, eventId: number) => {
+  return `/api/schedules/${id}/events/${eventId}`;
+};
+
+export const updateScheduleEvent = async (
+  id: number,
+  eventId: number,
+  scheduleEventUpdate: ScheduleEventUpdate,
+  options?: RequestInit,
+): Promise<ScheduleEvent> => {
+  return customFetch<ScheduleEvent>(getUpdateScheduleEventUrl(id, eventId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(scheduleEventUpdate),
+  });
+};
+
+export const getUpdateScheduleEventMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateScheduleEvent>>,
+    TError,
+    { id: number; eventId: number; data: BodyType<ScheduleEventUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateScheduleEvent>>,
+  TError,
+  { id: number; eventId: number; data: BodyType<ScheduleEventUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateScheduleEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateScheduleEvent>>,
+    { id: number; eventId: number; data: BodyType<ScheduleEventUpdate> }
+  > = (props) => {
+    const { id, eventId, data } = props ?? {};
+
+    return updateScheduleEvent(id, eventId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateScheduleEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateScheduleEvent>>
+>;
+export type UpdateScheduleEventMutationBody = BodyType<ScheduleEventUpdate>;
+export type UpdateScheduleEventMutationError = ErrorType<void>;
+
+/**
+ * @summary Update an event (swap section or edit a commitment)
+ */
+export const useUpdateScheduleEvent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateScheduleEvent>>,
+    TError,
+    { id: number; eventId: number; data: BodyType<ScheduleEventUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateScheduleEvent>>,
+  TError,
+  { id: number; eventId: number; data: BodyType<ScheduleEventUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateScheduleEventMutationOptions(options));
+};
+
+/**
+ * @summary Remove an event from a schedule
+ */
+export const getDeleteScheduleEventUrl = (id: number, eventId: number) => {
+  return `/api/schedules/${id}/events/${eventId}`;
+};
+
+export const deleteScheduleEvent = async (
+  id: number,
+  eventId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteScheduleEventUrl(id, eventId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteScheduleEventMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteScheduleEvent>>,
+    TError,
+    { id: number; eventId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteScheduleEvent>>,
+  TError,
+  { id: number; eventId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteScheduleEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteScheduleEvent>>,
+    { id: number; eventId: number }
+  > = (props) => {
+    const { id, eventId } = props ?? {};
+
+    return deleteScheduleEvent(id, eventId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteScheduleEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteScheduleEvent>>
+>;
+
+export type DeleteScheduleEventMutationError = ErrorType<void>;
+
+/**
+ * @summary Remove an event from a schedule
+ */
+export const useDeleteScheduleEvent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteScheduleEvent>>,
+    TError,
+    { id: number; eventId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteScheduleEvent>>,
+  TError,
+  { id: number; eventId: number },
+  TContext
+> => {
+  return useMutation(getDeleteScheduleEventMutationOptions(options));
+};
+
+/**
+ * @summary Authoritative list of SCU Core areas present in the catalog
+ */
+export const getListCoreAreasUrl = () => {
+  return `/api/core-areas`;
+};
+
+export const listCoreAreas = async (
+  options?: RequestInit,
+): Promise<ListCoreAreas200> => {
+  return customFetch<ListCoreAreas200>(getListCoreAreasUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCoreAreasQueryKey = () => {
+  return [`/api/core-areas`] as const;
+};
+
+export const getListCoreAreasQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCoreAreas>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCoreAreas>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListCoreAreasQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listCoreAreas>>> = ({
+    signal,
+  }) => listCoreAreas({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCoreAreas>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCoreAreasQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCoreAreas>>
+>;
+export type ListCoreAreasQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Authoritative list of SCU Core areas present in the catalog
+ */
+
+export function useListCoreAreas<
+  TData = Awaited<ReturnType<typeof listCoreAreas>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listCoreAreas>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCoreAreasQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Advanced course search by text and academic attributes
+ */
+export const getSearchCoursesUrl = (params?: SearchCoursesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/course-search?${stringifiedParams}`
+    : `/api/course-search`;
+};
+
+export const searchCourses = async (
+  params?: SearchCoursesParams,
+  options?: RequestInit,
+): Promise<CourseSearchResult> => {
+  return customFetch<CourseSearchResult>(getSearchCoursesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSearchCoursesQueryKey = (params?: SearchCoursesParams) => {
+  return [`/api/course-search`, ...(params ? [params] : [])] as const;
+};
+
+export const getSearchCoursesQueryOptions = <
+  TData = Awaited<ReturnType<typeof searchCourses>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: SearchCoursesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchCourses>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSearchCoursesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof searchCourses>>> = ({
+    signal,
+  }) => searchCourses(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof searchCourses>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SearchCoursesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof searchCourses>>
+>;
+export type SearchCoursesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Advanced course search by text and academic attributes
+ */
+
+export function useSearchCourses<
+  TData = Awaited<ReturnType<typeof searchCourses>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: SearchCoursesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchCourses>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSearchCoursesQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

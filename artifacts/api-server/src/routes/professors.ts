@@ -21,10 +21,10 @@ function departmentOf(courseCode: string): string {
   return m ? m[1]! : "";
 }
 
-function isRealInstructor(name: string): boolean {
-  const n = name.trim().toLowerCase();
-  return n.length > 0 && n !== "tba" && n !== "staff";
-}
+import {
+  normalizeInstructorName,
+  isRealInstructorName,
+} from "../lib/instructor-name";
 
 interface Agg {
   name: string;
@@ -50,8 +50,8 @@ router.get("/professors", requireAuth, async (req, res) => {
     year: number;
   }[]) {
     for (const r of rows) {
-      const name = r.instructor.trim();
-      if (!isRealInstructor(name)) continue;
+      if (!isRealInstructorName(r.instructor)) continue;
+      const name = normalizeInstructorName(r.instructor);
       const key = name.toLowerCase();
       let agg = byName.get(key);
       if (!agg) {

@@ -24,4 +24,6 @@ export interface RegistrationWindow {
   nextMilestone?: string | null;
   /** e.g. "SCU Office of the Registrar, Spring 2026 communication". */
   publishedSource: string;
+  /** ISO date when these window dates were last manually verified against the Registrar's published calendar. */
+  lastVerified?: string | null;
 }

@@ -43,6 +43,7 @@ const NAV = [
   { path: "/sync-workday", label: "Sync Workday", icon: ClipboardPaste },
   { path: "/professors", label: "Professors", icon: Users },
   { path: "/advice", label: "Advice Board", icon: Lightbulb },
+  { path: "/resources", label: "Advising Resources", icon: Library },
   { path: "/advisor", label: "AI Advisor", icon: MessageSquareText },
   { path: "/voice", label: "Voice Advisor", icon: Mic },
   { path: "/policies", label: "SCU Policies", icon: Library },

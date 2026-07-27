@@ -48,6 +48,8 @@ export interface RegistrationTermWindow {
   waves: RegistrationWave[];
   /** Where this data was last cross-checked against. */
   publishedSource: string;
+  /** ISO date this window was last verified against the published source. */
+  lastVerified: string;
 }
 
 /**
@@ -75,6 +77,7 @@ export const FALL_2026: RegistrationTermWindow = {
     { audience: "open", label: "Open enrollment", opensOn: "2026-06-05" },
   ],
   publishedSource: "SCU Office of the Registrar, Spring 2026 Fall-2026 registration communication.",
+  lastVerified: "2026-07-23",
 };
 
 /**
@@ -100,6 +103,7 @@ export const WINTER_2027: RegistrationTermWindow = {
     { audience: "open", label: "Open enrollment", opensOn: "2026-11-18" },
   ],
   publishedSource: "SCU Office of the Registrar, Fall 2026 Winter-2027 registration communication.",
+  lastVerified: "2026-07-23",
 };
 
 /**
@@ -125,6 +129,7 @@ export const SPRING_2027: RegistrationTermWindow = {
     { audience: "open", label: "Open enrollment", opensOn: "2027-03-02" },
   ],
   publishedSource: "SCU Office of the Registrar, Winter 2027 Spring-2027 registration communication.",
+  lastVerified: "2026-07-23",
 };
 
 export const ALL_WINDOWS: RegistrationTermWindow[] = [FALL_2026, WINTER_2027, SPRING_2027];

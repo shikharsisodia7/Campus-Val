@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useListCourses, useGetCourse } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
@@ -17,6 +18,23 @@ type SlotIdx = 0 | 1 | 2;
 
 export default function ComparePage() {
   const [slots, setSlots] = useState<(string | null)[]>([null, null, null]);
+  const search = useSearch();
+
+  // Catalog → Compare handoff: /compare?add=CSCI 60 pre-fills the first
+  // empty slot with that course (deduped).
+  useEffect(() => {
+    const add = new URLSearchParams(search).get("add");
+    if (!add) return;
+    const code = add.trim().toUpperCase().replace(/\s+/g, " ");
+    setSlots((s) => {
+      if (s.some((c) => c?.toUpperCase() === code)) return s;
+      const idx = s.findIndex((c) => c === null);
+      if (idx === -1) return s;
+      const next = [...s];
+      next[idx] = code;
+      return next;
+    });
+  }, [search]);
 
   const setSlot = (i: SlotIdx, code: string | null) =>
     setSlots((s) => {
