@@ -373,6 +373,8 @@ export interface ScheduleAvailabilityTerm {
   status: ScheduleAvailabilityTermStatus;
   officialSectionCount: number;
   syncedSectionCount: number;
+  /** Normalized (uppercase, single-spaced) course codes present in the official schedule for this term. Used to flag planned courses absent from the published/tentative schedule. */
+  offeredCourseCodes?: string[];
 }
 
 export interface ScheduleAvailability {

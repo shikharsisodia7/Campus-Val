@@ -1345,6 +1345,12 @@ export const GetScheduleAvailabilityResponse = zod.object({
         ),
       officialSectionCount: zod.number(),
       syncedSectionCount: zod.number(),
+      offeredCourseCodes: zod
+        .array(zod.string())
+        .optional()
+        .describe(
+          "Normalized (uppercase, single-spaced) course codes present in the official schedule for this term. Used to flag planned courses absent from the published\/tentative schedule.",
+        ),
     }),
   ),
   note: zod

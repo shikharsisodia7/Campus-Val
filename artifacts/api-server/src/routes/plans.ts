@@ -696,9 +696,17 @@ router.get("/plans/:id/export", requireAuth, async (req, res) => {
 
 router.get("/schedule-availability", requireAuth, async (_req, res) => {
   const officialCounts = new Map<string, number>();
+  const officialCodes = new Map<string, Set<string>>();
   for (const s of OFFERED_SECTIONS) {
     const key = `${s.term}-${s.year}`;
     officialCounts.set(key, (officialCounts.get(key) ?? 0) + 1);
+    const code = s.courseCode.toUpperCase().replace(/\s+/g, " ").trim();
+    let set = officialCodes.get(key);
+    if (!set) {
+      set = new Set();
+      officialCodes.set(key, set);
+    }
+    set.add(code);
   }
   const synced = await db
     .select({
@@ -717,6 +725,9 @@ router.get("/schedule-availability", requireAuth, async (_req, res) => {
       status: isTentativeTerm(term, year) ? "tentative" : "published",
       officialSectionCount: officialCounts.get(`${term}-${year}`) ?? 0,
       syncedSectionCount: syncedMap.get(`${term}-${year}`) ?? 0,
+      offeredCourseCodes: Array.from(
+        officialCodes.get(`${term}-${year}`) ?? [],
+      ).sort(),
     })),
     note: "Quarters not listed here have no official SCU schedule published yet. Course sections, instructors, and times for those terms are unknown — plan with courses and requirement placeholders instead.",
   });

@@ -1527,6 +1527,10 @@ components:
           description: published = official schedule with sections/instructors; tentative = registrar tentative schedule (no instructors/sections confirmed)
         officialSectionCount: { type: integer }
         syncedSectionCount: { type: integer }
+        offeredCourseCodes:
+          type: array
+          items: { type: string }
+          description: Normalized (uppercase, single-spaced) course codes present in the official schedule for this term. Used to flag planned courses absent from the published/tentative schedule.
     ScheduleAvailability:
       type: object
       required: [terms, note]

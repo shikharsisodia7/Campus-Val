@@ -13,6 +13,11 @@ export function TermColumn({ id, year, term, items, availableYears }: { id: stri
 
   const availabilityTerm = scheduleAvailability?.terms.find(t => t.year === year && t.term === term);
   const status = availabilityTerm?.status; // 'published' | 'tentative' | undefined
+  // Only terms with an official schedule (published or tentative) can honestly
+  // flag a course as absent from it. Unknown terms stay unknown.
+  const offeredCodes = availabilityTerm?.offeredCourseCodes
+    ? new Set(availabilityTerm.offeredCourseCodes.map(c => c.toUpperCase().replace(/\s+/g, " ").trim()))
+    : null;
   const statusLabel = status === 'published' ? 'Published schedule' : status === 'tentative' ? 'Tentative schedule' : 'Official schedule not published yet';
   const statusColor = status === 'published' ? 'bg-emerald-100 text-emerald-800' : status === 'tentative' ? 'bg-amber-100 text-amber-800' : 'bg-muted/50 text-muted-foreground';
 
@@ -36,7 +41,17 @@ export function TermColumn({ id, year, term, items, availableYears }: { id: stri
       <div className="flex-1 flex flex-col gap-2 mt-1">
         <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
           {items.map(item => (
-            <CourseCard key={item.id} item={item} availableYears={availableYears} />
+            <CourseCard
+              key={item.id}
+              item={item}
+              availableYears={availableYears}
+              notInOfficialSchedule={
+                offeredCodes !== null &&
+                item.itemType === 'course' &&
+                !!item.courseCode &&
+                !offeredCodes.has(item.courseCode.toUpperCase().replace(/\s+/g, " ").trim())
+              }
+            />
           ))}
         </SortableContext>
         

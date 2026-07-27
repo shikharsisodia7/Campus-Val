@@ -49,7 +49,7 @@ function CourseDetailDialog({ code, open, onOpenChange }: { code: string, open: 
   );
 }
 
-export function CourseCard({ item, isOverlay, availableYears }: { item: PlanItem, isOverlay?: boolean, availableYears: number[] }) {
+export function CourseCard({ item, isOverlay, availableYears, notInOfficialSchedule }: { item: PlanItem, isOverlay?: boolean, availableYears: number[], notInOfficialSchedule?: boolean }) {
   const { activePlanId, catalog, profile, requirements } = useDegreePlanContext();
   const deletePlanItem = useDeletePlanItem({ mutation: { onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") }) } });
   const queryClient = useQueryClient();
@@ -137,6 +137,15 @@ export function CourseCard({ item, isOverlay, availableYears }: { item: PlanItem
                 <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">{item.units}u</Badge>
               </div>
               <div className="text-xs text-foreground/80 mt-1 line-clamp-2 leading-snug">{item.courseTitle || courseDetails?.title}</div>
+              {notInOfficialSchedule && (
+                <div
+                  className="flex items-center gap-1 mt-1.5 text-[10px] text-amber-700"
+                  data-testid={`not-offered-note-${item.id}`}
+                >
+                  <AlertCircle className="h-3 w-3 shrink-0" />
+                  <span>Not in official schedule this quarter</span>
+                </div>
+              )}
             </>
           )}
         </div>
