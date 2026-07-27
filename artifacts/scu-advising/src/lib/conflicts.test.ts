@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   findEventConflicts,
+  sectionsAlwaysConflict,
   timeToMinutes,
   minutesToLabel,
   type TimedEvent,
+  type SectionTimeLike,
 } from "./conflicts";
 
 function ev(
@@ -78,6 +80,68 @@ describe("findEventConflicts", () => {
       ev("C", ["M"], "08:00", "09:00"),
     ]);
     expect(c).toEqual([]);
+  });
+});
+
+function sec(days: string[], start: string, end: string): SectionTimeLike {
+  return { meetingDays: days, startTime: start, endTime: end };
+}
+
+describe("sectionsAlwaysConflict", () => {
+  it("flags two single-section courses that overlap", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M", "W", "F"], "08:00", "09:05")],
+        [sec(["M", "W"], "08:30", "09:35")],
+      ),
+    ).toBe(true);
+  });
+
+  it("does not flag when at least one combination is free", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M", "W"], "08:00", "09:05"), sec(["T", "R"], "08:00", "09:05")],
+        [sec(["M", "W"], "08:30", "09:35")],
+      ),
+    ).toBe(false);
+  });
+
+  it("flags when every combination overlaps across multiple sections", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M", "W"], "09:00", "10:05"), sec(["M", "W"], "09:15", "10:20")],
+        [sec(["M"], "09:30", "10:35"), sec(["W"], "08:30", "09:35")],
+      ),
+    ).toBe(true);
+  });
+
+  it("never flags when a section has TBA/invalid times (unprovable)", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M"], "", "")],
+        [sec(["M"], "08:30", "09:35")],
+      ),
+    ).toBe(false);
+    expect(
+      sectionsAlwaysConflict(
+        [{ meetingDays: ["M"], startTime: null, endTime: null }],
+        [sec(["M"], "08:30", "09:35")],
+      ),
+    ).toBe(false);
+  });
+
+  it("never flags when either course has no sections", () => {
+    expect(sectionsAlwaysConflict([], [sec(["M"], "08:00", "09:00")])).toBe(false);
+    expect(sectionsAlwaysConflict([sec(["M"], "08:00", "09:00")], [])).toBe(false);
+  });
+
+  it("does not flag same times on disjoint days", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M", "W"], "09:00", "10:05")],
+        [sec(["T", "R"], "09:00", "10:05")],
+      ),
+    ).toBe(false);
   });
 });
 

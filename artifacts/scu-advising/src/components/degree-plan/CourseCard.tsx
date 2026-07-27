@@ -54,7 +54,7 @@ function CourseDetailDialog({ code, term, year, termStatus, open, onOpenChange }
   );
 }
 
-export function CourseCard({ item, isOverlay, availableYears, notInOfficialSchedule }: { item: PlanItem, isOverlay?: boolean, availableYears: number[], notInOfficialSchedule?: boolean }) {
+export function CourseCard({ item, isOverlay, availableYears, notInOfficialSchedule, conflictsWith }: { item: PlanItem, isOverlay?: boolean, availableYears: number[], notInOfficialSchedule?: boolean, conflictsWith?: string[] }) {
   const { activePlanId, catalog, profile, requirements, scheduleAvailability } = useDegreePlanContext();
   const deletePlanItem = useOptimisticDeletePlanItem();
   const queryClient = useQueryClient();
@@ -149,6 +149,15 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                 >
                   <AlertCircle className="h-3 w-3 shrink-0" />
                   <span>Not in official schedule this quarter</span>
+                </div>
+              )}
+              {conflictsWith && conflictsWith.length > 0 && (
+                <div
+                  className="flex items-center gap-1 mt-1.5 text-[10px] text-amber-700"
+                  data-testid={`time-conflict-note-${item.id}`}
+                >
+                  <CalendarClock className="h-3 w-3 shrink-0" />
+                  <span>All sections clash with {conflictsWith.join(" & ")}</span>
                 </div>
               )}
             </>

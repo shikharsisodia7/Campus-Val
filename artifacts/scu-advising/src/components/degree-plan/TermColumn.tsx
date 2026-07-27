@@ -3,6 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { PlanItem } from "@workspace/api-client-react";
 import { CourseCard } from "./CourseCard";
 import { useDegreePlanContext } from "./DegreePlanContext";
+import { useTermCourseConflicts } from "./useTermCourseConflicts";
 
 export function TermColumn({ id, year, term, items, availableYears }: { id: string, year: number, term: string, items: PlanItem[], availableYears: number[] }) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -18,6 +19,12 @@ export function TermColumn({ id, year, term, items, availableYears }: { id: stri
   const offeredCodes = availabilityTerm?.offeredCourseCodes
     ? new Set(availabilityTerm.offeredCourseCodes.map(c => c.toUpperCase().replace(/\s+/g, " ").trim()))
     : null;
+  const hasSchedule = status === 'published' || status === 'tentative';
+  const courseCodes = items
+    .filter(i => i.itemType === 'course' && !!i.courseCode)
+    .map(i => i.courseCode!);
+  const timeConflicts = useTermCourseConflicts(courseCodes, term, year, hasSchedule);
+
   const statusLabel = status === 'published' ? 'Published schedule' : status === 'tentative' ? 'Tentative schedule' : 'Official schedule not published yet';
   const statusColor = status === 'published' ? 'bg-emerald-100 text-emerald-800' : status === 'tentative' ? 'bg-amber-100 text-amber-800' : 'bg-muted/50 text-muted-foreground';
 
@@ -50,6 +57,11 @@ export function TermColumn({ id, year, term, items, availableYears }: { id: stri
                 item.itemType === 'course' &&
                 !!item.courseCode &&
                 !offeredCodes.has(item.courseCode.toUpperCase().replace(/\s+/g, " ").trim())
+              }
+              conflictsWith={
+                item.itemType === 'course' && item.courseCode
+                  ? timeConflicts.get(item.courseCode.toUpperCase().replace(/\s+/g, " ").trim())
+                  : undefined
               }
             />
           ))}

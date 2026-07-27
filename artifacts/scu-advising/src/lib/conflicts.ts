@@ -50,6 +50,50 @@ export function findEventConflicts(events: TimedEvent[]): EventConflict[] {
   return out;
 }
 
+/**
+ * Minimal shape of an offered section's meeting time, as returned by the
+ * course-sections API. Times may be empty/TBA for tentative terms.
+ */
+export interface SectionTimeLike {
+  meetingDays: string[];
+  startTime?: string | null;
+  endTime?: string | null;
+}
+
+/** True only when both sections PROVABLY overlap: valid times + shared day. */
+function provenOverlap(a: SectionTimeLike, b: SectionTimeLike): boolean {
+  const aS = timeToMinutes(a.startTime ?? "");
+  const aE = timeToMinutes(a.endTime ?? "");
+  const bS = timeToMinutes(b.startTime ?? "");
+  const bE = timeToMinutes(b.endTime ?? "");
+  if ([aS, aE, bS, bE].some(Number.isNaN)) return false;
+  if (aE <= aS || bE <= bS) return false;
+  const aDays = new Set(a.meetingDays);
+  for (const d of b.meetingDays) {
+    if (aDays.has(d) && Math.max(aS, bS) < Math.min(aE, bE)) return true;
+  }
+  return false;
+}
+
+/**
+ * True iff EVERY combination of one section from `a` and one from `b`
+ * provably overlaps — i.e. there is no way to take both courses.
+ * Any section with missing/TBA times makes the overlap unprovable → false.
+ * Empty section lists → false (nothing to conflict with).
+ */
+export function sectionsAlwaysConflict(
+  a: SectionTimeLike[],
+  b: SectionTimeLike[],
+): boolean {
+  if (a.length === 0 || b.length === 0) return false;
+  for (const sa of a) {
+    for (const sb of b) {
+      if (!provenOverlap(sa, sb)) return false;
+    }
+  }
+  return true;
+}
+
 export function minutesToLabel(min: number): string {
   const h24 = Math.floor(min / 60);
   const m = min % 60;
