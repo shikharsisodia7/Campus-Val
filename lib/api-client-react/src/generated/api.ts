@@ -17,6 +17,12 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AcademicPlan,
+  AcademicPlanDetail,
+  AcademicPlanDuplicateInput,
+  AcademicPlanInput,
+  AcademicPlanList,
+  AcademicPlanUpdate,
   ArticulationLookupResult,
   CalculateGpaBody,
   CheckPlanBody,
@@ -48,11 +54,17 @@ import type {
   OpenaiConversationWithMessages,
   OpenaiError,
   OpenaiMessage,
+  PlaceholderReplacement,
   PlanCheckResult,
+  PlanDuplicateWarning,
+  PlanItem,
+  PlanItemInput,
+  PlanItemUpdate,
   Policy,
   PrereqCheckResult,
   ProfessorList,
   RunEvaluationBody,
+  ScheduleAvailability,
   SectionsSyncStatus,
   SendOpenaiMessageBody,
   SimulateGpaBody,
@@ -2755,3 +2767,1087 @@ export const useSendOpenaiMessage = <
 > => {
   return useMutation(getSendOpenaiMessageMutationOptions(options));
 };
+
+/**
+ * @summary List the student's academic plans (creates the Degree Plan on first call)
+ */
+export const getListPlansUrl = () => {
+  return `/api/plans`;
+};
+
+export const listPlans = async (
+  options?: RequestInit,
+): Promise<AcademicPlanList> => {
+  return customFetch<AcademicPlanList>(getListPlansUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListPlansQueryKey = () => {
+  return [`/api/plans`] as const;
+};
+
+export const getListPlansQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPlans>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listPlans>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListPlansQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlans>>> = ({
+    signal,
+  }) => listPlans({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPlans>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPlansQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPlans>>
+>;
+export type ListPlansQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the student's academic plans (creates the Degree Plan on first call)
+ */
+
+export function useListPlans<
+  TData = Awaited<ReturnType<typeof listPlans>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof listPlans>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPlansQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a tentative plan (optionally copying an existing plan)
+ */
+export const getCreatePlanUrl = () => {
+  return `/api/plans`;
+};
+
+export const createPlan = async (
+  academicPlanInput: AcademicPlanInput,
+  options?: RequestInit,
+): Promise<AcademicPlan> => {
+  return customFetch<AcademicPlan>(getCreatePlanUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(academicPlanInput),
+  });
+};
+
+export const getCreatePlanMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPlan>>,
+    TError,
+    { data: BodyType<AcademicPlanInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPlan>>,
+  TError,
+  { data: BodyType<AcademicPlanInput> },
+  TContext
+> => {
+  const mutationKey = ["createPlan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPlan>>,
+    { data: BodyType<AcademicPlanInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createPlan(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePlanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPlan>>
+>;
+export type CreatePlanMutationBody = BodyType<AcademicPlanInput>;
+export type CreatePlanMutationError = ErrorType<void>;
+
+/**
+ * @summary Create a tentative plan (optionally copying an existing plan)
+ */
+export const useCreatePlan = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPlan>>,
+    TError,
+    { data: BodyType<AcademicPlanInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPlan>>,
+  TError,
+  { data: BodyType<AcademicPlanInput> },
+  TContext
+> => {
+  return useMutation(getCreatePlanMutationOptions(options));
+};
+
+/**
+ * @summary Get a plan with all its items
+ */
+export const getGetPlanUrl = (id: number) => {
+  return `/api/plans/${id}`;
+};
+
+export const getPlan = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AcademicPlanDetail> => {
+  return customFetch<AcademicPlanDetail>(getGetPlanUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPlanQueryKey = (id: number) => {
+  return [`/api/plans/${id}`] as const;
+};
+
+export const getGetPlanQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPlan>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getPlan>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPlanQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlan>>> = ({
+    signal,
+  }) => getPlan(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getPlan>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetPlanQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPlan>>
+>;
+export type GetPlanQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a plan with all its items
+ */
+
+export function useGetPlan<
+  TData = Awaited<ReturnType<typeof getPlan>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getPlan>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPlanQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Rename a plan
+ */
+export const getUpdatePlanUrl = (id: number) => {
+  return `/api/plans/${id}`;
+};
+
+export const updatePlan = async (
+  id: number,
+  academicPlanUpdate: AcademicPlanUpdate,
+  options?: RequestInit,
+): Promise<AcademicPlan> => {
+  return customFetch<AcademicPlan>(getUpdatePlanUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(academicPlanUpdate),
+  });
+};
+
+export const getUpdatePlanMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePlan>>,
+    TError,
+    { id: number; data: BodyType<AcademicPlanUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePlan>>,
+  TError,
+  { id: number; data: BodyType<AcademicPlanUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updatePlan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePlan>>,
+    { id: number; data: BodyType<AcademicPlanUpdate> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updatePlan(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePlanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePlan>>
+>;
+export type UpdatePlanMutationBody = BodyType<AcademicPlanUpdate>;
+export type UpdatePlanMutationError = ErrorType<void>;
+
+/**
+ * @summary Rename a plan
+ */
+export const useUpdatePlan = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePlan>>,
+    TError,
+    { id: number; data: BodyType<AcademicPlanUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePlan>>,
+  TError,
+  { id: number; data: BodyType<AcademicPlanUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdatePlanMutationOptions(options));
+};
+
+/**
+ * @summary Delete a tentative plan (the Degree Plan cannot be deleted)
+ */
+export const getDeletePlanUrl = (id: number) => {
+  return `/api/plans/${id}`;
+};
+
+export const deletePlan = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeletePlanUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePlanMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePlan>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePlan>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deletePlan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePlan>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deletePlan(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePlanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePlan>>
+>;
+
+export type DeletePlanMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete a tentative plan (the Degree Plan cannot be deleted)
+ */
+export const useDeletePlan = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePlan>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deletePlan>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeletePlanMutationOptions(options));
+};
+
+/**
+ * @summary Duplicate a plan as a new tentative plan
+ */
+export const getDuplicatePlanUrl = (id: number) => {
+  return `/api/plans/${id}/duplicate`;
+};
+
+export const duplicatePlan = async (
+  id: number,
+  academicPlanDuplicateInput: AcademicPlanDuplicateInput,
+  options?: RequestInit,
+): Promise<AcademicPlan> => {
+  return customFetch<AcademicPlan>(getDuplicatePlanUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(academicPlanDuplicateInput),
+  });
+};
+
+export const getDuplicatePlanMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof duplicatePlan>>,
+    TError,
+    { id: number; data: BodyType<AcademicPlanDuplicateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof duplicatePlan>>,
+  TError,
+  { id: number; data: BodyType<AcademicPlanDuplicateInput> },
+  TContext
+> => {
+  const mutationKey = ["duplicatePlan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof duplicatePlan>>,
+    { id: number; data: BodyType<AcademicPlanDuplicateInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return duplicatePlan(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DuplicatePlanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof duplicatePlan>>
+>;
+export type DuplicatePlanMutationBody = BodyType<AcademicPlanDuplicateInput>;
+export type DuplicatePlanMutationError = ErrorType<void>;
+
+/**
+ * @summary Duplicate a plan as a new tentative plan
+ */
+export const useDuplicatePlan = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof duplicatePlan>>,
+    TError,
+    { id: number; data: BodyType<AcademicPlanDuplicateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof duplicatePlan>>,
+  TError,
+  { id: number; data: BodyType<AcademicPlanDuplicateInput> },
+  TContext
+> => {
+  return useMutation(getDuplicatePlanMutationOptions(options));
+};
+
+/**
+ * @summary Use a tentative plan as the Degree Plan (previous Degree Plan is kept as a tentative backup)
+ */
+export const getPromotePlanUrl = (id: number) => {
+  return `/api/plans/${id}/promote`;
+};
+
+export const promotePlan = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AcademicPlan> => {
+  return customFetch<AcademicPlan>(getPromotePlanUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getPromotePlanMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof promotePlan>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof promotePlan>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["promotePlan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof promotePlan>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return promotePlan(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PromotePlanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof promotePlan>>
+>;
+
+export type PromotePlanMutationError = ErrorType<void>;
+
+/**
+ * @summary Use a tentative plan as the Degree Plan (previous Degree Plan is kept as a tentative backup)
+ */
+export const usePromotePlan = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof promotePlan>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof promotePlan>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getPromotePlanMutationOptions(options));
+};
+
+/**
+ * @summary Add a course or requirement placeholder to a plan term
+ */
+export const getAddPlanItemUrl = (id: number) => {
+  return `/api/plans/${id}/items`;
+};
+
+export const addPlanItem = async (
+  id: number,
+  planItemInput: PlanItemInput,
+  options?: RequestInit,
+): Promise<PlanItem> => {
+  return customFetch<PlanItem>(getAddPlanItemUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(planItemInput),
+  });
+};
+
+export const getAddPlanItemMutationOptions = <
+  TError = ErrorType<void | PlanDuplicateWarning>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addPlanItem>>,
+    TError,
+    { id: number; data: BodyType<PlanItemInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addPlanItem>>,
+  TError,
+  { id: number; data: BodyType<PlanItemInput> },
+  TContext
+> => {
+  const mutationKey = ["addPlanItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addPlanItem>>,
+    { id: number; data: BodyType<PlanItemInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addPlanItem(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddPlanItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addPlanItem>>
+>;
+export type AddPlanItemMutationBody = BodyType<PlanItemInput>;
+export type AddPlanItemMutationError = ErrorType<void | PlanDuplicateWarning>;
+
+/**
+ * @summary Add a course or requirement placeholder to a plan term
+ */
+export const useAddPlanItem = <
+  TError = ErrorType<void | PlanDuplicateWarning>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addPlanItem>>,
+    TError,
+    { id: number; data: BodyType<PlanItemInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addPlanItem>>,
+  TError,
+  { id: number; data: BodyType<PlanItemInput> },
+  TContext
+> => {
+  return useMutation(getAddPlanItemMutationOptions(options));
+};
+
+/**
+ * @summary Move an item to another term/year, reorder it, or edit its note
+ */
+export const getUpdatePlanItemUrl = (id: number, itemId: number) => {
+  return `/api/plans/${id}/items/${itemId}`;
+};
+
+export const updatePlanItem = async (
+  id: number,
+  itemId: number,
+  planItemUpdate: PlanItemUpdate,
+  options?: RequestInit,
+): Promise<PlanItem> => {
+  return customFetch<PlanItem>(getUpdatePlanItemUrl(id, itemId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(planItemUpdate),
+  });
+};
+
+export const getUpdatePlanItemMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePlanItem>>,
+    TError,
+    { id: number; itemId: number; data: BodyType<PlanItemUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePlanItem>>,
+  TError,
+  { id: number; itemId: number; data: BodyType<PlanItemUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updatePlanItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePlanItem>>,
+    { id: number; itemId: number; data: BodyType<PlanItemUpdate> }
+  > = (props) => {
+    const { id, itemId, data } = props ?? {};
+
+    return updatePlanItem(id, itemId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePlanItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePlanItem>>
+>;
+export type UpdatePlanItemMutationBody = BodyType<PlanItemUpdate>;
+export type UpdatePlanItemMutationError = ErrorType<void>;
+
+/**
+ * @summary Move an item to another term/year, reorder it, or edit its note
+ */
+export const useUpdatePlanItem = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePlanItem>>,
+    TError,
+    { id: number; itemId: number; data: BodyType<PlanItemUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePlanItem>>,
+  TError,
+  { id: number; itemId: number; data: BodyType<PlanItemUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdatePlanItemMutationOptions(options));
+};
+
+/**
+ * @summary Remove an item from a plan
+ */
+export const getDeletePlanItemUrl = (id: number, itemId: number) => {
+  return `/api/plans/${id}/items/${itemId}`;
+};
+
+export const deletePlanItem = async (
+  id: number,
+  itemId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeletePlanItemUrl(id, itemId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePlanItemMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePlanItem>>,
+    TError,
+    { id: number; itemId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePlanItem>>,
+  TError,
+  { id: number; itemId: number },
+  TContext
+> => {
+  const mutationKey = ["deletePlanItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePlanItem>>,
+    { id: number; itemId: number }
+  > = (props) => {
+    const { id, itemId } = props ?? {};
+
+    return deletePlanItem(id, itemId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePlanItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePlanItem>>
+>;
+
+export type DeletePlanItemMutationError = ErrorType<void>;
+
+/**
+ * @summary Remove an item from a plan
+ */
+export const useDeletePlanItem = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePlanItem>>,
+    TError,
+    { id: number; itemId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deletePlanItem>>,
+  TError,
+  { id: number; itemId: number },
+  TContext
+> => {
+  return useMutation(getDeletePlanItemMutationOptions(options));
+};
+
+/**
+ * @summary Replace a requirement placeholder with a chosen course (same plan, same term)
+ */
+export const getReplacePlanPlaceholderUrl = (id: number, itemId: number) => {
+  return `/api/plans/${id}/items/${itemId}/replace`;
+};
+
+export const replacePlanPlaceholder = async (
+  id: number,
+  itemId: number,
+  placeholderReplacement: PlaceholderReplacement,
+  options?: RequestInit,
+): Promise<PlanItem> => {
+  return customFetch<PlanItem>(getReplacePlanPlaceholderUrl(id, itemId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(placeholderReplacement),
+  });
+};
+
+export const getReplacePlanPlaceholderMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replacePlanPlaceholder>>,
+    TError,
+    { id: number; itemId: number; data: BodyType<PlaceholderReplacement> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof replacePlanPlaceholder>>,
+  TError,
+  { id: number; itemId: number; data: BodyType<PlaceholderReplacement> },
+  TContext
+> => {
+  const mutationKey = ["replacePlanPlaceholder"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof replacePlanPlaceholder>>,
+    { id: number; itemId: number; data: BodyType<PlaceholderReplacement> }
+  > = (props) => {
+    const { id, itemId, data } = props ?? {};
+
+    return replacePlanPlaceholder(id, itemId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReplacePlanPlaceholderMutationResult = NonNullable<
+  Awaited<ReturnType<typeof replacePlanPlaceholder>>
+>;
+export type ReplacePlanPlaceholderMutationBody =
+  BodyType<PlaceholderReplacement>;
+export type ReplacePlanPlaceholderMutationError = ErrorType<void>;
+
+/**
+ * @summary Replace a requirement placeholder with a chosen course (same plan, same term)
+ */
+export const useReplacePlanPlaceholder = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replacePlanPlaceholder>>,
+    TError,
+    { id: number; itemId: number; data: BodyType<PlaceholderReplacement> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof replacePlanPlaceholder>>,
+  TError,
+  { id: number; itemId: number; data: BodyType<PlaceholderReplacement> },
+  TContext
+> => {
+  return useMutation(getReplacePlanPlaceholderMutationOptions(options));
+};
+
+/**
+ * @summary Export a plan as an advisor-friendly Excel workbook
+ */
+export const getExportPlanUrl = (id: number) => {
+  return `/api/plans/${id}/export`;
+};
+
+export const exportPlan = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getExportPlanUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportPlanQueryKey = (id: number) => {
+  return [`/api/plans/${id}/export`] as const;
+};
+
+export const getExportPlanQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportPlan>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportPlan>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getExportPlanQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof exportPlan>>> = ({
+    signal,
+  }) => exportPlan(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportPlan>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportPlanQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportPlan>>
+>;
+export type ExportPlanQueryError = ErrorType<void>;
+
+/**
+ * @summary Export a plan as an advisor-friendly Excel workbook
+ */
+
+export function useExportPlan<
+  TData = Awaited<ReturnType<typeof exportPlan>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportPlan>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportPlanQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Which SCU quarters have published/tentative official schedules
+ */
+export const getGetScheduleAvailabilityUrl = () => {
+  return `/api/schedule-availability`;
+};
+
+export const getScheduleAvailability = async (
+  options?: RequestInit,
+): Promise<ScheduleAvailability> => {
+  return customFetch<ScheduleAvailability>(getGetScheduleAvailabilityUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetScheduleAvailabilityQueryKey = () => {
+  return [`/api/schedule-availability`] as const;
+};
+
+export const getGetScheduleAvailabilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getScheduleAvailability>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getScheduleAvailability>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetScheduleAvailabilityQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getScheduleAvailability>>
+  > = ({ signal }) => getScheduleAvailability({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getScheduleAvailability>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetScheduleAvailabilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getScheduleAvailability>>
+>;
+export type GetScheduleAvailabilityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Which SCU quarters have published/tentative official schedules
+ */
+
+export function useGetScheduleAvailability<
+  TData = Awaited<ReturnType<typeof getScheduleAvailability>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getScheduleAvailability>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetScheduleAvailabilityQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

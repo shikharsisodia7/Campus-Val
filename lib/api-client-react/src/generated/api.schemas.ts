@@ -19,6 +19,64 @@ export const StudentType = {
   postgrad: "postgrad",
 } as const;
 
+export type PlanType = (typeof PlanType)[keyof typeof PlanType];
+
+export const PlanType = {
+  degree: "degree",
+  tentative: "tentative",
+} as const;
+
+export type PlanItemType = (typeof PlanItemType)[keyof typeof PlanItemType];
+
+export const PlanItemType = {
+  course: "course",
+  requirement_placeholder: "requirement_placeholder",
+} as const;
+
+export interface AcademicPlan {
+  id: number;
+  name: string;
+  planType: PlanType;
+  /** @nullable */
+  sourcePlanId?: number | null;
+  itemCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AcademicPlanList {
+  plans: AcademicPlan[];
+}
+
+export interface AcademicPlanInput {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+  /**
+   * Copy all items from this plan; omit or null to start blank.
+   * @nullable
+   */
+  copyFromPlanId?: number | null;
+}
+
+export interface AcademicPlanUpdate {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+}
+
+export interface AcademicPlanDuplicateInput {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  name: string;
+}
+
 export type Term = (typeof Term)[keyof typeof Term];
 
 export const Term = {
@@ -27,6 +85,100 @@ export const Term = {
   spring: "spring",
   summer: "summer",
 } as const;
+
+export interface PlanItem {
+  id: number;
+  planId: number;
+  itemType: PlanItemType;
+  /** @nullable */
+  courseCode?: string | null;
+  /** @nullable */
+  courseTitle?: string | null;
+  /** @nullable */
+  units?: number | null;
+  /** @nullable */
+  requirementId?: string | null;
+  /** @nullable */
+  requirementCategory?: string | null;
+  /** @nullable */
+  requirementLabel?: string | null;
+  /** Start year of the academic year (2026 = 2026-2027) */
+  academicYear: number;
+  term: Term;
+  position: number;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface AcademicPlanDetail {
+  id: number;
+  name: string;
+  planType: PlanType;
+  /** @nullable */
+  sourcePlanId?: number | null;
+  items: PlanItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlanItemInput {
+  itemType: PlanItemType;
+  /** Required for course items; must exist in the SCU catalog. */
+  courseCode?: string;
+  requirementId?: string;
+  requirementCategory?: string;
+  /** Required for requirement_placeholder items. */
+  requirementLabel?: string;
+  academicYear: number;
+  term: Term;
+  note?: string;
+  /** Set true to add a course already present in this plan. */
+  allowDuplicate?: boolean;
+}
+
+export interface PlanItemUpdate {
+  academicYear?: number;
+  term?: Term;
+  position?: number;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface PlaceholderReplacement {
+  /** @minLength 1 */
+  courseCode: string;
+}
+
+export interface PlanDuplicateWarning {
+  error: string;
+  duplicate: boolean;
+}
+
+/**
+ * published = official schedule with sections/instructors; tentative = registrar tentative schedule (no instructors/sections confirmed)
+ */
+export type ScheduleAvailabilityTermStatus =
+  (typeof ScheduleAvailabilityTermStatus)[keyof typeof ScheduleAvailabilityTermStatus];
+
+export const ScheduleAvailabilityTermStatus = {
+  published: "published",
+  tentative: "tentative",
+} as const;
+
+export interface ScheduleAvailabilityTerm {
+  term: Term;
+  year: number;
+  /** published = official schedule with sections/instructors; tentative = registrar tentative schedule (no instructors/sections confirmed) */
+  status: ScheduleAvailabilityTermStatus;
+  officialSectionCount: number;
+  syncedSectionCount: number;
+}
+
+export interface ScheduleAvailability {
+  terms: ScheduleAvailabilityTerm[];
+  /** Honest explanation of what unlisted terms mean (no official schedule published). */
+  note: string;
+}
 
 export type Grade = (typeof Grade)[keyof typeof Grade];
 

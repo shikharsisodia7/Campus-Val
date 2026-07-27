@@ -177,8 +177,8 @@ export default function TentativePlansPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Tentative Plans"
-        subtitle="A safe place to try out what-if scenarios — adding a second major, a minor, or a study-abroad term — without touching your real Quarter Planner or profile. Nothing here is saved to your record."
+        title="What-If Explorer"
+        subtitle="A safe place to try out what-if scenarios — adding a second major, a minor, or a study-abroad term — without touching your profile. Nothing here is saved. To build and save real tentative degree plans, use the Degree Plan workspace."
       />
       <PageContent>
         <Card className="p-4 flex gap-3 bg-secondary/5 border-secondary/30">

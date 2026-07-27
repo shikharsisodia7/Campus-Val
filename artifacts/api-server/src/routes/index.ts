@@ -16,6 +16,7 @@ import voiceRouter from "./voice";
 import professorsRouter from "./professors";
 import feedbackRouter from "./feedback";
 import requirementsRouter from "./requirements";
+import plansRouter from "./plans";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(voiceRouter);
 router.use(professorsRouter);
 router.use(feedbackRouter);
 router.use(requirementsRouter);
+router.use(plansRouter);
 
 export default router;

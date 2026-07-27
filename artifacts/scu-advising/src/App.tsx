@@ -25,6 +25,7 @@ import { SignInPage, SignUpPage } from "@/pages/auth";
 const Onboarding = lazy(() => import("@/pages/onboarding"));
 const Dashboard = lazy(() => import("@/pages/dashboard"));
 const Courses = lazy(() => import("@/pages/courses"));
+const DegreePlan = lazy(() => import("@/pages/degree-plan"));
 const Planner = lazy(() => import("@/pages/planner"));
 const TentativePlans = lazy(() => import("@/pages/tentative-plans"));
 const GpaPage = lazy(() => import("@/pages/gpa"));
@@ -179,6 +180,11 @@ function AppRoutes() {
         <Route path="/courses">
           <Protected>
             <Courses />
+          </Protected>
+        </Route>
+        <Route path="/degree-plan">
+          <Protected>
+            <DegreePlan />
           </Protected>
         </Route>
         <Route path="/planner">

@@ -1,0 +1,51 @@
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { PlanItem } from "@workspace/api-client-react";
+import { CourseCard } from "./CourseCard";
+import { useDegreePlanContext } from "./DegreePlanContext";
+
+export function TermColumn({ id, year, term, items, availableYears }: { id: string, year: number, term: string, items: PlanItem[], availableYears: number[] }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  const { scheduleAvailability } = useDegreePlanContext();
+
+  const realUnits = items.reduce((sum, item) => sum + (item.itemType === 'course' ? (item.units || 0) : 0), 0);
+  const placeholders = items.filter(i => i.itemType === 'requirement_placeholder').length;
+
+  const availabilityTerm = scheduleAvailability?.terms.find(t => t.year === year && t.term === term);
+  const status = availabilityTerm?.status; // 'published' | 'tentative' | undefined
+  const statusLabel = status === 'published' ? 'Published schedule' : status === 'tentative' ? 'Tentative schedule' : 'Official schedule not published yet';
+  const statusColor = status === 'published' ? 'bg-emerald-100 text-emerald-800' : status === 'tentative' ? 'bg-amber-100 text-amber-800' : 'bg-muted/50 text-muted-foreground';
+
+  return (
+    <div 
+      ref={setNodeRef}
+      className={`flex flex-col gap-2 p-3 rounded-lg border ${isOver ? 'border-primary bg-primary/5' : 'border-border/50 bg-card'} shadow-sm min-h-[150px] transition-colors`}
+    >
+      <div className="flex items-center justify-between pb-1 border-b border-border/40">
+        <h4 className="font-medium text-sm capitalize">{term}</h4>
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+          {realUnits} {realUnits === 1 ? 'unit' : 'units'}
+          {placeholders > 0 && <span className="lowercase normal-case font-normal ml-1">+ {placeholders} req{placeholders > 1 ? 's' : ''}</span>}
+        </div>
+      </div>
+      
+      <div className={`text-[9px] px-1.5 py-0.5 rounded-sm w-fit ${statusColor}`}>
+        {statusLabel}
+      </div>
+
+      <div className="flex-1 flex flex-col gap-2 mt-1">
+        <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+          {items.map(item => (
+            <CourseCard key={item.id} item={item} availableYears={availableYears} />
+          ))}
+        </SortableContext>
+        
+        {items.length === 0 && !isOver && (
+          <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground/60 italic py-4">
+            No courses planned yet.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

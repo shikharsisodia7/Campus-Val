@@ -161,7 +161,7 @@ export default function GraduationPaths() {
     <AppShell>
       <PageHeader
         title="Graduation Paths"
-        subtitle="Compare standard 4-year and aggressive 3-year degree plans for any SCU undergraduate major. See unit load per quarter and feasibility risks."
+        subtitle="Reference-only sample sequences: compare a standard 12-quarter path with an aggressive 9-quarter path for any SCU undergraduate major. These are illustrations, not your plan — build your actual plan in the Degree Plan workspace."
         right={
           <div className="flex gap-2">
             <Button

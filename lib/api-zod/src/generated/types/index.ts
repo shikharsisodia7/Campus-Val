@@ -6,6 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./academicPlan";
+export * from "./academicPlanDetail";
+export * from "./academicPlanDuplicateInput";
+export * from "./academicPlanInput";
+export * from "./academicPlanList";
+export * from "./academicPlanUpdate";
 export * from "./articulationCollege";
 export * from "./articulationEntry";
 export * from "./articulationEntrySourceUnitSystem";
@@ -60,10 +66,17 @@ export * from "./openaiConversation";
 export * from "./openaiConversationWithMessages";
 export * from "./openaiError";
 export * from "./openaiMessage";
+export * from "./placeholderReplacement";
 export * from "./planCheckResult";
+export * from "./planDuplicateWarning";
 export * from "./planIssue";
 export * from "./planIssueSeverity";
+export * from "./planItem";
+export * from "./planItemInput";
+export * from "./planItemType";
+export * from "./planItemUpdate";
 export * from "./plannedCourse";
+export * from "./planType";
 export * from "./policy";
 export * from "./prereqCheckResult";
 export * from "./professorEntry";
@@ -74,6 +87,9 @@ export * from "./requirementGroup";
 export * from "./requirementGroupKind";
 export * from "./requirementItem";
 export * from "./runEvaluationBody";
+export * from "./scheduleAvailability";
+export * from "./scheduleAvailabilityTerm";
+export * from "./scheduleAvailabilityTermStatus";
 export * from "./sectionsSyncStatus";
 export * from "./sectionsSyncTermSummary";
 export * from "./sendOpenaiMessageBody";

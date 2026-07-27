@@ -1038,3 +1038,258 @@ export const SendOpenaiMessageParams = zod.object({
 export const SendOpenaiMessageBody = zod.object({
   content: zod.string(),
 });
+
+/**
+ * @summary List the student's academic plans (creates the Degree Plan on first call)
+ */
+export const ListPlansResponse = zod.object({
+  plans: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      planType: zod.enum(["degree", "tentative"]),
+      sourcePlanId: zod.number().nullish(),
+      itemCount: zod.number(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Create a tentative plan (optionally copying an existing plan)
+ */
+export const createPlanBodyNameMax = 80;
+
+export const CreatePlanBody = zod.object({
+  name: zod.string().min(1).max(createPlanBodyNameMax),
+  copyFromPlanId: zod
+    .number()
+    .nullish()
+    .describe("Copy all items from this plan; omit or null to start blank."),
+});
+
+/**
+ * @summary Get a plan with all its items
+ */
+export const GetPlanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPlanResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  planType: zod.enum(["degree", "tentative"]),
+  sourcePlanId: zod.number().nullish(),
+  items: zod.array(
+    zod.object({
+      id: zod.number(),
+      planId: zod.number(),
+      itemType: zod.enum(["course", "requirement_placeholder"]),
+      courseCode: zod.string().nullish(),
+      courseTitle: zod.string().nullish(),
+      units: zod.number().nullish(),
+      requirementId: zod.string().nullish(),
+      requirementCategory: zod.string().nullish(),
+      requirementLabel: zod.string().nullish(),
+      academicYear: zod
+        .number()
+        .describe("Start year of the academic year (2026 = 2026-2027)"),
+      term: zod.enum(["fall", "winter", "spring", "summer"]),
+      position: zod.number(),
+      note: zod.string().nullish(),
+    }),
+  ),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Rename a plan
+ */
+export const UpdatePlanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const updatePlanBodyNameMax = 80;
+
+export const UpdatePlanBody = zod.object({
+  name: zod.string().min(1).max(updatePlanBodyNameMax),
+});
+
+export const UpdatePlanResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  planType: zod.enum(["degree", "tentative"]),
+  sourcePlanId: zod.number().nullish(),
+  itemCount: zod.number(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a tentative plan (the Degree Plan cannot be deleted)
+ */
+export const DeletePlanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Duplicate a plan as a new tentative plan
+ */
+export const DuplicatePlanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const duplicatePlanBodyNameMax = 80;
+
+export const DuplicatePlanBody = zod.object({
+  name: zod.string().min(1).max(duplicatePlanBodyNameMax),
+});
+
+/**
+ * @summary Use a tentative plan as the Degree Plan (previous Degree Plan is kept as a tentative backup)
+ */
+export const PromotePlanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const PromotePlanResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  planType: zod.enum(["degree", "tentative"]),
+  sourcePlanId: zod.number().nullish(),
+  itemCount: zod.number(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Add a course or requirement placeholder to a plan term
+ */
+export const AddPlanItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddPlanItemBody = zod.object({
+  itemType: zod.enum(["course", "requirement_placeholder"]),
+  courseCode: zod
+    .string()
+    .optional()
+    .describe("Required for course items; must exist in the SCU catalog."),
+  requirementId: zod.string().optional(),
+  requirementCategory: zod.string().optional(),
+  requirementLabel: zod
+    .string()
+    .optional()
+    .describe("Required for requirement_placeholder items."),
+  academicYear: zod.number(),
+  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  note: zod.string().optional(),
+  allowDuplicate: zod
+    .boolean()
+    .optional()
+    .describe("Set true to add a course already present in this plan."),
+});
+
+/**
+ * @summary Move an item to another term/year, reorder it, or edit its note
+ */
+export const UpdatePlanItemParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+export const UpdatePlanItemBody = zod.object({
+  academicYear: zod.number().optional(),
+  term: zod.enum(["fall", "winter", "spring", "summer"]).optional(),
+  position: zod.number().optional(),
+  note: zod.string().nullish(),
+});
+
+export const UpdatePlanItemResponse = zod.object({
+  id: zod.number(),
+  planId: zod.number(),
+  itemType: zod.enum(["course", "requirement_placeholder"]),
+  courseCode: zod.string().nullish(),
+  courseTitle: zod.string().nullish(),
+  units: zod.number().nullish(),
+  requirementId: zod.string().nullish(),
+  requirementCategory: zod.string().nullish(),
+  requirementLabel: zod.string().nullish(),
+  academicYear: zod
+    .number()
+    .describe("Start year of the academic year (2026 = 2026-2027)"),
+  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  position: zod.number(),
+  note: zod.string().nullish(),
+});
+
+/**
+ * @summary Remove an item from a plan
+ */
+export const DeletePlanItemParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+/**
+ * @summary Replace a requirement placeholder with a chosen course (same plan, same term)
+ */
+export const ReplacePlanPlaceholderParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+export const ReplacePlanPlaceholderBody = zod.object({
+  courseCode: zod.string().min(1),
+});
+
+export const ReplacePlanPlaceholderResponse = zod.object({
+  id: zod.number(),
+  planId: zod.number(),
+  itemType: zod.enum(["course", "requirement_placeholder"]),
+  courseCode: zod.string().nullish(),
+  courseTitle: zod.string().nullish(),
+  units: zod.number().nullish(),
+  requirementId: zod.string().nullish(),
+  requirementCategory: zod.string().nullish(),
+  requirementLabel: zod.string().nullish(),
+  academicYear: zod
+    .number()
+    .describe("Start year of the academic year (2026 = 2026-2027)"),
+  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  position: zod.number(),
+  note: zod.string().nullish(),
+});
+
+/**
+ * @summary Export a plan as an advisor-friendly Excel workbook
+ */
+export const ExportPlanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Which SCU quarters have published/tentative official schedules
+ */
+export const GetScheduleAvailabilityResponse = zod.object({
+  terms: zod.array(
+    zod.object({
+      term: zod.enum(["fall", "winter", "spring", "summer"]),
+      year: zod.number(),
+      status: zod
+        .enum(["published", "tentative"])
+        .describe(
+          "published = official schedule with sections\/instructors; tentative = registrar tentative schedule (no instructors\/sections confirmed)",
+        ),
+      officialSectionCount: zod.number(),
+      syncedSectionCount: zod.number(),
+    }),
+  ),
+  note: zod
+    .string()
+    .describe(
+      "Honest explanation of what unlisted terms mean (no official schedule published).",
+    ),
+});

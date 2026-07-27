@@ -634,6 +634,299 @@ paths:
           content:
             text/event-stream: {}
 
+  /plans:
+    get:
+      operationId: listPlans
+      tags: [plans]
+      summary: List the student's academic plans (creates the Degree Plan on first call)
+      responses:
+        "200":
+          description: Plans
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcademicPlanList"
+    post:
+      operationId: createPlan
+      tags: [plans]
+      summary: Create a tentative plan (optionally copying an existing plan)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcademicPlanInput"
+      responses:
+        "201":
+          description: Created plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcademicPlan"
+        "400":
+          description: Invalid input
+  /plans/{id}:
+    get:
+      operationId: getPlan
+      tags: [plans]
+      summary: Get a plan with all its items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Plan detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcademicPlanDetail"
+        "404":
+          description: Not found
+    patch:
+      operationId: updatePlan
+      tags: [plans]
+      summary: Rename a plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcademicPlanUpdate"
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcademicPlan"
+        "404":
+          description: Not found
+    delete:
+      operationId: deletePlan
+      tags: [plans]
+      summary: Delete a tentative plan (the Degree Plan cannot be deleted)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "400":
+          description: Cannot delete the Degree Plan
+        "404":
+          description: Not found
+  /plans/{id}/duplicate:
+    post:
+      operationId: duplicatePlan
+      tags: [plans]
+      summary: Duplicate a plan as a new tentative plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcademicPlanDuplicateInput"
+      responses:
+        "201":
+          description: New tentative plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcademicPlan"
+        "404":
+          description: Not found
+  /plans/{id}/promote:
+    post:
+      operationId: promotePlan
+      tags: [plans]
+      summary: Use a tentative plan as the Degree Plan (previous Degree Plan is kept as a tentative backup)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: The promoted plan (now the Degree Plan)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcademicPlan"
+        "400":
+          description: Plan is already the Degree Plan
+        "404":
+          description: Not found
+  /plans/{id}/items:
+    post:
+      operationId: addPlanItem
+      tags: [plans]
+      summary: Add a course or requirement placeholder to a plan term
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanItemInput"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanItem"
+        "400":
+          description: Invalid input
+        "404":
+          description: Not found
+        "409":
+          description: Duplicate course in plan (send allowDuplicate to override)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanDuplicateWarning"
+  /plans/{id}/items/{itemId}:
+    patch:
+      operationId: updatePlanItem
+      tags: [plans]
+      summary: Move an item to another term/year, reorder it, or edit its note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanItemUpdate"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanItem"
+        "404":
+          description: Not found
+    delete:
+      operationId: deletePlanItem
+      tags: [plans]
+      summary: Remove an item from a plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+  /plans/{id}/items/{itemId}/replace:
+    post:
+      operationId: replacePlanPlaceholder
+      tags: [plans]
+      summary: Replace a requirement placeholder with a chosen course (same plan, same term)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceholderReplacement"
+      responses:
+        "200":
+          description: The new course item that replaced the placeholder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanItem"
+        "400":
+          description: Item is not a placeholder or course unknown
+        "404":
+          description: Not found
+  /plans/{id}/export:
+    get:
+      operationId: exportPlan
+      tags: [plans]
+      summary: Export a plan as an advisor-friendly Excel workbook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: XLSX workbook
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not found
+  /schedule-availability:
+    get:
+      operationId: getScheduleAvailability
+      tags: [plans]
+      summary: Which SCU quarters have published/tentative official schedules
+      responses:
+        "200":
+          description: Availability of official schedule data per term
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScheduleAvailability"
+
 components:
   schemas:
     HealthStatus:
@@ -647,6 +940,139 @@ components:
     StudentType:
       type: string
       enum: [first_year, transfer, continuing, graduate, postgrad]
+    PlanType:
+      type: string
+      enum: [degree, tentative]
+    PlanItemType:
+      type: string
+      enum: [course, requirement_placeholder]
+    AcademicPlan:
+      type: object
+      required: [id, name, planType, itemCount, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        planType: { $ref: "#/components/schemas/PlanType" }
+        sourcePlanId: { type: ["integer", "null"] }
+        itemCount: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    AcademicPlanList:
+      type: object
+      required: [plans]
+      properties:
+        plans:
+          type: array
+          items: { $ref: "#/components/schemas/AcademicPlan" }
+    AcademicPlanInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        copyFromPlanId:
+          type: ["integer", "null"]
+          description: Copy all items from this plan; omit or null to start blank.
+    AcademicPlanUpdate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+    AcademicPlanDuplicateInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+    PlanItem:
+      type: object
+      required: [id, planId, itemType, academicYear, term, position]
+      properties:
+        id: { type: integer }
+        planId: { type: integer }
+        itemType: { $ref: "#/components/schemas/PlanItemType" }
+        courseCode: { type: ["string", "null"] }
+        courseTitle: { type: ["string", "null"] }
+        units: { type: ["number", "null"] }
+        requirementId: { type: ["string", "null"] }
+        requirementCategory: { type: ["string", "null"] }
+        requirementLabel: { type: ["string", "null"] }
+        academicYear:
+          type: integer
+          description: Start year of the academic year (2026 = 2026-2027)
+        term: { $ref: "#/components/schemas/Term" }
+        position: { type: integer }
+        note: { type: ["string", "null"] }
+    AcademicPlanDetail:
+      type: object
+      required: [id, name, planType, items, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        planType: { $ref: "#/components/schemas/PlanType" }
+        sourcePlanId: { type: ["integer", "null"] }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/PlanItem" }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    PlanItemInput:
+      type: object
+      required: [itemType, academicYear, term]
+      properties:
+        itemType: { $ref: "#/components/schemas/PlanItemType" }
+        courseCode:
+          type: string
+          description: Required for course items; must exist in the SCU catalog.
+        requirementId: { type: string }
+        requirementCategory: { type: string }
+        requirementLabel:
+          type: string
+          description: Required for requirement_placeholder items.
+        academicYear: { type: integer }
+        term: { $ref: "#/components/schemas/Term" }
+        note: { type: string }
+        allowDuplicate:
+          type: boolean
+          description: Set true to add a course already present in this plan.
+    PlanItemUpdate:
+      type: object
+      properties:
+        academicYear: { type: integer }
+        term: { $ref: "#/components/schemas/Term" }
+        position: { type: integer }
+        note: { type: ["string", "null"] }
+    PlaceholderReplacement:
+      type: object
+      required: [courseCode]
+      properties:
+        courseCode: { type: string, minLength: 1 }
+    PlanDuplicateWarning:
+      type: object
+      required: [error, duplicate]
+      properties:
+        error: { type: string }
+        duplicate: { type: boolean }
+    ScheduleAvailabilityTerm:
+      type: object
+      required: [term, year, status, officialSectionCount, syncedSectionCount]
+      properties:
+        term: { $ref: "#/components/schemas/Term" }
+        year: { type: integer }
+        status:
+          type: string
+          enum: [published, tentative]
+          description: published = official schedule with sections/instructors; tentative = registrar tentative schedule (no instructors/sections confirmed)
+        officialSectionCount: { type: integer }
+        syncedSectionCount: { type: integer }
+    ScheduleAvailability:
+      type: object
+      required: [terms, note]
+      properties:
+        terms:
+          type: array
+          items: { $ref: "#/components/schemas/ScheduleAvailabilityTerm" }
+        note:
+          type: string
+          description: Honest explanation of what unlisted terms mean (no official schedule published).
     Term:
       type: string
       enum: [fall, winter, spring, summer]
