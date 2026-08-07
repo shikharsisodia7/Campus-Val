@@ -301,6 +301,102 @@ describe("CourseCard — quarter suggestions per-quarter statuses in conflict po
     expect(screen.queryByTestId(`quarter-suggestion-40-${CURRENT_YEAR + 1}-spring`)).toBeNull();
   });
 
+  it("shows '(tentative)' suffix next to the quarter name when scheduleStatus is tentative", async () => {
+    const item = makePlanItem(60, "CHEM 11", CURRENT_TERM, CURRENT_YEAR);
+    const conflict: CourseConflictDetail = {
+      otherCode: "MATH 11",
+      overlaps: [
+        {
+          aSection: "01",
+          bSection: "01",
+          aDays: ["M", "W", "F"],
+          bDays: ["M", "W", "F"],
+          aStart: "08:00",
+          aEnd: "09:05",
+          bStart: "08:00",
+          bEnd: "09:05",
+          sharedDays: ["M", "W", "F"],
+          overlapStart: 480,
+          overlapEnd: 545,
+        },
+      ],
+    };
+
+    renderCard({
+      item,
+      conflicts: [conflict],
+      sectionsByCode: {
+        // winter 2026 has a conflict-free TR section — status resolves to "fits"
+        "CHEM 11": [
+          {
+            term: "winter",
+            year: CURRENT_YEAR,
+            sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR)],
+          },
+        ],
+      },
+      scheduleAvailability: makeAvailability([
+        { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
+        // winter is tentative — this is what we're testing
+        { year: CURRENT_YEAR, term: "winter", status: "tentative", offered: ["CHEM 11"] },
+      ]),
+    });
+
+    fireEvent.click(screen.getByTestId("time-conflict-note-60"));
+
+    await screen.findByTestId("quarter-suggestions-60");
+
+    const winterRow = await screen.findByTestId(`quarter-suggestion-60-${CURRENT_YEAR}-winter`);
+    // The row must show the "(tentative)" annotation next to the quarter name.
+    expect(winterRow.textContent).toContain("(tentative)");
+    // Sanity-check the label is still correct too.
+    expect(winterRow.textContent).toContain("Offered — quarter is empty in your plan");
+  });
+
+  it("shows 'Checking sections…' for a quarter whose section data has not yet loaded", async () => {
+    const item = makePlanItem(70, "CHEM 11", CURRENT_TERM, CURRENT_YEAR);
+    const conflict: CourseConflictDetail = {
+      otherCode: "MATH 11",
+      overlaps: [
+        {
+          aSection: "01",
+          bSection: "01",
+          aDays: ["M", "W", "F"],
+          bDays: ["M", "W", "F"],
+          aStart: "08:00",
+          aEnd: "09:05",
+          bStart: "08:00",
+          bEnd: "09:05",
+          sharedDays: ["M", "W", "F"],
+          overlapStart: 480,
+          overlapEnd: 545,
+        },
+      ],
+    };
+
+    renderCard({
+      item,
+      conflicts: [conflict],
+      // No sections seeded for winter — data is absent, so the query has no
+      // cached result when the popover opens.  The hook returns status
+      // "checking" while data === undefined (loading or error).
+      sectionsByCode: {},
+      scheduleAvailability: makeAvailability([
+        { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
+        { year: CURRENT_YEAR, term: "winter", status: "published", offered: ["CHEM 11"] },
+      ]),
+    });
+
+    fireEvent.click(screen.getByTestId("time-conflict-note-70"));
+
+    await screen.findByTestId("quarter-suggestions-70");
+
+    // The winter row must show the loading placeholder immediately because no
+    // section data has been seeded into the cache.
+    const winterRow = await screen.findByTestId(`quarter-suggestion-70-${CURRENT_YEAR}-winter`);
+    expect(winterRow.textContent).toContain("Checking sections…");
+  });
+
   it("shows 'fits' with planned-course count label when the quarter is not empty", async () => {
     const item = makePlanItem(50, "CHEM 11", CURRENT_TERM, CURRENT_YEAR);
     const conflict: CourseConflictDetail = {
