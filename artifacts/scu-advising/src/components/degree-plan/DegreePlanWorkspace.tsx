@@ -45,7 +45,25 @@ export function DegreePlanWorkspace({ mode = "degree" }: { mode?: "degree" | "te
   });
 
   const { data: profile } = useGetProfile();
-  const { data: reqsData } = useGetDegreeRequirements();
+  const scenarioMajorQuery =
+    activePlan?.planType === "tentative"
+      ? activePlan.metadata?.scenarioMajors?.join(",") || undefined
+      : undefined;
+  const scenarioMinorQuery =
+    activePlan?.planType === "tentative"
+      ? activePlan.metadata?.scenarioMinors?.join(",") || undefined
+      : undefined;
+  const { data: reqsData } = useGetDegreeRequirements({
+    query: {
+      queryKey: ["/api/requirements", scenarioMajorQuery, scenarioMinorQuery],
+      request: {
+        params: {
+          ...(scenarioMajorQuery ? { scenarioMajors: scenarioMajorQuery } : {}),
+          ...(scenarioMinorQuery ? { scenarioMinors: scenarioMinorQuery } : {}),
+        },
+      },
+    },
+  });
   const { data: scheduleAvailability } = useGetScheduleAvailability();
   const { data: catalog } = useListCourses({});
   const { data: reportData } = useGetProgressReport();

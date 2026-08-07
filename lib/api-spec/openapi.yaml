@@ -1540,6 +1540,14 @@ components:
         summerYears:
           type: array
           items: { type: integer, minimum: 2000, maximum: 2100 }
+        scenarioMajors:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 120 }
+          description: Draft-only additional majors; does not alter the official student profile.
+        scenarioMinors:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 120 }
+          description: Draft-only additional minors; does not alter the official student profile.
     AcademicPlanDuplicateInput:
       type: object
       required: [name]

@@ -289,6 +289,22 @@ router.patch("/plans/:id", requireAuth, async (req, res) => {
                   (parsed.data.metadata.summerYears ?? []).filter(validAcademicYear),
                 ),
               ).sort((a, b) => a - b),
+              scenarioMajors: Array.from(
+                new Set(
+                  (parsed.data.metadata.scenarioMajors ?? [])
+                    .map((value) => value.trim())
+                    .filter((value) => value.length > 0)
+                    .map((value) => value.slice(0, 120)),
+                ),
+              ),
+              scenarioMinors: Array.from(
+                new Set(
+                  (parsed.data.metadata.scenarioMinors ?? [])
+                    .map((value) => value.trim())
+                    .filter((value) => value.length > 0)
+                    .map((value) => value.slice(0, 120)),
+                ),
+              ),
             },
           }
         : {}),

@@ -143,10 +143,21 @@ router.get("/requirements", requireAuth, async (req, res) => {
     };
   };
 
+  const scenarioMajors = String(req.query.scenarioMajors ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 10);
+  const scenarioMinors = String(req.query.scenarioMinors ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 10);
   const declaredMajors = [
     profile.major,
     profile.secondMajor,
     ...(profile.additionalMajors ?? []),
+    ...scenarioMajors,
   ].filter((m, idx, arr): m is string => !!m && arr.indexOf(m) === idx);
   const majorGroups = declaredMajors.map((m, idx) =>
     buildMajorGroup(m, idx === 0 ? "primary" : `extra-${idx}`),
@@ -154,7 +165,11 @@ router.get("/requirements", requireAuth, async (req, res) => {
 
   // Declared minors: CampusVal doesn't have verified course-by-course minor
   // requirements, so these groups are honest placeholders — no invented items.
-  const declaredMinors = [profile.minor, ...(profile.additionalMinors ?? [])].filter(
+  const declaredMinors = [
+    profile.minor,
+    ...(profile.additionalMinors ?? []),
+    ...scenarioMinors,
+  ].filter(
     (m, idx, arr): m is string => !!m && arr.indexOf(m) === idx,
   );
   const minorGroups = declaredMinors.map((minorName, idx) => ({

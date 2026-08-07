@@ -31,6 +31,8 @@ export const academicPlansTable = pgTable(
       .$type<{
         addedYears?: number[];
         summerYears?: number[];
+        scenarioMajors?: string[];
+        scenarioMinors?: string[];
       }>()
       .notNull()
       .default({}),
