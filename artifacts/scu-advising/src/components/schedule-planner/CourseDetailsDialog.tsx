@@ -53,7 +53,7 @@ export function CourseDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent aria-describedby={undefined} className="max-w-xl max-h-[85vh] overflow-y-auto">
         {isSection ? (
           <>
             <DialogHeader>
