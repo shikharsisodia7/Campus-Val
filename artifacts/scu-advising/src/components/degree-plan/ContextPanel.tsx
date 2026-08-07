@@ -11,6 +11,7 @@ import {
   useDeletePlan, 
   usePromotePlan,
   useUpdatePlan,
+  getGetPlanQueryKey,
   useListGraduationMajors,
   useListGraduationMinors,
   AcademicPlan,
@@ -69,21 +70,28 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
 
   const updatePrograms = (programs: PlanPrograms) => {
     if (!activePlanId || !activePlan) return;
+    const planId = activePlanId;
     updatePlan.mutate({
-      id: activePlanId,
+      id: planId,
       data: { name: activePlan.name, programs }
     }, {
-      onSuccess: () => {
+      onSuccess: (updatedPlan) => {
+        // PATCH returns the plan's current metadata/programs. Write it to the
+        // exact plan cache before broad invalidation so switching scenarios
+        // never renders another plan's program chips.
+        queryClient.setQueryData(getGetPlanQueryKey(planId), (current: AcademicPlan | undefined) =>
+          current ? { ...current, ...updatedPlan } : current,
+        );
         queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
       }
     });
   };
 
-  const addMajor = () => {
-    if (!majorDraft) return;
+  const addMajor = (majorCode = majorDraft) => {
+    if (!majorCode || !activePlanId || !activePlan) return;
     const updated = {
       ...currentPrograms,
-      additionalMajors: [...currentPrograms.additionalMajors, majorDraft],
+      additionalMajors: [...currentPrograms.additionalMajors, majorCode],
     };
     updatePrograms(updated);
     setMajorDraft("");
@@ -151,6 +159,7 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
     }, {
       onSuccess: (newPlan) => {
         setCreateOpen(false);
+        queryClient.removeQueries({ queryKey: getGetPlanQueryKey(newPlan.id) });
         setActivePlanId(newPlan.id);
         queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
       }
@@ -182,11 +191,20 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
 
   const handleDuplicate = () => {
     if (!activePlanId || !activePlan) return;
+    const existingNames = new Set(plans.map((plan) => plan.name));
+    const baseName = `${activePlan.name} (Copy)`;
+    let duplicateName = baseName;
+    let copyNumber = 2;
+    while (existingNames.has(duplicateName)) {
+      duplicateName = `${baseName} ${copyNumber}`;
+      copyNumber += 1;
+    }
     duplicatePlan.mutate({
       id: activePlanId,
-      data: { name: `${activePlan.name} (Copy)` }
+      data: { name: duplicateName }
     }, {
       onSuccess: (newPlan) => {
+        queryClient.removeQueries({ queryKey: getGetPlanQueryKey(newPlan.id) });
         setActivePlanId(newPlan.id);
         queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
       }
@@ -347,7 +365,16 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                     </div>
                   )}
                   <div className="flex gap-1.5">
-                    <Select value={majorDraft} onValueChange={setMajorDraft}>
+                    <Select
+                      value={majorDraft}
+                      onValueChange={(code) => {
+                        setMajorDraft(code);
+                        // Selecting a program is the student intent. Apply it
+                        // immediately instead of relying on a tiny adjacent
+                        // icon button that is easy to miss in compact panels.
+                        addMajor(code);
+                      }}
+                    >
                       <SelectTrigger className="h-7 text-xs flex-1" data-testid="select-plan-additional-major">
                         <SelectValue placeholder="Add major…" />
                       </SelectTrigger>
@@ -359,7 +386,7 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button size="sm" className="h-7 px-2" onClick={addMajor} disabled={!majorDraft || updatePlan.isPending}
+                    <Button size="sm" className="h-7 px-2" onClick={() => addMajor()} disabled={!majorDraft || updatePlan.isPending}
                       data-testid="button-add-plan-major">
                       <Plus className="h-3 w-3" />
                     </Button>

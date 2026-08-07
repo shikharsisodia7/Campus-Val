@@ -176,6 +176,52 @@ describe("duplication (deep copy)", () => {
       ).expect(204);
     }
   });
+
+  it("keeps programs and course moves isolated between source and duplicate", async () => {
+    const sourceId = await degreePlanId(USER_A);
+    const item = await addCourse(sourceId, C1, "winter", 2026);
+    const sourcePrograms = {
+      additionalMajors: ["MATH"],
+      minors: [],
+      professionalGoals: [],
+    };
+    await asA(request(app).patch(`/api/plans/${sourceId}`))
+      .send({ programs: sourcePrograms })
+      .expect(200);
+
+    const duplicate = await asA(
+      request(app).post(`/api/plans/${sourceId}/duplicate`),
+    )
+      .send({ name: "Independent scenario" })
+      .expect(201);
+    const duplicateItems = await getItems(duplicate.body.id);
+
+    await asA(request(app).patch(`/api/plans/${duplicate.body.id}`))
+      .send({
+        programs: {
+          ...sourcePrograms,
+          additionalMajors: ["MATH", "ECEN"],
+        },
+      })
+      .expect(200);
+    await asA(
+      request(app).patch(
+        `/api/plans/${duplicate.body.id}/items/${duplicateItems[0].id}`,
+      ),
+    )
+      .send({ term: "spring", academicYear: 2026 })
+      .expect(200);
+
+    const source = await asA(request(app).get(`/api/plans/${sourceId}`)).expect(200);
+    const copied = await asA(request(app).get(`/api/plans/${duplicate.body.id}`)).expect(200);
+    expect(source.body.programs.additionalMajors).toEqual(["MATH"]);
+    expect(copied.body.programs.additionalMajors).toEqual(["MATH", "ECEN"]);
+    expect(source.body.items.find((i: any) => i.id === item.id).term).toBe("winter");
+    expect(copied.body.items[0].term).toBe("spring");
+
+    await asA(request(app).delete(`/api/plans/${duplicate.body.id}`)).expect(204);
+    await asA(request(app).delete(`/api/plans/${sourceId}/items/${item.id}`)).expect(204);
+  });
 });
 
 describe("promote", () => {

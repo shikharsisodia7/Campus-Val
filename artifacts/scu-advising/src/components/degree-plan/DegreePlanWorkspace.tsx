@@ -52,6 +52,16 @@ export function DegreePlanWorkspace({ mode = "degree" }: DegreePlanWorkspaceProp
     query: { enabled: !!activePlanId, queryKey: getGetPlanQueryKey(activePlanId!) }
   });
 
+  const selectPlan = (planId: number | null) => {
+    setActivePlanId(planId);
+    if (planId !== null) {
+      // A tentative plan must always render from its own detail query. This
+      // prevents the previous plan's cached detail from briefly appearing
+      // after a duplicate/create/switch operation.
+      queryClient.invalidateQueries({ queryKey: getGetPlanQueryKey(planId) });
+    }
+  };
+
   const { data: profile } = useGetProfile();
   // Plan-scoped scenario programs come from the "Programs for this plan"
   // editor (activePlan.programs); legacy metadata.scenarioMajors/Minors are
@@ -167,7 +177,7 @@ export function DegreePlanWorkspace({ mode = "degree" }: DegreePlanWorkspaceProp
     <DegreePlanProvider value={{
       activePlan,
       activePlanId,
-      setActivePlanId,
+        setActivePlanId: selectPlan,
       profile,
       requirements: reqsData?.groups,
       scheduleAvailability,
