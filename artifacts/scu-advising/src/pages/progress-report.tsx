@@ -57,6 +57,10 @@ export default function ProgressReportPage() {
   const deleteMutation = useDeleteProgressReport({
     mutation: {
       onSuccess: () => {
+        // Remove (not just invalidate) so the stale report doesn't linger:
+        // the refetch after delete returns 404, and react-query keeps the
+        // previous data on error, which would leave the deleted card visible.
+        qc.removeQueries({ queryKey: getGetProgressReportQueryKey() });
         qc.invalidateQueries({ queryKey: getGetProgressReportQueryKey() });
         toast({ title: "Report deleted", description: "Your progress report has been removed." });
       },
@@ -128,7 +132,8 @@ export default function ProgressReportPage() {
     (envelopeRawError as { status?: number })?.status === 404;
 
   const available = envelope?.available ?? (is404 ? true : undefined);
-  const report = envelope?.report ?? null;
+  // A 404 means "no report" — ignore any stale cached envelope in that case.
+  const report = is404 ? null : envelope?.report ?? null;
 
   const showUploadForm =
     available === true &&
