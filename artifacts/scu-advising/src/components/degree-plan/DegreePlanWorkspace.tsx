@@ -89,8 +89,20 @@ export function DegreePlanWorkspace({ mode = "degree" }: { mode?: "degree" | "te
           <SheetTrigger asChild>
             <Button variant="outline" size="sm"><Menu className="h-4 w-4 mr-2" /> Palette</Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[320px] p-0">
+          <SheetContent
+            side="left"
+            className="w-[320px] p-0"
+            onEscapeKeyDown={() => setLeftOpen(false)}
+            onPointerDownOutside={() => setLeftOpen(false)}
+          >
             <SheetTitle className="sr-only">Course Palette</SheetTitle>
+            <button
+              type="button"
+              className="absolute right-3 top-3 z-10 rounded-sm bg-background/90 px-2 py-1 text-xs font-medium text-muted-foreground shadow-sm hover:text-foreground"
+              onClick={() => setLeftOpen(false)}
+            >
+              Close palette
+            </button>
             <Palette />
           </SheetContent>
         </Sheet>
@@ -101,8 +113,20 @@ export function DegreePlanWorkspace({ mode = "degree" }: { mode?: "degree" | "te
           <SheetTrigger asChild>
             <Button variant="outline" size="sm"><Settings2 className="h-4 w-4 mr-2" /> Plan Info</Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-[300px] p-0">
+          <SheetContent
+            side="right"
+            className="w-[300px] p-0"
+            onEscapeKeyDown={() => setRightOpen(false)}
+            onPointerDownOutside={() => setRightOpen(false)}
+          >
             <SheetTitle className="sr-only">Plan Context</SheetTitle>
+            <button
+              type="button"
+              className="absolute left-3 top-3 z-10 rounded-sm bg-background/90 px-2 py-1 text-xs font-medium text-muted-foreground shadow-sm hover:text-foreground"
+              onClick={() => setRightOpen(false)}
+            >
+              Close
+            </button>
             <ContextPanel plans={plansList?.plans ?? []} />
           </SheetContent>
         </Sheet>

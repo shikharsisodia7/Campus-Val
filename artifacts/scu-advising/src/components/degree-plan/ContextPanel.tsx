@@ -232,7 +232,7 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
       </ScrollArea>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>New Tentative Plan</DialogTitle>
             <DialogDescription>Create a sandbox plan to explore options.</DialogDescription>
@@ -261,7 +261,7 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
       </Dialog>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Rename Plan</DialogTitle>
           </DialogHeader>

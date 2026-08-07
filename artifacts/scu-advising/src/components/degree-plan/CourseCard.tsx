@@ -24,7 +24,7 @@ function CourseDetailDialog({ code, term, year, termStatus, open, onOpenChange }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+        <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="font-mono text-xl">{code}</DialogTitle>
           <DialogDescription>{courseDetails?.title || "Loading..."}</DialogDescription>
@@ -264,7 +264,7 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
       {/* Replace Placeholder Dialog */}
       {isPlaceholder && (
         <Dialog open={isReplaceOpen} onOpenChange={setIsReplaceOpen}>
-          <DialogContent>
+          <DialogContent aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle>Replace Placeholder</DialogTitle>
               <DialogDescription>Find a course to satisfy: {item.requirementLabel}</DialogDescription>
