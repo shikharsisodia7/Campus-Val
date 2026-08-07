@@ -20,6 +20,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { AlertTriangle, Menu, Settings2, FlaskConical, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
+const LAST_TENTATIVE_PLAN_KEY = "campusval.lastTentativePlanId";
+
 export function DegreePlanWorkspace({ mode = "degree" }: DegreePlanWorkspaceProps) {
   const { data: plansList, isLoading: plansLoading } = useListPlans();
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
@@ -34,7 +36,15 @@ export function DegreePlanWorkspace({ mode = "degree" }: DegreePlanWorkspaceProp
   useEffect(() => {
     if (!activePlanId && plansList?.plans) {
       if (mode === 'tentative') {
-        const tentativePlan = plansList.plans.find(p => p.planType === 'tentative');
+        // Prefer the plan the user was last working on (survives reloads).
+        // Fall back to the first tentative plan only if the remembered one
+        // no longer exists (e.g. it was deleted or promoted).
+        const rememberedRaw = sessionStorage.getItem(LAST_TENTATIVE_PLAN_KEY);
+        const rememberedId = rememberedRaw ? Number(rememberedRaw) : null;
+        const remembered = rememberedId
+          ? plansList.plans.find(p => p.id === rememberedId && p.planType === 'tentative')
+          : undefined;
+        const tentativePlan = remembered ?? plansList.plans.find(p => p.planType === 'tentative');
         if (tentativePlan) {
           setActivePlanId(tentativePlan.id);
         }
@@ -54,6 +64,13 @@ export function DegreePlanWorkspace({ mode = "degree" }: DegreePlanWorkspaceProp
 
   const selectPlan = (planId: number | null) => {
     setActivePlanId(planId);
+    if (mode === 'tentative') {
+      if (planId !== null) {
+        sessionStorage.setItem(LAST_TENTATIVE_PLAN_KEY, String(planId));
+      } else {
+        sessionStorage.removeItem(LAST_TENTATIVE_PLAN_KEY);
+      }
+    }
     if (planId !== null) {
       // A tentative plan must always render from its own detail query. This
       // prevents the previous plan's cached detail from briefly appearing
@@ -102,7 +119,7 @@ export function DegreePlanWorkspace({ mode = "degree" }: DegreePlanWorkspaceProp
       }
     }, {
       onSuccess: (newPlan) => {
-        setActivePlanId(newPlan.id);
+        selectPlan(newPlan.id);
         queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
         setCreating(false);
       },
