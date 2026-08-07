@@ -530,6 +530,15 @@ function updateManifests(manifests, timestamp, baseUrl, assetsByHash) {
 async function main() {
   console.log('Building static Expo Go deployment...');
 
+  if (!process.env.CLERK_PUBLISHABLE_KEY) {
+    console.error(
+      'ERROR: CLERK_PUBLISHABLE_KEY is not set.\n' +
+        'The Expo build requires this environment variable to configure Clerk authentication.\n' +
+        'Set CLERK_PUBLISHABLE_KEY in your environment before running the build.',
+    );
+    process.exit(1);
+  }
+
   setupSignalHandlers();
 
   const domain = getDeploymentDomain();

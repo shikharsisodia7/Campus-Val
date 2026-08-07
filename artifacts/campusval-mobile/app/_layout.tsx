@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, ClerkLoaded } from '@clerk/expo';
 import { tokenCache } from '@clerk/expo/token-cache';
@@ -27,6 +28,24 @@ if (domain) setBaseUrl(`https://${domain}`);
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
 const proxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
+/**
+ * Rendered when the Clerk publishable key is missing at startup.
+ * This surfaces a visible error instead of a blank or crashed screen.
+ */
+function MissingKeyScreen() {
+  return (
+    <SafeAreaProvider>
+      <View style={styles.missingKeyContainer} testID="missing-key-warning">
+        <Text style={styles.missingKeyTitle}>Sign-in unavailable</Text>
+        <Text style={styles.missingKeyBody}>
+          The app authentication key is not configured. Please contact support
+          or restart the app. (EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is not set)
+        </Text>
+      </View>
+    </SafeAreaProvider>
+  );
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 30_000 },
@@ -41,6 +60,29 @@ function RootLayoutNav() {
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  missingKeyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: '#fff',
+  },
+  missingKeyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#c0392b',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  missingKeyBody: {
+    fontSize: 15,
+    color: '#555',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -57,6 +99,10 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;
+
+  if (!publishableKey) {
+    return <MissingKeyScreen />;
+  }
 
   return (
     <SafeAreaProvider>
