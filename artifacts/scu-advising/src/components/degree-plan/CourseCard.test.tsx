@@ -654,6 +654,70 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
     });
   });
 
+  it("shows cached suggestion status instantly on re-open — no 'Checking sections…' flicker", async () => {
+    // This test verifies the fix for the flicker bug: when a student closes
+    // and reopens the conflict popover within 60 s, cached section data must
+    // be served synchronously so the row never briefly shows "Checking sections…".
+    const item = makePlanItem(90, "CHEM 11", CURRENT_TERM, CURRENT_YEAR);
+    const conflict: CourseConflictDetail = {
+      otherCode: "MATH 11",
+      overlaps: [
+        {
+          aSection: "01",
+          bSection: "01",
+          aDays: ["M", "W", "F"],
+          bDays: ["M", "W", "F"],
+          aStart: "08:00",
+          aEnd: "09:05",
+          bStart: "08:00",
+          bEnd: "09:05",
+          sharedDays: ["M", "W", "F"],
+          overlapStart: 480,
+          overlapEnd: 545,
+        },
+      ],
+    };
+
+    renderCard({
+      item,
+      conflicts: [conflict],
+      sectionsByCode: {
+        // Cache warm: winter 2026 has a conflict-free TR section → "fits".
+        "CHEM 11": [
+          { term: "winter", year: CURRENT_YEAR, sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR)] },
+        ],
+      },
+      scheduleAvailability: makeAvailability([
+        { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
+        { year: CURRENT_YEAR, term: "winter",     status: "published", offered: ["CHEM 11"] },
+      ]),
+    });
+
+    const conflictNote = screen.getByTestId("time-conflict-note-90");
+
+    // ── First open: confirm the cached "fits" result is shown ────────────────
+    fireEvent.click(conflictNote);
+    await screen.findByTestId("quarter-suggestions-90");
+    const winterRowFirst = await screen.findByTestId(`quarter-suggestion-90-${CURRENT_YEAR}-winter`);
+    expect(winterRowFirst.textContent).toContain("Offered — quarter is empty in your plan");
+
+    // ── Close the popover ─────────────────────────────────────────────────────
+    fireEvent.click(conflictNote);
+    await waitFor(() => {
+      expect(screen.queryByTestId("time-conflict-details-90")).toBeNull();
+    });
+
+    // ── Re-open: must immediately show the resolved status, not "Checking…" ──
+    fireEvent.click(conflictNote);
+    const winterRowSecond = await screen.findByTestId(`quarter-suggestion-90-${CURRENT_YEAR}-winter`);
+
+    // The row must never contain "Checking sections…" on re-open because the
+    // query was kept enabled (latch) and the cached result is available
+    // synchronously on the first render after re-opening.
+    expect(winterRowSecond.textContent).not.toContain("Checking sections…");
+    expect(winterRowSecond.textContent).toContain("Offered — quarter is empty in your plan");
+  });
+
   it("does not show a 'Move here' button for a no-fit suggestion", async () => {
     const item = makePlanItem(20, "CHEM 11", CURRENT_TERM, CURRENT_YEAR);
 

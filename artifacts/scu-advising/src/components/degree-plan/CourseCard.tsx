@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { PlanItem, PlanItemType, useReplacePlanPlaceholder, useGetCourse, useListCourseSections, getListCourseSectionsQueryKey, type Term, type ScheduleAvailabilityTermStatus } from "@workspace/api-client-react";
@@ -403,13 +403,19 @@ function ConflictNote({ item, conflicts, onMove }: { item: PlanItem, conflicts: 
 
 function QuarterSuggestions({ item, courseCode, enabled, onMove }: { item: PlanItem, courseCode: string, enabled: boolean, onMove?: (year: number, term: string) => void }) {
   const { activePlan, scheduleAvailability } = useDegreePlanContext();
+
+  // Latch: once the popover has been opened, keep queries alive so the cache
+  // is always warm and re-opening shows cached results instantly (no flicker).
+  const everEnabled = useRef(false);
+  if (enabled) everEnabled.current = true;
+
   const suggestions = useQuarterFitSuggestions(
     courseCode,
     item.academicYear,
     item.term,
     activePlan?.items,
     scheduleAvailability,
-    enabled,
+    everEnabled.current,
   );
 
   if (suggestions.length === 0) return null;
