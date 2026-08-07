@@ -181,3 +181,53 @@ describe("TermColumn conflict warning wiring", () => {
     expect(screen.getByText("Official schedule not published yet")).toBeTruthy();
   });
 });
+
+describe("TermColumn not-in-official-schedule flag wiring", () => {
+  it("flags only the course missing from a published term's offeredCourseCodes", async () => {
+    const items = [planItem(401, "CHEM 11"), planItem(402, "MATH 11")];
+    renderBoard({
+      items,
+      sectionsByCode: {
+        // Non-clashing sections so the time-conflict note stays out of the way.
+        "CHEM 11": [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05")],
+      },
+      // MATH 11 planned but absent from the official schedule.
+      scheduleAvailability: availability("published", ["CHEM 11"]),
+    });
+
+    const note = await screen.findByTestId("not-offered-note-402");
+    expect(note.textContent).toContain("Not in official schedule this quarter");
+    expect(screen.queryByTestId("not-offered-note-401")).toBeNull();
+  });
+
+  it("shows no flag when every planned course is in offeredCourseCodes", () => {
+    const items = [planItem(501, "CHEM 11"), planItem(502, "MATH 11")];
+    renderBoard({
+      items,
+      sectionsByCode: {
+        "CHEM 11": [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05")],
+        "MATH 11": [section("MATH 11", "01", ["T", "R"], "10:00", "11:05")],
+      },
+      scheduleAvailability: availability("published", ["CHEM 11", "MATH 11"]),
+    });
+
+    expect(screen.getByText("CHEM 11")).toBeTruthy();
+    expect(screen.getByText("MATH 11")).toBeTruthy();
+    expect(screen.queryByTestId("not-offered-note-501")).toBeNull();
+    expect(screen.queryByTestId("not-offered-note-502")).toBeNull();
+  });
+
+  it("shows no flag for a term without an official schedule", () => {
+    const items = [planItem(601, "CHEM 11"), planItem(602, "MATH 11")];
+    renderBoard({
+      items,
+      sectionsByCode: {},
+      // No published/tentative schedule → no honest claim about offerings.
+      scheduleAvailability: availability(null, []),
+    });
+
+    expect(screen.queryByTestId("not-offered-note-601")).toBeNull();
+    expect(screen.queryByTestId("not-offered-note-602")).toBeNull();
+    expect(screen.getByText("Official schedule not published yet")).toBeTruthy();
+  });
+});
