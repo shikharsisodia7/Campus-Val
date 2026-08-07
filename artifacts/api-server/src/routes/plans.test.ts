@@ -327,6 +327,37 @@ describe("items: moves reindex both terms contiguously", () => {
 });
 
 describe("completed-before-plan bucket", () => {
+  it("accepts every explicit student-asserted provenance without changing another user's plan", async () => {
+    const aId = await degreePlanId(USER_A);
+    const bId = await degreePlanId(USER_B);
+    const sources = [
+      "prior_to_scu",
+      "transfer_credit",
+      "ap_ib_test_credit",
+      "previously_completed_scu",
+      "other_institution",
+      "manually_marked",
+    ];
+    const codes = [C1, C2, C3];
+    for (const [index, source] of sources.entries()) {
+      const created = await asA(request(app).post(`/api/plans/${aId}/items`))
+        .send({
+          itemType: "course",
+          courseCode: codes[index % codes.length],
+          term: "fall",
+          academicYear: 2026,
+          bucket: "completed",
+          completionSource: source,
+          allowDuplicate: true,
+        })
+        .expect(201);
+      expect(created.body.completionSource).toBe(source);
+    }
+    expect((await getItems(bId, USER_B)).filter((item) => item.bucket === "completed")).toHaveLength(0);
+    for (const item of await getItems(aId)) {
+      await asA(request(app).delete(`/api/plans/${aId}/items/${item.id}`)).expect(204);
+    }
+  });
   it("requires a valid completion source and rejects sources on planned items", async () => {
     const id = await degreePlanId(USER_A);
     await asA(request(app).post(`/api/plans/${id}/items`))

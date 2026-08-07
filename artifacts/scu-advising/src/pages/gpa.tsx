@@ -359,8 +359,8 @@ function SimulateTab() {
               className="text-xs"
             >
               {sim.data.canOverloadNextTerm
-                ? "Overload eligible"
-                : "Not overload eligible"}
+                ? "May qualify — approval required"
+                : "Standard load — verify exceptions"}
             </Badge>
           </div>
         )}

@@ -171,6 +171,34 @@ router.get("/requirements", requireAuth, async (req, res) => {
     autoCompletedCount: 0,
     manualCount: 0,
   }));
+  const professionalPreparation = {
+    id: "professional-preparation",
+    title: "Professional Preparation",
+    kind: "professional_prep" as const,
+    sourceUrl: null,
+    sourceLabel: "Student planning only",
+    academicYear: universityCore.academicYear,
+    lastVerified: universityCore.lastVerified,
+    notes:
+      "Student-added professional preparation goals are not official SCU graduation requirements. Verify professional-school prerequisites directly with that program.",
+    items: [
+      {
+        id: "student-professional-preparation-goal",
+        label: "Student-added professional preparation goal",
+        description:
+          "Use a placeholder to represent a professional-path course or prerequisite. This is planning-only, not an SCU degree requirement.",
+        courses: [],
+        phase: null,
+        autoTracked: false,
+        needsVerification: true,
+        satisfiedBy: [],
+        complete: false,
+      },
+    ],
+    autoTrackedCount: 0,
+    autoCompletedCount: 0,
+    manualCount: 1,
+  };
 
   res.json({
     college: profile.college,
@@ -182,11 +210,12 @@ router.get("/requirements", requireAuth, async (req, res) => {
       sourceLabel: "SCU Bulletin Ch. 8: Degree Requirements",
     },
     // Palette order: Major(s) first, then University Core, then Minor(s),
-    // then college/school requirements.
+    // then professional planning-only goals, then college/school requirements.
     groups: [
       ...majorGroups,
       resolveGroup(universityCore, completed),
       ...minorGroups,
+      professionalPreparation,
       resolveGroup(college, completed),
     ],
   });

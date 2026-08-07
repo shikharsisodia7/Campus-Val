@@ -278,7 +278,15 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                   (reqItem?.courses ?? []).map(c => c.toUpperCase()),
                 );
                 const eligible = catalog?.filter(c => eligibleCodes.has(c.code.toUpperCase())) ?? [];
-                if (eligible.length === 0 || replaceSearch.trim().length > 0) return null;
+                if (eligible.length === 0) {
+                  return (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                      CampusVal does not have a verified course list for this
+                      requirement. Keep the placeholder and verify options in
+                      the SCU Bulletin with your advisor.
+                    </div>
+                  );
+                }
                 return (
                   <div className="space-y-2" data-testid="replace-eligible-list">
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Courses that satisfy this requirement</div>
@@ -293,33 +301,10 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                         </div>
                       ))}
                     </ScrollArea>
-                    <div className="text-xs text-muted-foreground">Or search the full catalog below.</div>
+                    <div className="text-xs text-muted-foreground">Only listed courses can replace this requirement placeholder.</div>
                   </div>
                 );
               })()}
-              <Input 
-                placeholder="Search catalog..." 
-                data-testid="replace-search-input"
-                value={replaceSearch}
-                onChange={e => setReplaceSearch(e.target.value)}
-              />
-              <ScrollArea className="h-[250px] border rounded-md p-2">
-                {catalog?.filter(c => 
-                  c.code.toLowerCase().includes(replaceSearch.toLowerCase()) || 
-                  c.title.toLowerCase().includes(replaceSearch.toLowerCase())
-                ).slice(0, 20).map(c => (
-                  <div key={c.code} className="flex justify-between items-center p-2 hover:bg-muted rounded-md border-b last:border-0">
-                    <div>
-                      <div className="font-mono text-sm font-bold">{c.code}</div>
-                      <div className="text-xs text-muted-foreground">{c.title}</div>
-                    </div>
-                    <Button size="sm" onClick={() => handleReplace(c.code)}>Select</Button>
-                  </div>
-                ))}
-                {(!catalog || catalog.length === 0) && (
-                  <div className="p-4 text-center text-sm text-muted-foreground">Catalog loading...</div>
-                )}
-              </ScrollArea>
             </div>
           </DialogContent>
         </Dialog>

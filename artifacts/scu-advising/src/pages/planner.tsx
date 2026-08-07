@@ -297,7 +297,7 @@ export default function Planner() {
     <AppShell>
       <PageHeader
         title="Quarter Planner"
-        subtitle="Build a tentative course load. CampusVal checks unit caps, prerequisites, course offerings, and overload eligibility against your profile. When you're ready to pick actual meeting times, choose sections in the Schedule Planner."
+        subtitle="Build a tentative course load. CampusVal checks unit guidance, prerequisites, and course offerings against your profile. Confirm any overload or registration decision with SCU."
       />
       <PageContent>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -635,7 +635,7 @@ export default function Planner() {
             {!result ? (
               <p className="text-sm text-muted-foreground mt-3">
                 Run "Check this plan" to validate units, prerequisites, course
-                offerings, and overload eligibility.
+                offerings, and unit-load guidance.
               </p>
             ) : (
               <div className="space-y-4 mt-4">
@@ -676,7 +676,8 @@ export default function Planner() {
                   {result.issues.length === 0 ? (
                     <div className="flex items-start gap-2 text-sm text-emerald-700">
                       <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                      No issues found. This plan looks safe to register.
+                      No issues found in CampusVal's available planning data. Verify
+                      eligibility and registration in Workday.
                     </div>
                   ) : (
                     result.issues.map((issue, i) => (
