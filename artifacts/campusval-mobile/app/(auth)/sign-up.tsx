@@ -226,9 +226,9 @@ export default function SignUpPage() {
           )}
         </View>
 
-        {errors?.fieldErrors && errors.fieldErrors.length > 0 && (
+        {errors?.global && errors.global.length > 0 && (
           <View style={styles.alertBox}>
-            <Text style={styles.alertText}>{errors.fieldErrors[0]?.message ?? 'Sign-up failed.'}</Text>
+            <Text style={styles.alertText}>{errors.global[0]?.message ?? 'Sign-up failed.'}</Text>
           </View>
         )}
 

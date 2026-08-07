@@ -9,7 +9,7 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
-import { useListPlans, useGetPlan } from '@workspace/api-client-react';
+import { useListPlans, useGetPlan, getListPlansQueryKey, getGetPlanQueryKey } from '@workspace/api-client-react';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
@@ -77,7 +77,7 @@ export default function PlanScreen() {
   const bottomPadding = insets.bottom + (Platform.OS === 'web' ? 34 : 80);
 
   const { data: plansData, isLoading: plansLoading, isError: plansError, refetch: refetchPlans } = useListPlans({
-    query: { retry: 1 },
+    query: { queryKey: getListPlansQueryKey(), retry: 1 },
   });
 
   const degreePlan = useMemo(
@@ -87,7 +87,7 @@ export default function PlanScreen() {
 
   const { data: planDetail, isLoading: detailLoading, isError: detailError, refetch: refetchDetail, isRefetching } =
     useGetPlan(degreePlan?.id ?? 0, {
-      query: { enabled: !!degreePlan?.id, retry: 1 },
+      query: { queryKey: getGetPlanQueryKey(degreePlan?.id ?? 0), enabled: !!degreePlan?.id, retry: 1 },
     });
 
   const groups = useMemo(

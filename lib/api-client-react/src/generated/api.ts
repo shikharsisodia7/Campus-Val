@@ -24,6 +24,8 @@ import type {
   AcademicPlanList,
   AcademicPlanUpdate,
   ArticulationLookupResult,
+  BulkImportPlanItemsBody,
+  BulkImportPlanItemsResult,
   CalculateGpaBody,
   CheckPlanBody,
   CheckPrereqsBody,
@@ -3769,6 +3771,93 @@ export const useAddPlanItem = <
   TContext
 > => {
   return useMutation(getAddPlanItemMutationOptions(options));
+};
+
+/**
+ * @summary Import report-completed courses into the Completed area in one step
+ */
+export const getBulkImportPlanItemsUrl = (id: number) => {
+  return `/api/plans/${id}/items/bulk-import`;
+};
+
+export const bulkImportPlanItems = async (
+  id: number,
+  bulkImportPlanItemsBody: BulkImportPlanItemsBody,
+  options?: RequestInit,
+): Promise<BulkImportPlanItemsResult> => {
+  return customFetch<BulkImportPlanItemsResult>(getBulkImportPlanItemsUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkImportPlanItemsBody),
+  });
+};
+
+export const getBulkImportPlanItemsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkImportPlanItems>>,
+    TError,
+    { id: number; data: BodyType<BulkImportPlanItemsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof bulkImportPlanItems>>,
+  TError,
+  { id: number; data: BodyType<BulkImportPlanItemsBody> },
+  TContext
+> => {
+  const mutationKey = ["bulkImportPlanItems"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof bulkImportPlanItems>>,
+    { id: number; data: BodyType<BulkImportPlanItemsBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return bulkImportPlanItems(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BulkImportPlanItemsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof bulkImportPlanItems>>
+>;
+export type BulkImportPlanItemsMutationBody = BodyType<BulkImportPlanItemsBody>;
+export type BulkImportPlanItemsMutationError = ErrorType<void>;
+
+/**
+ * @summary Import report-completed courses into the Completed area in one step
+ */
+export const useBulkImportPlanItems = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof bulkImportPlanItems>>,
+    TError,
+    { id: number; data: BodyType<BulkImportPlanItemsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof bulkImportPlanItems>>,
+  TError,
+  { id: number; data: BodyType<BulkImportPlanItemsBody> },
+  TContext
+> => {
+  return useMutation(getBulkImportPlanItemsMutationOptions(options));
 };
 
 /**

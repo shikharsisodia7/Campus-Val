@@ -1664,6 +1664,25 @@ export const AddPlanItemBody = zod.object({
 });
 
 /**
+ * @summary Import report-completed courses into the Completed area in one step
+ */
+export const BulkImportPlanItemsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const bulkImportPlanItemsBodyCourseCodesMax = 50;
+
+export const BulkImportPlanItemsBody = zod.object({
+  courseCodes: zod
+    .array(zod.string())
+    .min(1)
+    .max(bulkImportPlanItemsBodyCourseCodesMax)
+    .describe(
+      "Course codes from the progress report to add to the Completed area.",
+    ),
+});
+
+/**
  * @summary Move an item to another term/year, reorder it, or edit its note
  */
 export const UpdatePlanItemParams = zod.object({

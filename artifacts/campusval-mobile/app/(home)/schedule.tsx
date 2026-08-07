@@ -9,7 +9,7 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
-import { useListSchedules, useGetSchedule } from '@workspace/api-client-react';
+import { useListSchedules, useGetSchedule, getListSchedulesQueryKey, getGetScheduleQueryKey } from '@workspace/api-client-react';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
@@ -58,7 +58,7 @@ export default function ScheduleScreen() {
   const bottomPadding = insets.bottom + (Platform.OS === 'web' ? 34 : 80);
 
   const { data: schedulesData, isLoading: listLoading, isError: listError, refetch: refetchList, isRefetching } =
-    useListSchedules({}, { query: { retry: 1 } });
+    useListSchedules({}, { query: { queryKey: getListSchedulesQueryKey({}), retry: 1 } });
 
   const schedules = schedulesData?.schedules ?? [];
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -68,7 +68,7 @@ export default function ScheduleScreen() {
 
   const { data: scheduleDetail, isLoading: detailLoading, isError: detailError, refetch: refetchDetail } =
     useGetSchedule(effectiveId ?? 0, {
-      query: { enabled: !!effectiveId, retry: 1 },
+      query: { queryKey: getGetScheduleQueryKey(effectiveId ?? 0), enabled: !!effectiveId, retry: 1 },
     });
 
   const events = (scheduleDetail?.events ?? []) as ScheduleEvent[];

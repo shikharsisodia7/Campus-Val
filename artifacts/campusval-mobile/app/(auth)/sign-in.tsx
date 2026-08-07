@@ -139,8 +139,8 @@ export default function SignInPage() {
             placeholderTextColor={colors.mutedForeground}
             autoCorrect={false}
           />
-          {errors?.fields?.emailAddress && (
-            <Text style={styles.errorText}>{errors.fields.emailAddress.message}</Text>
+          {errors?.fields?.identifier && (
+            <Text style={styles.errorText}>{errors.fields.identifier.message}</Text>
           )}
         </View>
 
@@ -173,9 +173,9 @@ export default function SignInPage() {
         </View>
 
         {/* General error */}
-        {errors?.fieldErrors && errors.fieldErrors.length > 0 && (
+        {errors?.global && errors.global.length > 0 && (
           <View style={styles.alertBox}>
-            <Text style={styles.alertText}>{errors.fieldErrors[0]?.message ?? 'Sign-in failed.'}</Text>
+            <Text style={styles.alertText}>{errors.global[0]?.message ?? 'Sign-in failed.'}</Text>
           </View>
         )}
 

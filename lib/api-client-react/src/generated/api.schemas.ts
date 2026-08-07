@@ -424,18 +424,14 @@ export interface AcademicPlanDuplicateInput {
   name: string;
 }
 
-/**
- * How this item was added. Defaults to student_asserted.
- * @nullable
- */
-export type PlanItemProvenance =
-  | (typeof PlanItemProvenance)[keyof typeof PlanItemProvenance]
-  | null;
-
-export const PlanItemProvenance = {
-  student_asserted: "student_asserted",
-  report_imported: "report_imported",
-} as const;
+export interface BulkImportPlanItemsBody {
+  /**
+   * Course codes from the progress report to add to the Completed area.
+   * @minItems 1
+   * @maxItems 50
+   */
+  courseCodes: string[];
+}
 
 /**
  * Where the item lives: "planned" places it in a real term column; "completed" places it in the Completed Before Current Plan area.
@@ -461,6 +457,19 @@ export const CompletionSource = {
   previously_completed_scu: "previously_completed_scu",
   other_institution: "other_institution",
   manually_marked: "manually_marked",
+} as const;
+
+/**
+ * How this item was added. Defaults to student_asserted.
+ * @nullable
+ */
+export type PlanItemProvenance =
+  | (typeof PlanItemProvenance)[keyof typeof PlanItemProvenance]
+  | null;
+
+export const PlanItemProvenance = {
+  student_asserted: "student_asserted",
+  report_imported: "report_imported",
 } as const;
 
 export interface PlanItem {
@@ -492,6 +501,12 @@ export interface PlanItem {
    * @nullable
    */
   provenance?: PlanItemProvenance;
+}
+
+export interface BulkImportPlanItemsResult {
+  added: PlanItem[];
+  /** Course codes already present anywhere in the plan (not re-added). */
+  skipped: string[];
 }
 
 export interface AcademicPlanDetail {
@@ -1508,14 +1523,3 @@ export const SearchCoursesTerm = {
   spring: "spring",
   summer: "summer",
 } as const;
-
-export interface BulkImportPlanItemsBody {
-  /** Course codes from the progress report to add to the Completed area. */
-  courseCodes: string[];
-}
-
-export interface BulkImportPlanItemsResult {
-  added: PlanItem[];
-  /** Course codes already present anywhere in the plan (not re-added). */
-  skipped: string[];
-}

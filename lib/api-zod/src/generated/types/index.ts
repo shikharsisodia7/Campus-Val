@@ -16,6 +16,8 @@ export * from "./articulationCollege";
 export * from "./articulationEntry";
 export * from "./articulationEntrySourceUnitSystem";
 export * from "./articulationLookupResult";
+export * from "./bulkImportPlanItemsBody";
+export * from "./bulkImportPlanItemsResult";
 export * from "./calculateGpaBody";
 export * from "./checkPlanBody";
 export * from "./checkPrereqsBody";

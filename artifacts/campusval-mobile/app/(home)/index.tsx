@@ -9,7 +9,7 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
-import { useGetDashboardSummary } from '@workspace/api-client-react';
+import { useGetDashboardSummary, getGetDashboardSummaryQueryKey } from '@workspace/api-client-react';
 import { useUser, useClerk } from '@clerk/expo';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,7 +42,7 @@ export default function DashboardScreen() {
   const { signOut } = useClerk();
 
   const { data, isLoading, isError, refetch, isRefetching } = useGetDashboardSummary({
-    query: { retry: 1 },
+    query: { queryKey: getGetDashboardSummaryQueryKey(), retry: 1 },
   });
 
   const styles = makeStyles(colors, insets);
