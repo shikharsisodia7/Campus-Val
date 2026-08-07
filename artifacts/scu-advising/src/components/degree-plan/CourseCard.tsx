@@ -156,7 +156,14 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                 </div>
               )}
               {conflicts && conflicts.length > 0 && (
-                <ConflictNote item={item} conflicts={conflicts} />
+                <ConflictNote
+                  item={item}
+                  conflicts={conflicts}
+                  onMove={(year, term) => {
+                    if (!activePlanId) return;
+                    updatePlanItem.mutate({ id: activePlanId, itemId: item.id, data: { academicYear: year, term: term as any } });
+                  }}
+                />
               )}
             </>
           )}
@@ -278,9 +285,15 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
   );
 }
 
-function ConflictNote({ item, conflicts }: { item: PlanItem, conflicts: CourseConflictDetail[] }) {
+function ConflictNote({ item, conflicts, onMove }: { item: PlanItem, conflicts: CourseConflictDetail[], onMove: (year: number, term: string) => void }) {
   const names = conflicts.map(c => c.otherCode);
   const [open, setOpen] = useState(false);
+
+  const handleSuggestionMove = (year: number, term: string) => {
+    onMove(year, term);
+    setOpen(false);
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -336,6 +349,7 @@ function ConflictNote({ item, conflicts }: { item: PlanItem, conflicts: CourseCo
             item={item}
             courseCode={item.courseCode}
             enabled={open}
+            onMove={handleSuggestionMove}
           />
         )}
         <div className="text-[10px] text-muted-foreground mt-2">
@@ -346,7 +360,7 @@ function ConflictNote({ item, conflicts }: { item: PlanItem, conflicts: CourseCo
   );
 }
 
-function QuarterSuggestions({ item, courseCode, enabled }: { item: PlanItem, courseCode: string, enabled: boolean }) {
+function QuarterSuggestions({ item, courseCode, enabled, onMove }: { item: PlanItem, courseCode: string, enabled: boolean, onMove?: (year: number, term: string) => void }) {
   const { activePlan, scheduleAvailability } = useDegreePlanContext();
   const suggestions = useQuarterFitSuggestions(
     courseCode,
@@ -393,16 +407,29 @@ function QuarterSuggestions({ item, courseCode, enabled }: { item: PlanItem, cou
         {suggestions.map((s) => (
           <div
             key={`${s.year}-${s.term}`}
-            className={`text-[11px] rounded border px-2 py-1 flex items-start justify-between gap-2 ${tone(s)}`}
+            className={`text-[11px] rounded border px-2 py-1 flex items-center justify-between gap-2 ${tone(s)}`}
             data-testid={`quarter-suggestion-${item.id}-${s.year}-${s.term}`}
           >
-            <span className="font-semibold capitalize shrink-0">
-              {s.term} {s.year}
-              {s.scheduleStatus === "tentative" && (
-                <span className="font-normal"> (tentative)</span>
-              )}
-            </span>
-            <span className="text-right">{label(s)}</span>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="font-semibold capitalize">
+                {s.term} {s.year}
+                {s.scheduleStatus === "tentative" && (
+                  <span className="font-normal"> (tentative)</span>
+                )}
+              </span>
+              <span>{label(s)}</span>
+            </div>
+            {s.status === "fits" && onMove && (
+              <button
+                type="button"
+                className="shrink-0 flex items-center gap-1 rounded bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-emerald-800 transition-colors"
+                data-testid={`move-here-${item.id}-${s.year}-${s.term}`}
+                onClick={(e) => { e.stopPropagation(); onMove(s.year, s.term); }}
+              >
+                <MoveRight className="h-3 w-3" />
+                Move here
+              </button>
+            )}
           </div>
         ))}
       </div>
