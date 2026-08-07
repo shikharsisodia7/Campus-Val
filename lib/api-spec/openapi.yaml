@@ -2344,7 +2344,7 @@ components:
           type: string
         kind:
           type: string
-          enum: [university_core, college, major]
+          enum: [university_core, college, major, minor, professional_prep]
         sourceUrl:
           type: string
           description: Official SCU source URL this group's requirements were taken from.

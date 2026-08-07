@@ -852,7 +852,13 @@ export const GetDegreeRequirementsResponse = zod.object({
     zod.object({
       id: zod.string(),
       title: zod.string(),
-      kind: zod.enum(["university_core", "college", "major"]),
+      kind: zod.enum([
+        "university_core",
+        "college",
+        "major",
+        "minor",
+        "professional_prep",
+      ]),
       sourceUrl: zod
         .string()
         .describe(

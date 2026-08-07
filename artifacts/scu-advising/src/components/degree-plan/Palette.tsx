@@ -23,6 +23,8 @@ const GROUP_ICONS = {
   university_core: GraduationCap,
   college: Landmark,
   major: BookOpenCheck,
+  minor: BookOpenCheck,
+  professional_prep: GraduationCap,
 };
 
 export function Palette() {

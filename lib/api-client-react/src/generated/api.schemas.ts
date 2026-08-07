@@ -783,6 +783,8 @@ export const RequirementGroupKind = {
   university_core: "university_core",
   college: "college",
   major: "major",
+  minor: "minor",
+  professional_prep: "professional_prep",
 } as const;
 
 export interface RequirementGroup {
