@@ -327,6 +327,35 @@ describe("items: moves reindex both terms contiguously", () => {
 });
 
 describe("completed-before-plan bucket", () => {
+  it("keeps completion provenance when copying or duplicating a plan", async () => {
+    const degreeId = await degreePlanId(USER_A);
+    await asA(request(app).post(`/api/plans/${degreeId}/items`))
+      .send({
+        itemType: "course",
+        courseCode: C1,
+        term: "completed",
+        academicYear: 2026,
+        bucket: "completed",
+        provenance: "transfer_credit",
+      })
+      .expect(201);
+
+    const copied = await asA(request(app).post("/api/plans"))
+      .send({ name: "Copied provenance", copyFromPlanId: degreeId })
+      .expect(201);
+    const duplicated = await asA(
+      request(app).post(`/api/plans/${copied.body.id}/duplicate`),
+    )
+      .send({ name: "Duplicated provenance" })
+      .expect(201);
+
+    for (const planId of [copied.body.id, duplicated.body.id]) {
+      const completed = (await getItems(planId)).find(
+        (item) => item.courseCode === C1 && item.bucket === "completed",
+      );
+      expect(completed?.provenance).toBe("transfer_credit");
+    }
+  });
   it("accepts every explicit student-asserted provenance without changing another user's plan", async () => {
     const aId = await degreePlanId(USER_A);
     const bId = await degreePlanId(USER_B);

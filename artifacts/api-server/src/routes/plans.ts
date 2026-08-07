@@ -225,6 +225,7 @@ async function copyItems(fromPlanId: number, toPlanId: number): Promise<void> {
       term: i.term,
       bucket: i.bucket,
       completionSource: i.completionSource,
+      provenance: i.provenance,
       position: i.position,
       note: i.note,
     })),
