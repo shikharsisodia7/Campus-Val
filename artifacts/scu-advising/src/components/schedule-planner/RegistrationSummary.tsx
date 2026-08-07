@@ -75,7 +75,7 @@ export function RegistrationSummary({ workspace }: { workspace: ReturnType<typeo
             </div>
 
             <a 
-              href="https://www.myworkday.com/scu/d/home.htmld" 
+              href="https://www.myworkday.com/scu/d/home.html"
               target="_blank" 
               rel="noopener noreferrer"
               className="block"

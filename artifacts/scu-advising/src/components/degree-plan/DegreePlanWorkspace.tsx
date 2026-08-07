@@ -6,6 +6,7 @@ import {
   useGetDegreeRequirements, 
   useGetScheduleAvailability,
   useListCourses,
+  useGetProgressReport,
   getGetPlanQueryKey,
 } from "@workspace/api-client-react";
 import { DegreePlanProvider } from "./DegreePlanContext";
@@ -16,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, Menu, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { AcademicProgress } from "@/components/AcademicProgress";
 
 export function DegreePlanWorkspace({ mode = "degree" }: { mode?: "degree" | "tentative" }) {
   const { data: plansList, isLoading: plansLoading } = useListPlans();
@@ -46,6 +48,7 @@ export function DegreePlanWorkspace({ mode = "degree" }: { mode?: "degree" | "te
   const { data: reqsData } = useGetDegreeRequirements();
   const { data: scheduleAvailability } = useGetScheduleAvailability();
   const { data: catalog } = useListCourses({});
+  const { data: reportData } = useGetProgressReport();
 
   if (plansLoading || (activePlanId && planLoading)) {
     return (
@@ -75,6 +78,11 @@ export function DegreePlanWorkspace({ mode = "degree" }: { mode?: "degree" | "te
       requirements: reqsData?.groups,
       scheduleAvailability,
       catalog,
+      aprCompletedCodes: new Set(
+        (reportData?.report?.extracted.courses ?? []).map((course) =>
+          course.code.toUpperCase(),
+        ),
+      ),
     }}>
       <div className="xl:hidden flex items-center justify-between mb-4 bg-card border border-border p-2 rounded-md shadow-sm">
         <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
@@ -107,8 +115,11 @@ export function DegreePlanWorkspace({ mode = "degree" }: { mode?: "degree" | "te
         <div className="flex-1 min-w-0 h-full overflow-hidden">
           <Board plans={plansList?.plans ?? []} />
         </div>
-        <div className="hidden xl:block w-[280px] shrink-0 h-full overflow-hidden">
-          <ContextPanel plans={plansList?.plans ?? []} />
+        <div className="hidden xl:block w-[300px] shrink-0 h-full overflow-y-auto space-y-4 pr-1">
+          <div className="h-[58%] min-h-[360px]">
+            <ContextPanel plans={plansList?.plans ?? []} />
+          </div>
+          <AcademicProgress />
         </div>
       </div>
     </DegreePlanProvider>

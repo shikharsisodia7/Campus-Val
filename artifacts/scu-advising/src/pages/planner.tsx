@@ -13,6 +13,10 @@ import {
   getGetScheduleQueryKey,
 } from "@workspace/api-client-react";
 import { Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
+import { QuarterSectionPicker } from "@/components/quarter-plan/QuarterSectionPicker";
+import { CalendarGrid } from "@/components/schedule-planner/CalendarGrid";
+import { ConflictsPanel } from "@/components/schedule-planner/ConflictsPanel";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -46,6 +50,7 @@ interface PlannedCourse {
 const STORAGE_KEY = "campusval.planner.v1";
 
 export default function Planner() {
+  const queryClient = useQueryClient();
   const { data: profile } = useGetProfile({
     query: { retry: false, queryKey: getGetProfileQueryKey() },
   });
@@ -72,6 +77,7 @@ export default function Planner() {
     missingFromPath: string[];
   } | null>(null);
   const [comparing, setComparing] = useState(false);
+  const [sectionCourse, setSectionCourse] = useState<string | null>(null);
 
   // Note: planner default = today's actual term/year (set above). We
   // intentionally do NOT seed from profile.currentTerm because that's a
@@ -197,6 +203,11 @@ export default function Planner() {
       queryKey: getGetScheduleQueryKey(quarterScheduleId!),
     },
   });
+  const invalidateQuarterSchedule = () => {
+    queryClient.invalidateQueries({
+      predicate: (q) => String(q.queryKey[0]).startsWith("/api/schedules"),
+    });
+  };
   const sectionByCourse = new Map<
     string,
     { sectionNumber: string | null; meetingDays: string[]; startTime: string | null; endTime: string | null; instructor: string | null }
@@ -428,7 +439,7 @@ export default function Planner() {
                   {totalUnits} units
                 </Badge>
               </div>
-              {planned.length === 0 ? (
+               {planned.length === 0 ? (
                 <div className="text-sm text-muted-foreground py-8 text-center border border-dashed border-border rounded-md">
                   Add courses above to start planning.
                 </div>
@@ -440,7 +451,7 @@ export default function Planner() {
                       data-testid={`planned-${i}`}
                       className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-3">
                           <div className="font-mono text-sm font-bold text-primary">
                             {p.code}
@@ -479,6 +490,40 @@ export default function Planner() {
                             </div>
                           );
                         })()}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-6 px-0 text-[11px]"
+                          onClick={() =>
+                            setSectionCourse(
+                              sectionCourse === p.code ? null : p.code,
+                            )
+                          }
+                        >
+                          {sectionCourse === p.code
+                            ? "Hide section choices"
+                            : "Choose a section"}
+                        </Button>
+                        {sectionCourse === p.code && (
+                          <div className="mt-2">
+                            <QuarterSectionPicker
+                              courseCode={p.code}
+                              term={term as "fall" | "winter" | "spring" | "summer"}
+                              year={year}
+                              scheduleId={quarterScheduleId}
+                              selectedEvent={
+                                (quarterSchedule?.events ?? []).find(
+                                  (event) =>
+                                    event.kind === "section" &&
+                                    event.courseCode?.toUpperCase() ===
+                                      p.code.toUpperCase(),
+                                ) ?? undefined
+                              }
+                              onScheduleReady={invalidateQuarterSchedule}
+                              onChanged={invalidateQuarterSchedule}
+                            />
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="font-mono">
@@ -497,6 +542,28 @@ export default function Planner() {
                   ))}
                 </div>
               )}
+               {quarterSchedule?.events && quarterSchedule.events.length > 0 && (
+                 <div className="mt-6 border-t border-border pt-4">
+                   <div className="flex items-center justify-between mb-2">
+                     <div className="text-sm font-semibold">Weekly calendar</div>
+                     <Link
+                       href="/schedule"
+                       className="text-xs text-primary underline underline-offset-2"
+                     >
+                       Open full calendar
+                     </Link>
+                   </div>
+                   <div className="h-[360px] overflow-auto rounded-md border border-border">
+                     <CalendarGrid
+                       events={quarterSchedule.events}
+                       onEventClick={() => undefined}
+                     />
+                   </div>
+                   <div className="mt-3">
+                     <ConflictsPanel events={quarterSchedule.events} />
+                   </div>
+                 </div>
+               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
                 <Button
                   onClick={onCheck}
