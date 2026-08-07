@@ -204,11 +204,11 @@ export default function Planner() {
   for (const ev of quarterSchedule?.events ?? []) {
     if (ev.kind === "section" && ev.courseCode) {
       sectionByCourse.set(ev.courseCode.toUpperCase(), {
-        sectionNumber: ev.sectionNumber,
+        sectionNumber: ev.sectionNumber ?? null,
         meetingDays: ev.meetingDays,
-        startTime: ev.startTime,
-        endTime: ev.endTime,
-        instructor: ev.instructor,
+        startTime: ev.startTime ?? null,
+        endTime: ev.endTime ?? null,
+        instructor: ev.instructor ?? null,
       });
     }
   }
