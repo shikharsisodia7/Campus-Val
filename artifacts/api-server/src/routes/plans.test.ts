@@ -333,10 +333,11 @@ describe("completed-before-plan bucket", () => {
       .send({
         itemType: "course",
         courseCode: C1,
-        term: "completed",
+        term: "fall",
         academicYear: 2026,
         bucket: "completed",
-        provenance: "transfer_credit",
+        completionSource: "transfer_credit",
+        provenance: "student_asserted",
       })
       .expect(201);
 
@@ -353,7 +354,8 @@ describe("completed-before-plan bucket", () => {
       const completed = (await getItems(planId)).find(
         (item) => item.courseCode === C1 && item.bucket === "completed",
       );
-      expect(completed?.provenance).toBe("transfer_credit");
+      expect(completed?.completionSource).toBe("transfer_credit");
+      expect(completed?.provenance).toBe("student_asserted");
     }
   });
   it("accepts every explicit student-asserted provenance without changing another user's plan", async () => {
