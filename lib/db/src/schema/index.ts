@@ -25,3 +25,4 @@ export * from "./feedback";
 export * from "./plans";
 export * from "./schedules";
 export * from "./requirement-completions";
+export * from "./progress-reports";

@@ -1254,6 +1254,85 @@ export const PromotePlanResponse = zod.object({
 });
 
 /**
+ * @summary Request a presigned URL for a private file upload
+ */
+
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string().min(1).describe("Original file name."),
+  size: zod.number().min(1).describe("File size in bytes."),
+  contentType: zod
+    .string()
+    .min(1)
+    .describe("MIME type of the file (e.g. `application\/pdf`)."),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string().url().describe("Presigned GCS URL for PUT upload."),
+  objectPath: zod
+    .string()
+    .describe("Normalized object path (e.g. `\/objects\/uploads\/uuid`)."),
+  metadata: zod
+    .object({
+      name: zod.string().min(1).describe("Original file name."),
+      size: zod.number().min(1).describe("File size in bytes."),
+      contentType: zod
+        .string()
+        .min(1)
+        .describe("MIME type of the file (e.g. `application\/pdf`)."),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Get the current user's Academic Progress Report metadata
+ */
+export const GetProgressReportResponse = zod.object({
+  report: zod.union([
+    zod.object({
+      id: zod.number(),
+      fileName: zod.string(),
+      fileSize: zod.number(),
+      contentType: zod.string(),
+      status: zod
+        .enum(["stored", "parsed", "error"])
+        .describe(
+          "stored = file saved but nothing could be conservatively extracted; parsed = some fields were reliably extracted; error = the file could not be read.",
+        ),
+      parseError: zod.string().nullish(),
+      uploadedAt: zod.coerce.date(),
+      extracted: zod
+        .object({
+          courses: zod.array(
+            zod.object({
+              code: zod.string(),
+              title: zod.string().nullish(),
+              units: zod.number().nullish(),
+              grade: zod.string().nullish(),
+            }),
+          ),
+          notes: zod
+            .array(zod.string())
+            .describe("Honest caveats about what could not be extracted."),
+        })
+        .describe(
+          "Conservatively extracted fields only. Anything the parser can't reliably identify is omitted rather than guessed.",
+        ),
+    }),
+    zod.null(),
+  ]),
+});
+
+/**
+ * @summary Register an uploaded Academic Progress Report (replaces any prior one)
+ */
+export const RegisterProgressReportBody = zod.object({
+  objectPath: zod.string(),
+  fileName: zod.string(),
+  fileSize: zod.number(),
+  contentType: zod.string(),
+});
+
+/**
  * @summary Add a course or requirement placeholder to a plan term
  */
 export const AddPlanItemParams = zod.object({

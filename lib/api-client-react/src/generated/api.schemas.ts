@@ -377,6 +377,91 @@ export interface PlanItemUpdate {
   note?: string | null;
 }
 
+export interface UploadUrlRequest {
+  /**
+   * Original file name.
+   * @minLength 1
+   */
+  name: string;
+  /**
+   * File size in bytes.
+   * @minimum 1
+   */
+  size: number;
+  /**
+   * MIME type of the file (e.g. `application/pdf`).
+   * @minLength 1
+   */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  /** Presigned GCS URL for PUT upload. */
+  uploadURL: string;
+  /** Normalized object path (e.g. `/objects/uploads/uuid`). */
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
+export interface ErrorEnvelope {
+  error: string;
+}
+
+/**
+ * stored = file saved but nothing could be conservatively extracted; parsed = some fields were reliably extracted; error = the file could not be read.
+ */
+export type ProgressReportStatus =
+  (typeof ProgressReportStatus)[keyof typeof ProgressReportStatus];
+
+export const ProgressReportStatus = {
+  stored: "stored",
+  parsed: "parsed",
+  error: "error",
+} as const;
+
+export type ProgressReportExtractCoursesItem = {
+  code: string;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  units?: number | null;
+  /** @nullable */
+  grade?: string | null;
+};
+
+/**
+ * Conservatively extracted fields only. Anything the parser can't reliably identify is omitted rather than guessed.
+ */
+export interface ProgressReportExtract {
+  courses: ProgressReportExtractCoursesItem[];
+  /** Honest caveats about what could not be extracted. */
+  notes: string[];
+}
+
+export interface ProgressReport {
+  id: number;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
+  /** stored = file saved but nothing could be conservatively extracted; parsed = some fields were reliably extracted; error = the file could not be read. */
+  status: ProgressReportStatus;
+  /** @nullable */
+  parseError?: string | null;
+  uploadedAt: string;
+  extracted: ProgressReportExtract;
+}
+
+export interface ProgressReportRegisterInput {
+  objectPath: string;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
+}
+
+export interface ProgressReportEnvelope {
+  report: ProgressReport | null;
+}
+
 export interface PlaceholderReplacement {
   /** @minLength 1 */
   courseCode: string;

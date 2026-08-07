@@ -35,6 +35,7 @@ import type {
   DashboardSummary,
   DegreeRequirementsResponse,
   DuplicateScheduleBody,
+  ErrorEnvelope,
   EvaluateTransferBody,
   EvaluationRunResult,
   EvaluationScenario,
@@ -68,6 +69,9 @@ import type {
   Policy,
   PrereqCheckResult,
   ProfessorList,
+  ProgressReport,
+  ProgressReportEnvelope,
+  ProgressReportRegisterInput,
   QuarterScheduleDetail,
   QuarterScheduleInput,
   QuarterScheduleList,
@@ -86,6 +90,8 @@ import type {
   SimulateGpaBody,
   StudentProfile,
   TransferEvaluationResult,
+  UploadUrlRequest,
+  UploadUrlResponse,
   UpsertProfileBody,
   WorkdaySyncRequest,
   WorkdaySyncResult,
@@ -3652,6 +3658,411 @@ export const usePromotePlan = <
 > => {
   return useMutation(getPromotePlanMutationOptions(options));
 };
+
+/**
+ * @summary Request a presigned URL for a private file upload
+ */
+export const getRequestUploadUrlUrl = () => {
+  return `/api/storage/uploads/request-url`;
+};
+
+export const requestUploadUrl = async (
+  uploadUrlRequest: UploadUrlRequest,
+  options?: RequestInit,
+): Promise<UploadUrlResponse> => {
+  return customFetch<UploadUrlResponse>(getRequestUploadUrlUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(uploadUrlRequest),
+  });
+};
+
+export const getRequestUploadUrlMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<UploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<UploadUrlRequest> },
+  TContext
+> => {
+  const mutationKey = ["requestUploadUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    { data: BodyType<UploadUrlRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestUploadUrl(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestUploadUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestUploadUrl>>
+>;
+export type RequestUploadUrlMutationBody = BodyType<UploadUrlRequest>;
+export type RequestUploadUrlMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Request a presigned URL for a private file upload
+ */
+export const useRequestUploadUrl = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<UploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<UploadUrlRequest> },
+  TContext
+> => {
+  return useMutation(getRequestUploadUrlMutationOptions(options));
+};
+
+/**
+ * @summary Get the current user's Academic Progress Report metadata
+ */
+export const getGetProgressReportUrl = () => {
+  return `/api/progress-report`;
+};
+
+export const getProgressReport = async (
+  options?: RequestInit,
+): Promise<ProgressReportEnvelope> => {
+  return customFetch<ProgressReportEnvelope>(getGetProgressReportUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProgressReportQueryKey = () => {
+  return [`/api/progress-report`] as const;
+};
+
+export const getGetProgressReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProgressReport>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProgressReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProgressReportQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getProgressReport>>
+  > = ({ signal }) => getProgressReport({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProgressReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProgressReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProgressReport>>
+>;
+export type GetProgressReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the current user's Academic Progress Report metadata
+ */
+
+export function useGetProgressReport<
+  TData = Awaited<ReturnType<typeof getProgressReport>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProgressReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProgressReportQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Register an uploaded Academic Progress Report (replaces any prior one)
+ */
+export const getRegisterProgressReportUrl = () => {
+  return `/api/progress-report`;
+};
+
+export const registerProgressReport = async (
+  progressReportRegisterInput: ProgressReportRegisterInput,
+  options?: RequestInit,
+): Promise<ProgressReport> => {
+  return customFetch<ProgressReport>(getRegisterProgressReportUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(progressReportRegisterInput),
+  });
+};
+
+export const getRegisterProgressReportMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerProgressReport>>,
+    TError,
+    { data: BodyType<ProgressReportRegisterInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerProgressReport>>,
+  TError,
+  { data: BodyType<ProgressReportRegisterInput> },
+  TContext
+> => {
+  const mutationKey = ["registerProgressReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerProgressReport>>,
+    { data: BodyType<ProgressReportRegisterInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerProgressReport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterProgressReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerProgressReport>>
+>;
+export type RegisterProgressReportMutationBody =
+  BodyType<ProgressReportRegisterInput>;
+export type RegisterProgressReportMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Register an uploaded Academic Progress Report (replaces any prior one)
+ */
+export const useRegisterProgressReport = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerProgressReport>>,
+    TError,
+    { data: BodyType<ProgressReportRegisterInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerProgressReport>>,
+  TError,
+  { data: BodyType<ProgressReportRegisterInput> },
+  TContext
+> => {
+  return useMutation(getRegisterProgressReportMutationOptions(options));
+};
+
+/**
+ * @summary Delete the current user's Academic Progress Report
+ */
+export const getDeleteProgressReportUrl = () => {
+  return `/api/progress-report`;
+};
+
+export const deleteProgressReport = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteProgressReportUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteProgressReportMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProgressReport>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProgressReport>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["deleteProgressReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProgressReport>>,
+    void
+  > = () => {
+    return deleteProgressReport(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteProgressReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteProgressReport>>
+>;
+
+export type DeleteProgressReportMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete the current user's Academic Progress Report
+ */
+export const useDeleteProgressReport = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProgressReport>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProgressReport>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteProgressReportMutationOptions(options));
+};
+
+/**
+ * @summary Download the original uploaded report (owner only)
+ */
+export const getDownloadProgressReportUrl = () => {
+  return `/api/progress-report/file`;
+};
+
+export const downloadProgressReport = async (
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getDownloadProgressReportUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadProgressReportQueryKey = () => {
+  return [`/api/progress-report/file`] as const;
+};
+
+export const getDownloadProgressReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadProgressReport>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadProgressReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadProgressReportQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadProgressReport>>
+  > = ({ signal }) => downloadProgressReport({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadProgressReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadProgressReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadProgressReport>>
+>;
+export type DownloadProgressReportQueryError = ErrorType<void>;
+
+/**
+ * @summary Download the original uploaded report (owner only)
+ */
+
+export function useDownloadProgressReport<
+  TData = Awaited<ReturnType<typeof downloadProgressReport>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadProgressReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadProgressReportQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Add a course or requirement placeholder to a plan term

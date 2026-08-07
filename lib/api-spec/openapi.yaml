@@ -828,6 +828,95 @@ paths:
           description: Plan is already the Degree Plan
         "404":
           description: Not found
+  /storage/uploads/request-url:
+    post:
+      tags: [storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for a private file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Failed to generate upload URL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /progress-report:
+    get:
+      tags: [progressReport]
+      operationId: getProgressReport
+      summary: Get the current user's Academic Progress Report metadata
+      responses:
+        "200":
+          description: Report metadata (or null when none uploaded)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressReportEnvelope"
+    post:
+      tags: [progressReport]
+      operationId: registerProgressReport
+      summary: Register an uploaded Academic Progress Report (replaces any prior one)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressReportRegisterInput"
+      responses:
+        "201":
+          description: Stored report metadata with conservative extraction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressReport"
+        "400":
+          description: Unsupported format or size
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      tags: [progressReport]
+      operationId: deleteProgressReport
+      summary: Delete the current user's Academic Progress Report
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: No report on file
+  /progress-report/file:
+    get:
+      tags: [progressReport]
+      operationId: downloadProgressReport
+      summary: Download the original uploaded report (owner only)
+      responses:
+        "200":
+          description: Original file streamed
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: No report on file
   /plans/{id}/items:
     post:
       operationId: addPlanItem
@@ -1518,6 +1607,98 @@ components:
             - type: "null"
         position: { type: integer }
         note: { type: ["string", "null"] }
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Original file name.
+        size:
+          type: integer
+          minimum: 1
+          description: File size in bytes.
+        contentType:
+          type: string
+          minLength: 1
+          description: MIME type of the file (e.g. `application/pdf`).
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+          description: Presigned GCS URL for PUT upload.
+        objectPath:
+          type: string
+          description: Normalized object path (e.g. `/objects/uploads/uuid`).
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    ProgressReport:
+      type: object
+      required:
+        [id, fileName, fileSize, contentType, status, uploadedAt, extracted]
+      properties:
+        id: { type: integer }
+        fileName: { type: string }
+        fileSize: { type: integer }
+        contentType: { type: string }
+        status:
+          type: string
+          enum: [stored, parsed, error]
+          description: >-
+            stored = file saved but nothing could be conservatively extracted;
+            parsed = some fields were reliably extracted; error = the file
+            could not be read.
+        parseError: { type: ["string", "null"] }
+        uploadedAt: { type: string, format: date-time }
+        extracted:
+          $ref: "#/components/schemas/ProgressReportExtract"
+    ProgressReportExtract:
+      type: object
+      required: [courses, notes]
+      description: >-
+        Conservatively extracted fields only. Anything the parser can't
+        reliably identify is omitted rather than guessed.
+      properties:
+        courses:
+          type: array
+          items:
+            type: object
+            required: [code]
+            properties:
+              code: { type: string }
+              title: { type: ["string", "null"] }
+              units: { type: ["number", "null"] }
+              grade: { type: ["string", "null"] }
+        notes:
+          type: array
+          items: { type: string }
+          description: Honest caveats about what could not be extracted.
+    ProgressReportRegisterInput:
+      type: object
+      required: [objectPath, fileName, fileSize, contentType]
+      properties:
+        objectPath: { type: string }
+        fileName: { type: string }
+        fileSize: { type: integer }
+        contentType: { type: string }
+    ProgressReportEnvelope:
+      type: object
+      required: [report]
+      properties:
+        report:
+          oneOf:
+            - $ref: "#/components/schemas/ProgressReport"
+            - type: "null"
     PlanItemBucket:
       type: string
       enum: [planned, completed]
