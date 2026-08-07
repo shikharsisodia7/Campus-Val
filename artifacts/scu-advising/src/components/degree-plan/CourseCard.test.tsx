@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import React from "react";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DndContext } from "@dnd-kit/core";
@@ -546,6 +547,110 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
     // open-popover state with stale conflict data.
     await waitFor(() => {
       expect(screen.queryByTestId("time-conflict-details-10")).toBeNull();
+    });
+  });
+
+  it("re-evaluates quarter suggestions after a blocking course is moved out of the candidate quarter", async () => {
+    // CHEM 11 is in fall 2026, conflicting with MATH 11.
+    const item = makePlanItem(80, "CHEM 11", CURRENT_TERM, CURRENT_YEAR);
+    const conflict: CourseConflictDetail = {
+      otherCode: "MATH 11",
+      overlaps: [
+        {
+          aSection: "01",
+          bSection: "01",
+          aDays: ["M", "W", "F"],
+          bDays: ["M", "W", "F"],
+          aStart: "08:00",
+          aEnd: "09:05",
+          bStart: "08:00",
+          bEnd: "09:05",
+          sharedDays: ["M", "W", "F"],
+          overlapStart: 480,
+          overlapEnd: 545,
+        },
+      ],
+    };
+
+    // PHYS 10 starts in winter 2026, overlapping CHEM 11's only winter section → "no-fit".
+    const physInWinter = makePlanItem(81, "PHYS 10", "winter", CURRENT_YEAR);
+    // After the move, PHYS 10 goes to spring 2026 — winter is now empty for CHEM 11 → "fits".
+    const physInSpring = makePlanItem(81, "PHYS 10", "spring", CURRENT_YEAR);
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 60_000 } },
+    });
+
+    // Seed sections into the cache once; re-render will reuse them.
+    // winter 2026: CHEM 11 only has a MWF 8-9 section.
+    queryClient.setQueryData(
+      getListCourseSectionsQueryKey("CHEM 11", { term: "winter" as Term, year: CURRENT_YEAR }),
+      [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05", "winter", CURRENT_YEAR)],
+    );
+    // winter 2026: PHYS 10 also MWF 8-9 — identical slot blocks every CHEM 11 section.
+    queryClient.setQueryData(
+      getListCourseSectionsQueryKey("PHYS 10", { term: "winter" as Term, year: CURRENT_YEAR }),
+      [section("PHYS 10", "01", ["M", "W", "F"], "08:00", "09:05", "winter", CURRENT_YEAR)],
+    );
+
+    const scheduleAvailability = makeAvailability([
+      { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
+      { year: CURRENT_YEAR, term: "winter",      status: "published", offered: ["CHEM 11", "PHYS 10"] },
+      { year: CURRENT_YEAR, term: "spring",      status: "published", offered: ["CHEM 11", "PHYS 10"] },
+    ]);
+
+    const makeTree = (planItems: PlanItem[]) => {
+      const plan: AcademicPlanDetail = {
+        id: 1,
+        name: "My Plan",
+        planType: PlanType.degree,
+        items: planItems,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      };
+      return (
+        <QueryClientProvider client={queryClient}>
+          <DegreePlanProvider
+            value={{
+              activePlan: plan,
+              activePlanId: 1,
+              setActivePlanId: () => {},
+              profile: undefined,
+              requirements: undefined,
+              scheduleAvailability,
+              catalog: undefined,
+            }}
+          >
+            <DndContext>
+              <CourseCard
+                item={item}
+                availableYears={[CURRENT_YEAR]}
+                conflicts={[conflict]}
+              />
+            </DndContext>
+          </DegreePlanProvider>
+        </QueryClientProvider>
+      );
+    };
+
+    const { rerender } = render(makeTree([item, physInWinter]));
+
+    // Open the conflict popover.
+    fireEvent.click(screen.getByTestId("time-conflict-note-80"));
+    await screen.findByTestId("quarter-suggestions-80");
+
+    // Before the move: winter is "no-fit" because PHYS 10 blocks every CHEM 11 section.
+    const winterRowBefore = await screen.findByTestId(`quarter-suggestion-80-${CURRENT_YEAR}-winter`);
+    expect(winterRowBefore.textContent).toContain("Offered, but every section clashes there too");
+
+    // Simulate the optimistic mutation: PHYS 10 moves from winter → spring.
+    rerender(makeTree([item, physInSpring]));
+
+    // After the move: winter is now empty for CHEM 11 → "fits".
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`quarter-suggestion-80-${CURRENT_YEAR}-winter`).textContent,
+      ).toContain("Offered — quarter is empty in your plan");
     });
   });
 
