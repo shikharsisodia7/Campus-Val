@@ -1,17 +1,20 @@
 import { useGetProgressReport, getGetProgressReportQueryKey } from "@workspace/api-client-react";
 import { useDegreePlanContext } from "./DegreePlanContext";
-import { useOptimisticUpdatePlanItem } from "./usePlanItemMutations";
+import { useOptimisticUpdatePlanItem, useBulkImportReportCourses } from "./usePlanItemMutations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, BookCheck, GraduationCap, Award, Info, MoveRight } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AlertTriangle, BookCheck, GraduationCap, Award, Info, MoveRight, PackagePlus } from "lucide-react";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
 import { useGetDashboardSummary } from "@workspace/api-client-react";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "wouter";
+import { useState } from "react";
 
 export function PlanProgressPanel() {
   const { activePlan, activePlanId, profile } = useDegreePlanContext();
   const updatePlanItem = useOptimisticUpdatePlanItem();
+  const bulkImport = useBulkImportReportCourses();
 
   const { data: summary } = useGetDashboardSummary();
   const { data: reportEnvelope } = useGetProgressReport({
@@ -35,12 +38,19 @@ export function PlanProgressPanel() {
   const completedCoursesFromReport = reportParsed?.completedCourses ?? [];
   const reportCodes = new Set(completedCoursesFromReport.map(c => c.code.toUpperCase()));
 
+  // All course codes already in this plan (any term, any bucket)
+  const planAllCourseCodes = new Set(
+    (activePlan?.items ?? [])
+      .filter(i => i.itemType === "course" && i.courseCode)
+      .map(i => i.courseCode!.toUpperCase()),
+  );
+
   // (a) courses the report shows completed but planned in future terms
   const futurePlanItems = activePlan?.items.filter(i =>
-    i.itemType === 'course' &&
+    i.itemType === "course" &&
     i.courseCode &&
-    i.term !== 'completed' &&
-    (i.bucket ?? 'planned') !== 'completed'
+    i.term !== "completed" &&
+    (i.bucket ?? "planned") !== "completed"
   ) ?? [];
   const reportCompletedButFuture = futurePlanItems.filter(i =>
     reportCodes.has(i.courseCode!.toUpperCase())
@@ -48,13 +58,65 @@ export function PlanProgressPanel() {
 
   // (b) courses in plan completed area not in the report
   const planCompletedItems = activePlan?.items.filter(i =>
-    (i.term === 'completed' || (i.bucket ?? 'planned') === 'completed') &&
-    i.itemType === 'course' &&
+    (i.term === "completed" || (i.bucket ?? "planned") === "completed") &&
+    i.itemType === "course" &&
     i.courseCode
   ) ?? [];
   const planCompletedNotInReport = planCompletedItems.filter(i =>
     !reportCodes.has(i.courseCode!.toUpperCase())
   );
+
+  // (c) NEW: report-completed courses not yet in the plan at all
+  const reportCompletedNotInPlan = completedCoursesFromReport.filter(
+    c => !planAllCourseCodes.has(c.code.toUpperCase())
+  );
+
+  // Bulk import selection state
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<{ added: number; skipped: number } | null>(null);
+
+  // Reset selection/result when the report changes
+  const allImportable = reportCompletedNotInPlan.map(c => c.code.toUpperCase());
+
+  const toggleCourse = (code: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+    setImportResult(null);
+    setImportError(null);
+  };
+
+  const toggleAll = () => {
+    setImportResult(null);
+    setImportError(null);
+    if (selected.size === allImportable.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(allImportable));
+    }
+  };
+
+  const handleBulkImport = () => {
+    if (!activePlanId || selected.size === 0) return;
+    setImportError(null);
+    setImportResult(null);
+    bulkImport.mutate(
+      { planId: activePlanId, courseCodes: Array.from(selected) },
+      {
+        onSuccess: (result) => {
+          setImportResult({ added: result.added.length, skipped: result.skipped.length });
+          setSelected(new Set());
+        },
+        onError: (err) => {
+          setImportError(err.message);
+        },
+      },
+    );
+  };
 
   const handleMoveToCompleted = (itemId: number) => {
     if (!activePlanId) return;
@@ -63,9 +125,9 @@ export function PlanProgressPanel() {
       itemId,
       data: {
         academicYear: 0,
-        term: 'completed' as any,
-        bucket: 'completed' as const,
-        completionSource: 'manually_marked' as any,
+        term: "completed" as any,
+        bucket: "completed" as const,
+        completionSource: "manually_marked" as any,
       }
     });
   };
@@ -193,7 +255,7 @@ export function PlanProgressPanel() {
             ) : (
               <div data-testid="report-completed-courses">
                 <div className="text-[10px] text-muted-foreground mb-1">
-                  Report shows {completedCoursesFromReport.length} completed course{completedCoursesFromReport.length !== 1 ? 's' : ''}
+                  Report shows {completedCoursesFromReport.length} completed course{completedCoursesFromReport.length !== 1 ? "s" : ""}
                 </div>
                 <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
                   {completedCoursesFromReport.map((c) => (
@@ -203,6 +265,94 @@ export function PlanProgressPanel() {
                     </Badge>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* ── NEW: Bulk import – report courses not yet in the plan ── */}
+            {reportCompletedNotInPlan.length > 0 && (
+              <div
+                className="rounded-lg border border-blue-200 bg-blue-50/60 p-2.5 space-y-2"
+                data-testid="bulk-import-section"
+              >
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold text-blue-800">
+                  <PackagePlus className="h-3.5 w-3.5" />
+                  {reportCompletedNotInPlan.length} course{reportCompletedNotInPlan.length !== 1 ? "s" : ""} not yet in your plan
+                </div>
+
+                {/* Select all / deselect all */}
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    className="text-[10px] text-blue-700 underline underline-offset-2 hover:text-blue-900"
+                    onClick={toggleAll}
+                    data-testid="bulk-import-toggle-all"
+                  >
+                    {selected.size === allImportable.length ? "Deselect all" : "Select all"}
+                  </button>
+                  <span className="text-[10px] text-blue-700 tabular-nums">
+                    {selected.size} / {allImportable.length} selected
+                  </span>
+                </div>
+
+                {/* Course checklist */}
+                <div
+                  className="space-y-1 max-h-32 overflow-y-auto pr-1"
+                  data-testid="bulk-import-course-list"
+                >
+                  {reportCompletedNotInPlan.map((c) => {
+                    const key = c.code.toUpperCase();
+                    return (
+                      <label
+                        key={c.code}
+                        className="flex items-center gap-2 cursor-pointer group"
+                        data-testid={`bulk-import-course-${c.code}`}
+                      >
+                        <Checkbox
+                          checked={selected.has(key)}
+                          onCheckedChange={() => toggleCourse(key)}
+                          className="h-3.5 w-3.5 border-blue-400 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                          aria-label={`Import ${c.code}`}
+                        />
+                        <span className="font-mono text-[10px] text-blue-900 group-hover:text-blue-700">
+                          {c.code}
+                        </span>
+                        {c.title && (
+                          <span className="text-[10px] text-blue-700/70 truncate max-w-[120px]" title={c.title}>
+                            {c.title}
+                          </span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {/* Import button */}
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-full h-7 text-[10px] bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={handleBulkImport}
+                  disabled={selected.size === 0 || bulkImport.isPending}
+                  data-testid="bulk-import-confirm-button"
+                >
+                  <PackagePlus className="h-3 w-3 mr-1.5" />
+                  {bulkImport.isPending
+                    ? "Adding…"
+                    : `Add ${selected.size > 0 ? selected.size : ""} course${selected.size !== 1 ? "s" : ""} to Completed area`}
+                </Button>
+
+                {/* Result feedback */}
+                {importResult && (
+                  <p className="text-[10px] text-blue-800" data-testid="bulk-import-result">
+                    ✓ Added {importResult.added} course{importResult.added !== 1 ? "s" : ""} to your Completed area
+                    {importResult.skipped > 0 ? ` (${importResult.skipped} already in plan, skipped)` : ""}.
+                  </p>
+                )}
+                {importError && (
+                  <p className="text-[10px] text-red-700" data-testid="bulk-import-error">
+                    {importError}
+                  </p>
+                )}
               </div>
             )}
 
@@ -217,7 +367,7 @@ export function PlanProgressPanel() {
                   <div key={item.id} className="rounded border border-amber-200 bg-amber-50 p-2 text-[10px] text-amber-900"
                     data-testid={`mismatch-future-${item.id}`}>
                     <div className="mb-1">
-                      Your report shows <span className="font-mono font-bold">{item.courseCode}</span> completed, but it's planned for{' '}
+                      Your report shows <span className="font-mono font-bold">{item.courseCode}</span> completed, but it's planned for{" "}
                       <span className="capitalize">{item.term} {item.academicYear}</span> — review.
                     </div>
                     <Button

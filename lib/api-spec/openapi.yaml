@@ -877,6 +877,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlanDuplicateWarning"
+  /plans/{id}/items/bulk-import:
+    post:
+      operationId: bulkImportPlanItems
+      tags: [plans]
+      summary: Import report-completed courses into the Completed area in one step
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkImportPlanItemsBody"
+      responses:
+        "201":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkImportPlanItemsResult"
+        "400":
+          description: Invalid input
+        "404":
+          description: Not found
   /plans/{id}/items/{itemId}:
     patch:
       operationId: updatePlanItem
@@ -1788,6 +1816,27 @@ components:
       required: [name]
       properties:
         name: { type: string, minLength: 1, maxLength: 80 }
+    BulkImportPlanItemsBody:
+      type: object
+      required: [courseCodes]
+      properties:
+        courseCodes:
+          type: array
+          items: { type: string }
+          minItems: 1
+          maxItems: 50
+          description: Course codes from the progress report to add to the Completed area.
+    BulkImportPlanItemsResult:
+      type: object
+      required: [added, skipped]
+      properties:
+        added:
+          type: array
+          items: { $ref: "#/components/schemas/PlanItem" }
+        skipped:
+          type: array
+          items: { type: string }
+          description: Course codes already present anywhere in the plan (not re-added).
     PlanItem:
       type: object
       required: [id, planId, itemType, academicYear, term, position]

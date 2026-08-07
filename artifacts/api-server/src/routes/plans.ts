@@ -626,6 +626,96 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
   res.status(201).json(itemDto(created!));
 });
 
+// ---------------------------------------------------------------------------
+// Bulk import from progress report
+// ---------------------------------------------------------------------------
+
+router.post("/plans/:id/items/bulk-import", requireAuth, async (req, res) => {
+  const plan = await ownedPlan(Number(req.params.id), req.userId!);
+  if (!plan) return res.status(404).json({ error: "Plan not found." });
+
+  const { courseCodes } = req.body;
+  if (!Array.isArray(courseCodes) || courseCodes.length === 0) {
+    return res.status(400).json({ error: "Provide at least one course code." });
+  }
+  if (courseCodes.length > 50) {
+    return res.status(400).json({ error: "At most 50 courses can be imported at once." });
+  }
+  if (courseCodes.some((c: unknown) => typeof c !== "string")) {
+    return res.status(400).json({ error: "All course codes must be strings." });
+  }
+
+  const normalized: string[] = (courseCodes as string[]).map(normalizeCode);
+
+  const invalidCodes: string[] = [];
+  const validCourses: Array<{ code: string; title: string; units: number }> = [];
+  for (const code of normalized) {
+    const course = findCourse(code);
+    if (course) {
+      validCourses.push({ code: course.code, title: course.title, units: course.units });
+    } else {
+      invalidCodes.push(code);
+    }
+  }
+  if (invalidCodes.length > 0) {
+    return res.status(400).json({
+      error: `Not in the SCU catalog: ${invalidCodes.join(", ")}.`,
+    });
+  }
+
+  // Find courses already present anywhere in this plan
+  const existing = await db
+    .select({ courseCode: planItemsTable.courseCode })
+    .from(planItemsTable)
+    .where(eq(planItemsTable.planId, plan.id));
+  const existingCodes = new Set(
+    existing.map((e) => e.courseCode?.toUpperCase()).filter(Boolean),
+  );
+
+  const toAdd = validCourses.filter((c) => !existingCodes.has(c.code.toUpperCase()));
+  const skipped = validCourses
+    .filter((c) => existingCodes.has(c.code.toUpperCase()))
+    .map((c) => c.code);
+
+  // Determine starting position in the completed bucket
+  const [{ maxPos }] = (await db
+    .select({
+      maxPos: sql<number>`coalesce(max(${planItemsTable.position}), -1)::int`,
+    })
+    .from(planItemsTable)
+    .where(
+      and(eq(planItemsTable.planId, plan.id), eq(planItemsTable.bucket, "completed")),
+    )) as [{ maxPos: number }];
+
+  const added: PlanItemRow[] = [];
+  let nextPosition = maxPos + 1;
+  for (const course of toAdd) {
+    const [created] = await db
+      .insert(planItemsTable)
+      .values({
+        planId: plan.id,
+        itemType: "course",
+        courseCode: course.code,
+        courseTitle: course.title,
+        units: String(course.units),
+        academicYear: COMPLETED_YEAR,
+        term: "completed",
+        bucket: "completed",
+        completionSource: "previously_completed_scu",
+        provenance: "report_imported",
+        position: nextPosition++,
+      })
+      .returning();
+    added.push(created!);
+  }
+
+  if (added.length > 0) {
+    await touchPlan(plan.id);
+  }
+
+  res.status(201).json({ added: added.map(itemDto), skipped });
+});
+
 router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
   const parsed = UpdatePlanItemBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid update." });

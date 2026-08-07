@@ -1508,3 +1508,14 @@ export const SearchCoursesTerm = {
   spring: "spring",
   summer: "summer",
 } as const;
+
+export interface BulkImportPlanItemsBody {
+  /** Course codes from the progress report to add to the Completed area. */
+  courseCodes: string[];
+}
+
+export interface BulkImportPlanItemsResult {
+  added: PlanItem[];
+  /** Course codes already present anywhere in the plan (not re-added). */
+  skipped: string[];
+}
