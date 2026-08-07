@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlanItemType, RequirementGroupKind, RequirementItem } from "@workspace/api-client-react";
 import { useAddPlanItem } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const GROUP_ICONS = {
   university_core: GraduationCap,
@@ -20,8 +27,30 @@ const GROUP_ICONS = {
 export function Palette() {
   const { requirements, activePlan, catalog } = useDegreePlanContext();
   const [search, setSearch] = useState("");
+  const [destination, setDestination] = useState("2026:fall");
   const queryClient = useQueryClient();
   const addPlanItem = useAddPlanItem();
+
+  const destinationOptions = useMemo(() => {
+    const years = new Set<number>([2026]);
+    activePlan?.items.forEach((item) => years.add(item.academicYear));
+    const lastYear = Math.max(...years);
+    years.add(lastYear + 1);
+    return Array.from(years)
+      .sort((a, b) => a - b)
+      .flatMap((year) =>
+        ["fall", "winter", "spring", "summer"].map((term) => ({
+          value: `${year}:${term}`,
+          label: `${term.charAt(0).toUpperCase()}${term.slice(1)} ${year}`,
+        })),
+      );
+  }, [activePlan?.items]);
+
+  const [academicYear, term] = destination.split(":");
+  const placement = {
+    academicYear: Number(academicYear),
+    term: term as "fall" | "winter" | "spring" | "summer",
+  };
 
   const handleAddPlaceholder = (group: any, req: RequirementItem) => {
     if (!activePlan) return;
@@ -32,8 +61,7 @@ export function Palette() {
         requirementId: req.id,
         requirementCategory: group.title,
         requirementLabel: req.label,
-        academicYear: 2026, // Fallback, the board will let them drag it or select it
-        term: "fall",
+        ...placement,
       }
     }, {
       onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") })
@@ -50,8 +78,7 @@ export function Palette() {
         requirementId: req?.id,
         requirementCategory: group?.title,
         requirementLabel: req?.label,
-        academicYear: 2026, // Default
-        term: "fall",
+        ...placement,
       }
     }, {
       onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") }),
@@ -67,8 +94,7 @@ export function Palette() {
                 requirementId: req?.id,
                 requirementCategory: group?.title,
                 requirementLabel: req?.label,
-                academicYear: 2026,
-                term: "fall",
+                ...placement,
                 allowDuplicate: true,
               }
             }, {
@@ -110,6 +136,29 @@ export function Palette() {
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+        </div>
+        <div className="mt-3">
+          <label
+            htmlFor="plan-destination"
+            className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            Add new items to
+          </label>
+          <Select value={destination} onValueChange={setDestination}>
+            <SelectTrigger id="plan-destination" data-testid="select-plan-destination" className="h-8 text-xs bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {destinationOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="text-xs">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+            You can drag items later. A course in this plan is not a registration.
+          </p>
         </div>
       </div>
 
