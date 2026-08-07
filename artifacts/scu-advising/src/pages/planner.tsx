@@ -7,6 +7,10 @@ import {
   useListPlans,
   useGetPlan,
   getGetPlanQueryKey,
+  useListSchedules,
+  getListSchedulesQueryKey,
+  useGetSchedule,
+  getGetScheduleQueryKey,
 } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
@@ -179,6 +183,35 @@ export default function Planner() {
       setComparing(false);
     }
   };
+
+  // Persisted Weekly Schedule for this quarter — shows which planned courses
+  // already have an exact section chosen (server-validated, never invented).
+  const schedulesParams = { term: term as never, year };
+  const { data: schedulesList } = useListSchedules(schedulesParams, {
+    query: { queryKey: getListSchedulesQueryKey(schedulesParams) },
+  });
+  const quarterScheduleId = schedulesList?.schedules[0]?.id;
+  const { data: quarterSchedule } = useGetSchedule(quarterScheduleId!, {
+    query: {
+      enabled: !!quarterScheduleId,
+      queryKey: getGetScheduleQueryKey(quarterScheduleId!),
+    },
+  });
+  const sectionByCourse = new Map<
+    string,
+    { sectionNumber: string | null; meetingDays: string[]; startTime: string | null; endTime: string | null; instructor: string | null }
+  >();
+  for (const ev of quarterSchedule?.events ?? []) {
+    if (ev.kind === "section" && ev.courseCode) {
+      sectionByCourse.set(ev.courseCode.toUpperCase(), {
+        sectionNumber: ev.sectionNumber,
+        meetingDays: ev.meetingDays,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+        instructor: ev.instructor,
+      });
+    }
+  }
 
   // Degree Plan stores terms by academic year (2026 = 2026–27), while the
   // Quarter Plan uses calendar years: Fall 2026 belongs to academic year
@@ -407,15 +440,45 @@ export default function Planner() {
                       data-testid={`planned-${i}`}
                       className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="font-mono text-sm font-bold text-primary">
-                          {p.code}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-3">
+                          <div className="font-mono text-sm font-bold text-primary">
+                            {p.code}
+                          </div>
+                          <div className="text-sm text-foreground truncate">
+                            {catalog.find(
+                              (c) => c.code.toUpperCase() === p.code.toUpperCase(),
+                            )?.title ?? "Not in catalog — verify code"}
+                          </div>
                         </div>
-                        <div className="text-sm text-foreground">
-                          {catalog.find(
-                            (c) => c.code.toUpperCase() === p.code.toUpperCase(),
-                          )?.title ?? "Not in catalog — verify code"}
-                        </div>
+                        {(() => {
+                          const sec = sectionByCourse.get(p.code.toUpperCase());
+                          if (sec) {
+                            const time =
+                              sec.startTime && sec.endTime
+                                ? `${sec.startTime}–${sec.endTime}`
+                                : null;
+                            return (
+                              <div
+                                className="text-[11px] text-emerald-700 mt-0.5 font-mono"
+                                data-testid={`section-status-${p.code.replace(/\s+/g, "-")}`}
+                              >
+                                Section{sec.sectionNumber ? ` ${sec.sectionNumber}` : ""} chosen
+                                {sec.meetingDays.length > 0 ? ` · ${sec.meetingDays.join("")}` : ""}
+                                {time ? ` ${time}` : ""}
+                                {sec.instructor ? ` · ${sec.instructor}` : ""}
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="text-[11px] text-muted-foreground mt-0.5">
+                              No section chosen yet —{" "}
+                              <Link href="/schedule" className="underline underline-offset-2">
+                                pick one in Weekly Schedule
+                              </Link>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="font-mono">
