@@ -1,0 +1,20 @@
+Academic Progress Report
+
+Santa Clara University
+
+Student: Anonymized Student     Student ID: 00000000
+
+FALL 2022-2023
+CourseTitle                                                    Units Grade
+CSCI10  Introduction to Computer Science                      5.00  A
+MATH11  Calculus and Analytic Geometry I                      4.00  B+
+ENGL1A  Critical Thinking and Writing                         4.00  A-
+Term Earned: 13.00  Term GPA: 3.73
+
+WINTER 2022-2023
+CourseTitle                                                    Units Grade
+CSCI60  Introduction to C++ and Object-Oriented Programming   5.00  A
+MATH12  Calculus and Analytic Geometry II                     4.00  B
+Term Earned: 9.00  Term GPA: 3.50
+
+Cumulative GPA: 3.64  Cumulative Credits: 22.00

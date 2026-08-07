@@ -1,0 +1,45 @@
+Academic Progress Report
+Page 1 of 2
+
+Santa Clara University
+
+Student: Anonymized Student                     Student ID: 00000000
+Advisor: Advisor Name                           Report Date: 2026-01-15
+Program: Computer Science and Engineering       Expected Grad: Spring 2026
+
+FALL 2022-2023
+Course  Title                                                   Units  Grade
+CSCI 10  Introduction to Computer Science                       5.00   A
+MATH 11  Calculus and Analytic Geometry I                       4.00   B+
+ENGL 1A  Critical Thinking and Writing I and II                 4.00   A-
+                                              Term Earned: 13.00   Term GPA: 3.73
+
+WINTER 2022-2023
+Course  Title                                                   Units  Grade
+CSCI 60  Introduction to C++ and Object-Oriented Programming    5.00   A
+MATH 12  Calculus and Analytic Geometry II                      4.00   B
+                                              Term Earned: 9.00    Term GPA: 3.50
+
+Academic Progress Report
+Page 2 of 2
+
+SPRING 2022-2023
+Course  Title                                                   Units  Grade
+CSCI 61  Data Structures                                        4.00   A-
+MATH 13  Calculus and Analytic Geometry III                     4.00   B+
+BIOE 158L  Soft Biomaterials Characterization Laboratory        1.00   A
+                                              Term Earned: 9.00    Term GPA: 3.67
+
+Transfer Credit
+Course  Title                                                   Units  Grade
+XFER 101  Transferred General Education Credit                  3.00   CR
+XFER 102  Transferred Math Credit                               4.00   CR
+                                              Transfer Credits: 7.00
+
+In Progress - FALL 2025-2026
+Course  Title                                                   Units  Grade
+CSEN 12  Abstract Data Types and Data Structures                4.00   ---
+PHYS 31  Physics for Scientists and Engineers I                 5.00   ---
+                                              In-Progress Units: 9.00
+
+Cumulative Credits Attempted: 38.00   Cumulative Credits Earned: 31.00   Cumulative GPA: 3.64

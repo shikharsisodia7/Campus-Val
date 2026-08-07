@@ -354,7 +354,11 @@ for (const c of COURSES) {
   catalogMap.set(c.code.toUpperCase().replace(/\s+/g, " ").trim(), c);
 }
 
-function extractCodesFromText(text: string): {
+/**
+ * Exported for direct testing with anonymized golden-text fixtures that
+ * represent actual pdf-parse / xlsx extraction output from Workday APR files.
+ */
+export function extractCodesFromText(text: string): {
   catalogMatches: ParsedCompletedCourse[];
   unknownTokens: ParsedPossibleCourse[];
 } {
@@ -389,5 +393,14 @@ function extractCodesFromText(text: string): {
 }
 
 function normalizeCode(raw: string): string {
-  return raw.toUpperCase().replace(/\s+/g, " ").trim();
+  // Always insert exactly one space between the letter prefix and the digit
+  // suffix. PDF text extraction sometimes omits the space (e.g. "ACTG11"),
+  // while the catalog map always stores codes with a space ("ACTG 11").
+  // This prevents catalog-matched courses from silently falling through to
+  // possibleCourses when PDF extraction drops the inter-field spacing.
+  return raw
+    .toUpperCase()
+    .replace(/^([A-Z]{2,5})\s?(\d)/, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
 }
