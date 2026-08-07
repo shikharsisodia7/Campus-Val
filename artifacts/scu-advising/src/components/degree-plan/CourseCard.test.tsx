@@ -445,6 +445,12 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
         }),
       }),
     );
+
+    // The popover must close after the move so the board isn't left in an
+    // open-popover state with stale conflict data.
+    await waitFor(() => {
+      expect(screen.queryByTestId("time-conflict-details-10")).toBeNull();
+    });
   });
 
   it("does not show a 'Move here' button for a no-fit suggestion", async () => {
