@@ -17,7 +17,7 @@ import { AlertTriangle, Menu, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
-export function DegreePlanWorkspace() {
+export function DegreePlanWorkspace({ mode = "degree" }: { mode?: "degree" | "tentative" }) {
   const { data: plansList, isLoading: plansLoading } = useListPlans();
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
 
@@ -26,12 +26,17 @@ export function DegreePlanWorkspace() {
 
   useEffect(() => {
     if (!activePlanId && plansList?.plans) {
-      const defaultPlan = plansList.plans.find(p => p.planType === 'degree') || plansList.plans[0];
+      // On the Tentative Plans page, default to the most recent tentative
+      // plan; on Degree Plan, default to the degree plan.
+      const defaultPlan =
+        mode === "tentative"
+          ? plansList.plans.find(p => p.planType === 'tentative') ?? plansList.plans.find(p => p.planType === 'degree')
+          : plansList.plans.find(p => p.planType === 'degree') || plansList.plans[0];
       if (defaultPlan) {
         setActivePlanId(defaultPlan.id);
       }
     }
-  }, [plansList, activePlanId]);
+  }, [plansList, activePlanId, mode]);
 
   const { data: activePlan, isLoading: planLoading } = useGetPlan(activePlanId!, {
     query: { enabled: !!activePlanId, queryKey: getGetPlanQueryKey(activePlanId!) }
