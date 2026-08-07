@@ -4,7 +4,11 @@ import {
   useGetProfile,
   getGetProfileQueryKey,
   useListCourses,
+  useListPlans,
+  useGetPlan,
+  getGetPlanQueryKey,
 } from "@workspace/api-client-react";
+import { Link } from "wouter";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,6 +47,15 @@ export default function Planner() {
   });
   const { data: catalog = [] } = useListCourses({});
   const checkPlan = useCheckPlan();
+
+  // Degree Plan course intentions for the selected quarter feed this page
+  // automatically — the Quarter Plan starts from what the student already
+  // planned, rather than a blank list.
+  const { data: plansList } = useListPlans();
+  const degreePlanId = plansList?.plans.find((p) => p.planType === "degree")?.id;
+  const { data: degreePlan } = useGetPlan(degreePlanId!, {
+    query: { enabled: !!degreePlanId, queryKey: getGetPlanQueryKey(degreePlanId!) },
+  });
 
   const today = getCurrentSCUTerm();
   const [term, setTerm] = useState<string>(today.term);
@@ -167,6 +180,41 @@ export default function Planner() {
     }
   };
 
+  // Degree Plan stores terms by academic year (2026 = 2026–27), while the
+  // Quarter Plan uses calendar years: Fall 2026 belongs to academic year
+  // 2026, but Winter/Spring/Summer 2027 do too.
+  const selectedAcademicYear = term === "fall" ? year : year - 1;
+  const plannedCodes = new Set(planned.map((p) => p.code.toUpperCase()));
+  const degreePlanCourses = (degreePlan?.items ?? [])
+    .filter(
+      (i) =>
+        i.itemType === "course" &&
+        (i.bucket ?? "planned") === "planned" &&
+        i.term === term &&
+        i.academicYear === selectedAcademicYear &&
+        !!i.courseCode,
+    )
+    .map((i) => ({ code: i.courseCode!, title: i.courseTitle ?? "" }));
+  const degreePlanToAdd = degreePlanCourses.filter(
+    (c) => !plannedCodes.has(c.code.toUpperCase()),
+  );
+
+  const addFromDegreePlan = (codes: string[]) => {
+    const additions: PlannedCourse[] = [];
+    for (const code of codes) {
+      const known = catalog.find(
+        (c) => c.code.toUpperCase() === code.toUpperCase(),
+      );
+      if (known && !plannedCodes.has(known.code.toUpperCase())) {
+        additions.push({ code: known.code, units: known.units });
+      }
+    }
+    if (additions.length > 0) {
+      setPlanned([...planned, ...additions]);
+      setComparison(null);
+    }
+  };
+
   const removeCourse = (idx: number) => {
     setPlanned(planned.filter((_, i) => i !== idx));
   };
@@ -244,6 +292,64 @@ export default function Planner() {
                 />
               </div>
             </div>
+
+            {degreePlanCourses.length > 0 && (
+              <div className="mt-6" data-testid="degree-plan-intentions">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+                    From your Degree Plan — {termLabel(term)} {year}
+                  </div>
+                  {degreePlanToAdd.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      data-testid="button-add-all-degree-plan"
+                      onClick={() => addFromDegreePlan(degreePlanToAdd.map((c) => c.code))}
+                    >
+                      <Plus className="h-3 w-3 mr-1" /> Add all ({degreePlanToAdd.length})
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {degreePlanCourses.map((c) => {
+                    const already = plannedCodes.has(c.code.toUpperCase());
+                    return (
+                      <div
+                        key={c.code}
+                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border bg-muted/10 text-sm"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono font-bold text-primary shrink-0">{c.code}</span>
+                          <span className="truncate text-foreground/80">{c.title}</span>
+                        </div>
+                        {already ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-700 shrink-0">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> In quarter plan
+                          </span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs shrink-0"
+                            data-testid={`button-add-degree-plan-${c.code.replace(/\s+/g, "-")}`}
+                            onClick={() => addFromDegreePlan([c.code])}
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Add
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Courses you placed in this quarter on your{" "}
+                  <Link href="/degree-plan" className="underline underline-offset-2">Degree Plan</Link>.
+                  Pick exact sections and meeting times in the{" "}
+                  <Link href="/schedule" className="underline underline-offset-2">Weekly Schedule</Link>.
+                </p>
+              </div>
+            )}
 
             <div className="mt-6">
               <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
