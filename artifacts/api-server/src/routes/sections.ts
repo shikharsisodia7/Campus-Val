@@ -8,6 +8,17 @@ import { requireAuth } from "../middlewares/requireAuth";
 const router: IRouter = Router();
 
 router.post("/sections/sync", requireAuth, async (req, res) => {
+  // Section sync replaces shared SCU course data. It is deliberately limited
+  // to the service/admin account rather than every authenticated student.
+  // The deployment config supplies this address; without it, mutation stays
+  // unavailable rather than allowing accidental global data replacement.
+  const syncAdminEmail = process.env.WORKDAY_SYNC_ADMIN_EMAIL?.toLowerCase();
+  if (!syncAdminEmail || req.userEmail?.toLowerCase() !== syncAdminEmail) {
+    return res.status(403).json({
+      error:
+        "Workday section sync is restricted to the authorized CampusVal data steward.",
+    });
+  }
   const parseResult = SyncWorkdaySectionsBody.safeParse(req.body);
   if (!parseResult.success) {
     return res

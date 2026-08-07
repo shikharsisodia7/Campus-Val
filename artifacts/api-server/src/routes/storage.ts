@@ -37,9 +37,14 @@ router.post(
     try {
       const { name, size, contentType } = parsed.data;
 
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      const objectPath =
-        objectStorageService.normalizeObjectEntityPath(uploadURL);
+      // Assign ownership before the browser receives the signed PUT URL. This
+      // binds the opaque object path to the authenticated requester, so it
+      // cannot later be claimed by a different student at registration time.
+      const { uploadURL, objectPath } =
+        await objectStorageService.getObjectEntityUploadURL({
+        owner: req.userId!,
+        visibility: 'private',
+        });
 
       res.json(
         RequestUploadUrlResponse.parse({

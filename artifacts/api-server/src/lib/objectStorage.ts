@@ -111,7 +111,9 @@ export class ObjectStorageService {
     return new Response(webStream, { headers });
   }
 
-  async getObjectEntityUploadURL(): Promise<string> {
+  async getObjectEntityUploadURL(
+    aclPolicy?: ObjectAclPolicy,
+  ): Promise<{ uploadURL: string; objectPath: string }> {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
       throw new Error(
@@ -125,12 +127,24 @@ export class ObjectStorageService {
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
-    return signObjectURL({
+    const objectPath = `/objects/uploads/${objectId}`;
+    const objectFile = objectStorageClient.bucket(bucketName).file(objectName);
+    if (aclPolicy) {
+      // GCS lets metadata be set before the signed PUT occurs. This makes the
+      // opaque upload path owner-bound before the browser ever sees it.
+      await objectFile.setMetadata({
+        metadata: {
+          "custom:aclPolicy": JSON.stringify(aclPolicy),
+        },
+      });
+    }
+    const uploadURL = await signObjectURL({
       bucketName,
       objectName,
       method: 'PUT',
       ttlSec: 900,
     });
+    return { uploadURL, objectPath };
   }
 
   async getObjectEntityFile(objectPath: string): Promise<File> {

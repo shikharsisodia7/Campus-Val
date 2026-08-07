@@ -80,16 +80,23 @@ router.post(
       return;
     }
 
-    // Lock the object down to the owner before anything else.
+    // The upload URL endpoint assigned the owner before it handed the browser
+    // an opaque object path. Verify that ownership here; never reassign an
+    // existing object's ACL based on caller-provided data.
     let normalizedPath: string;
     try {
-      normalizedPath = await objectStorage.trySetObjectEntityAclPolicy(
-        objectPath,
-        {
-          owner: req.userId!,
-          visibility: "private",
-        },
-      );
+      normalizedPath = objectStorage.normalizeObjectEntityPath(objectPath);
+      const uploadedFile =
+        await objectStorage.getObjectEntityFile(normalizedPath);
+      const ownsUpload = await objectStorage.canAccessObjectEntity({
+        userId: req.userId!,
+        objectFile: uploadedFile,
+        requestedPermission: ObjectPermission.WRITE,
+      });
+      if (!ownsUpload) {
+        res.status(403).json({ error: "This upload does not belong to you." });
+        return;
+      }
     } catch (err) {
       if (err instanceof ObjectNotFoundError) {
         res
