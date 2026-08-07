@@ -67,6 +67,7 @@ function planDto(row: AcademicPlanRow, itemCount: number) {
     name: row.name,
     planType: row.planType as "degree" | "tentative",
     sourcePlanId: row.sourcePlanId ?? null,
+    metadata: row.metadata ?? {},
     itemCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -233,7 +234,15 @@ router.post("/plans", requireAuth, async (req, res) => {
 
   const [created] = await db
     .insert(academicPlansTable)
-    .values({ userId, name: name.trim(), planType: "tentative", sourcePlanId })
+    .values({
+      userId,
+      name: name.trim(),
+      planType: "tentative",
+      sourcePlanId,
+      metadata: sourcePlanId
+        ? (await ownedPlan(sourcePlanId, userId))?.metadata ?? {}
+        : {},
+    })
     .returning();
   if (sourcePlanId !== null) await copyItems(sourcePlanId, created!.id);
   const items = await itemsOf(created!.id);
@@ -249,6 +258,7 @@ router.get("/plans/:id", requireAuth, async (req, res) => {
     name: plan.name,
     planType: plan.planType,
     sourcePlanId: plan.sourcePlanId ?? null,
+    metadata: plan.metadata ?? {},
     items: items.map(itemDto),
     createdAt: plan.createdAt.toISOString(),
     updatedAt: plan.updatedAt.toISOString(),
@@ -257,14 +267,32 @@ router.get("/plans/:id", requireAuth, async (req, res) => {
 
 router.patch("/plans/:id", requireAuth, async (req, res) => {
   const parsed = UpdatePlanBody.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Enter a plan name (1–80 characters)." });
+  if (!parsed.success || (!parsed.data.name && !parsed.data.metadata)) {
+    return res.status(400).json({ error: "Provide a valid plan name or plan settings." });
   }
   const plan = await ownedPlan(Number(req.params.id), req.userId!);
   if (!plan) return res.status(404).json({ error: "Plan not found." });
   const [updated] = await db
     .update(academicPlansTable)
-    .set({ name: parsed.data.name.trim() })
+    .set({
+      ...(parsed.data.name ? { name: parsed.data.name.trim() } : {}),
+      ...(parsed.data.metadata
+        ? {
+            metadata: {
+              addedYears: Array.from(
+                new Set(
+                  (parsed.data.metadata.addedYears ?? []).filter(validAcademicYear),
+                ),
+              ).sort((a, b) => a - b),
+              summerYears: Array.from(
+                new Set(
+                  (parsed.data.metadata.summerYears ?? []).filter(validAcademicYear),
+                ),
+              ).sort((a, b) => a - b),
+            },
+          }
+        : {}),
+    })
     .where(eq(academicPlansTable.id, plan.id))
     .returning();
   const items = await itemsOf(plan.id);
@@ -298,6 +326,7 @@ router.post("/plans/:id/duplicate", requireAuth, async (req, res) => {
       name: parsed.data.name.trim(),
       planType: "tentative",
       sourcePlanId: plan.id,
+      metadata: plan.metadata ?? {},
     })
     .returning();
   await copyItems(plan.id, created!.id);

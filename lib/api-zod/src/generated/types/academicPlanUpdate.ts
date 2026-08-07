@@ -5,11 +5,13 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { PlanMetadata } from "./planMetadata";
 
 export interface AcademicPlanUpdate {
   /**
    * @minLength 1
    * @maxLength 80
    */
-  name: string;
+  name?: string;
+  metadata?: PlanMetadata;
 }

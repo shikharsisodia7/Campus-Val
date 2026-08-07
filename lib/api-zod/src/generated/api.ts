@@ -1108,6 +1108,12 @@ export const SendOpenaiMessageBody = zod.object({
 /**
  * @summary List the student's academic plans (creates the Degree Plan on first call)
  */
+export const listPlansResponsePlansItemMetadataAddedYearsItemMin = 2000;
+export const listPlansResponsePlansItemMetadataAddedYearsItemMax = 2100;
+
+export const listPlansResponsePlansItemMetadataSummerYearsItemMin = 2000;
+export const listPlansResponsePlansItemMetadataSummerYearsItemMax = 2100;
+
 export const ListPlansResponse = zod.object({
   plans: zod.array(
     zod.object({
@@ -1115,6 +1121,26 @@ export const ListPlansResponse = zod.object({
       name: zod.string(),
       planType: zod.enum(["degree", "tentative"]),
       sourcePlanId: zod.number().nullish(),
+      metadata: zod
+        .object({
+          addedYears: zod
+            .array(
+              zod
+                .number()
+                .min(listPlansResponsePlansItemMetadataAddedYearsItemMin)
+                .max(listPlansResponsePlansItemMetadataAddedYearsItemMax),
+            )
+            .optional(),
+          summerYears: zod
+            .array(
+              zod
+                .number()
+                .min(listPlansResponsePlansItemMetadataSummerYearsItemMin)
+                .max(listPlansResponsePlansItemMetadataSummerYearsItemMax),
+            )
+            .optional(),
+        })
+        .optional(),
       itemCount: zod.number(),
       createdAt: zod.string(),
       updatedAt: zod.string(),
@@ -1142,11 +1168,37 @@ export const GetPlanParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const getPlanResponseMetadataAddedYearsItemMin = 2000;
+export const getPlanResponseMetadataAddedYearsItemMax = 2100;
+
+export const getPlanResponseMetadataSummerYearsItemMin = 2000;
+export const getPlanResponseMetadataSummerYearsItemMax = 2100;
+
 export const GetPlanResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   planType: zod.enum(["degree", "tentative"]),
   sourcePlanId: zod.number().nullish(),
+  metadata: zod
+    .object({
+      addedYears: zod
+        .array(
+          zod
+            .number()
+            .min(getPlanResponseMetadataAddedYearsItemMin)
+            .max(getPlanResponseMetadataAddedYearsItemMax),
+        )
+        .optional(),
+      summerYears: zod
+        .array(
+          zod
+            .number()
+            .min(getPlanResponseMetadataSummerYearsItemMin)
+            .max(getPlanResponseMetadataSummerYearsItemMax),
+        )
+        .optional(),
+    })
+    .optional(),
   items: zod.array(
     zod.object({
       id: zod.number(),
@@ -1202,15 +1254,67 @@ export const UpdatePlanParams = zod.object({
 
 export const updatePlanBodyNameMax = 80;
 
+export const updatePlanBodyMetadataAddedYearsItemMin = 2000;
+export const updatePlanBodyMetadataAddedYearsItemMax = 2100;
+
+export const updatePlanBodyMetadataSummerYearsItemMin = 2000;
+export const updatePlanBodyMetadataSummerYearsItemMax = 2100;
+
 export const UpdatePlanBody = zod.object({
-  name: zod.string().min(1).max(updatePlanBodyNameMax),
+  name: zod.string().min(1).max(updatePlanBodyNameMax).optional(),
+  metadata: zod
+    .object({
+      addedYears: zod
+        .array(
+          zod
+            .number()
+            .min(updatePlanBodyMetadataAddedYearsItemMin)
+            .max(updatePlanBodyMetadataAddedYearsItemMax),
+        )
+        .optional(),
+      summerYears: zod
+        .array(
+          zod
+            .number()
+            .min(updatePlanBodyMetadataSummerYearsItemMin)
+            .max(updatePlanBodyMetadataSummerYearsItemMax),
+        )
+        .optional(),
+    })
+    .optional(),
 });
+
+export const updatePlanResponseMetadataAddedYearsItemMin = 2000;
+export const updatePlanResponseMetadataAddedYearsItemMax = 2100;
+
+export const updatePlanResponseMetadataSummerYearsItemMin = 2000;
+export const updatePlanResponseMetadataSummerYearsItemMax = 2100;
 
 export const UpdatePlanResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   planType: zod.enum(["degree", "tentative"]),
   sourcePlanId: zod.number().nullish(),
+  metadata: zod
+    .object({
+      addedYears: zod
+        .array(
+          zod
+            .number()
+            .min(updatePlanResponseMetadataAddedYearsItemMin)
+            .max(updatePlanResponseMetadataAddedYearsItemMax),
+        )
+        .optional(),
+      summerYears: zod
+        .array(
+          zod
+            .number()
+            .min(updatePlanResponseMetadataSummerYearsItemMin)
+            .max(updatePlanResponseMetadataSummerYearsItemMax),
+        )
+        .optional(),
+    })
+    .optional(),
   itemCount: zod.number(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
@@ -1243,11 +1347,37 @@ export const PromotePlanParams = zod.object({
   id: zod.coerce.number(),
 });
 
+export const promotePlanResponseMetadataAddedYearsItemMin = 2000;
+export const promotePlanResponseMetadataAddedYearsItemMax = 2100;
+
+export const promotePlanResponseMetadataSummerYearsItemMin = 2000;
+export const promotePlanResponseMetadataSummerYearsItemMax = 2100;
+
 export const PromotePlanResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   planType: zod.enum(["degree", "tentative"]),
   sourcePlanId: zod.number().nullish(),
+  metadata: zod
+    .object({
+      addedYears: zod
+        .array(
+          zod
+            .number()
+            .min(promotePlanResponseMetadataAddedYearsItemMin)
+            .max(promotePlanResponseMetadataAddedYearsItemMax),
+        )
+        .optional(),
+      summerYears: zod
+        .array(
+          zod
+            .number()
+            .min(promotePlanResponseMetadataSummerYearsItemMin)
+            .max(promotePlanResponseMetadataSummerYearsItemMax),
+        )
+        .optional(),
+    })
+    .optional(),
   itemCount: zod.number(),
   createdAt: zod.string(),
   updatedAt: zod.string(),

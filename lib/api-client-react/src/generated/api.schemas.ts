@@ -234,12 +234,18 @@ export const PlanItemType = {
   requirement_placeholder: "requirement_placeholder",
 } as const;
 
+export interface PlanMetadata {
+  addedYears?: number[];
+  summerYears?: number[];
+}
+
 export interface AcademicPlan {
   id: number;
   name: string;
   planType: PlanType;
   /** @nullable */
   sourcePlanId?: number | null;
+  metadata?: PlanMetadata;
   itemCount: number;
   createdAt: string;
   updatedAt: string;
@@ -267,7 +273,8 @@ export interface AcademicPlanUpdate {
    * @minLength 1
    * @maxLength 80
    */
-  name: string;
+  name?: string;
+  metadata?: PlanMetadata;
 }
 
 export interface AcademicPlanDuplicateInput {
@@ -345,6 +352,7 @@ export interface AcademicPlanDetail {
   planType: PlanType;
   /** @nullable */
   sourcePlanId?: number | null;
+  metadata?: PlanMetadata;
   items: PlanItem[];
   createdAt: string;
   updatedAt: string;

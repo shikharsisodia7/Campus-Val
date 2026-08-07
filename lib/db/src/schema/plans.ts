@@ -6,6 +6,7 @@ import {
   timestamp,
   numeric,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -23,6 +24,16 @@ export const academicPlansTable = pgTable(
     name: text("name").notNull(),
     planType: text("plan_type").notNull(), // "degree" | "tentative"
     sourcePlanId: integer("source_plan_id"),
+    // Plan-scoped display and scenario settings. These deliberately live with
+    // the plan, so tentative drafts can explore extra years independently of
+    // the official Degree Plan.
+    metadata: jsonb("metadata")
+      .$type<{
+        addedYears?: number[];
+        summerYears?: number[];
+      }>()
+      .notNull()
+      .default({}),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

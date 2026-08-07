@@ -88,6 +88,7 @@ export * from "./planItemBucket";
 export * from "./planItemInput";
 export * from "./planItemType";
 export * from "./planItemUpdate";
+export * from "./planMetadata";
 export * from "./plannedCourse";
 export * from "./planType";
 export * from "./policy";

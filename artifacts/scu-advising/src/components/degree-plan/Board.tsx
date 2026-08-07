@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -8,10 +8,14 @@ import { CourseCard } from "./CourseCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useOptimisticUpdatePlanItem } from "./usePlanItemMutations";
+import { useUpdatePlan } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function Board({ plans }: { plans: any[] }) {
   const { activePlan, activePlanId, scheduleAvailability } = useDegreePlanContext();
   const updatePlanItem = useOptimisticUpdatePlanItem();
+  const updatePlan = useUpdatePlan();
+  const queryClient = useQueryClient();
 
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
@@ -32,8 +36,30 @@ export function Board({ plans }: { plans: any[] }) {
     }
   });
 
-  const [addedYears, setAddedYears] = useState<number[]>([]);
-  const [addedSummers, setAddedSummers] = useState<number[]>([]);
+  const [addedYears, setAddedYears] = useState<number[]>(
+    activePlan?.metadata?.addedYears ?? [],
+  );
+  const [addedSummers, setAddedSummers] = useState<number[]>(
+    activePlan?.metadata?.summerYears ?? [],
+  );
+
+  useEffect(() => {
+    setAddedYears(activePlan?.metadata?.addedYears ?? []);
+    setAddedSummers(activePlan?.metadata?.summerYears ?? []);
+  }, [activePlan?.id, activePlan?.metadata]);
+
+  const saveLayout = (years: number[], summers: number[]) => {
+    if (!activePlanId) return;
+    updatePlan.mutate(
+      { id: activePlanId, data: { metadata: { addedYears: years, summerYears: summers } } },
+      {
+        onSuccess: () =>
+          queryClient.invalidateQueries({
+            predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
+          }),
+      },
+    );
+  };
 
   const displayYears = useMemo(() => {
     let base = Array.from(yearsWithItems);
@@ -131,11 +157,15 @@ export function Board({ plans }: { plans: any[] }) {
 
   const handleAddYear = () => {
     const nextYear = displayYears.length > 0 ? displayYears[displayYears.length - 1] + 1 : 2026;
-    setAddedYears(prev => [...prev, nextYear]);
+    const years = Array.from(new Set([...addedYears, nextYear])).sort((a, b) => a - b);
+    setAddedYears(years);
+    saveLayout(years, addedSummers);
   };
 
   const handleAddSummer = (year: number) => {
-    setAddedSummers(prev => [...prev, year]);
+    const summers = Array.from(new Set([...addedSummers, year])).sort((a, b) => a - b);
+    setAddedSummers(summers);
+    saveLayout(addedYears, summers);
   };
 
   if (!activePlan) return null;
