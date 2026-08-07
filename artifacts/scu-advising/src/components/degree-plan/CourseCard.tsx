@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { minutesToLabel } from "@/lib/conflicts";
 import type { CourseConflictDetail } from "./useTermCourseConflicts";
+import { useQuarterFitSuggestions, type QuarterFitSuggestion } from "./useQuarterFitSuggestions";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Trash2, GripVertical, MoveRight, BookOpen, AlertCircle, Loader2, CalendarClock } from "lucide-react";
@@ -279,8 +280,9 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
 
 function ConflictNote({ item, conflicts }: { item: PlanItem, conflicts: CourseConflictDetail[] }) {
   const names = conflicts.map(c => c.otherCode);
+  const [open, setOpen] = useState(false);
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -329,11 +331,85 @@ function ConflictNote({ item, conflicts }: { item: PlanItem, conflicts: CourseCo
             </div>
           ))}
         </div>
+        {item.courseCode && (
+          <QuarterSuggestions
+            item={item}
+            courseCode={item.courseCode}
+            enabled={open}
+          />
+        )}
         <div className="text-[10px] text-muted-foreground mt-2">
           Times from SCU's published/tentative schedule.
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function QuarterSuggestions({ item, courseCode, enabled }: { item: PlanItem, courseCode: string, enabled: boolean }) {
+  const { activePlan, scheduleAvailability } = useDegreePlanContext();
+  const suggestions = useQuarterFitSuggestions(
+    courseCode,
+    item.academicYear,
+    item.term,
+    activePlan?.items,
+    scheduleAvailability,
+    enabled,
+  );
+
+  if (suggestions.length === 0) return null;
+
+  const label = (s: QuarterFitSuggestion) => {
+    switch (s.status) {
+      case "fits":
+        return s.plannedCount === 0
+          ? "Offered — quarter is empty in your plan"
+          : "Offered — a conflict-free section combination exists";
+      case "no-fit":
+        return "Offered, but every section clashes there too";
+      case "unverified":
+        return "Offered — times TBA, fit can't be verified";
+      case "not-offered":
+        return "Not in the official schedule";
+      case "checking":
+        return "Checking sections…";
+    }
+  };
+
+  const tone = (s: QuarterFitSuggestion) =>
+    s.status === "fits"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+      : s.status === "unverified"
+        ? "border-amber-200 bg-amber-50 text-amber-900"
+        : "border-border bg-muted/20 text-muted-foreground";
+
+  return (
+    <div className="mt-3 pt-2 border-t border-border" data-testid={`quarter-suggestions-${item.id}`}>
+      <div className="text-xs font-semibold mb-1.5 flex items-center gap-1.5">
+        <MoveRight className="h-3.5 w-3.5 text-emerald-700" />
+        Where {courseCode} could fit
+      </div>
+      <div className="space-y-1 max-h-[160px] overflow-y-auto pr-1">
+        {suggestions.map((s) => (
+          <div
+            key={`${s.year}-${s.term}`}
+            className={`text-[11px] rounded border px-2 py-1 flex items-start justify-between gap-2 ${tone(s)}`}
+            data-testid={`quarter-suggestion-${item.id}-${s.year}-${s.term}`}
+          >
+            <span className="font-semibold capitalize shrink-0">
+              {s.term} {s.year}
+              {s.scheduleStatus === "tentative" && (
+                <span className="font-normal"> (tentative)</span>
+              )}
+            </span>
+            <span className="text-right">{label(s)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="text-[10px] text-muted-foreground mt-1.5">
+        Quarters without a published or tentative SCU schedule aren't listed — their offerings are unknown.
+      </div>
+    </div>
   );
 }
 

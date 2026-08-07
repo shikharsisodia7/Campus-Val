@@ -94,6 +94,76 @@ export function sectionsAlwaysConflict(
   return true;
 }
 
+/** True only when a section has parseable, positive-duration meeting times. */
+function hasValidTimes(s: SectionTimeLike): boolean {
+  const start = timeToMinutes(s.startTime ?? "");
+  const end = timeToMinutes(s.endTime ?? "");
+  return !Number.isNaN(start) && !Number.isNaN(end) && end > start;
+}
+
+/**
+ * True only when both sections have valid times AND provably never overlap
+ * (no shared day, or shared days with disjoint time windows). Sections with
+ * TBA/invalid times return false — no fit is ever claimed on guessed data.
+ */
+export function provenNoOverlap(
+  a: SectionTimeLike,
+  b: SectionTimeLike,
+): boolean {
+  if (!hasValidTimes(a) || !hasValidTimes(b)) return false;
+  const aS = timeToMinutes(a.startTime!);
+  const aE = timeToMinutes(a.endTime!);
+  const bS = timeToMinutes(b.startTime!);
+  const bE = timeToMinutes(b.endTime!);
+  const aDays = new Set(a.meetingDays);
+  for (const d of b.meetingDays) {
+    if (aDays.has(d) && Math.max(aS, bS) < Math.min(aE, bE)) return false;
+  }
+  return true;
+}
+
+/**
+ * True iff some section of the course PROVABLY fits alongside every planned
+ * course: there exists a course section (with valid times) such that each
+ * planned course has at least one section provably non-overlapping with it.
+ * Empty planned list → fits as long as the course has one valid-timed
+ * section. TBA/invalid times never count as a fit.
+ */
+export function hasProvenConflictFreeSection(
+  courseSections: SectionTimeLike[],
+  plannedCourseSections: SectionTimeLike[][],
+): boolean {
+  return courseSections.some(
+    (sa) =>
+      hasValidTimes(sa) &&
+      plannedCourseSections.every((list) =>
+        list.some((sb) => provenNoOverlap(sa, sb)),
+      ),
+  );
+}
+
+/**
+ * True iff NO section of the course can provably coexist with all planned
+ * courses: every course section is provably blocked by at least one planned
+ * course (all of that course's sections overlap it). The dual of
+ * `hasProvenConflictFreeSection` — covers the case where different course
+ * sections are blocked by different planned courses. TBA/invalid times never
+ * prove a block, so any unprovable section makes this false.
+ */
+export function provenNoSectionFits(
+  courseSections: SectionTimeLike[],
+  plannedCourseSections: SectionTimeLike[][],
+): boolean {
+  if (courseSections.length === 0 || plannedCourseSections.length === 0) {
+    return false;
+  }
+  return courseSections.every((sa) =>
+    plannedCourseSections.some(
+      (list) => list.length > 0 && list.every((sb) => provenOverlap(sa, sb)),
+    ),
+  );
+}
+
 /** Section meeting time plus display metadata for conflict explanations. */
 export interface SectionMeetingInfo extends SectionTimeLike {
   sectionNumber?: string | null;
