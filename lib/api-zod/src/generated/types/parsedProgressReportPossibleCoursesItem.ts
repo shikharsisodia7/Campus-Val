@@ -6,9 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ProgressReportRegisterInput {
-  objectPath: string;
-  fileName: string;
-  fileSize: number;
-  contentType: string;
-}
+export type ParsedProgressReportPossibleCoursesItem = {
+  raw: string;
+};

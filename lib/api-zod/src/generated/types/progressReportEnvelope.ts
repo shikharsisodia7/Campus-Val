@@ -7,6 +7,12 @@
  */
 import type { ProgressReport } from "./progressReport";
 
+/**
+ * When available=false, object storage is not configured.
+When available=true, report may be null (no upload yet) or a full ProgressReport.
+
+ */
 export interface ProgressReportEnvelope {
-  report: ProgressReport | null;
+  available: boolean;
+  report?: ProgressReport | null;
 }

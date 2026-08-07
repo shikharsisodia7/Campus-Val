@@ -837,6 +837,11 @@ export const ListProfessorsResponse = zod.object({
 /**
  * @summary College-aware degree requirements (University Core, college/school, and major) with official SCU source URLs and completion status
  */
+export const GetDegreeRequirementsQueryParams = zod.object({
+  scenarioMajors: zod.coerce.string().optional(),
+  scenarioMinors: zod.coerce.string().optional(),
+});
+
 export const GetDegreeRequirementsResponse = zod.object({
   college: zod
     .string()
@@ -852,13 +857,7 @@ export const GetDegreeRequirementsResponse = zod.object({
     zod.object({
       id: zod.string(),
       title: zod.string(),
-      kind: zod.enum([
-        "university_core",
-        "college",
-        "major",
-        "minor",
-        "professional_prep",
-      ]),
+      kind: zod.enum(["university_core", "college", "major"]),
       sourceUrl: zod
         .string()
         .describe(
@@ -1114,6 +1113,10 @@ export const listPlansResponsePlansItemMetadataAddedYearsItemMax = 2100;
 export const listPlansResponsePlansItemMetadataSummerYearsItemMin = 2000;
 export const listPlansResponsePlansItemMetadataSummerYearsItemMax = 2100;
 
+export const listPlansResponsePlansItemMetadataScenarioMajorsItemMax = 120;
+
+export const listPlansResponsePlansItemMetadataScenarioMinorsItemMax = 120;
+
 export const ListPlansResponse = zod.object({
   plans: zod.array(
     zod.object({
@@ -1139,9 +1142,49 @@ export const ListPlansResponse = zod.object({
                 .max(listPlansResponsePlansItemMetadataSummerYearsItemMax),
             )
             .optional(),
+          scenarioMajors: zod
+            .array(
+              zod
+                .string()
+                .min(1)
+                .max(listPlansResponsePlansItemMetadataScenarioMajorsItemMax),
+            )
+            .optional()
+            .describe(
+              "Draft-only additional majors; does not alter the official student profile.",
+            ),
+          scenarioMinors: zod
+            .array(
+              zod
+                .string()
+                .min(1)
+                .max(listPlansResponsePlansItemMetadataScenarioMinorsItemMax),
+            )
+            .optional()
+            .describe(
+              "Draft-only additional minors; does not alter the official student profile.",
+            ),
         })
         .optional(),
       itemCount: zod.number(),
+      programs: zod
+        .union([
+          zod.object({
+            additionalMajors: zod
+              .array(zod.string())
+              .describe(
+                "Additional majors (beyond the one in the student profile).",
+              ),
+            minors: zod.array(zod.string()).describe("Declared minors."),
+            professionalGoals: zod
+              .array(zod.string())
+              .describe(
+                "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+              ),
+          }),
+          zod.null(),
+        ])
+        .optional(),
       createdAt: zod.string(),
       updatedAt: zod.string(),
     }),
@@ -1174,6 +1217,10 @@ export const getPlanResponseMetadataAddedYearsItemMax = 2100;
 export const getPlanResponseMetadataSummerYearsItemMin = 2000;
 export const getPlanResponseMetadataSummerYearsItemMax = 2100;
 
+export const getPlanResponseMetadataScenarioMajorsItemMax = 120;
+
+export const getPlanResponseMetadataScenarioMinorsItemMax = 120;
+
 export const GetPlanResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
@@ -1197,7 +1244,41 @@ export const GetPlanResponse = zod.object({
             .max(getPlanResponseMetadataSummerYearsItemMax),
         )
         .optional(),
+      scenarioMajors: zod
+        .array(
+          zod.string().min(1).max(getPlanResponseMetadataScenarioMajorsItemMax),
+        )
+        .optional()
+        .describe(
+          "Draft-only additional majors; does not alter the official student profile.",
+        ),
+      scenarioMinors: zod
+        .array(
+          zod.string().min(1).max(getPlanResponseMetadataScenarioMinorsItemMax),
+        )
+        .optional()
+        .describe(
+          "Draft-only additional minors; does not alter the official student profile.",
+        ),
     })
+    .optional(),
+  programs: zod
+    .union([
+      zod.object({
+        additionalMajors: zod
+          .array(zod.string())
+          .describe(
+            "Additional majors (beyond the one in the student profile).",
+          ),
+        minors: zod.array(zod.string()).describe("Declared minors."),
+        professionalGoals: zod
+          .array(zod.string())
+          .describe(
+            "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+          ),
+      }),
+      zod.null(),
+    ])
     .optional(),
   items: zod.array(
     zod.object({
@@ -1212,8 +1293,14 @@ export const GetPlanResponse = zod.object({
       requirementLabel: zod.string().nullish(),
       academicYear: zod
         .number()
-        .describe("Start year of the academic year (2026 = 2026-2027)"),
-      term: zod.enum(["fall", "winter", "spring", "summer"]),
+        .describe(
+          'Start year of the academic year (2026 = 2026-2027). Use 0 with term=\"completed\".',
+        ),
+      term: zod
+        .enum(["fall", "winter", "spring", "summer", "completed"])
+        .describe(
+          'Term for plan items. \"completed\" (with academicYear=0) means completed before the plan started.',
+        ),
       bucket: zod
         .enum(["planned", "completed"])
         .optional()
@@ -1239,6 +1326,14 @@ export const GetPlanResponse = zod.object({
         .optional(),
       position: zod.number(),
       note: zod.string().nullish(),
+      provenance: zod
+        .union([
+          zod.literal("student_asserted"),
+          zod.literal("report_imported"),
+          zod.literal(null),
+        ])
+        .nullish()
+        .describe("How this item was added. Defaults to student_asserted."),
     }),
   ),
   createdAt: zod.string(),
@@ -1260,6 +1355,10 @@ export const updatePlanBodyMetadataAddedYearsItemMax = 2100;
 export const updatePlanBodyMetadataSummerYearsItemMin = 2000;
 export const updatePlanBodyMetadataSummerYearsItemMax = 2100;
 
+export const updatePlanBodyMetadataScenarioMajorsItemMax = 120;
+
+export const updatePlanBodyMetadataScenarioMinorsItemMax = 120;
+
 export const UpdatePlanBody = zod.object({
   name: zod.string().min(1).max(updatePlanBodyNameMax).optional(),
   metadata: zod
@@ -1280,7 +1379,41 @@ export const UpdatePlanBody = zod.object({
             .max(updatePlanBodyMetadataSummerYearsItemMax),
         )
         .optional(),
+      scenarioMajors: zod
+        .array(
+          zod.string().min(1).max(updatePlanBodyMetadataScenarioMajorsItemMax),
+        )
+        .optional()
+        .describe(
+          "Draft-only additional majors; does not alter the official student profile.",
+        ),
+      scenarioMinors: zod
+        .array(
+          zod.string().min(1).max(updatePlanBodyMetadataScenarioMinorsItemMax),
+        )
+        .optional()
+        .describe(
+          "Draft-only additional minors; does not alter the official student profile.",
+        ),
     })
+    .optional(),
+  programs: zod
+    .union([
+      zod.object({
+        additionalMajors: zod
+          .array(zod.string())
+          .describe(
+            "Additional majors (beyond the one in the student profile).",
+          ),
+        minors: zod.array(zod.string()).describe("Declared minors."),
+        professionalGoals: zod
+          .array(zod.string())
+          .describe(
+            "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+          ),
+      }),
+      zod.null(),
+    ])
     .optional(),
 });
 
@@ -1289,6 +1422,10 @@ export const updatePlanResponseMetadataAddedYearsItemMax = 2100;
 
 export const updatePlanResponseMetadataSummerYearsItemMin = 2000;
 export const updatePlanResponseMetadataSummerYearsItemMax = 2100;
+
+export const updatePlanResponseMetadataScenarioMajorsItemMax = 120;
+
+export const updatePlanResponseMetadataScenarioMinorsItemMax = 120;
 
 export const UpdatePlanResponse = zod.object({
   id: zod.number(),
@@ -1313,9 +1450,49 @@ export const UpdatePlanResponse = zod.object({
             .max(updatePlanResponseMetadataSummerYearsItemMax),
         )
         .optional(),
+      scenarioMajors: zod
+        .array(
+          zod
+            .string()
+            .min(1)
+            .max(updatePlanResponseMetadataScenarioMajorsItemMax),
+        )
+        .optional()
+        .describe(
+          "Draft-only additional majors; does not alter the official student profile.",
+        ),
+      scenarioMinors: zod
+        .array(
+          zod
+            .string()
+            .min(1)
+            .max(updatePlanResponseMetadataScenarioMinorsItemMax),
+        )
+        .optional()
+        .describe(
+          "Draft-only additional minors; does not alter the official student profile.",
+        ),
     })
     .optional(),
   itemCount: zod.number(),
+  programs: zod
+    .union([
+      zod.object({
+        additionalMajors: zod
+          .array(zod.string())
+          .describe(
+            "Additional majors (beyond the one in the student profile).",
+          ),
+        minors: zod.array(zod.string()).describe("Declared minors."),
+        professionalGoals: zod
+          .array(zod.string())
+          .describe(
+            "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+          ),
+      }),
+      zod.null(),
+    ])
+    .optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -1353,6 +1530,10 @@ export const promotePlanResponseMetadataAddedYearsItemMax = 2100;
 export const promotePlanResponseMetadataSummerYearsItemMin = 2000;
 export const promotePlanResponseMetadataSummerYearsItemMax = 2100;
 
+export const promotePlanResponseMetadataScenarioMajorsItemMax = 120;
+
+export const promotePlanResponseMetadataScenarioMinorsItemMax = 120;
+
 export const PromotePlanResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
@@ -1376,90 +1557,51 @@ export const PromotePlanResponse = zod.object({
             .max(promotePlanResponseMetadataSummerYearsItemMax),
         )
         .optional(),
+      scenarioMajors: zod
+        .array(
+          zod
+            .string()
+            .min(1)
+            .max(promotePlanResponseMetadataScenarioMajorsItemMax),
+        )
+        .optional()
+        .describe(
+          "Draft-only additional majors; does not alter the official student profile.",
+        ),
+      scenarioMinors: zod
+        .array(
+          zod
+            .string()
+            .min(1)
+            .max(promotePlanResponseMetadataScenarioMinorsItemMax),
+        )
+        .optional()
+        .describe(
+          "Draft-only additional minors; does not alter the official student profile.",
+        ),
     })
     .optional(),
   itemCount: zod.number(),
+  programs: zod
+    .union([
+      zod.object({
+        additionalMajors: zod
+          .array(zod.string())
+          .describe(
+            "Additional majors (beyond the one in the student profile).",
+          ),
+        minors: zod.array(zod.string()).describe("Declared minors."),
+        professionalGoals: zod
+          .array(zod.string())
+          .describe(
+            "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+          ),
+      }),
+      zod.null(),
+    ])
+    .optional(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
-});
-
-/**
- * @summary Request a presigned URL for a private file upload
- */
-
-export const RequestUploadUrlBody = zod.object({
-  name: zod.string().min(1).describe("Original file name."),
-  size: zod.number().min(1).describe("File size in bytes."),
-  contentType: zod
-    .string()
-    .min(1)
-    .describe("MIME type of the file (e.g. `application\/pdf`)."),
-});
-
-export const RequestUploadUrlResponse = zod.object({
-  uploadURL: zod.string().url().describe("Presigned GCS URL for PUT upload."),
-  objectPath: zod
-    .string()
-    .describe("Normalized object path (e.g. `\/objects\/uploads\/uuid`)."),
-  metadata: zod
-    .object({
-      name: zod.string().min(1).describe("Original file name."),
-      size: zod.number().min(1).describe("File size in bytes."),
-      contentType: zod
-        .string()
-        .min(1)
-        .describe("MIME type of the file (e.g. `application\/pdf`)."),
-    })
-    .optional(),
-});
-
-/**
- * @summary Get the current user's Academic Progress Report metadata
- */
-export const GetProgressReportResponse = zod.object({
-  report: zod.union([
-    zod.object({
-      id: zod.number(),
-      fileName: zod.string(),
-      fileSize: zod.number(),
-      contentType: zod.string(),
-      status: zod
-        .enum(["stored", "parsed", "error"])
-        .describe(
-          "stored = file saved but nothing could be conservatively extracted; parsed = some fields were reliably extracted; error = the file could not be read.",
-        ),
-      parseError: zod.string().nullish(),
-      uploadedAt: zod.coerce.date(),
-      extracted: zod
-        .object({
-          courses: zod.array(
-            zod.object({
-              code: zod.string(),
-              title: zod.string().nullish(),
-              units: zod.number().nullish(),
-              grade: zod.string().nullish(),
-            }),
-          ),
-          notes: zod
-            .array(zod.string())
-            .describe("Honest caveats about what could not be extracted."),
-        })
-        .describe(
-          "Conservatively extracted fields only. Anything the parser can't reliably identify is omitted rather than guessed.",
-        ),
-    }),
-    zod.null(),
-  ]),
-});
-
-/**
- * @summary Register an uploaded Academic Progress Report (replaces any prior one)
- */
-export const RegisterProgressReportBody = zod.object({
-  objectPath: zod.string(),
-  fileName: zod.string(),
-  fileSize: zod.number(),
-  contentType: zod.string(),
 });
 
 /**
@@ -1481,8 +1623,19 @@ export const AddPlanItemBody = zod.object({
     .string()
     .optional()
     .describe("Required for requirement_placeholder items."),
-  academicYear: zod.number(),
-  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  academicYear: zod
+    .number()
+    .describe('Use 0 with term=\"completed\" for pre-plan coursework.'),
+  term: zod
+    .enum(["fall", "winter", "spring", "summer", "completed"])
+    .describe(
+      'Term for plan items. \"completed\" (with academicYear=0) means completed before the plan started.',
+    ),
+  note: zod.string().optional(),
+  allowDuplicate: zod
+    .boolean()
+    .optional()
+    .describe("Set true to add a course already present in this plan."),
   bucket: zod
     .enum(["planned", "completed"])
     .optional()
@@ -1502,11 +1655,12 @@ export const AddPlanItemBody = zod.object({
     .describe(
       "Student-asserted provenance for a completed item. Distinct from verified Academic Progress Report data.",
     ),
-  note: zod.string().optional(),
-  allowDuplicate: zod
-    .boolean()
+  provenance: zod
+    .enum(["student_asserted", "report_imported"])
     .optional()
-    .describe("Set true to add a course already present in this plan."),
+    .describe(
+      "Defaults to student_asserted when adding to the completed area.",
+    ),
 });
 
 /**
@@ -1519,7 +1673,12 @@ export const UpdatePlanItemParams = zod.object({
 
 export const UpdatePlanItemBody = zod.object({
   academicYear: zod.number().optional(),
-  term: zod.enum(["fall", "winter", "spring", "summer"]).optional(),
+  term: zod
+    .enum(["fall", "winter", "spring", "summer", "completed"])
+    .optional()
+    .describe(
+      'Term for plan items. \"completed\" (with academicYear=0) means completed before the plan started.',
+    ),
   bucket: zod
     .enum(["planned", "completed"])
     .optional()
@@ -1545,6 +1704,7 @@ export const UpdatePlanItemBody = zod.object({
     .optional(),
   position: zod.number().optional(),
   note: zod.string().nullish(),
+  provenance: zod.enum(["student_asserted", "report_imported"]).optional(),
 });
 
 export const UpdatePlanItemResponse = zod.object({
@@ -1559,8 +1719,14 @@ export const UpdatePlanItemResponse = zod.object({
   requirementLabel: zod.string().nullish(),
   academicYear: zod
     .number()
-    .describe("Start year of the academic year (2026 = 2026-2027)"),
-  term: zod.enum(["fall", "winter", "spring", "summer"]),
+    .describe(
+      'Start year of the academic year (2026 = 2026-2027). Use 0 with term=\"completed\".',
+    ),
+  term: zod
+    .enum(["fall", "winter", "spring", "summer", "completed"])
+    .describe(
+      'Term for plan items. \"completed\" (with academicYear=0) means completed before the plan started.',
+    ),
   bucket: zod
     .enum(["planned", "completed"])
     .optional()
@@ -1586,6 +1752,14 @@ export const UpdatePlanItemResponse = zod.object({
     .optional(),
   position: zod.number(),
   note: zod.string().nullish(),
+  provenance: zod
+    .union([
+      zod.literal("student_asserted"),
+      zod.literal("report_imported"),
+      zod.literal(null),
+    ])
+    .nullish()
+    .describe("How this item was added. Defaults to student_asserted."),
 });
 
 /**
@@ -1620,8 +1794,14 @@ export const ReplacePlanPlaceholderResponse = zod.object({
   requirementLabel: zod.string().nullish(),
   academicYear: zod
     .number()
-    .describe("Start year of the academic year (2026 = 2026-2027)"),
-  term: zod.enum(["fall", "winter", "spring", "summer"]),
+    .describe(
+      'Start year of the academic year (2026 = 2026-2027). Use 0 with term=\"completed\".',
+    ),
+  term: zod
+    .enum(["fall", "winter", "spring", "summer", "completed"])
+    .describe(
+      'Term for plan items. \"completed\" (with academicYear=0) means completed before the plan started.',
+    ),
   bucket: zod
     .enum(["planned", "completed"])
     .optional()
@@ -1647,6 +1827,14 @@ export const ReplacePlanPlaceholderResponse = zod.object({
     .optional(),
   position: zod.number(),
   note: zod.string().nullish(),
+  provenance: zod
+    .union([
+      zod.literal("student_asserted"),
+      zod.literal("report_imported"),
+      zod.literal(null),
+    ])
+    .nullish()
+    .describe("How this item was added. Defaults to student_asserted."),
 });
 
 /**
@@ -2052,3 +2240,200 @@ export const SearchCoursesResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * Returns a presigned GCS URL for direct upload. The client sends JSON
+metadata here, then uploads the file directly to the returned URL.
+Requires authentication.
+
+ * @summary Request a presigned URL for file upload
+ */
+
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string().min(1).describe("Original file name."),
+  size: zod.number().min(1).describe("File size in bytes."),
+  contentType: zod
+    .string()
+    .min(1)
+    .describe("MIME type of the file (e.g. application\/pdf)."),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string().url().describe("Presigned GCS URL for PUT upload."),
+  objectPath: zod
+    .string()
+    .describe(
+      "Normalized object path (e.g. \/objects\/uploads\/uuid). Store this in your database.",
+    ),
+  metadata: zod
+    .object({
+      name: zod.string().min(1).describe("Original file name."),
+      size: zod.number().min(1).describe("File size in bytes."),
+      contentType: zod
+        .string()
+        .min(1)
+        .describe("MIME type of the file (e.g. application\/pdf)."),
+    })
+    .optional(),
+});
+
+/**
+ * Unconditionally public — no authentication or ACL checks.
+Searches PUBLIC_OBJECT_SEARCH_PATHS for the given file path.
+
+ * @summary Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+ */
+export const GetPublicObjectParams = zod.object({
+  filePath: zod.coerce
+    .string()
+    .describe("Relative file path within the public search paths."),
+});
+
+/**
+ * Serves object entities uploaded via presigned URLs.
+
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+export const GetStorageObjectParams = zod.object({
+  objectPath: zod.coerce
+    .string()
+    .describe("Object path within the private object dir."),
+});
+
+/**
+ * Returns 200 with the report if one exists, or 404 if none.
+If object storage is not configured, returns 200 with { available: false }.
+
+ * @summary Get the authenticated student's current progress report (metadata + parsed payload)
+ */
+export const GetProgressReportResponse = zod
+  .object({
+    available: zod.boolean(),
+    report: zod
+      .union([
+        zod.object({
+          id: zod.number(),
+          userId: zod.string(),
+          fileName: zod.string(),
+          fileSize: zod.number(),
+          contentType: zod.string(),
+          objectPath: zod.string(),
+          uploadedAt: zod.coerce.date(),
+          parsed: zod
+            .union([
+              zod.object({
+                completedCourses: zod.array(
+                  zod.object({
+                    code: zod.string(),
+                    title: zod.string(),
+                    units: zod.number(),
+                    confidence: zod.enum(["high"]),
+                  }),
+                ),
+                possibleCourses: zod
+                  .array(
+                    zod.object({
+                      raw: zod.string(),
+                    }),
+                  )
+                  .describe(
+                    "Code-like tokens not found in catalog; retained for user review.",
+                  ),
+                program: zod
+                  .string()
+                  .nullish()
+                  .describe(
+                    "Program\/major detected from the report, if clearly labeled.",
+                  ),
+                notes: zod.array(zod.string()),
+              }),
+              zod.null(),
+            ])
+            .optional(),
+          parseStatus: zod.enum(["pending", "parsed", "unsupported", "failed"]),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        }),
+        zod.null(),
+      ])
+      .optional(),
+  })
+  .describe(
+    "When available=false, object storage is not configured.\nWhen available=true, report may be null (no upload yet) or a full ProgressReport.\n",
+  );
+
+/**
+ * @summary Register an uploaded progress report (PDF or Excel) after client PUT to presigned URL
+ */
+export const RegisterProgressReportBody = zod.object({
+  objectPath: zod
+    .string()
+    .describe(
+      "Object path returned by the upload URL endpoint (must start with \/objects\/).",
+    ),
+  fileName: zod
+    .string()
+    .describe("Original file name (used to detect extension)."),
+  fileSize: zod.number().describe("File size in bytes (must be <= 10 MB)."),
+  contentType: zod
+    .string()
+    .describe(
+      "MIME type (must be application\/pdf or application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet).",
+    ),
+});
+
+export const RegisterProgressReportResponse = zod
+  .object({
+    available: zod.boolean(),
+    report: zod
+      .union([
+        zod.object({
+          id: zod.number(),
+          userId: zod.string(),
+          fileName: zod.string(),
+          fileSize: zod.number(),
+          contentType: zod.string(),
+          objectPath: zod.string(),
+          uploadedAt: zod.coerce.date(),
+          parsed: zod
+            .union([
+              zod.object({
+                completedCourses: zod.array(
+                  zod.object({
+                    code: zod.string(),
+                    title: zod.string(),
+                    units: zod.number(),
+                    confidence: zod.enum(["high"]),
+                  }),
+                ),
+                possibleCourses: zod
+                  .array(
+                    zod.object({
+                      raw: zod.string(),
+                    }),
+                  )
+                  .describe(
+                    "Code-like tokens not found in catalog; retained for user review.",
+                  ),
+                program: zod
+                  .string()
+                  .nullish()
+                  .describe(
+                    "Program\/major detected from the report, if clearly labeled.",
+                  ),
+                notes: zod.array(zod.string()),
+              }),
+              zod.null(),
+            ])
+            .optional(),
+          parseStatus: zod.enum(["pending", "parsed", "unsupported", "failed"]),
+          createdAt: zod.coerce.date(),
+          updatedAt: zod.coerce.date(),
+        }),
+        zod.null(),
+      ])
+      .optional(),
+  })
+  .describe(
+    "When available=false, object storage is not configured.\nWhen available=true, report may be null (no upload yet) or a full ProgressReport.\n",
+  );

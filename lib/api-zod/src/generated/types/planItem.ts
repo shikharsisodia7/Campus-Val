@@ -7,8 +7,9 @@
  */
 import type { CompletionSource } from "./completionSource";
 import type { PlanItemBucket } from "./planItemBucket";
+import type { PlanItemProvenance } from "./planItemProvenance";
 import type { PlanItemType } from "./planItemType";
-import type { Term } from "./term";
+import type { PlanTerm } from "./planTerm";
 
 export interface PlanItem {
   id: number;
@@ -26,12 +27,17 @@ export interface PlanItem {
   requirementCategory?: string | null;
   /** @nullable */
   requirementLabel?: string | null;
-  /** Start year of the academic year (2026 = 2026-2027) */
+  /** Start year of the academic year (2026 = 2026-2027). Use 0 with term="completed". */
   academicYear: number;
-  term: Term;
+  term: PlanTerm;
   bucket?: PlanItemBucket;
   completionSource?: CompletionSource | null;
   position: number;
   /** @nullable */
   note?: string | null;
+  /**
+   * How this item was added. Defaults to student_asserted.
+   * @nullable
+   */
+  provenance?: PlanItemProvenance;
 }

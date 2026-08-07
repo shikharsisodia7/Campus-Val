@@ -7,14 +7,16 @@
  */
 import type { CompletionSource } from "./completionSource";
 import type { PlanItemBucket } from "./planItemBucket";
-import type { Term } from "./term";
+import type { PlanItemUpdateProvenance } from "./planItemUpdateProvenance";
+import type { PlanTerm } from "./planTerm";
 
 export interface PlanItemUpdate {
   academicYear?: number;
-  term?: Term;
+  term?: PlanTerm;
   bucket?: PlanItemBucket;
   completionSource?: CompletionSource | null;
   position?: number;
   /** @nullable */
   note?: string | null;
+  provenance?: PlanItemUpdateProvenance;
 }

@@ -7,6 +7,7 @@
  */
 import type { PlanItem } from "./planItem";
 import type { PlanMetadata } from "./planMetadata";
+import type { PlanPrograms } from "./planPrograms";
 import type { PlanType } from "./planType";
 
 export interface AcademicPlanDetail {
@@ -16,6 +17,7 @@ export interface AcademicPlanDetail {
   /** @nullable */
   sourcePlanId?: number | null;
   metadata?: PlanMetadata;
+  programs?: PlanPrograms | null;
   items: PlanItem[];
   createdAt: string;
   updatedAt: string;

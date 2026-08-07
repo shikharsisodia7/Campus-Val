@@ -26,8 +26,10 @@ import { sql } from "drizzle-orm";
 const router: IRouter = Router();
 
 const TERMS = new Set(["fall", "winter", "spring", "summer"]);
+const PLAN_TERMS = new Set(["fall", "winter", "spring", "summer", "completed"]);
 const MIN_ACADEMIC_YEAR = 2000;
 const MAX_ACADEMIC_YEAR = 2100;
+const COMPLETED_YEAR = 0; // academicYear used for the "completed" term bucket
 
 function validAcademicYear(y: unknown): y is number {
   return (
@@ -57,6 +59,65 @@ const COMPLETION_SOURCE_LABELS: Record<string, string> = {
   manually_marked: "Manually Marked Completed",
 };
 
+const MAX_PROGRAMS_ENTRIES = 8;
+const MAX_PROGRAM_LABEL_LEN = 50;
+
+type PlanPrograms = {
+  additionalMajors: string[];
+  minors: string[];
+  professionalGoals: string[];
+};
+
+function validatePrograms(raw: unknown): { ok: true; value: PlanPrograms } | { ok: false; error: string } {
+  if (raw === null || raw === undefined) {
+    return { ok: true, value: { additionalMajors: [], minors: [], professionalGoals: [] } };
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, error: "programs must be an object." };
+  }
+  const obj = raw as Record<string, unknown>;
+
+  function validateArray(key: keyof PlanPrograms): string[] | string {
+    const arr = obj[key];
+    if (arr === undefined || arr === null) return [];
+    if (!Array.isArray(arr)) return `programs.${key} must be an array.`;
+    if (arr.length > MAX_PROGRAMS_ENTRIES)
+      return `programs.${key} must have at most ${MAX_PROGRAMS_ENTRIES} entries.`;
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const item of arr) {
+      if (typeof item !== "string") return `programs.${key} must contain only strings.`;
+      const trimmed = item.trim();
+      if (trimmed.length === 0) return `programs.${key} must not contain empty strings.`;
+      if (trimmed.length > MAX_PROGRAM_LABEL_LEN)
+        return `programs.${key} entries must not exceed ${MAX_PROGRAM_LABEL_LEN} characters.`;
+      const lower = trimmed.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        result.push(trimmed);
+      }
+    }
+    return result;
+  }
+
+  const majorsResult = validateArray("additionalMajors");
+  if (typeof majorsResult === "string") return { ok: false, error: majorsResult };
+  const minorsResult = validateArray("minors");
+  if (typeof minorsResult === "string") return { ok: false, error: minorsResult };
+  const goalsResult = validateArray("professionalGoals");
+  if (typeof goalsResult === "string") return { ok: false, error: goalsResult };
+
+  return {
+    ok: true,
+    value: {
+      additionalMajors: majorsResult,
+      minors: minorsResult,
+      professionalGoals: goalsResult,
+    },
+  };
+}
+
+
 function normalizeCode(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, " ");
 }
@@ -68,6 +129,7 @@ function planDto(row: AcademicPlanRow, itemCount: number) {
     planType: row.planType as "degree" | "tentative",
     sourcePlanId: row.sourcePlanId ?? null,
     metadata: row.metadata ?? {},
+    programs: row.programs ?? null,
     itemCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -86,11 +148,12 @@ function itemDto(row: PlanItemRow) {
     requirementCategory: row.requirementCategory ?? null,
     requirementLabel: row.requirementLabel ?? null,
     academicYear: row.academicYear,
-    term: row.term as "fall" | "winter" | "spring" | "summer",
+    term: row.term as "fall" | "winter" | "spring" | "summer" | "completed",
     bucket: (row.bucket ?? "planned") as "planned" | "completed",
     completionSource: row.completionSource ?? null,
     position: row.position,
     note: row.note ?? null,
+    provenance: row.provenance ?? null,
   };
 }
 
@@ -232,6 +295,7 @@ router.post("/plans", requireAuth, async (req, res) => {
     sourcePlanId = source.id;
   }
 
+  const sourcePlan = sourcePlanId !== null ? await ownedPlan(sourcePlanId, userId) : null;
   const [created] = await db
     .insert(academicPlansTable)
     .values({
@@ -239,9 +303,9 @@ router.post("/plans", requireAuth, async (req, res) => {
       name: name.trim(),
       planType: "tentative",
       sourcePlanId,
-      metadata: sourcePlanId
-        ? (await ownedPlan(sourcePlanId, userId))?.metadata ?? {}
-        : {},
+      metadata: sourcePlan?.metadata ?? {},
+      // Plan-scoped programs travel with the scenario copy.
+      programs: sourcePlan?.programs ?? { additionalMajors: [], minors: [], professionalGoals: [] },
     })
     .returning();
   if (sourcePlanId !== null) await copyItems(sourcePlanId, created!.id);
@@ -259,6 +323,7 @@ router.get("/plans/:id", requireAuth, async (req, res) => {
     planType: plan.planType,
     sourcePlanId: plan.sourcePlanId ?? null,
     metadata: plan.metadata ?? {},
+    programs: plan.programs ?? null,
     items: items.map(itemDto),
     createdAt: plan.createdAt.toISOString(),
     updatedAt: plan.updatedAt.toISOString(),
@@ -267,11 +332,26 @@ router.get("/plans/:id", requireAuth, async (req, res) => {
 
 router.patch("/plans/:id", requireAuth, async (req, res) => {
   const parsed = UpdatePlanBody.safeParse(req.body);
-  if (!parsed.success || (!parsed.data.name && !parsed.data.metadata)) {
-    return res.status(400).json({ error: "Provide a valid plan name or plan settings." });
+  if (
+    !parsed.success ||
+    (!parsed.data.name && !parsed.data.metadata && !("programs" in req.body))
+  ) {
+    return res.status(400).json({ error: "Provide a valid plan name, plan settings, or programs." });
   }
   const plan = await ownedPlan(Number(req.params.id), req.userId!);
   if (!plan) return res.status(404).json({ error: "Plan not found." });
+
+  const updateSet: Record<string, unknown> = {};
+
+  // Validate and persist programs if provided
+  if ("programs" in req.body) {
+    const programsValidation = validatePrograms(req.body.programs);
+    if (!programsValidation.ok) {
+      return res.status(400).json({ error: programsValidation.error });
+    }
+    updateSet.programs = programsValidation.value;
+  }
+
   const [updated] = await db
     .update(academicPlansTable)
     .set({
@@ -308,6 +388,7 @@ router.patch("/plans/:id", requireAuth, async (req, res) => {
             },
           }
         : {}),
+      ...(updateSet.programs !== undefined ? { programs: updateSet.programs } : {}),
     })
     .where(eq(academicPlansTable.id, plan.id))
     .returning();
@@ -343,6 +424,7 @@ router.post("/plans/:id/duplicate", requireAuth, async (req, res) => {
       planType: "tentative",
       sourcePlanId: plan.id,
       metadata: plan.metadata ?? {},
+      programs: plan.programs ?? { additionalMajors: [], minors: [], professionalGoals: [] },
     })
     .returning();
   await copyItems(plan.id, created!.id);
@@ -398,14 +480,45 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "Invalid plan item." });
   }
   const body = parsed.data;
-  if (!TERMS.has(body.term)) {
+
+  // Allow "completed" as a valid plan-item term (not in scheduling TERMS)
+  const termValue = body.term as string;
+  if (!PLAN_TERMS.has(termValue)) {
     return res.status(400).json({ error: "Invalid term." });
   }
-  if (!validAcademicYear(body.academicYear)) {
-    return res.status(400).json({ error: "Invalid academic year." });
+
+  const isCompletedTerm = termValue === "completed";
+
+  // Validate bucket/completionSource pairing when the bucket API is used.
+  if (
+    body.bucket !== undefined ||
+    (body.completionSource != null && !isCompletedTerm)
+  ) {
+    const addBucketErr = bucketError(body.bucket, body.completionSource ?? null);
+    if (addBucketErr) return res.status(400).json({ error: addBucketErr });
   }
-  const addBucketErr = bucketError(body.bucket, body.completionSource ?? null);
-  if (addBucketErr) return res.status(400).json({ error: addBucketErr });
+
+  // "completed" term requires academicYear=0
+  if (isCompletedTerm) {
+    if (body.academicYear !== COMPLETED_YEAR) {
+      return res.status(400).json({
+        error: "Items in the 'completed' area must use academicYear=0.",
+      });
+    }
+  } else {
+    if (!validAcademicYear(body.academicYear)) {
+      return res.status(400).json({ error: "Invalid academic year." });
+    }
+  }
+
+  // Placeholders are not allowed in the completed area
+  if (isCompletedTerm && body.itemType === "requirement_placeholder") {
+    return res.status(400).json({
+      error: "Requirement placeholders are not allowed in the 'completed' area.",
+    });
+  }
+
+
   const plan = await ownedPlan(Number(req.params.id), req.userId!);
   if (!plan) return res.status(404).json({ error: "Plan not found." });
 
@@ -438,6 +551,11 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
         });
       }
     }
+
+    // Default provenance to "student_asserted" when adding to completed area
+    const provenance: string = (body as any).provenance ??
+      (isCompletedTerm ? "student_asserted" : "student_asserted");
+
     values = {
       planId: plan.id,
       itemType: "course",
@@ -445,8 +563,9 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
       courseTitle: course.title,
       units: String(course.units),
       academicYear: body.academicYear,
-      term: body.term,
+      term: termValue,
       note: body.note ?? null,
+      provenance,
       position: 0,
     };
   } else {
@@ -462,15 +581,24 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
       requirementCategory: body.requirementCategory ?? null,
       requirementLabel: body.requirementLabel,
       academicYear: body.academicYear,
-      term: body.term,
+      term: termValue,
       note: body.note ?? null,
+      provenance: (body as any).provenance ?? "student_asserted",
       position: 0,
     };
   }
 
-  values.bucket = body.bucket ?? "planned";
+  values.bucket = body.bucket ?? (isCompletedTerm ? "completed" : "planned");
   values.completionSource =
-    values.bucket === "completed" ? (body.completionSource ?? null) : null;
+    values.bucket === "completed"
+      ? (body.completionSource ?? (isCompletedTerm ? "manually_marked" : null))
+      : null;
+  // Canonical completed representation: completed items always live in
+  // term="completed" / academicYear=0 with bucket="completed" and a source.
+  if (values.bucket === "completed") {
+    values.term = "completed";
+    values.academicYear = COMPLETED_YEAR;
+  }
 
   // Append at the end of the target group. Completed items form a single
   // group regardless of year/term; planned items group per year+term.
@@ -501,12 +629,34 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
   const parsed = UpdatePlanItemBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid update." });
   const body = parsed.data;
-  if (body.term !== undefined && !TERMS.has(body.term)) {
+  const newTermRaw = body.term as string | undefined;
+  if (newTermRaw !== undefined && !PLAN_TERMS.has(newTermRaw)) {
     return res.status(400).json({ error: "Invalid term." });
   }
-  if (body.academicYear !== undefined && !validAcademicYear(body.academicYear)) {
-    return res.status(400).json({ error: "Invalid academic year." });
+  const movingToCompleted = newTermRaw === "completed";
+  const movingFromCompleted = newTermRaw !== undefined && newTermRaw !== "completed";
+
+  if (movingToCompleted) {
+    // When moving to "completed", academicYear must be 0
+    if (body.academicYear !== undefined && body.academicYear !== COMPLETED_YEAR) {
+      return res.status(400).json({
+        error: "Items in the 'completed' area must use academicYear=0.",
+      });
+    }
+  } else if (!movingToCompleted && newTermRaw !== undefined) {
+    // Moving out of completed or to a regular term
+    if (body.academicYear !== undefined && !validAcademicYear(body.academicYear)) {
+      return res.status(400).json({ error: "Invalid academic year." });
+    }
+  } else if (body.academicYear !== undefined) {
+    // No term change, just year change
+    if (body.academicYear === COMPLETED_YEAR) {
+      // Only valid for the completed term
+    } else if (!validAcademicYear(body.academicYear)) {
+      return res.status(400).json({ error: "Invalid academic year." });
+    }
   }
+
   if (
     body.position !== undefined &&
     (!Number.isInteger(body.position) || body.position < 0)
@@ -518,23 +668,56 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
   const item = await ownedItem(plan.id, Number(req.params.itemId));
   if (!item) return res.status(404).json({ error: "Plan item not found." });
 
-  const targetYear = body.academicYear ?? item.academicYear;
-  const targetTerm = body.term ?? item.term;
+  // Prevent moving placeholders into the completed area
+  if (movingToCompleted && item.itemType === "requirement_placeholder") {
+    return res.status(400).json({
+      error: "Requirement placeholders are not allowed in the 'completed' area.",
+    });
+  }
+
+  // Determine target academicYear: moving to completed → 0
+  const targetYear = movingToCompleted
+    ? COMPLETED_YEAR
+    : (body.academicYear ?? item.academicYear);
+  const targetTerm = (body.term as string | undefined) ?? item.term;
   const itemBucket = (item.bucket ?? "planned") as "planned" | "completed";
-  const targetBucket = body.bucket ?? itemBucket;
-  const targetSource =
+  const explicitBucket = body.bucket as "planned" | "completed" | undefined;
+  const targetBucket =
+    explicitBucket ??
+    (movingToCompleted ? "completed" : movingFromCompleted ? "planned" : itemBucket);
+  let targetSource =
     body.completionSource !== undefined
       ? body.completionSource
       : targetBucket === "completed"
         ? item.completionSource
         : null;
-  const moveBucketErr = bucketError(targetBucket, targetSource);
-  if (moveBucketErr) return res.status(400).json({ error: moveBucketErr });
+  // Strict pairing validation when the bucket API is used explicitly;
+  // term-based moves to the completed area default the source instead.
+  if (explicitBucket !== undefined || body.completionSource !== undefined) {
+    const moveBucketErr = bucketError(targetBucket, targetSource ?? null);
+    if (moveBucketErr) return res.status(400).json({ error: moveBucketErr });
+  } else if (targetBucket === "completed" && !targetSource) {
+    targetSource = "manually_marked";
+  }
+  // Canonical completed representation: resolve bucket/term/year atomically.
+  let resolvedTerm = targetTerm;
+  let resolvedYear = targetYear;
+  if (targetBucket === "completed") {
+    resolvedTerm = "completed";
+    resolvedYear = COMPLETED_YEAR;
+  } else if (resolvedTerm === "completed") {
+    // Moving out of the completed bucket requires a real destination term.
+    return res.status(400).json({
+      error: "Specify a destination term and academicYear when moving an item out of the completed area.",
+    });
+  } else if (!validAcademicYear(resolvedYear)) {
+    return res.status(400).json({ error: "Invalid academic year." });
+  }
   const bucketChanged = targetBucket !== itemBucket;
   const termChanged =
     !bucketChanged &&
     targetBucket === "planned" &&
-    (targetYear !== item.academicYear || targetTerm !== item.term);
+    (resolvedYear !== item.academicYear || resolvedTerm !== item.term);
   const positionChanged = body.position !== undefined;
 
   /** Group an item belongs to for ordering: completed is one flat group. */
@@ -549,7 +732,7 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
   const targetGroupKey =
     targetBucket === "completed"
       ? "completed"
-      : `planned:${targetYear}:${targetTerm}`;
+      : `planned:${resolvedYear}:${resolvedTerm}`;
   const sourceGroupKey = groupKey(item);
   const groupMoved = bucketChanged || termChanged;
 
@@ -579,12 +762,13 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
           position: idx,
         };
         if (t.id === item.id) {
-          patch.academicYear = targetYear;
-          patch.term = targetTerm;
+          patch.academicYear = resolvedYear;
+          patch.term = resolvedTerm;
           patch.bucket = targetBucket;
           patch.completionSource =
             targetBucket === "completed" ? targetSource : null;
           if (body.note !== undefined) patch.note = body.note;
+          if ((body as any).provenance !== undefined) patch.provenance = (body as any).provenance;
         }
         await tx
           .update(planItemsTable)
@@ -623,6 +807,7 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
     ) {
       patch.completionSource = targetSource;
     }
+    if ((body as any).provenance !== undefined) patch.provenance = (body as any).provenance;
     if (Object.keys(patch).length === 0) {
       return res.json(itemDto(item));
     }

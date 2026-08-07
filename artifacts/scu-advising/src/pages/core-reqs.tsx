@@ -47,7 +47,7 @@ const GROUP_ICON: Record<string, React.ComponentType<{ className?: string }>> = 
 };
 
 export default function CoreReqs() {
-  const { data, isLoading, error } = useGetDegreeRequirements({
+  const { data, isLoading, error } = useGetDegreeRequirements(undefined, {
     query: { queryKey: getGetDegreeRequirementsQueryKey() },
   });
 

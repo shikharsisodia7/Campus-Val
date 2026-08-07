@@ -85,7 +85,8 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
     deletePlanItem.mutate({ id: activePlanId, itemId: item.id });
   };
 
-  const isCompletedItem = (item.bucket ?? "planned") === "completed";
+  const isCompletedItem =
+    (item.bucket ?? "planned") === "completed" || item.term === "completed";
 
   const handleMove = (e: React.MouseEvent, year: number, term: string) => {
     e.stopPropagation();
@@ -127,6 +128,7 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
   const courseDetails = !isPlaceholder && catalog ? catalog.find(c => c.code === item.courseCode) : null;
 
   const terms = ['fall', 'winter', 'spring', 'summer'];
+  const isInCompletedArea = isCompletedItem;
 
   const content = (
     <Card 
@@ -206,6 +208,17 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
             <DropdownMenuContent align="end" className="w-48 max-h-[300px] overflow-y-auto">
               <DropdownMenuLabel>Move to...</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {/* Completed before plan — only for course items */}
+              {!isPlaceholder && (
+                <DropdownMenuItem
+                  onClick={(e) => handleMove(e as any, 0, 'completed')}
+                  disabled={isInCompletedArea}
+                  data-testid={`move-to-completed-area-${item.id}`}
+                >
+                  ✓ Completed before plan
+                </DropdownMenuItem>
+              )}
+              {!isPlaceholder && <DropdownMenuSeparator />}
               {availableYears.map(y => (
                 <div key={y}>
                   <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{y}</div>

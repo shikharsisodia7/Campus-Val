@@ -37,8 +37,12 @@ export function ProgressReportSection() {
 
   const onFile = async (file: File) => {
     setError(null);
-    if (!["application/pdf", "text/plain"].includes(file.type)) {
-      setError("Upload the report as a PDF (or plain-text export).");
+    const isXlsx =
+      file.name.toLowerCase().endsWith(".xlsx") ||
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    if (file.type !== "application/pdf" && !isXlsx) {
+      setError("Upload the report as a PDF or Excel (.xlsx) export.");
       return;
     }
     if (file.size > MAX_SIZE) {
@@ -144,40 +148,48 @@ export function ProgressReportSection() {
             </Button>
           </div>
 
-          {report.status === "error" && (
+          {(report.parseStatus === "failed" ||
+            report.parseStatus === "unsupported") && (
             <div className="flex gap-1.5 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-2 leading-snug">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              {report.parseError ??
-                "The file couldn't be read for extraction; the original is still stored."}
+              The file couldn't be read for extraction; the original is still
+              stored.
             </div>
           )}
 
-          {report.extracted.courses.length > 0 && (
+          {report.parsed && report.parsed.completedCourses.length > 0 && (
             <div>
               <div className="text-[11px] text-muted-foreground mb-1">
-                Courses identified on the report ({report.extracted.courses.length}):
+                Courses identified on the report (
+                {report.parsed.completedCourses.length}):
               </div>
               <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto pr-1">
-                {report.extracted.courses.map((c) => (
+                {report.parsed.completedCourses.map((c) => (
                   <Badge
                     key={c.code}
                     variant="outline"
                     className="font-mono text-[10px]"
-                    title={[c.title, c.units != null ? `${c.units} units` : null, c.grade]
+                    title={[c.title, c.units != null ? `${c.units} units` : null]
                       .filter(Boolean)
                       .join(" · ")}
                   >
                     {c.code}
-                    {c.grade ? ` · ${c.grade}` : ""}
                   </Badge>
                 ))}
               </div>
             </div>
           )}
 
-          {report.extracted.notes.length > 0 && (
+          {report.parsed && report.parsed.possibleCourses.length > 0 && (
+            <div className="text-[10px] text-muted-foreground leading-snug">
+              Needs your review:{" "}
+              {report.parsed.possibleCourses.map((p) => p.raw).join(", ")}
+            </div>
+          )}
+
+          {report.parsed && report.parsed.notes.length > 0 && (
             <ul className="text-[10px] text-muted-foreground leading-snug list-disc pl-4 space-y-0.5">
-              {report.extracted.notes.map((n, i) => (
+              {report.parsed.notes.map((n, i) => (
                 <li key={i}>{n}</li>
               ))}
             </ul>
@@ -206,7 +218,7 @@ export function ProgressReportSection() {
       <input
         ref={fileInput}
         type="file"
-        accept="application/pdf,text/plain"
+        accept="application/pdf,.xlsx"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

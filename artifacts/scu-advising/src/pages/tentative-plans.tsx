@@ -13,7 +13,7 @@ export default function TentativePlansPage() {
     <AppShell>
       <PageHeader
         title="Tentative Plans"
-        subtitle="Draft alternate versions of your degree plan. Drafts are independent copies — nothing changes in your official Degree Plan unless you promote a draft."
+        subtitle="Safe scenarios, independent from your current plan. Explore adding a second major, different sequencing, or a study-abroad term. Promoting one replaces your official plan after confirmation."
       />
       <div className="flex-1 w-full max-w-none px-4 py-4 md:px-6 lg:px-8">
         <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">

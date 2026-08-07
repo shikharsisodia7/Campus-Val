@@ -39,6 +39,7 @@ import type {
   EvaluateTransferBody,
   EvaluationRunResult,
   EvaluationScenario,
+  GetDegreeRequirementsParams,
   GetGraduationPathParams,
   GetMajorRequirementsParams,
   GpaResult,
@@ -69,9 +70,8 @@ import type {
   Policy,
   PrereqCheckResult,
   ProfessorList,
-  ProgressReport,
   ProgressReportEnvelope,
-  ProgressReportRegisterInput,
+  ProgressReportInput,
   QuarterScheduleDetail,
   QuarterScheduleInput,
   QuarterScheduleList,
@@ -2041,15 +2041,30 @@ export function useListProfessors<
 /**
  * @summary College-aware degree requirements (University Core, college/school, and major) with official SCU source URLs and completion status
  */
-export const getGetDegreeRequirementsUrl = () => {
-  return `/api/requirements`;
+export const getGetDegreeRequirementsUrl = (
+  params?: GetDegreeRequirementsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/requirements?${stringifiedParams}`
+    : `/api/requirements`;
 };
 
 export const getDegreeRequirements = async (
+  params?: GetDegreeRequirementsParams,
   options?: RequestInit,
 ): Promise<DegreeRequirementsResponse> => {
   return customFetch<DegreeRequirementsResponse>(
-    getGetDegreeRequirementsUrl(),
+    getGetDegreeRequirementsUrl(params),
     {
       ...options,
       method: "GET",
@@ -2057,28 +2072,35 @@ export const getDegreeRequirements = async (
   );
 };
 
-export const getGetDegreeRequirementsQueryKey = () => {
-  return [`/api/requirements`] as const;
+export const getGetDegreeRequirementsQueryKey = (
+  params?: GetDegreeRequirementsParams,
+) => {
+  return [`/api/requirements`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetDegreeRequirementsQueryOptions = <
   TData = Awaited<ReturnType<typeof getDegreeRequirements>>,
   TError = ErrorType<void>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getDegreeRequirements>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetDegreeRequirementsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDegreeRequirements>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDegreeRequirementsQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDegreeRequirementsQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getDegreeRequirements>>
-  > = ({ signal }) => getDegreeRequirements({ signal, ...requestOptions });
+  > = ({ signal }) =>
+    getDegreeRequirements(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getDegreeRequirements>>,
@@ -2099,15 +2121,18 @@ export type GetDegreeRequirementsQueryError = ErrorType<void>;
 export function useGetDegreeRequirements<
   TData = Awaited<ReturnType<typeof getDegreeRequirements>>,
   TError = ErrorType<void>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getDegreeRequirements>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetDegreeRequirementsQueryOptions(options);
+>(
+  params?: GetDegreeRequirementsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDegreeRequirements>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDegreeRequirementsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -3660,411 +3685,6 @@ export const usePromotePlan = <
 };
 
 /**
- * @summary Request a presigned URL for a private file upload
- */
-export const getRequestUploadUrlUrl = () => {
-  return `/api/storage/uploads/request-url`;
-};
-
-export const requestUploadUrl = async (
-  uploadUrlRequest: UploadUrlRequest,
-  options?: RequestInit,
-): Promise<UploadUrlResponse> => {
-  return customFetch<UploadUrlResponse>(getRequestUploadUrlUrl(), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(uploadUrlRequest),
-  });
-};
-
-export const getRequestUploadUrlMutationOptions = <
-  TError = ErrorType<ErrorEnvelope>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof requestUploadUrl>>,
-    TError,
-    { data: BodyType<UploadUrlRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof requestUploadUrl>>,
-  TError,
-  { data: BodyType<UploadUrlRequest> },
-  TContext
-> => {
-  const mutationKey = ["requestUploadUrl"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof requestUploadUrl>>,
-    { data: BodyType<UploadUrlRequest> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return requestUploadUrl(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type RequestUploadUrlMutationResult = NonNullable<
-  Awaited<ReturnType<typeof requestUploadUrl>>
->;
-export type RequestUploadUrlMutationBody = BodyType<UploadUrlRequest>;
-export type RequestUploadUrlMutationError = ErrorType<ErrorEnvelope>;
-
-/**
- * @summary Request a presigned URL for a private file upload
- */
-export const useRequestUploadUrl = <
-  TError = ErrorType<ErrorEnvelope>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof requestUploadUrl>>,
-    TError,
-    { data: BodyType<UploadUrlRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof requestUploadUrl>>,
-  TError,
-  { data: BodyType<UploadUrlRequest> },
-  TContext
-> => {
-  return useMutation(getRequestUploadUrlMutationOptions(options));
-};
-
-/**
- * @summary Get the current user's Academic Progress Report metadata
- */
-export const getGetProgressReportUrl = () => {
-  return `/api/progress-report`;
-};
-
-export const getProgressReport = async (
-  options?: RequestInit,
-): Promise<ProgressReportEnvelope> => {
-  return customFetch<ProgressReportEnvelope>(getGetProgressReportUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getGetProgressReportQueryKey = () => {
-  return [`/api/progress-report`] as const;
-};
-
-export const getGetProgressReportQueryOptions = <
-  TData = Awaited<ReturnType<typeof getProgressReport>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getProgressReport>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetProgressReportQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getProgressReport>>
-  > = ({ signal }) => getProgressReport({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getProgressReport>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type GetProgressReportQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getProgressReport>>
->;
-export type GetProgressReportQueryError = ErrorType<unknown>;
-
-/**
- * @summary Get the current user's Academic Progress Report metadata
- */
-
-export function useGetProgressReport<
-  TData = Awaited<ReturnType<typeof getProgressReport>>,
-  TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getProgressReport>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetProgressReportQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
- * @summary Register an uploaded Academic Progress Report (replaces any prior one)
- */
-export const getRegisterProgressReportUrl = () => {
-  return `/api/progress-report`;
-};
-
-export const registerProgressReport = async (
-  progressReportRegisterInput: ProgressReportRegisterInput,
-  options?: RequestInit,
-): Promise<ProgressReport> => {
-  return customFetch<ProgressReport>(getRegisterProgressReportUrl(), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(progressReportRegisterInput),
-  });
-};
-
-export const getRegisterProgressReportMutationOptions = <
-  TError = ErrorType<ErrorEnvelope>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof registerProgressReport>>,
-    TError,
-    { data: BodyType<ProgressReportRegisterInput> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof registerProgressReport>>,
-  TError,
-  { data: BodyType<ProgressReportRegisterInput> },
-  TContext
-> => {
-  const mutationKey = ["registerProgressReport"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof registerProgressReport>>,
-    { data: BodyType<ProgressReportRegisterInput> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return registerProgressReport(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type RegisterProgressReportMutationResult = NonNullable<
-  Awaited<ReturnType<typeof registerProgressReport>>
->;
-export type RegisterProgressReportMutationBody =
-  BodyType<ProgressReportRegisterInput>;
-export type RegisterProgressReportMutationError = ErrorType<ErrorEnvelope>;
-
-/**
- * @summary Register an uploaded Academic Progress Report (replaces any prior one)
- */
-export const useRegisterProgressReport = <
-  TError = ErrorType<ErrorEnvelope>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof registerProgressReport>>,
-    TError,
-    { data: BodyType<ProgressReportRegisterInput> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof registerProgressReport>>,
-  TError,
-  { data: BodyType<ProgressReportRegisterInput> },
-  TContext
-> => {
-  return useMutation(getRegisterProgressReportMutationOptions(options));
-};
-
-/**
- * @summary Delete the current user's Academic Progress Report
- */
-export const getDeleteProgressReportUrl = () => {
-  return `/api/progress-report`;
-};
-
-export const deleteProgressReport = async (
-  options?: RequestInit,
-): Promise<void> => {
-  return customFetch<void>(getDeleteProgressReportUrl(), {
-    ...options,
-    method: "DELETE",
-  });
-};
-
-export const getDeleteProgressReportMutationOptions = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteProgressReport>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteProgressReport>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = ["deleteProgressReport"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteProgressReport>>,
-    void
-  > = () => {
-    return deleteProgressReport(requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type DeleteProgressReportMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteProgressReport>>
->;
-
-export type DeleteProgressReportMutationError = ErrorType<void>;
-
-/**
- * @summary Delete the current user's Academic Progress Report
- */
-export const useDeleteProgressReport = <
-  TError = ErrorType<void>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteProgressReport>>,
-    TError,
-    void,
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof deleteProgressReport>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(getDeleteProgressReportMutationOptions(options));
-};
-
-/**
- * @summary Download the original uploaded report (owner only)
- */
-export const getDownloadProgressReportUrl = () => {
-  return `/api/progress-report/file`;
-};
-
-export const downloadProgressReport = async (
-  options?: RequestInit,
-): Promise<Blob> => {
-  return customFetch<Blob>(getDownloadProgressReportUrl(), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getDownloadProgressReportQueryKey = () => {
-  return [`/api/progress-report/file`] as const;
-};
-
-export const getDownloadProgressReportQueryOptions = <
-  TData = Awaited<ReturnType<typeof downloadProgressReport>>,
-  TError = ErrorType<void>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof downloadProgressReport>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getDownloadProgressReportQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof downloadProgressReport>>
-  > = ({ signal }) => downloadProgressReport({ signal, ...requestOptions });
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof downloadProgressReport>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
-
-export type DownloadProgressReportQueryResult = NonNullable<
-  Awaited<ReturnType<typeof downloadProgressReport>>
->;
-export type DownloadProgressReportQueryError = ErrorType<void>;
-
-/**
- * @summary Download the original uploaded report (owner only)
- */
-
-export function useDownloadProgressReport<
-  TData = Awaited<ReturnType<typeof downloadProgressReport>>,
-  TError = ErrorType<void>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof downloadProgressReport>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getDownloadProgressReportQueryOptions(options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-/**
  * @summary Add a course or requirement placeholder to a plan term
  */
 export const getAddPlanItemUrl = (id: number) => {
@@ -5522,6 +5142,599 @@ export function useSearchCourses<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getSearchCoursesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns a presigned GCS URL for direct upload. The client sends JSON
+metadata here, then uploads the file directly to the returned URL.
+Requires authentication.
+
+ * @summary Request a presigned URL for file upload
+ */
+export const getRequestUploadUrlUrl = () => {
+  return `/api/storage/uploads/request-url`;
+};
+
+export const requestUploadUrl = async (
+  uploadUrlRequest: UploadUrlRequest,
+  options?: RequestInit,
+): Promise<UploadUrlResponse> => {
+  return customFetch<UploadUrlResponse>(getRequestUploadUrlUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(uploadUrlRequest),
+  });
+};
+
+export const getRequestUploadUrlMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<UploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<UploadUrlRequest> },
+  TContext
+> => {
+  const mutationKey = ["requestUploadUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    { data: BodyType<UploadUrlRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestUploadUrl(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestUploadUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestUploadUrl>>
+>;
+export type RequestUploadUrlMutationBody = BodyType<UploadUrlRequest>;
+export type RequestUploadUrlMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+export const useRequestUploadUrl = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<UploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<UploadUrlRequest> },
+  TContext
+> => {
+  return useMutation(getRequestUploadUrlMutationOptions(options));
+};
+
+/**
+ * Unconditionally public — no authentication or ACL checks.
+Searches PUBLIC_OBJECT_SEARCH_PATHS for the given file path.
+
+ * @summary Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+ */
+export const getGetPublicObjectUrl = (filePath: string) => {
+  return `/api/storage/public-objects/${filePath}`;
+};
+
+export const getPublicObject = async (
+  filePath: string,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getGetPublicObjectUrl(filePath), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPublicObjectQueryKey = (filePath: string) => {
+  return [`/api/storage/public-objects/${filePath}`] as const;
+};
+
+export const getGetPublicObjectQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPublicObject>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  filePath: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPublicObject>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPublicObjectQueryKey(filePath);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicObject>>> = ({
+    signal,
+  }) => getPublicObject(filePath, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!filePath,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPublicObject>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPublicObjectQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPublicObject>>
+>;
+export type GetPublicObjectQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+ */
+
+export function useGetPublicObject<
+  TData = Awaited<ReturnType<typeof getPublicObject>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  filePath: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPublicObject>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPublicObjectQueryOptions(filePath, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Serves object entities uploaded via presigned URLs.
+
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+export const getGetStorageObjectUrl = (objectPath: string) => {
+  return `/api/storage/objects/${objectPath}`;
+};
+
+export const getStorageObject = async (
+  objectPath: string,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getGetStorageObjectUrl(objectPath), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStorageObjectQueryKey = (objectPath: string) => {
+  return [`/api/storage/objects/${objectPath}`] as const;
+};
+
+export const getGetStorageObjectQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStorageObject>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  objectPath: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStorageObject>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetStorageObjectQueryKey(objectPath);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getStorageObject>>
+  > = ({ signal }) =>
+    getStorageObject(objectPath, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!objectPath,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStorageObject>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStorageObjectQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStorageObject>>
+>;
+export type GetStorageObjectQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+
+export function useGetStorageObject<
+  TData = Awaited<ReturnType<typeof getStorageObject>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  objectPath: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStorageObject>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStorageObjectQueryOptions(objectPath, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns 200 with the report if one exists, or 404 if none.
+If object storage is not configured, returns 200 with { available: false }.
+
+ * @summary Get the authenticated student's current progress report (metadata + parsed payload)
+ */
+export const getGetProgressReportUrl = () => {
+  return `/api/progress-report`;
+};
+
+export const getProgressReport = async (
+  options?: RequestInit,
+): Promise<ProgressReportEnvelope> => {
+  return customFetch<ProgressReportEnvelope>(getGetProgressReportUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProgressReportQueryKey = () => {
+  return [`/api/progress-report`] as const;
+};
+
+export const getGetProgressReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProgressReport>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProgressReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProgressReportQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getProgressReport>>
+  > = ({ signal }) => getProgressReport({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProgressReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProgressReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProgressReport>>
+>;
+export type GetProgressReportQueryError = ErrorType<void>;
+
+/**
+ * @summary Get the authenticated student's current progress report (metadata + parsed payload)
+ */
+
+export function useGetProgressReport<
+  TData = Awaited<ReturnType<typeof getProgressReport>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProgressReport>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProgressReportQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Register an uploaded progress report (PDF or Excel) after client PUT to presigned URL
+ */
+export const getRegisterProgressReportUrl = () => {
+  return `/api/progress-report`;
+};
+
+export const registerProgressReport = async (
+  progressReportInput: ProgressReportInput,
+  options?: RequestInit,
+): Promise<ProgressReportEnvelope> => {
+  return customFetch<ProgressReportEnvelope>(getRegisterProgressReportUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(progressReportInput),
+  });
+};
+
+export const getRegisterProgressReportMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerProgressReport>>,
+    TError,
+    { data: BodyType<ProgressReportInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerProgressReport>>,
+  TError,
+  { data: BodyType<ProgressReportInput> },
+  TContext
+> => {
+  const mutationKey = ["registerProgressReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerProgressReport>>,
+    { data: BodyType<ProgressReportInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerProgressReport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterProgressReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerProgressReport>>
+>;
+export type RegisterProgressReportMutationBody = BodyType<ProgressReportInput>;
+export type RegisterProgressReportMutationError = ErrorType<void>;
+
+/**
+ * @summary Register an uploaded progress report (PDF or Excel) after client PUT to presigned URL
+ */
+export const useRegisterProgressReport = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerProgressReport>>,
+    TError,
+    { data: BodyType<ProgressReportInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerProgressReport>>,
+  TError,
+  { data: BodyType<ProgressReportInput> },
+  TContext
+> => {
+  return useMutation(getRegisterProgressReportMutationOptions(options));
+};
+
+/**
+ * @summary Delete the authenticated student's progress report
+ */
+export const getDeleteProgressReportUrl = () => {
+  return `/api/progress-report`;
+};
+
+export const deleteProgressReport = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteProgressReportUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteProgressReportMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProgressReport>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProgressReport>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["deleteProgressReport"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProgressReport>>,
+    void
+  > = () => {
+    return deleteProgressReport(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteProgressReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteProgressReport>>
+>;
+
+export type DeleteProgressReportMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete the authenticated student's progress report
+ */
+export const useDeleteProgressReport = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProgressReport>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProgressReport>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteProgressReportMutationOptions(options));
+};
+
+/**
+ * @summary Stream the authenticated student's own progress report file
+ */
+export const getDownloadProgressReportFileUrl = () => {
+  return `/api/progress-report/file`;
+};
+
+export const downloadProgressReportFile = async (
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getDownloadProgressReportFileUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadProgressReportFileQueryKey = () => {
+  return [`/api/progress-report/file`] as const;
+};
+
+export const getDownloadProgressReportFileQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadProgressReportFile>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadProgressReportFile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadProgressReportFileQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadProgressReportFile>>
+  > = ({ signal }) => downloadProgressReportFile({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadProgressReportFile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadProgressReportFileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadProgressReportFile>>
+>;
+export type DownloadProgressReportFileQueryError = ErrorType<void>;
+
+/**
+ * @summary Stream the authenticated student's own progress report file
+ */
+
+export function useDownloadProgressReportFile<
+  TData = Awaited<ReturnType<typeof downloadProgressReportFile>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof downloadProgressReportFile>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadProgressReportFileQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

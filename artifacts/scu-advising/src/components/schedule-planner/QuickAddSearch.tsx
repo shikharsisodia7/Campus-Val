@@ -9,11 +9,32 @@ import { useScheduleWorkspace } from "./useScheduleWorkspace";
 import { format12 } from "./utils";
 import { useToast } from "@/hooks/use-toast";
 
-export function QuickAddSearch({ workspace }: { workspace: ReturnType<typeof useScheduleWorkspace> }) {
+export function QuickAddSearch({
+  workspace,
+  initialCourse,
+  onInitialCourseConsumed,
+}: {
+  workspace: ReturnType<typeof useScheduleWorkspace>;
+  /** Pre-select a course code to jump straight to its section list */
+  initialCourse?: string | null;
+  /** Callback fired once the initialCourse has been applied (so parent can clear it) */
+  onInitialCourseConsumed?: () => void;
+}) {
   const { toast } = useToast();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 250);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+
+  // Apply initialCourse the first time it arrives or changes
+  const prevInitialCourse = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (initialCourse && initialCourse !== prevInitialCourse.current) {
+      setSelectedCourse(initialCourse);
+      setQuery(initialCourse);
+      prevInitialCourse.current = initialCourse;
+      onInitialCourseConsumed?.();
+    }
+  }, [initialCourse, onInitialCourseConsumed]);
 
   const searchParams: any = {
     q: debouncedQuery,

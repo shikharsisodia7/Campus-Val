@@ -1,4 +1,6 @@
 import { randomUUID } from 'crypto';
+
+import { uploadPathOwnerSegment } from './uploadPath';
 import { Readable } from 'stream';
 import { File, Storage } from '@google-cloud/storage';
 
@@ -123,21 +125,18 @@ export class ObjectStorageService {
     }
 
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+    // Owner binding happens via the path itself: /uploads/<ownerSegment>/<uuid>.
+    // GCS does not allow metadata writes on objects that do not exist yet, so
+    // the ACL policy is applied at registration time; the owner segment lets
+    // registration verify the path was minted for the claiming user.
+    const ownerSegment = aclPolicy?.owner
+      ? `${uploadPathOwnerSegment(aclPolicy.owner)}/`
+      : "";
+    const fullPath = `${privateObjectDir}/uploads/${ownerSegment}${objectId}`;
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
-    const objectPath = `/objects/uploads/${objectId}`;
-    const objectFile = objectStorageClient.bucket(bucketName).file(objectName);
-    if (aclPolicy) {
-      // GCS lets metadata be set before the signed PUT occurs. This makes the
-      // opaque upload path owner-bound before the browser ever sees it.
-      await objectFile.setMetadata({
-        metadata: {
-          "custom:aclPolicy": JSON.stringify(aclPolicy),
-        },
-      });
-    }
+    const objectPath = `/objects/uploads/${ownerSegment}${objectId}`;
     const uploadURL = await signObjectURL({
       bucketName,
       objectName,

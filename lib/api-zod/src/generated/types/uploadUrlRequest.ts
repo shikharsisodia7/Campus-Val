@@ -18,7 +18,7 @@ export interface UploadUrlRequest {
    */
   size: number;
   /**
-   * MIME type of the file (e.g. `application/pdf`).
+   * MIME type of the file (e.g. application/pdf).
    * @minLength 1
    */
   contentType: string;

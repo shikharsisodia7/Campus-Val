@@ -5,18 +5,19 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
-import type { ProgressReportExtract } from "./progressReportExtract";
-import type { ProgressReportStatus } from "./progressReportStatus";
+import type { ParsedProgressReport } from "./parsedProgressReport";
+import type { ProgressReportParseStatus } from "./progressReportParseStatus";
 
 export interface ProgressReport {
   id: number;
+  userId: string;
   fileName: string;
   fileSize: number;
   contentType: string;
-  /** stored = file saved but nothing could be conservatively extracted; parsed = some fields were reliably extracted; error = the file could not be read. */
-  status: ProgressReportStatus;
-  /** @nullable */
-  parseError?: string | null;
+  objectPath: string;
   uploadedAt: Date;
-  extracted: ProgressReportExtract;
+  parsed?: ParsedProgressReport | null;
+  parseStatus: ProgressReportParseStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }

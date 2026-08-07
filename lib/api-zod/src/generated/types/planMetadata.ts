@@ -9,4 +9,8 @@
 export interface PlanMetadata {
   addedYears?: number[];
   summerYears?: number[];
+  /** Draft-only additional majors; does not alter the official student profile. */
+  scenarioMajors?: string[];
+  /** Draft-only additional minors; does not alter the official student profile. */
+  scenarioMinors?: string[];
 }

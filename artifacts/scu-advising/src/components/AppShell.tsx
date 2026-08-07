@@ -13,7 +13,6 @@ import {
   Route,
   Gauge,
   ClipboardPaste,
-  Calendar,
   Mic,
   Users,
   LogOut,
@@ -26,6 +25,7 @@ import {
   Menu,
   ChevronDown,
   X,
+  FileUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/react";
@@ -69,11 +69,11 @@ const FEATURE_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Planning utilities",
     items: [
-      { path: "/schedule", label: "Weekly Schedule", icon: Calendar },
       { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
       { path: "/gpa", label: "GPA Calculator", icon: Calculator },
       { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },
       { path: "/sync-workday", label: "Sync Workday Sections", icon: ClipboardPaste },
+      { path: "/progress-report", label: "Progress Report", icon: FileUp },
     ],
   },
   {

@@ -20,13 +20,17 @@ export function Board({ plans }: { plans: any[] }) {
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
   // Group items by year and term
-  // Calculate which years to show
+  // Calculate which years to show (exclude completed-area items with term="completed" or bucket="completed")
   const yearsWithItems = new Set<number>();
   const summerVisibleByYear = new Set<number>();
-  
-  const plannedItems = (activePlan?.items ?? []).filter(i => (i.bucket ?? 'planned') !== 'completed');
+
+  const plannedItems = (activePlan?.items ?? []).filter(i => {
+    if (i.term === 'completed') return false; // task's completed area
+    if ((i.bucket ?? 'planned') === 'completed') return false; // main's completed area
+    return true;
+  });
   const completedItems = (activePlan?.items ?? [])
-    .filter(i => (i.bucket ?? 'planned') === 'completed')
+    .filter(i => i.term === 'completed' || (i.bucket ?? 'planned') === 'completed')
     .sort((a, b) => a.position - b.position);
 
   plannedItems.forEach(item => {
@@ -83,27 +87,35 @@ export function Board({ plans }: { plans: any[] }) {
     if (!over || !activePlanId) return;
 
     const itemId = active.id;
-    const overId = over.id; // Either a term dropzone, the completed area, or another item
+    const overId = over.id;
 
     const draggedItem = activePlan?.items.find(i => i.id === itemId);
+
+    // Check if dropping on the completed area
     const overItemForBucket =
       overId !== COMPLETED_DROPZONE_ID ? activePlan?.items.find(i => i.id === overId) : undefined;
     const droppedOnCompleted =
       overId === COMPLETED_DROPZONE_ID ||
-      (overItemForBucket && (overItemForBucket.bucket ?? 'planned') === 'completed');
+      String(overId) === 'term:0:completed' ||
+      (overItemForBucket && (overItemForBucket.term === 'completed' || (overItemForBucket.bucket ?? 'planned') === 'completed'));
 
     if (droppedOnCompleted) {
       if (!draggedItem) return;
+      if (draggedItem.itemType === 'requirement_placeholder') return; // not allowed
+
       const targetPosition =
         overItemForBucket && overItemForBucket.id !== itemId ? overItemForBucket.position : undefined;
-      if ((draggedItem.bucket ?? 'planned') === 'completed' && targetPosition === undefined) return;
+      const alreadyCompleted = draggedItem.term === 'completed' || (draggedItem.bucket ?? 'planned') === 'completed';
+      if (alreadyCompleted && targetPosition === undefined) return;
+
       updatePlanItem.mutate({
         id: activePlanId,
         itemId,
         data: {
-          bucket: 'completed',
-          // Preserve existing provenance; default drag-ins to manually marked.
-          completionSource: draggedItem.completionSource ?? 'manually_marked',
+          term: 'completed' as any,
+          academicYear: 0,
+          bucket: 'completed' as const,
+          completionSource: (draggedItem.completionSource ?? 'manually_marked') as any,
           position: targetPosition,
         },
       });
@@ -111,13 +123,14 @@ export function Board({ plans }: { plans: any[] }) {
     }
 
     // Parse overId to get year/term
-    let targetYear, targetTerm;
+    let targetYear: number | undefined;
+    let targetTerm: string | undefined;
+
     if (String(overId).startsWith('term:')) {
       const parts = String(overId).split(':');
       targetYear = parseInt(parts[1], 10);
       targetTerm = parts[2];
     } else {
-      // Find the item it was dropped over to get its term/year
       const overItem = activePlan?.items.find(i => i.id === overId);
       if (overItem) {
         targetYear = overItem.academicYear;
@@ -125,10 +138,10 @@ export function Board({ plans }: { plans: any[] }) {
       }
     }
 
-    if (targetYear && targetTerm) {
+    if (targetYear !== undefined && targetTerm && targetTerm !== 'completed') {
       const item = activePlan?.items.find(i => i.id === itemId);
       let targetPosition: number | undefined = undefined;
-      
+
       if (overId !== `term:${targetYear}:${targetTerm}`) {
         const overItem = activePlan?.items.find(i => i.id === overId);
         if (overItem) {
@@ -137,18 +150,19 @@ export function Board({ plans }: { plans: any[] }) {
         }
       }
 
-      const fromCompleted = item && (item.bucket ?? 'planned') === 'completed';
+      const fromCompleted = item && (item.term === 'completed' || (item.bucket ?? 'planned') === 'completed');
       if (item && (fromCompleted || item.academicYear !== targetYear || item.term !== targetTerm || targetPosition !== undefined)) {
-        // Optimistic cache update (with rollback on error) keeps the board in
-        // sync with the drag immediately; the refetch reconciles afterwards.
         updatePlanItem.mutate({
           id: activePlanId,
           itemId,
           data: {
             academicYear: targetYear,
             term: targetTerm as any,
+            // Leaving the completed area returns the item to normal planning.
+            ...(fromCompleted
+              ? { bucket: 'planned' as const, completionSource: null }
+              : {}),
             position: targetPosition,
-            ...(fromCompleted ? { bucket: 'planned' as const, completionSource: null } : {}),
           }
         });
       }
@@ -173,9 +187,9 @@ export function Board({ plans }: { plans: any[] }) {
   return (
     <div className="h-full flex flex-col bg-muted/5 border-x border-border/60 overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8">
-        <DndContext 
-          sensors={sensors} 
-          collisionDetection={closestCorners} 
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
@@ -220,18 +234,18 @@ export function Board({ plans }: { plans: any[] }) {
                     </Button>
                   )}
                 </div>
-                
+
                 <div className={`grid gap-4 items-start ${hasSummer ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
                   {terms.map(term => {
                     const dropZoneId = `term:${year}:${term}`;
                     const itemsInTerm = plannedItems.filter(i => i.academicYear === year && i.term === term).sort((a, b) => a.position - b.position);
                     return (
-                      <TermColumn 
-                        key={dropZoneId} 
-                        id={dropZoneId} 
-                        year={year} 
-                        term={term} 
-                        items={itemsInTerm} 
+                      <TermColumn
+                        key={dropZoneId}
+                        id={dropZoneId}
+                        year={year}
+                        term={term}
+                        items={itemsInTerm}
                         availableYears={displayYears}
                       />
                     );
@@ -240,14 +254,14 @@ export function Board({ plans }: { plans: any[] }) {
               </div>
             );
           })}
-          
+
           <DragOverlay>
             {activeDragId ? (
               <CourseCard item={activePlan.items.find(i => i.id === activeDragId)!} isOverlay availableYears={displayYears} />
             ) : null}
           </DragOverlay>
         </DndContext>
-        
+
         <div className="pt-4 pb-12 flex justify-center">
           <Button variant="outline" onClick={handleAddYear}>
             <Plus className="h-4 w-4 mr-2" /> Add academic year

@@ -42,8 +42,8 @@ router.post(
       // cannot later be claimed by a different student at registration time.
       const { uploadURL, objectPath } =
         await objectStorageService.getObjectEntityUploadURL({
-        owner: req.userId!,
-        visibility: 'private',
+          owner: req.userId!,
+          visibility: 'private',
         });
 
       res.json(
@@ -71,7 +71,7 @@ router.get(
   '/storage/public-objects/*filePath',
   async (req: Request, res: Response) => {
     try {
-      const raw = req.params.filePath;
+      const raw = req.params.path;
       const filePath = Array.isArray(raw) ? raw.join('/') : raw;
       const file = await objectStorageService.searchPublicObject(filePath);
       if (!file) {
@@ -110,46 +110,46 @@ router.get(
   '/storage/objects/*path',
   requireAuth,
   async (req: Request, res: Response) => {
-  try {
-    const raw = req.params.path;
-    const wildcardPath = Array.isArray(raw) ? raw.join('/') : raw;
-    const objectPath = `/objects/${wildcardPath}`;
-    const objectFile =
-      await objectStorageService.getObjectEntityFile(objectPath);
+    try {
+      const raw = req.params.path;
+      const wildcardPath = Array.isArray(raw) ? raw.join('/') : raw;
+      const objectPath = `/objects/${wildcardPath}`;
+      const objectFile =
+        await objectStorageService.getObjectEntityFile(objectPath);
 
-    // Private objects (e.g. Academic Progress Reports) are owner-only.
-    const canAccess = await objectStorageService.canAccessObjectEntity({
-      userId: req.userId,
-      objectFile,
-      requestedPermission: ObjectPermission.READ,
-    });
-    if (!canAccess) {
-      res.status(403).json({ error: 'Forbidden' });
-      return;
+      // Private objects (e.g. Academic Progress Reports) are owner-only.
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        userId: req.userId,
+        objectFile,
+        requestedPermission: ObjectPermission.READ,
+      });
+      if (!canAccess) {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
+
+      const response = await objectStorageService.downloadObject(objectFile);
+
+      res.status(response.status);
+      response.headers.forEach((value, key) => res.setHeader(key, value));
+
+      if (response.body) {
+        const nodeStream = Readable.fromWeb(
+          response.body as ReadableStream<Uint8Array>,
+        );
+        nodeStream.pipe(res);
+      } else {
+        res.end();
+      }
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        req.log.warn({ err: error }, 'Object not found');
+        res.status(404).json({ error: 'Object not found' });
+        return;
+      }
+      req.log.error({ err: error }, 'Error serving object');
+      res.status(500).json({ error: 'Failed to serve object' });
     }
-
-    const response = await objectStorageService.downloadObject(objectFile);
-
-    res.status(response.status);
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-
-    if (response.body) {
-      const nodeStream = Readable.fromWeb(
-        response.body as ReadableStream<Uint8Array>,
-      );
-      nodeStream.pipe(res);
-    } else {
-      res.end();
-    }
-  } catch (error) {
-    if (error instanceof ObjectNotFoundError) {
-      req.log.warn({ err: error }, 'Object not found');
-      res.status(404).json({ error: 'Object not found' });
-      return;
-    }
-    req.log.error({ err: error }, 'Error serving object');
-    res.status(500).json({ error: 'Failed to serve object' });
-  }
   },
 );
 

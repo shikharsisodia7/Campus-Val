@@ -1,726 +1,436 @@
-import { useEffect, useState } from "react";
+import { WORKDAY_STUDENT_URL } from "@/lib/workday";
+import { useState, useMemo } from "react";
 import {
   useCheckPlan,
   useGetProfile,
   getGetProfileQueryKey,
-  useListCourses,
   useListPlans,
   useGetPlan,
   getGetPlanQueryKey,
-  useListSchedules,
-  getListSchedulesQueryKey,
-  useGetSchedule,
-  getGetScheduleQueryKey,
+  PlanItem,
 } from "@workspace/api-client-react";
-import { Link } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
-import { QuarterSectionPicker } from "@/components/quarter-plan/QuarterSectionPicker";
-import { CalendarGrid } from "@/components/schedule-planner/CalendarGrid";
-import { ConflictsPanel } from "@/components/schedule-planner/ConflictsPanel";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Plus,
-  X,
   AlertTriangle,
   Info,
   XCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  ExternalLink,
+  Link as LinkIcon,
+  CalendarCheck,
+  BookOpen,
 } from "lucide-react";
-import { TERM_OPTIONS, termLabel, getCurrentSCUTerm } from "@/lib/api";
+import { Link } from "wouter";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
-import { AcademicProgress } from "@/components/AcademicProgress";
+import { useScheduleWorkspace } from "@/components/schedule-planner/useScheduleWorkspace";
+import { TermAndScheduleHeader } from "@/components/schedule-planner/TermAndScheduleHeader";
+import { CalendarGrid } from "@/components/schedule-planner/CalendarGrid";
+import { ConflictsPanel } from "@/components/schedule-planner/ConflictsPanel";
+import { SidebarPanels } from "@/components/schedule-planner/SidebarPanels";
+import { CourseDetailsDialog } from "@/components/schedule-planner/CourseDetailsDialog";
+import { ScheduleEvent } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
 
-interface PlannedCourse {
-  code: string;
-  units: number;
-}
-
-const STORAGE_KEY = "campusval.planner.v1";
+// Quarter Plan supports fall/winter/spring only (the three academic quarters).
+// Summer is excluded from the term selector; the availability endpoint remains
+// the sole source of official/tentative status for the allowed terms.
+const QUARTER_PLAN_TERMS = new Set(["fall", "winter", "spring"]);
 
 export default function Planner() {
-  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const workspace = useScheduleWorkspace();
+  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
+
+  // Intentions panel: jump a course into Quick Add
+  const [intentionCourse, setIntentionCourse] = useState<string | null>(null);
+
+  // Load-check collapsible
+  const [loadCheckOpen, setLoadCheckOpen] = useState(false);
+  const checkPlan = useCheckPlan();
+
+  // Profile for load-check
   const { data: profile } = useGetProfile({
     query: { retry: false, queryKey: getGetProfileQueryKey() },
   });
-  const { data: catalog = [] } = useListCourses({});
-  const checkPlan = useCheckPlan();
 
-  // Degree Plan course intentions for the selected quarter feed this page
-  // automatically — the Quarter Plan starts from what the student already
-  // planned, rather than a blank list.
+  // Degree plan (find the 'degree' type plan)
   const { data: plansList } = useListPlans();
-  const degreePlanId = plansList?.plans.find((p) => p.planType === "degree")?.id;
-  const { data: degreePlan } = useGetPlan(degreePlanId!, {
-    query: { enabled: !!degreePlanId, queryKey: getGetPlanQueryKey(degreePlanId!) },
+  const degreePlan = plansList?.plans.find((p) => p.planType === "degree") ?? plansList?.plans[0] ?? null;
+  const { data: activePlan } = useGetPlan(degreePlan?.id ?? 0, {
+    query: { enabled: !!degreePlan?.id, queryKey: getGetPlanQueryKey(degreePlan?.id ?? 0) },
   });
 
-  const today = getCurrentSCUTerm();
-  const [term, setTerm] = useState<string>(today.term);
-  const [year, setYear] = useState<number>(today.year);
-  const [planned, setPlanned] = useState<PlannedCourse[]>([]);
-  const [draftCode, setDraftCode] = useState("");
-  const [addError, setAddError] = useState<string | null>(null);
-  const [comparison, setComparison] = useState<{
-    inPlan: { code: string; matched: boolean; group?: string }[];
-    missingFromPath: string[];
-  } | null>(null);
-  const [comparing, setComparing] = useState(false);
-  const [sectionCourse, setSectionCourse] = useState<string | null>(null);
-
-  // Note: planner default = today's actual term/year (set above). We
-  // intentionally do NOT seed from profile.currentTerm because that's a
-  // stored value from onboarding that goes stale when the calendar flips.
-
-  useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed.planned)) setPlanned(parsed.planned);
-        if (parsed.term) setTerm(parsed.term);
-        if (parsed.year) setYear(parsed.year);
-      } catch {
-        // ignore
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ planned, term, year }),
+  // Items in the degree plan for the selected quarter
+  const degreeItems: PlanItem[] = useMemo(() => {
+    if (!activePlan || !workspace.activeTerm || !workspace.activeYear) return [];
+    return activePlan.items.filter(
+      (i) => i.term === workspace.activeTerm && i.academicYear === workspace.activeYear,
     );
-  }, [planned, term, year]);
+  }, [activePlan, workspace.activeTerm, workspace.activeYear]);
 
-  const addCourse = () => {
-    const code = draftCode.trim().toUpperCase().replace(/\s+/g, " ");
-    if (!code) return;
-    const dup = planned.find((p) => p.code.toUpperCase() === code);
-    if (dup) {
-      setAddError(`${code} is already on this quarter's plan.`);
-      return;
-    }
-    // Courses must come from the SCU catalog — units are read from the
-    // official record, never typed in. Unknown codes are rejected honestly
-    // rather than added with invented unit values.
-    const known = catalog.find((c) => c.code.toUpperCase() === code);
-    if (!known) {
-      setAddError(
-        `${code} isn't in CampusVal's SCU catalog. Double-check the course code against Workday or the Bulletin.`,
-      );
-      return;
-    }
-    setPlanned([...planned, { code: known.code, units: known.units }]);
-    setDraftCode("");
-    setAddError(null);
-    setComparison(null);
-  };
+  // Sections already selected in this quarter's active schedule
+  const selectedSections = workspace.activeSchedule?.events.filter((e) => e.kind === "section") ?? [];
+  const selectedCourseCodes = new Set(selectedSections.map((e) => e.courseCode?.toUpperCase() ?? ""));
 
-  const compareToGradPath = async () => {
-    if (!profile) return;
-    setComparing(true);
-    try {
-      const apIb = creditedCourses(loadStoredExams());
-      const apIbCsv = apIb.join(",");
-      const majorsToCheck = [profile.major, profile.secondMajor].filter(
-        (m): m is string => !!m,
-      );
-      const required: { code: string; group: string; major: string }[] = [];
-      for (const m of majorsToCheck) {
-        const params = new URLSearchParams();
-        params.set("major", m);
-        if (apIbCsv) params.set("apIbCredits", apIbCsv);
-        const url = `${import.meta.env.BASE_URL}api/graduation-paths/requirements?${params.toString()}`;
-        const r = await fetch(url);
-        if (!r.ok) continue;
-        const reqs = await r.json();
-        for (const g of reqs.groups ?? []) {
-          if (g.label.startsWith("University Core")) continue;
-          for (const c of g.courses ?? []) {
-            required.push({
-              code: c.code.toUpperCase(),
-              group:
-                majorsToCheck.length > 1 ? `${m} · ${g.label}` : g.label,
-              major: m,
-            });
-          }
-        }
-      }
-      // Dedupe: same course required by both majors → keep first occurrence.
-      const seen = new Set<string>();
-      const dedup = required.filter((r) => {
-        if (seen.has(r.code)) return false;
-        seen.add(r.code);
-        return true;
-      });
-      const requiredSet = new Map(dedup.map((r) => [r.code, r.group]));
-      const inPlan = planned.map((p) => {
-        const upper = p.code.toUpperCase();
-        const group = requiredSet.get(upper);
-        return { code: p.code, matched: !!group, group };
-      });
-      const plannedSet = new Set(planned.map((p) => p.code.toUpperCase()));
-      const completedSet = new Set([
-        ...(profile.completedCourseCodes ?? []).map((c) => c.toUpperCase()),
-        ...apIb.map((c) => c.toUpperCase()),
-      ]);
-      const missingFromPath = dedup
-        .filter((r) => !plannedSet.has(r.code) && !completedSet.has(r.code))
-        .slice(0, 16)
-        .map((r) =>
-          majorsToCheck.length > 1 ? `${r.code} (${r.major})` : r.code,
-        );
-      setComparison({ inPlan, missingFromPath });
-    } catch {
-      setComparison({ inPlan: [], missingFromPath: [] });
-    } finally {
-      setComparing(false);
-    }
-  };
-
-  // Persisted Weekly Schedule for this quarter — shows which planned courses
-  // already have an exact section chosen (server-validated, never invented).
-  const schedulesParams = { term: term as never, year };
-  const { data: schedulesList } = useListSchedules(schedulesParams, {
-    query: { queryKey: getListSchedulesQueryKey(schedulesParams) },
-  });
-  const quarterScheduleId = schedulesList?.schedules[0]?.id;
-  const { data: quarterSchedule } = useGetSchedule(quarterScheduleId!, {
-    query: {
-      enabled: !!quarterScheduleId,
-      queryKey: getGetScheduleQueryKey(quarterScheduleId!),
-    },
-  });
-  const invalidateQuarterSchedule = () => {
-    queryClient.invalidateQueries({
-      predicate: (q) => String(q.queryKey[0]).startsWith("/api/schedules"),
-    });
-  };
-  const sectionByCourse = new Map<
-    string,
-    { sectionNumber: string | null; meetingDays: string[]; startTime: string | null; endTime: string | null; instructor: string | null }
-  >();
-  for (const ev of quarterSchedule?.events ?? []) {
-    if (ev.kind === "section" && ev.courseCode) {
-      sectionByCourse.set(ev.courseCode.toUpperCase(), {
-        sectionNumber: ev.sectionNumber ?? null,
-        meetingDays: ev.meetingDays,
-        startTime: ev.startTime ?? null,
-        endTime: ev.endTime ?? null,
-        instructor: ev.instructor ?? null,
-      });
-    }
-  }
-
-  // Degree Plan stores terms by academic year (2026 = 2026–27), while the
-  // Quarter Plan uses calendar years: Fall 2026 belongs to academic year
-  // 2026, but Winter/Spring/Summer 2027 do too.
-  const selectedAcademicYear = term === "fall" ? year : year - 1;
-  const plannedCodes = new Set(planned.map((p) => p.code.toUpperCase()));
-  const degreePlanCourses = (degreePlan?.items ?? [])
-    .filter(
-      (i) =>
-        i.itemType === "course" &&
-        (i.bucket ?? "planned") === "planned" &&
-        i.term === term &&
-        i.academicYear === selectedAcademicYear &&
-        !!i.courseCode,
-    )
-    .map((i) => ({ code: i.courseCode!, title: i.courseTitle ?? "" }));
-  const degreePlanToAdd = degreePlanCourses.filter(
-    (c) => !plannedCodes.has(c.code.toUpperCase()),
-  );
-
-  const addFromDegreePlan = (codes: string[]) => {
-    const additions: PlannedCourse[] = [];
-    for (const code of codes) {
-      const known = catalog.find(
-        (c) => c.code.toUpperCase() === code.toUpperCase(),
-      );
-      if (known && !plannedCodes.has(known.code.toUpperCase())) {
-        additions.push({ code: known.code, units: known.units });
-      }
-    }
-    if (additions.length > 0) {
-      setPlanned([...planned, ...additions]);
-      setComparison(null);
-    }
-  };
-
-  const removeCourse = (idx: number) => {
-    setPlanned(planned.filter((_, i) => i !== idx));
-  };
-
-  const onCheck = () => {
-    // Merge AP/IB-credited courses into the completed list so the server's
-    // prereq checker treats them as satisfied (e.g. AP Calc BC → MATH 11/12).
+  // Run load check against scheduled courses
+  const onRunLoadCheck = () => {
+    if (!workspace.activeSchedule || !workspace.activeTerm || !workspace.activeYear) return;
     const apIb = creditedCourses(loadStoredExams());
     const mergedCompleted = Array.from(
       new Set(
-        [...(profile?.completedCourseCodes ?? []), ...apIb].map((c) =>
-          c.toUpperCase(),
-        ),
+        [...(profile?.completedCourseCodes ?? []), ...apIb].map((c) => c.toUpperCase()),
       ),
     );
+    const scheduledCourses = selectedSections
+      .filter((e) => e.courseCode)
+      .map((e) => ({ code: e.courseCode!, units: e.units ?? 0 }));
+    if (scheduledCourses.length === 0) {
+      toast({ title: "No course sections on this schedule yet." });
+      return;
+    }
     checkPlan.mutate({
       data: {
-        term: term as "fall" | "winter" | "spring" | "summer",
-        year,
+        term: workspace.activeTerm as "fall" | "winter" | "spring" | "summer",
+        year: workspace.activeYear,
         college: profile?.college ?? "School of Engineering",
-        plannedCourses: planned.map((p) => ({
-          code: p.code,
-          units: p.units,
-        })),
+        plannedCourses: scheduledCourses,
         completedCourseCodes: mergedCompleted,
         cumulativeGpa: profile?.cumulativeGpa ?? null,
         priorityRegistration: profile?.priorityRegistration ?? false,
       },
     });
+    setLoadCheckOpen(true);
   };
 
-  const result = checkPlan.data;
-  const totalUnits = planned.reduce((s, p) => s + Number(p.units), 0);
+  // Workday handoff copy
+  const onCopyHandoff = () => {
+    if (selectedSections.length === 0) {
+      toast({ title: "No sections to copy yet." });
+      return;
+    }
+    const lines = selectedSections.map((s) => {
+      const days = s.meetingDays.join("") || "TBA";
+      const time = s.startTime && s.endTime ? `${s.startTime}–${s.endTime}` : "Time TBA";
+      return `${s.courseCode}-${s.sectionNumber}  ${days} ${time}`;
+    });
+    navigator.clipboard.writeText(lines.join("\n"));
+    toast({ title: "Section list copied to clipboard" });
+  };
+
+  const loadCheckResult = checkPlan.data;
 
   return (
     <AppShell>
       <PageHeader
-        title="Quarter Planner"
-        subtitle="Build a tentative course load. CampusVal checks unit guidance, prerequisites, and course offerings against your profile. Confirm any overload or registration decision with SCU."
+        title="Quarter Plan"
+        subtitle="Pick exact sections for one quarter. Use your Degree Plan intentions as a guide, select sections on the calendar, then hand off to Workday to register. CampusVal does not register you — this is planning support only."
       />
       <PageContent>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="p-6 lg:col-span-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Term
-                </label>
-                <Select value={term} onValueChange={setTerm}>
-                  <SelectTrigger
-                    data-testid="select-term"
-                    className="mt-1.5"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TERM_OPTIONS.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {termLabel(t)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  Year
-                </label>
-                <Input
-                  data-testid="input-year"
-                  type="number"
-                  value={year}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                  className="mt-1.5"
-                />
-              </div>
-            </div>
+        {/* TermAndScheduleHeader: term/year selection from availability API, fall/winter/spring only */}
+        <TermAndScheduleHeader
+          workspace={workspace}
+          allowedTerms={QUARTER_PLAN_TERMS}
+        />
 
-            {degreePlanCourses.length > 0 && (
-              <div className="mt-6" data-testid="degree-plan-intentions">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                    From your Degree Plan — {termLabel(term)} {year}
-                  </div>
-                  {degreePlanToAdd.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      data-testid="button-add-all-degree-plan"
-                      onClick={() => addFromDegreePlan(degreePlanToAdd.map((c) => c.code))}
-                    >
-                      <Plus className="h-3 w-3 mr-1" /> Add all ({degreePlanToAdd.length})
-                    </Button>
-                  )}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          {/* Left: Calendar + Conflicts + Degree Intentions */}
+          <div className="xl:col-span-8 xl:col-start-1 flex flex-col gap-6 min-w-0">
+
+            {/* Degree Plan Intentions Panel */}
+            <DegreePlanIntentionsPanel
+              items={degreeItems}
+              selectedCourseCodes={selectedCourseCodes}
+              activeTerm={workspace.activeTerm}
+              activeYear={workspace.activeYear}
+              isLoadingAvailability={workspace.isLoadingAvailability}
+              onFindSections={(code) => setIntentionCourse(code)}
+            />
+
+            {/* Calendar or empty state */}
+            {workspace.activeScheduleId ? (
+              <>
+                {/* overflow-x-auto here lets CalendarGrid scroll horizontally on
+                    narrow screens without widening the page; min-w-0 prevents the
+                    flex-column child from expanding beyond its parent. */}
+                <div className="min-w-0 overflow-x-auto">
+                  <CalendarGrid
+                    events={workspace.activeSchedule?.events || []}
+                    onEventClick={setSelectedEvent}
+                  />
                 </div>
-                <div className="space-y-1.5">
-                  {degreePlanCourses.map((c) => {
-                    const already = plannedCodes.has(c.code.toUpperCase());
-                    return (
-                      <div
-                        key={c.code}
-                        className="flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border bg-muted/10 text-sm"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-mono font-bold text-primary shrink-0">{c.code}</span>
-                          <span className="truncate text-foreground/80">{c.title}</span>
-                        </div>
-                        {already ? (
-                          <span className="inline-flex items-center gap-1 text-xs text-emerald-700 shrink-0">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> In quarter plan
-                          </span>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs shrink-0"
-                            data-testid={`button-add-degree-plan-${c.code.replace(/\s+/g, "-")}`}
-                            onClick={() => addFromDegreePlan([c.code])}
-                          >
-                            <Plus className="h-3 w-3 mr-1" /> Add
-                          </Button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
-                  Courses you placed in this quarter on your{" "}
-                  <Link href="/degree-plan" className="underline underline-offset-2">Degree Plan</Link>.
-                  Pick exact sections and meeting times in the{" "}
-                  <Link href="/schedule" className="underline underline-offset-2">Weekly Schedule</Link>.
+                <ConflictsPanel events={workspace.activeSchedule?.events || []} />
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl bg-muted/10 p-8 text-center text-muted-foreground min-h-[300px]">
+                <CalendarCheck className="h-10 w-10 mb-3 opacity-30" />
+                <h2 className="text-xl font-semibold mb-2">No Schedule Selected</h2>
+                <p className="max-w-sm text-sm">
+                  Create a new schedule or select an existing one above to start placing sections on the calendar.
                 </p>
               </div>
             )}
 
-            <div className="mt-6">
-              <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
-                Add a course
-              </div>
-              <p className="text-[11px] text-muted-foreground mb-2">
-                Units come from the official SCU catalog record automatically.
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  data-testid="input-add-code"
-                  list="course-codes"
-                  value={draftCode}
-                  onChange={(e) => setDraftCode(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addCourse()}
-                  placeholder="Search the SCU catalog — e.g. CSEN 11"
-                  className="flex-1 font-mono"
-                />
-                <datalist id="course-codes">
-                  {catalog.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.title}
-                    </option>
-                  ))}
-                </datalist>
-                <Button onClick={addCourse} data-testid="button-add-course">
-                  <Plus className="h-4 w-4 mr-1" /> Add
-                </Button>
-              </div>
-              {addError && (
-                <div className="mt-2 text-xs text-destructive" data-testid="planner-add-error">
-                  {addError}
-                </div>
-              )}
-            </div>
+            {/* Workday Handoff Card */}
+            <WorkdayHandoffCard
+              sections={selectedSections}
+              onCopy={onCopyHandoff}
+            />
 
-            <div className="mt-6 border-t border-border pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-semibold text-foreground">
-                  Planned courses
-                </div>
-                <Badge variant="outline" className="font-mono">
-                  {totalUnits} units
-                </Badge>
-              </div>
-               {planned.length === 0 ? (
-                <div className="text-sm text-muted-foreground py-8 text-center border border-dashed border-border rounded-md">
-                  Add courses above to start planning.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {planned.map((p, i) => (
-                    <div
-                      key={i}
-                      data-testid={`planned-${i}`}
-                      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-3">
-                          <div className="font-mono text-sm font-bold text-primary">
-                            {p.code}
+            {/* Load Check Collapsible */}
+            <Card className="p-4">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between text-sm font-semibold text-foreground"
+                onClick={() => setLoadCheckOpen((o) => !o)}
+                data-testid="button-toggle-load-check"
+                aria-expanded={loadCheckOpen}
+              >
+                <span className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  Load Check — validate unit caps, prerequisites &amp; overload
+                </span>
+                {loadCheckOpen ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+
+              {loadCheckOpen && (
+                <div className="mt-4 space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    Checks run against the course sections currently on your selected schedule. Add sections to the calendar first.
+                  </p>
+                  <Button
+                    onClick={onRunLoadCheck}
+                    disabled={checkPlan.isPending || !workspace.activeScheduleId}
+                    data-testid="button-check-plan"
+                    size="sm"
+                  >
+                    {checkPlan.isPending ? "Checking…" : "Run load check"}
+                  </Button>
+
+                  {loadCheckResult && (
+                    <div className="space-y-4 pt-2 border-t border-border">
+                      <div>
+                        <div className="flex items-baseline justify-between">
+                          <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                            Units · {standingTitle(loadCheckResult.classStanding)}
                           </div>
-                          <div className="text-sm text-foreground truncate">
-                            {catalog.find(
-                              (c) => c.code.toUpperCase() === p.code.toUpperCase(),
-                            )?.title ?? "Not in catalog — verify code"}
+                          <div className="text-sm font-semibold">
+                            {loadCheckResult.totalUnits} / {loadCheckResult.unitCap}
                           </div>
                         </div>
-                        {(() => {
-                          const sec = sectionByCourse.get(p.code.toUpperCase());
-                          if (sec) {
-                            const time =
-                              sec.startTime && sec.endTime
-                                ? `${sec.startTime}–${sec.endTime}`
-                                : null;
-                            return (
-                              <div
-                                className="text-[11px] text-emerald-700 mt-0.5 font-mono"
-                                data-testid={`section-status-${p.code.replace(/\s+/g, "-")}`}
-                              >
-                                Section{sec.sectionNumber ? ` ${sec.sectionNumber}` : ""} chosen
-                                {sec.meetingDays.length > 0 ? ` · ${sec.meetingDays.join("")}` : ""}
-                                {time ? ` ${time}` : ""}
-                                {sec.instructor ? ` · ${sec.instructor}` : ""}
-                              </div>
-                            );
-                          }
-                          return (
-                            <div className="text-[11px] text-muted-foreground mt-0.5">
-                              No section chosen yet —{" "}
-                              <Link href="/schedule" className="underline underline-offset-2">
-                                pick one in Weekly Schedule
-                              </Link>
-                            </div>
-                          );
-                        })()}
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="h-6 px-0 text-[11px]"
-                          onClick={() =>
-                            setSectionCourse(
-                              sectionCourse === p.code ? null : p.code,
-                            )
-                          }
-                        >
-                          {sectionCourse === p.code
-                            ? "Hide section choices"
-                            : "Choose a section"}
-                        </Button>
-                        {sectionCourse === p.code && (
-                          <div className="mt-2">
-                            <QuarterSectionPicker
-                              courseCode={p.code}
-                              term={term as "fall" | "winter" | "spring" | "summer"}
-                              year={year}
-                              scheduleId={quarterScheduleId}
-                              selectedEvent={
-                                (quarterSchedule?.events ?? []).find(
-                                  (event) =>
-                                    event.kind === "section" &&
-                                    event.courseCode?.toUpperCase() ===
-                                      p.code.toUpperCase(),
-                                ) ?? undefined
-                              }
-                              onScheduleReady={invalidateQuarterSchedule}
-                              onChanged={invalidateQuarterSchedule}
-                            />
+                        <Progress
+                          value={Math.min(100, (loadCheckResult.totalUnits / loadCheckResult.unitCap) * 100)}
+                          className="mt-2"
+                        />
+                        <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground font-mono">
+                          <span>Standard cap: {loadCheckResult.standardCap}</span>
+                          <span>Approved cap: {loadCheckResult.approvedCap}</span>
+                        </div>
+                      </div>
+                      {loadCheckResult.requiresAdvisorApproval && (
+                        <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 leading-snug">
+                          <strong>Advisor approval required:</strong> this plan is over your standard cap. Even if eligible to overload, you need written dean approval before registration.
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground italic">
+                        {loadCheckResult.overloadReason}
+                      </div>
+                      <div className="space-y-2 pt-2 border-t border-border">
+                        {loadCheckResult.issues.length === 0 ? (
+                          <div className="flex items-start gap-2 text-sm text-emerald-700">
+                            <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                            No issues found. This plan looks safe to register.
                           </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="font-mono">
-                          {p.units} {p.units === 1 ? "unit" : "units"}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeCourse(i)}
-                          data-testid={`button-remove-${i}`}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-               {quarterSchedule?.events && quarterSchedule.events.length > 0 && (
-                 <div className="mt-6 border-t border-border pt-4">
-                   <div className="flex items-center justify-between mb-2">
-                     <div className="text-sm font-semibold">Weekly calendar</div>
-                     <Link
-                       href="/schedule"
-                       className="text-xs text-primary underline underline-offset-2"
-                     >
-                       Open full calendar
-                     </Link>
-                   </div>
-                   <div className="h-[360px] overflow-auto rounded-md border border-border">
-                     <CalendarGrid
-                       events={quarterSchedule.events}
-                       onEventClick={() => undefined}
-                     />
-                   </div>
-                   <div className="mt-3">
-                     <ConflictsPanel events={quarterSchedule.events} />
-                   </div>
-                 </div>
-               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-                <Button
-                  onClick={onCheck}
-                  disabled={planned.length === 0 || checkPlan.isPending}
-                  data-testid="button-check-plan"
-                >
-                  {checkPlan.isPending ? "Checking…" : "Check this plan"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={compareToGradPath}
-                  disabled={planned.length === 0 || comparing || !profile}
-                  data-testid="button-compare-grad-path"
-                >
-                  {comparing ? "Comparing…" : "Compare to grad path"}
-                </Button>
-              </div>
-              {comparison && (
-                <div className="mt-4 rounded-md border border-border bg-muted/20 p-3 space-y-2 text-sm">
-                  <div className="font-semibold text-foreground">
-                    Versus your {profile?.major} grad path
-                  </div>
-                  <div className="space-y-1">
-                    {comparison.inPlan.map((p, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs">
-                        <span className="font-mono w-20 shrink-0">{p.code}</span>
-                        {p.matched ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-700">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Required: {p.group}
-                          </span>
                         ) : (
-                          <span className="text-muted-foreground italic">
-                            Not in major requirements (elective / Core)
-                          </span>
+                          loadCheckResult.issues.map((issue, i) => (
+                            <IssueRow key={i} issue={issue} />
+                          ))
                         )}
                       </div>
-                    ))}
-                  </div>
-                  {comparison.missingFromPath.length > 0 && (
-                    <div className="pt-2 border-t border-border">
-                      <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
-                        Still missing from your major
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {comparison.missingFromPath.map((c) => (
-                          <Badge
-                            key={c}
-                            variant="outline"
-                            className="font-mono text-[11px]"
-                          >
-                            {c}
-                          </Badge>
-                        ))}
-                      </div>
+                      {loadCheckResult.coreAreasFulfilled.length > 0 && (
+                        <div className="pt-3 border-t border-border">
+                          <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                            Core areas fulfilled
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {loadCheckResult.coreAreasFulfilled.map((a) => (
+                              <Badge key={a} variant="secondary" className="text-xs">
+                                {a}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               )}
-            </div>
-          </Card>
+            </Card>
+          </div>
 
-          <div className="space-y-6">
-          <AcademicProgress />
-          <Card className="p-6">
-            <div className="text-sm font-semibold text-foreground">
-              Validation
-            </div>
-            {!result ? (
-              <p className="text-sm text-muted-foreground mt-3">
-                Run "Check this plan" to validate units, prerequisites, course
-                offerings, and unit-load guidance.
-              </p>
+          {/* Right: Section search sidebar */}
+          <div className="xl:col-span-4 xl:col-start-9 flex flex-col min-w-0">
+            {workspace.activeScheduleId ? (
+              <SidebarPanels
+                workspace={workspace}
+                initialCourse={intentionCourse}
+                onInitialCourseConsumed={() => setIntentionCourse(null)}
+              />
             ) : (
-              <div className="space-y-4 mt-4">
-                <div>
-                  <div className="flex items-baseline justify-between">
-                    <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                      Units · {standingTitle(result.classStanding)}
-                    </div>
-                    <div className="text-sm font-semibold">
-                      {result.totalUnits} / {result.unitCap}
-                    </div>
-                  </div>
-                  <Progress
-                    value={Math.min(
-                      100,
-                      (result.totalUnits / result.unitCap) * 100,
-                    )}
-                    className="mt-2"
-                  />
-                  <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground font-mono">
-                    <span>
-                      Standard cap: {result.standardCap}
-                    </span>
-                    <span>Approved cap: {result.approvedCap}</span>
-                  </div>
-                </div>
-                {result.requiresAdvisorApproval && (
-                  <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 leading-snug">
-                    <strong>Advisor approval required:</strong> this plan is over
-                    your standard cap. Even if eligible to overload, you need
-                    written dean approval before registration.
-                  </div>
-                )}
-                <div className="text-xs text-muted-foreground italic">
-                  {result.overloadReason}
-                </div>
-                <div className="space-y-2 pt-2 border-t border-border">
-                  {result.issues.length === 0 ? (
-                    <div className="flex items-start gap-2 text-sm text-emerald-700">
-                      <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                      No issues found in CampusVal's available planning data. Verify
-                      eligibility and registration in Workday.
-                    </div>
-                  ) : (
-                    result.issues.map((issue, i) => (
-                      <IssueRow key={i} issue={issue} />
-                    ))
-                  )}
-                </div>
-                {result.coreAreasFulfilled.length > 0 && (
-                  <div className="pt-3 border-t border-border">
-                    <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                      Core areas fulfilled
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {result.coreAreasFulfilled.map((a) => (
-                        <Badge key={a} variant="secondary" className="text-xs">
-                          {a}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="flex-1 rounded-xl bg-card border shadow-sm opacity-50 pointer-events-none p-6 text-center text-sm flex items-center justify-center">
+                Please create a schedule to access section search tools.
               </div>
             )}
-          </Card>
           </div>
         </div>
       </PageContent>
+
+      <CourseDetailsDialog
+        event={selectedEvent}
+        open={!!selectedEvent}
+        onOpenChange={(o) => !o && setSelectedEvent(null)}
+      />
     </AppShell>
+  );
+}
+
+function DegreePlanIntentionsPanel({
+  items,
+  selectedCourseCodes,
+  activeTerm,
+  activeYear,
+  isLoadingAvailability,
+  onFindSections,
+}: {
+  items: PlanItem[];
+  selectedCourseCodes: Set<string>;
+  activeTerm: string | null;
+  activeYear: number | null;
+  isLoadingAvailability: boolean;
+  onFindSections: (courseCode: string) => void;
+}) {
+  if (isLoadingAvailability || (!activeTerm && !activeYear)) return null;
+
+  const courses = items.filter((i) => i.itemType === "course" && !!i.courseCode);
+  const placeholders = items.filter((i) => i.itemType === "requirement_placeholder");
+
+  const quarterLabel = activeTerm && activeYear
+    ? `${activeTerm.charAt(0).toUpperCase()}${activeTerm.slice(1)} ${activeYear}`
+    : "this quarter";
+
+  return (
+    <Card className="p-4" data-testid="intentions-panel">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <LinkIcon className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-sm font-semibold text-foreground truncate">
+            From your Degree Plan — {quarterLabel}
+          </span>
+        </div>
+        <Link href="/degree-plan">
+          <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" data-testid="link-go-to-degree-plan">
+            Edit Degree Plan
+          </Button>
+        </Link>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">
+          No courses are planned for {quarterLabel} in your Degree Plan.{" "}
+          <Link href="/degree-plan" className="underline text-primary" data-testid="link-degree-plan-empty">
+            Add courses to your Degree Plan
+          </Link>{" "}
+          to see them here.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {courses.map((item) => {
+            const code = item.courseCode!;
+            const isSelected = selectedCourseCodes.has(code.toUpperCase());
+            return (
+              <div
+                key={item.id}
+                className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border ${
+                  isSelected ? "border-emerald-300 bg-emerald-50/40" : "border-border bg-muted/20"
+                }`}
+                data-testid={`intention-course-${item.id}`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {isSelected ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <div className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/30" />
+                  )}
+                  <div className="min-w-0 overflow-hidden">
+                    <span className="font-mono text-sm font-bold text-primary">{code}</span>
+                    {item.courseTitle && (
+                      <span className="ml-2 text-xs text-muted-foreground truncate inline-block max-w-full">{item.courseTitle}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  {isSelected ? (
+                    <Badge variant="secondary" className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200">
+                      Section added
+                    </Badge>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => onFindSections(code)}
+                      data-testid={`button-find-sections-${item.id}`}
+                    >
+                      Find sections
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {placeholders.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border/50 bg-muted/10 opacity-70"
+              data-testid={`intention-placeholder-${item.id}`}
+            >
+              <div className="h-4 w-4 shrink-0 rounded-full border-2 border-dashed border-muted-foreground/30" />
+              <div className="text-xs text-muted-foreground italic">
+                <span className="font-medium not-italic text-foreground/70">
+                  {item.requirementLabel || item.requirementCategory || "Requirement placeholder"}
+                </span>
+                {" "}— decide a course in the{" "}
+                <Link href="/degree-plan" className="underline text-primary/80">
+                  Degree Plan
+                </Link>{" "}
+                first
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
   );
 }
 
 function standingTitle(s: string): string {
   switch (s) {
-    case "freshman":
-      return "First Year";
-    case "sophomore":
-      return "Sophomore";
-    case "junior":
-      return "Junior";
-    case "senior":
-      return "Senior";
-    default:
-      return s;
+    case "freshman": return "First Year";
+    case "sophomore": return "Sophomore";
+    case "junior": return "Junior";
+    case "senior": return "Senior";
+    default: return s;
   }
 }
 
@@ -734,10 +444,7 @@ function IssueRow({
     relatedCourse?: string | null;
   };
 }) {
-  const config: Record<
-    string,
-    { icon: React.ReactNode; bg: string; border: string }
-  > = {
+  const config: Record<string, { icon: React.ReactNode; bg: string; border: string }> = {
     error: {
       icon: <XCircle className="h-4 w-4 text-destructive" />,
       bg: "bg-destructive/5",
@@ -756,13 +463,72 @@ function IssueRow({
   };
   const c = config[issue.severity] ?? config.info!;
   return (
-    <div
-      className={`flex gap-2.5 p-3 rounded-md border ${c.border} ${c.bg}`}
-    >
+    <div className={`flex gap-2.5 p-3 rounded-md border ${c.border} ${c.bg}`}>
       <span className="shrink-0 mt-0.5">{c.icon}</span>
-      <div className="text-sm text-foreground/90 leading-snug">
-        {issue.message}
-      </div>
+      <div className="text-sm text-foreground/90 leading-snug">{issue.message}</div>
     </div>
+  );
+}
+
+function WorkdayHandoffCard({
+  sections,
+  onCopy,
+}: {
+  sections: ScheduleEvent[];
+  onCopy: () => void;
+}) {
+  return (
+    <Card className="p-4" data-testid="workday-handoff-card">
+      <div className="flex items-center gap-2 mb-3">
+        <ExternalLink className="h-4 w-4 text-primary" />
+        <span className="text-sm font-semibold text-foreground">Workday Handoff</span>
+      </div>
+
+      <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+        <strong className="text-foreground">CampusVal cannot register you for classes.</strong>{" "}
+        This plan is not enrollment. When you're ready, copy your section list and open Workday Student to register manually.
+      </p>
+
+      {sections.length === 0 ? (
+        <p className="text-xs text-muted-foreground italic">
+          Add course sections to your schedule to see them here.
+        </p>
+      ) : (
+        <div className="bg-muted/30 border border-border/50 rounded-md p-3 mb-3 font-mono text-xs space-y-1 overflow-x-auto">
+          {sections.map((s) => {
+            const days = s.meetingDays.join("") || "TBA";
+            const time = s.startTime && s.endTime ? `${s.startTime}–${s.endTime}` : "Time TBA";
+            return (
+              <div key={s.id} data-testid={`handoff-section-${s.id}`} className="whitespace-nowrap">
+                {s.courseCode}-{s.sectionNumber}{"  "}{days} {time}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onCopy}
+          disabled={sections.length === 0}
+          className="h-8 text-xs"
+          data-testid="button-copy-sections"
+        >
+          <Copy className="h-3.5 w-3.5 mr-1.5" /> Copy section list
+        </Button>
+        <a
+          href={WORKDAY_STUDENT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="link-open-workday"
+        >
+          <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+            Open Workday Student <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+          </Button>
+        </a>
+      </div>
+    </Card>
   );
 }

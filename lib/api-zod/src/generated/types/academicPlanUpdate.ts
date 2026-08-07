@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PlanMetadata } from "./planMetadata";
+import type { PlanPrograms } from "./planPrograms";
 
 export interface AcademicPlanUpdate {
   /**
@@ -14,4 +15,5 @@ export interface AcademicPlanUpdate {
    */
   name?: string;
   metadata?: PlanMetadata;
+  programs?: PlanPrograms | null;
 }

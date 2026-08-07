@@ -12,14 +12,19 @@ export function TermColumn({ id, year, term, items, availableYears }: { id: stri
   const realUnits = items.reduce((sum, item) => sum + (item.itemType === 'course' ? (item.units || 0) : 0), 0);
   const placeholders = items.filter(i => i.itemType === 'requirement_placeholder').length;
 
-  const availabilityTerm = scheduleAvailability?.terms.find(t => t.year === year && t.term === term);
+  // Completed-area items are in the past — skip all schedule/conflict logic for them.
+  const isCompletedTerm = term === 'completed';
+
+  const availabilityTerm = !isCompletedTerm
+    ? scheduleAvailability?.terms.find(t => t.year === year && t.term === term)
+    : undefined;
   const status = availabilityTerm?.status; // 'published' | 'tentative' | undefined
   // Only terms with an official schedule (published or tentative) can honestly
   // flag a course as absent from it. Unknown terms stay unknown.
   const offeredCodes = availabilityTerm?.offeredCourseCodes
     ? new Set(availabilityTerm.offeredCourseCodes.map(c => c.toUpperCase().replace(/\s+/g, " ").trim()))
     : null;
-  const hasSchedule = status === 'published' || status === 'tentative';
+  const hasSchedule = !isCompletedTerm && (status === 'published' || status === 'tentative');
   const courseCodes = items
     .filter(i => i.itemType === 'course' && !!i.courseCode)
     .map(i => i.courseCode!);

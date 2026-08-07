@@ -87,6 +87,7 @@ const SPA_ROUTES = new Set([
   "/resources",
   "/evaluation",
   "/feedback",
+  "/progress-report",
 ]);
 
 // Static prerendered landing HTML injected for crawlers that don't execute JS.
