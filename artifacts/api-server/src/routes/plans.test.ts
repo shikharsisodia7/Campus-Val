@@ -326,6 +326,94 @@ describe("items: moves reindex both terms contiguously", () => {
   });
 });
 
+describe("completed-before-plan bucket", () => {
+  it("requires a valid completion source and rejects sources on planned items", async () => {
+    const id = await degreePlanId(USER_A);
+    await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C1, term: "fall", academicYear: 2026, bucket: "completed" })
+      .expect(400);
+    await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C1, term: "fall", academicYear: 2026, bucket: "completed", completionSource: "made_up" })
+      .expect(400);
+    await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C1, term: "fall", academicYear: 2026, completionSource: "transfer_credit" })
+      .expect(400);
+  });
+
+  it("adds, moves to a term (clearing provenance), and marks completed again", async () => {
+    const id = await degreePlanId(USER_A);
+    const created = await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({
+        itemType: "course",
+        courseCode: C1,
+        term: "fall",
+        academicYear: 2026,
+        bucket: "completed",
+        completionSource: "ap_ib_test_credit",
+      })
+      .expect(201);
+    expect(created.body.bucket).toBe("completed");
+    expect(created.body.completionSource).toBe("ap_ib_test_credit");
+
+    // Move into a real term: becomes planned, provenance cleared.
+    const planned = await asA(request(app).patch(`/api/plans/${id}/items/${created.body.id}`))
+      .send({ bucket: "planned", term: "winter", academicYear: 2027 })
+      .expect(200);
+    expect(planned.body.bucket).toBe("planned");
+    expect(planned.body.completionSource).toBeNull();
+    expect(planned.body.term).toBe("winter");
+
+    // Mark completed again with a different source.
+    const back = await asA(request(app).patch(`/api/plans/${id}/items/${created.body.id}`))
+      .send({ bucket: "completed", completionSource: "manually_marked" })
+      .expect(200);
+    expect(back.body.bucket).toBe("completed");
+    expect(back.body.completionSource).toBe("manually_marked");
+
+    // Moving to completed without any source fails validation on a planned item.
+    const other = await addCourse(id, C2, "spring", 2027);
+    await asA(request(app).patch(`/api/plans/${id}/items/${other.id}`))
+      .send({ bucket: "completed" })
+      .expect(400);
+
+    for (const i of await getItems(id)) {
+      await asA(request(app).delete(`/api/plans/${id}/items/${i.id}`)).expect(204);
+    }
+  });
+
+  it("keeps the completed group and term groups reindexed independently", async () => {
+    const id = await degreePlanId(USER_A);
+    const c1 = await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C1, term: "fall", academicYear: 2026, bucket: "completed", completionSource: "transfer_credit" })
+      .expect(201);
+    const c2 = await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C2, term: "fall", academicYear: 2026, bucket: "completed", completionSource: "prior_to_scu" })
+      .expect(201);
+    expect([c1.body.position, c2.body.position]).toEqual([0, 1]);
+
+    const f1 = await addCourse(id, C3, "fall", 2026);
+    // Planned fall group starts at 0 independently of the completed group.
+    expect(f1.position).toBe(0);
+
+    // Move planned item into completed at position 0; completed reindexes.
+    await asA(request(app).patch(`/api/plans/${id}/items/${f1.id}`))
+      .send({ bucket: "completed", completionSource: "manually_marked", position: 0 })
+      .expect(200);
+    const completed = (await getItems(id))
+      .filter((i) => i.bucket === "completed")
+      .sort((a, b) => a.position - b.position);
+    expect(completed.map((i) => [i.id, i.position])).toEqual([
+      [f1.id, 0],
+      [c1.body.id, 1],
+      [c2.body.id, 2],
+    ]);
+
+    for (const i of await getItems(id)) {
+      await asA(request(app).delete(`/api/plans/${id}/items/${i.id}`)).expect(204);
+    }
+  });
+});
+
 describe("placeholder replace", () => {
   it("swaps a placeholder for a course in place, keeping the requirement link", async () => {
     const id = await degreePlanId(USER_A);

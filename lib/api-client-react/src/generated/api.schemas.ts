@@ -287,6 +287,32 @@ export const Term = {
   summer: "summer",
 } as const;
 
+/**
+ * Where the item lives: "planned" places it in a real term column; "completed" places it in the Completed Before Current Plan area.
+ */
+export type PlanItemBucket =
+  (typeof PlanItemBucket)[keyof typeof PlanItemBucket];
+
+export const PlanItemBucket = {
+  planned: "planned",
+  completed: "completed",
+} as const;
+
+/**
+ * Student-asserted provenance for a completed item. Distinct from verified Academic Progress Report data.
+ */
+export type CompletionSource =
+  (typeof CompletionSource)[keyof typeof CompletionSource];
+
+export const CompletionSource = {
+  prior_to_scu: "prior_to_scu",
+  transfer_credit: "transfer_credit",
+  ap_ib_test_credit: "ap_ib_test_credit",
+  previously_completed_scu: "previously_completed_scu",
+  other_institution: "other_institution",
+  manually_marked: "manually_marked",
+} as const;
+
 export interface PlanItem {
   id: number;
   planId: number;
@@ -306,6 +332,8 @@ export interface PlanItem {
   /** Start year of the academic year (2026 = 2026-2027) */
   academicYear: number;
   term: Term;
+  bucket?: PlanItemBucket;
+  completionSource?: CompletionSource | null;
   position: number;
   /** @nullable */
   note?: string | null;
@@ -332,6 +360,8 @@ export interface PlanItemInput {
   requirementLabel?: string;
   academicYear: number;
   term: Term;
+  bucket?: PlanItemBucket;
+  completionSource?: CompletionSource;
   note?: string;
   /** Set true to add a course already present in this plan. */
   allowDuplicate?: boolean;
@@ -340,6 +370,8 @@ export interface PlanItemInput {
 export interface PlanItemUpdate {
   academicYear?: number;
   term?: Term;
+  bucket?: PlanItemBucket;
+  completionSource?: CompletionSource | null;
   position?: number;
   /** @nullable */
   note?: string | null;

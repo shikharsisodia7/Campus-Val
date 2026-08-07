@@ -53,6 +53,14 @@ export const planItemsTable = pgTable(
     requirementLabel: text("requirement_label"),
     academicYear: integer("academic_year").notNull(),
     term: text("term").notNull(), // fall | winter | spring | summer
+    // Where the item lives: "planned" (a real term column) or "completed"
+    // (the Completed Before Current Plan area; academicYear/term are ignored
+    // for display but retained for history).
+    bucket: text("bucket").notNull().default("planned"),
+    // Provenance for completed items. One of: prior_to_scu | transfer_credit |
+    // ap_ib_test_credit | previously_completed_scu | other_institution |
+    // manually_marked. Null for planned items.
+    completionSource: text("completion_source"),
     position: integer("position").notNull().default(0),
     note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true })

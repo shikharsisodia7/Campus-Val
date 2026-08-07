@@ -16,7 +16,8 @@ import type { CourseConflictDetail } from "./useTermCourseConflicts";
 import { useQuarterFitSuggestions, type QuarterFitSuggestion } from "./useQuarterFitSuggestions";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Trash2, GripVertical, MoveRight, BookOpen, AlertCircle, Loader2, CalendarClock } from "lucide-react";
+import { Trash2, GripVertical, MoveRight, BookOpen, AlertCircle, Loader2, CalendarClock, CheckCircle2 } from "lucide-react";
+import { COMPLETION_SOURCE_OPTIONS, COMPLETION_SOURCE_LABELS } from "./completionSources";
 
 function CourseDetailDialog({ code, term, year, termStatus, open, onOpenChange }: { code: string, term?: string, year?: number, termStatus?: ScheduleAvailabilityTermStatus, open: boolean, onOpenChange: (o: boolean) => void }) {
   const { data: courseDetails, isLoading } = useGetCourse(code, { query: { enabled: open, queryKey: ['/api/courses', code] } });
@@ -84,13 +85,30 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
     deletePlanItem.mutate({ id: activePlanId, itemId: item.id });
   };
 
+  const isCompletedItem = (item.bucket ?? "planned") === "completed";
+
   const handleMove = (e: React.MouseEvent, year: number, term: string) => {
     e.stopPropagation();
     if (!activePlanId) return;
     updatePlanItem.mutate({
       id: activePlanId,
       itemId: item.id,
-      data: { academicYear: year, term: term as any }
+      data: {
+        academicYear: year,
+        term: term as any,
+        // Moving a completed item into a real term makes it planned again.
+        ...(isCompletedItem ? { bucket: "planned" as const, completionSource: null } : {}),
+      }
+    });
+  };
+
+  const handleMarkCompleted = (e: Event | React.MouseEvent, source: string) => {
+    if ("stopPropagation" in e) e.stopPropagation();
+    if (!activePlanId) return;
+    updatePlanItem.mutate({
+      id: activePlanId,
+      itemId: item.id,
+      data: { bucket: "completed" as const, completionSource: source as any },
     });
   };
 
@@ -146,6 +164,15 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                 <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">{item.units}u</Badge>
               </div>
               <div className="text-xs text-foreground/80 mt-1 line-clamp-2 leading-snug">{item.courseTitle || courseDetails?.title}</div>
+              {isCompletedItem && (
+                <div
+                  className="flex items-center gap-1 mt-1.5 text-[10px] text-emerald-700"
+                  data-testid={`completed-source-${item.id}`}
+                >
+                  <CheckCircle2 className="h-3 w-3 shrink-0" />
+                  <span>{COMPLETION_SOURCE_LABELS[item.completionSource ?? ""] ?? "Completed"} · student-entered</span>
+                </div>
+              )}
               {notInOfficialSchedule && (
                 <div
                   className="flex items-center gap-1 mt-1.5 text-[10px] text-amber-700"
@@ -183,12 +210,28 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                 <div key={y}>
                   <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{y}</div>
                   {terms.map(t => (
-                    <DropdownMenuItem key={`${y}-${t}`} onClick={(e) => handleMove(e as any, y, t)} disabled={item.academicYear === y && item.term === t}>
+                    <DropdownMenuItem key={`${y}-${t}`} onClick={(e) => handleMove(e as any, y, t)} disabled={!isCompletedItem && item.academicYear === y && item.term === t}>
                       <span className="capitalize">{t}</span>
                     </DropdownMenuItem>
                   ))}
                 </div>
               ))}
+              {!isPlaceholder && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs">Completed before current plan</DropdownMenuLabel>
+                  {COMPLETION_SOURCE_OPTIONS.map(opt => (
+                    <DropdownMenuItem
+                      key={opt.value}
+                      data-testid={`mark-completed-${item.id}-${opt.value}`}
+                      disabled={isCompletedItem && item.completionSource === opt.value}
+                      onClick={(e) => handleMarkCompleted(e as any, opt.value)}
+                    >
+                      {opt.label}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           

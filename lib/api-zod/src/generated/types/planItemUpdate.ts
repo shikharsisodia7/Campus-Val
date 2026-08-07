@@ -5,11 +5,15 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { CompletionSource } from "./completionSource";
+import type { PlanItemBucket } from "./planItemBucket";
 import type { Term } from "./term";
 
 export interface PlanItemUpdate {
   academicYear?: number;
   term?: Term;
+  bucket?: PlanItemBucket;
+  completionSource?: CompletionSource | null;
   position?: number;
   /** @nullable */
   note?: string | null;

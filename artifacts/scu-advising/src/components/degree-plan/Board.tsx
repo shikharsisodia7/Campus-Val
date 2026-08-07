@@ -3,6 +3,7 @@ import { useDegreePlanContext } from "./DegreePlanContext";
 import { DndContext, DragOverlay, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { TermColumn } from "./TermColumn";
+import { CompletedArea, COMPLETED_DROPZONE_ID } from "./CompletedArea";
 import { CourseCard } from "./CourseCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -19,14 +20,17 @@ export function Board({ plans }: { plans: any[] }) {
   const yearsWithItems = new Set<number>();
   const summerVisibleByYear = new Set<number>();
   
-  if (activePlan) {
-    activePlan.items.forEach(item => {
-      yearsWithItems.add(item.academicYear);
-      if (item.term === 'summer') {
-        summerVisibleByYear.add(item.academicYear);
-      }
-    });
-  }
+  const plannedItems = (activePlan?.items ?? []).filter(i => (i.bucket ?? 'planned') !== 'completed');
+  const completedItems = (activePlan?.items ?? [])
+    .filter(i => (i.bucket ?? 'planned') === 'completed')
+    .sort((a, b) => a.position - b.position);
+
+  plannedItems.forEach(item => {
+    yearsWithItems.add(item.academicYear);
+    if (item.term === 'summer') {
+      summerVisibleByYear.add(item.academicYear);
+    }
+  });
 
   const [addedYears, setAddedYears] = useState<number[]>([]);
   const [addedSummers, setAddedSummers] = useState<number[]>([]);
@@ -53,7 +57,32 @@ export function Board({ plans }: { plans: any[] }) {
     if (!over || !activePlanId) return;
 
     const itemId = active.id;
-    const overId = over.id; // Either a term dropzone or another item
+    const overId = over.id; // Either a term dropzone, the completed area, or another item
+
+    const draggedItem = activePlan?.items.find(i => i.id === itemId);
+    const overItemForBucket =
+      overId !== COMPLETED_DROPZONE_ID ? activePlan?.items.find(i => i.id === overId) : undefined;
+    const droppedOnCompleted =
+      overId === COMPLETED_DROPZONE_ID ||
+      (overItemForBucket && (overItemForBucket.bucket ?? 'planned') === 'completed');
+
+    if (droppedOnCompleted) {
+      if (!draggedItem) return;
+      const targetPosition =
+        overItemForBucket && overItemForBucket.id !== itemId ? overItemForBucket.position : undefined;
+      if ((draggedItem.bucket ?? 'planned') === 'completed' && targetPosition === undefined) return;
+      updatePlanItem.mutate({
+        id: activePlanId,
+        itemId,
+        data: {
+          bucket: 'completed',
+          // Preserve existing provenance; default drag-ins to manually marked.
+          completionSource: draggedItem.completionSource ?? 'manually_marked',
+          position: targetPosition,
+        },
+      });
+      return;
+    }
 
     // Parse overId to get year/term
     let targetYear, targetTerm;
@@ -82,7 +111,8 @@ export function Board({ plans }: { plans: any[] }) {
         }
       }
 
-      if (item && (item.academicYear !== targetYear || item.term !== targetTerm || targetPosition !== undefined)) {
+      const fromCompleted = item && (item.bucket ?? 'planned') === 'completed';
+      if (item && (fromCompleted || item.academicYear !== targetYear || item.term !== targetTerm || targetPosition !== undefined)) {
         // Optimistic cache update (with rollback on error) keeps the board in
         // sync with the drag immediately; the refetch reconciles afterwards.
         updatePlanItem.mutate({
@@ -91,7 +121,8 @@ export function Board({ plans }: { plans: any[] }) {
           data: {
             academicYear: targetYear,
             term: targetTerm as any,
-            position: targetPosition
+            position: targetPosition,
+            ...(fromCompleted ? { bucket: 'planned' as const, completionSource: null } : {}),
           }
         });
       }
@@ -118,6 +149,8 @@ export function Board({ plans }: { plans: any[] }) {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
+          <CompletedArea items={completedItems} availableYears={displayYears} />
+
           {displayYears.map(year => {
             const hasSummer = summerVisibleByYear.has(year) || addedSummers.includes(year);
             const terms = ['fall', 'winter', 'spring'];
@@ -139,7 +172,7 @@ export function Board({ plans }: { plans: any[] }) {
                 <div className={`grid gap-4 items-start ${hasSummer ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
                   {terms.map(term => {
                     const dropZoneId = `term:${year}:${term}`;
-                    const itemsInTerm = activePlan.items.filter(i => i.academicYear === year && i.term === term).sort((a, b) => a.position - b.position);
+                    const itemsInTerm = plannedItems.filter(i => i.academicYear === year && i.term === term).sort((a, b) => a.position - b.position);
                     return (
                       <TermColumn 
                         key={dropZoneId} 

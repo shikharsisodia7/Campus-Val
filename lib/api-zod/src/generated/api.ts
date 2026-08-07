@@ -1156,6 +1156,29 @@ export const GetPlanResponse = zod.object({
         .number()
         .describe("Start year of the academic year (2026 = 2026-2027)"),
       term: zod.enum(["fall", "winter", "spring", "summer"]),
+      bucket: zod
+        .enum(["planned", "completed"])
+        .optional()
+        .describe(
+          'Where the item lives: \"planned\" places it in a real term column; \"completed\" places it in the Completed Before Current Plan area.',
+        ),
+      completionSource: zod
+        .union([
+          zod
+            .enum([
+              "prior_to_scu",
+              "transfer_credit",
+              "ap_ib_test_credit",
+              "previously_completed_scu",
+              "other_institution",
+              "manually_marked",
+            ])
+            .describe(
+              "Student-asserted provenance for a completed item. Distinct from verified Academic Progress Report data.",
+            ),
+          zod.null(),
+        ])
+        .optional(),
       position: zod.number(),
       note: zod.string().nullish(),
     }),
@@ -1245,6 +1268,25 @@ export const AddPlanItemBody = zod.object({
     .describe("Required for requirement_placeholder items."),
   academicYear: zod.number(),
   term: zod.enum(["fall", "winter", "spring", "summer"]),
+  bucket: zod
+    .enum(["planned", "completed"])
+    .optional()
+    .describe(
+      'Where the item lives: \"planned\" places it in a real term column; \"completed\" places it in the Completed Before Current Plan area.',
+    ),
+  completionSource: zod
+    .enum([
+      "prior_to_scu",
+      "transfer_credit",
+      "ap_ib_test_credit",
+      "previously_completed_scu",
+      "other_institution",
+      "manually_marked",
+    ])
+    .optional()
+    .describe(
+      "Student-asserted provenance for a completed item. Distinct from verified Academic Progress Report data.",
+    ),
   note: zod.string().optional(),
   allowDuplicate: zod
     .boolean()
@@ -1263,6 +1305,29 @@ export const UpdatePlanItemParams = zod.object({
 export const UpdatePlanItemBody = zod.object({
   academicYear: zod.number().optional(),
   term: zod.enum(["fall", "winter", "spring", "summer"]).optional(),
+  bucket: zod
+    .enum(["planned", "completed"])
+    .optional()
+    .describe(
+      'Where the item lives: \"planned\" places it in a real term column; \"completed\" places it in the Completed Before Current Plan area.',
+    ),
+  completionSource: zod
+    .union([
+      zod
+        .enum([
+          "prior_to_scu",
+          "transfer_credit",
+          "ap_ib_test_credit",
+          "previously_completed_scu",
+          "other_institution",
+          "manually_marked",
+        ])
+        .describe(
+          "Student-asserted provenance for a completed item. Distinct from verified Academic Progress Report data.",
+        ),
+      zod.null(),
+    ])
+    .optional(),
   position: zod.number().optional(),
   note: zod.string().nullish(),
 });
@@ -1281,6 +1346,29 @@ export const UpdatePlanItemResponse = zod.object({
     .number()
     .describe("Start year of the academic year (2026 = 2026-2027)"),
   term: zod.enum(["fall", "winter", "spring", "summer"]),
+  bucket: zod
+    .enum(["planned", "completed"])
+    .optional()
+    .describe(
+      'Where the item lives: \"planned\" places it in a real term column; \"completed\" places it in the Completed Before Current Plan area.',
+    ),
+  completionSource: zod
+    .union([
+      zod
+        .enum([
+          "prior_to_scu",
+          "transfer_credit",
+          "ap_ib_test_credit",
+          "previously_completed_scu",
+          "other_institution",
+          "manually_marked",
+        ])
+        .describe(
+          "Student-asserted provenance for a completed item. Distinct from verified Academic Progress Report data.",
+        ),
+      zod.null(),
+    ])
+    .optional(),
   position: zod.number(),
   note: zod.string().nullish(),
 });
@@ -1319,6 +1407,29 @@ export const ReplacePlanPlaceholderResponse = zod.object({
     .number()
     .describe("Start year of the academic year (2026 = 2026-2027)"),
   term: zod.enum(["fall", "winter", "spring", "summer"]),
+  bucket: zod
+    .enum(["planned", "completed"])
+    .optional()
+    .describe(
+      'Where the item lives: \"planned\" places it in a real term column; \"completed\" places it in the Completed Before Current Plan area.',
+    ),
+  completionSource: zod
+    .union([
+      zod
+        .enum([
+          "prior_to_scu",
+          "transfer_credit",
+          "ap_ib_test_credit",
+          "previously_completed_scu",
+          "other_institution",
+          "manually_marked",
+        ])
+        .describe(
+          "Student-asserted provenance for a completed item. Distinct from verified Academic Progress Report data.",
+        ),
+      zod.null(),
+    ])
+    .optional(),
   position: zod.number(),
   note: zod.string().nullish(),
 });

@@ -1463,6 +1463,11 @@ components:
           type: integer
           description: Start year of the academic year (2026 = 2026-2027)
         term: { $ref: "#/components/schemas/Term" }
+        bucket: { $ref: "#/components/schemas/PlanItemBucket" }
+        completionSource:
+          oneOf:
+            - $ref: "#/components/schemas/CompletionSource"
+            - type: "null"
         position: { type: integer }
         note: { type: ["string", "null"] }
     AcademicPlanDetail:
@@ -1493,6 +1498,10 @@ components:
           description: Required for requirement_placeholder items.
         academicYear: { type: integer }
         term: { $ref: "#/components/schemas/Term" }
+        bucket:
+          $ref: "#/components/schemas/PlanItemBucket"
+        completionSource:
+          $ref: "#/components/schemas/CompletionSource"
         note: { type: string }
         allowDuplicate:
           type: boolean
@@ -1502,8 +1511,31 @@ components:
       properties:
         academicYear: { type: integer }
         term: { $ref: "#/components/schemas/Term" }
+        bucket: { $ref: "#/components/schemas/PlanItemBucket" }
+        completionSource:
+          oneOf:
+            - $ref: "#/components/schemas/CompletionSource"
+            - type: "null"
         position: { type: integer }
         note: { type: ["string", "null"] }
+    PlanItemBucket:
+      type: string
+      enum: [planned, completed]
+      description: >-
+        Where the item lives: "planned" places it in a real term column;
+        "completed" places it in the Completed Before Current Plan area.
+    CompletionSource:
+      type: string
+      enum:
+        - prior_to_scu
+        - transfer_credit
+        - ap_ib_test_credit
+        - previously_completed_scu
+        - other_institution
+        - manually_marked
+      description: >-
+        Student-asserted provenance for a completed item. Distinct from
+        verified Academic Progress Report data.
     PlaceholderReplacement:
       type: object
       required: [courseCode]

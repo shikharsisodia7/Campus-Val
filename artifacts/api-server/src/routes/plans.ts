@@ -39,6 +39,24 @@ function validAcademicYear(y: unknown): y is number {
 }
 const TERM_ORDER: Record<string, number> = { fall: 0, winter: 1, spring: 2, summer: 3 };
 
+const COMPLETION_SOURCES = new Set([
+  "prior_to_scu",
+  "transfer_credit",
+  "ap_ib_test_credit",
+  "previously_completed_scu",
+  "other_institution",
+  "manually_marked",
+]);
+
+const COMPLETION_SOURCE_LABELS: Record<string, string> = {
+  prior_to_scu: "Prior to SCU",
+  transfer_credit: "Transfer Credit",
+  ap_ib_test_credit: "AP/IB/Test Credit",
+  previously_completed_scu: "Previously Completed at SCU",
+  other_institution: "Other Institution",
+  manually_marked: "Manually Marked Completed",
+};
+
 function normalizeCode(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, " ");
 }
@@ -68,9 +86,31 @@ function itemDto(row: PlanItemRow) {
     requirementLabel: row.requirementLabel ?? null,
     academicYear: row.academicYear,
     term: row.term as "fall" | "winter" | "spring" | "summer",
+    bucket: (row.bucket ?? "planned") as "planned" | "completed",
+    completionSource: row.completionSource ?? null,
     position: row.position,
     note: row.note ?? null,
   };
+}
+
+/**
+ * Validate bucket/completionSource pairing. Completed items must carry a
+ * provenance source; planned items must not.
+ */
+function bucketError(
+  bucket: string | undefined,
+  completionSource: string | null | undefined,
+): string | null {
+  const b = bucket ?? "planned";
+  if (b !== "planned" && b !== "completed") return "Invalid bucket.";
+  if (b === "completed") {
+    if (!completionSource || !COMPLETION_SOURCES.has(completionSource)) {
+      return "Completed items need a valid completion source (how it was completed).";
+    }
+  } else if (completionSource) {
+    return "Only completed items can carry a completion source.";
+  }
+  return null;
 }
 
 /** Load a plan and verify the requesting user owns it. */
@@ -119,6 +159,8 @@ async function copyItems(fromPlanId: number, toPlanId: number): Promise<void> {
       requirementLabel: i.requirementLabel,
       academicYear: i.academicYear,
       term: i.term,
+      bucket: i.bucket,
+      completionSource: i.completionSource,
       position: i.position,
       note: i.note,
     })),
@@ -317,6 +359,8 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
   if (!validAcademicYear(body.academicYear)) {
     return res.status(400).json({ error: "Invalid academic year." });
   }
+  const addBucketErr = bucketError(body.bucket, body.completionSource ?? null);
+  if (addBucketErr) return res.status(400).json({ error: addBucketErr });
   const plan = await ownedPlan(Number(req.params.id), req.userId!);
   if (!plan) return res.status(404).json({ error: "Plan not found." });
 
@@ -379,17 +423,28 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
     };
   }
 
-  // Append at the end of the target term.
+  values.bucket = body.bucket ?? "planned";
+  values.completionSource =
+    values.bucket === "completed" ? (body.completionSource ?? null) : null;
+
+  // Append at the end of the target group. Completed items form a single
+  // group regardless of year/term; planned items group per year+term.
+  const groupWhere =
+    values.bucket === "completed"
+      ? and(
+          eq(planItemsTable.planId, plan.id),
+          eq(planItemsTable.bucket, "completed"),
+        )
+      : and(
+          eq(planItemsTable.planId, plan.id),
+          eq(planItemsTable.bucket, "planned"),
+          eq(planItemsTable.academicYear, values.academicYear),
+          eq(planItemsTable.term, values.term),
+        );
   const [{ max }] = (await db
     .select({ max: sql<number>`coalesce(max(${planItemsTable.position}), -1)::int` })
     .from(planItemsTable)
-    .where(
-      and(
-        eq(planItemsTable.planId, plan.id),
-        eq(planItemsTable.academicYear, values.academicYear),
-        eq(planItemsTable.term, values.term),
-      ),
-    )) as [{ max: number }];
+    .where(groupWhere)) as [{ max: number }];
   values.position = max + 1;
 
   const [created] = await db.insert(planItemsTable).values(values).returning();
@@ -420,13 +475,42 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
 
   const targetYear = body.academicYear ?? item.academicYear;
   const targetTerm = body.term ?? item.term;
+  const itemBucket = (item.bucket ?? "planned") as "planned" | "completed";
+  const targetBucket = body.bucket ?? itemBucket;
+  const targetSource =
+    body.completionSource !== undefined
+      ? body.completionSource
+      : targetBucket === "completed"
+        ? item.completionSource
+        : null;
+  const moveBucketErr = bucketError(targetBucket, targetSource);
+  if (moveBucketErr) return res.status(400).json({ error: moveBucketErr });
+  const bucketChanged = targetBucket !== itemBucket;
   const termChanged =
-    targetYear !== item.academicYear || targetTerm !== item.term;
+    !bucketChanged &&
+    targetBucket === "planned" &&
+    (targetYear !== item.academicYear || targetTerm !== item.term);
   const positionChanged = body.position !== undefined;
 
+  /** Group an item belongs to for ordering: completed is one flat group. */
+  const groupKey = (i: {
+    bucket: string | null;
+    academicYear: number;
+    term: string;
+  }) =>
+    (i.bucket ?? "planned") === "completed"
+      ? "completed"
+      : `planned:${i.academicYear}:${i.term}`;
+  const targetGroupKey =
+    targetBucket === "completed"
+      ? "completed"
+      : `planned:${targetYear}:${targetTerm}`;
+  const sourceGroupKey = groupKey(item);
+  const groupMoved = bucketChanged || termChanged;
+
   let updated: PlanItemRow;
-  if (termChanged || positionChanged) {
-    // Move with deterministic, contiguous reindexing of both affected terms.
+  if (groupMoved || positionChanged) {
+    // Move with deterministic, contiguous reindexing of both affected groups.
     updated = await db.transaction(async (tx) => {
       const all = await tx
         .select()
@@ -435,10 +519,7 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
         .orderBy(asc(planItemsTable.position), asc(planItemsTable.id));
 
       const target = all.filter(
-        (i) =>
-          i.id !== item.id &&
-          i.academicYear === targetYear &&
-          i.term === targetTerm,
+        (i) => i.id !== item.id && groupKey(i) === targetGroupKey,
       );
       const insertAt = Math.min(
         Math.max(body.position ?? target.length, 0),
@@ -446,7 +527,7 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
       );
       target.splice(insertAt, 0, item);
 
-      // Reindex target term.
+      // Reindex target group.
       for (let idx = 0; idx < target.length; idx++) {
         const t = target[idx]!;
         const patch: Partial<typeof planItemsTable.$inferInsert> = {
@@ -455,6 +536,9 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
         if (t.id === item.id) {
           patch.academicYear = targetYear;
           patch.term = targetTerm;
+          patch.bucket = targetBucket;
+          patch.completionSource =
+            targetBucket === "completed" ? targetSource : null;
           if (body.note !== undefined) patch.note = body.note;
         }
         await tx
@@ -463,13 +547,10 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
           .where(eq(planItemsTable.id, t.id));
       }
 
-      // Reindex the source term the item left, closing any gap.
-      if (termChanged) {
+      // Reindex the source group the item left, closing any gap.
+      if (groupMoved) {
         const source = all.filter(
-          (i) =>
-            i.id !== item.id &&
-            i.academicYear === item.academicYear &&
-            i.term === item.term,
+          (i) => i.id !== item.id && groupKey(i) === sourceGroupKey,
         );
         for (let idx = 0; idx < source.length; idx++) {
           if (source[idx]!.position !== idx) {
@@ -491,6 +572,12 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
   } else {
     const patch: Partial<typeof planItemsTable.$inferInsert> = {};
     if (body.note !== undefined) patch.note = body.note;
+    if (
+      body.completionSource !== undefined &&
+      itemBucket === "completed"
+    ) {
+      patch.completionSource = targetSource;
+    }
     if (Object.keys(patch).length === 0) {
       return res.json(itemDto(item));
     }
@@ -600,7 +687,7 @@ router.get("/plans/:id/export", requireAuth, async (req, res) => {
 
   ws.columns = [
     { header: "Academic Year", key: "year", width: 14 },
-    { header: "Term", key: "term", width: 10 },
+    { header: "Term", key: "term", width: 18 },
     { header: "Item Type", key: "type", width: 22 },
     { header: "Course Code", key: "code", width: 14 },
     { header: "Course Title / Requirement", key: "title", width: 48 },
@@ -639,20 +726,31 @@ router.get("/plans/:id/export", requireAuth, async (req, res) => {
     ws.getRow(r).getCell(4).font = { bold: true };
   }
 
+  // Completed-before-plan items first (with provenance), then planned terms.
+  const isCompleted = (i: PlanItemRow) => (i.bucket ?? "planned") === "completed";
   const sorted = [...items].sort(
     (a, b) =>
+      Number(isCompleted(b)) - Number(isCompleted(a)) ||
       a.academicYear - b.academicYear ||
       (TERM_ORDER[a.term] ?? 9) - (TERM_ORDER[b.term] ?? 9) ||
       a.position - b.position,
   );
   let lastKey = "";
   for (const item of sorted) {
-    const key = `${item.academicYear}-${item.term}`;
+    const completedItem = isCompleted(item);
+    const key = completedItem
+      ? "completed"
+      : `${item.academicYear}-${item.term}`;
     const isNewGroup = key !== lastKey;
     lastKey = key;
     const row = ws.addRow({
-      year: `${item.academicYear}–${item.academicYear + 1}`,
-      term: item.term.charAt(0).toUpperCase() + item.term.slice(1),
+      year: completedItem
+        ? "Completed / Prior"
+        : `${item.academicYear}–${item.academicYear + 1}`,
+      term: completedItem
+        ? (COMPLETION_SOURCE_LABELS[item.completionSource ?? ""] ??
+          "Completed (source unspecified)")
+        : item.term.charAt(0).toUpperCase() + item.term.slice(1),
       type:
         item.itemType === "course" ? "Course" : "Requirement Placeholder",
       code: item.itemType === "course" ? (item.courseCode ?? "") : "",

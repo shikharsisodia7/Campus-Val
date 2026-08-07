@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlanItemType, RequirementGroupKind, RequirementItem } from "@workspace/api-client-react";
 import { useAddPlanItem } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { COMPLETION_SOURCE_OPTIONS } from "./completionSources";
 import {
   Select,
   SelectContent,
@@ -28,6 +29,7 @@ export function Palette() {
   const { requirements, activePlan, catalog } = useDegreePlanContext();
   const [search, setSearch] = useState("");
   const [destination, setDestination] = useState("2026:fall");
+  const [completionSource, setCompletionSource] = useState("manually_marked");
   const queryClient = useQueryClient();
   const addPlanItem = useAddPlanItem();
 
@@ -46,10 +48,14 @@ export function Palette() {
       );
   }, [activePlan?.items]);
 
-  const [academicYear, term] = destination.split(":");
+  const isCompletedDestination = destination === "completed";
+  const [academicYear, term] = (isCompletedDestination ? "2026:fall" : destination).split(":");
   const placement = {
     academicYear: Number(academicYear),
     term: term as "fall" | "winter" | "spring" | "summer",
+    ...(isCompletedDestination
+      ? { bucket: "completed" as const, completionSource: completionSource as any }
+      : {}),
   };
 
   const handleAddPlaceholder = (group: any, req: RequirementItem) => {
@@ -149,6 +155,9 @@ export function Palette() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="completed" className="text-xs">
+                Completed before current plan
+              </SelectItem>
               {destinationOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value} className="text-xs">
                   {option.label}
@@ -156,6 +165,28 @@ export function Palette() {
               ))}
             </SelectContent>
           </Select>
+          {isCompletedDestination && (
+            <div className="mt-2">
+              <label
+                htmlFor="completion-source"
+                className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+              >
+                How was it completed?
+              </label>
+              <Select value={completionSource} onValueChange={setCompletionSource}>
+                <SelectTrigger id="completion-source" data-testid="select-completion-source" className="h-8 text-xs bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COMPLETION_SOURCE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
             You can drag items later. A course in this plan is not a registration.
           </p>
