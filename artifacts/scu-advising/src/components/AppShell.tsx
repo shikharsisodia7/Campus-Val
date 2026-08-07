@@ -23,150 +23,268 @@ import {
   MessageSquarePlus,
   FlaskConical,
   Map,
+  Menu,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/react";
 import { Logo } from "@/components/Logo";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useState } from "react";
 
-const NAV = [
+type NavItem = {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const PRIMARY_NAV: NavItem[] = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/core-reqs", label: "Core Curriculum", icon: CheckSquare },
-  { path: "/courses", label: "Course Catalog", icon: BookOpen },
-  { path: "/compare", label: "Compare Courses", icon: Scale },
   { path: "/degree-plan", label: "Degree Plan", icon: Map },
-  { path: "/planner", label: "Quarter Planner", icon: CalendarRange },
-  { path: "/tentative-plans", label: "What-If Explorer", icon: FlaskConical },
-  { path: "/schedule", label: "Weekly Schedule", icon: Calendar },
-  { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
-  { path: "/gpa", label: "GPA Calculator", icon: Calculator },
-  { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },
-  { path: "/sync-workday", label: "Sync Workday", icon: ClipboardPaste },
-  { path: "/professors", label: "Professors", icon: Users },
-  { path: "/advice", label: "Advice Board", icon: Lightbulb },
-  { path: "/resources", label: "Advising Resources", icon: Library },
-  { path: "/advisor", label: "AI Advisor", icon: MessageSquareText },
-  { path: "/voice", label: "Voice Advisor", icon: Mic },
-  { path: "/policies", label: "SCU Policies", icon: Library },
-  { path: "/evaluation", label: "AI Evaluation", icon: Gauge },
-  { path: "/feedback", label: "Feedback", icon: MessageSquarePlus },
+  { path: "/planner", label: "Quarter Plan", icon: CalendarRange },
+  { path: "/tentative-plans", label: "Tentative Plans", icon: FlaskConical },
 ];
+
+const FEATURE_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Course information",
+    items: [
+      { path: "/courses", label: "Course Catalog", icon: BookOpen },
+      { path: "/professors", label: "Professors", icon: Users },
+      { path: "/compare", label: "Compare Courses", icon: Scale },
+      { path: "/core-reqs", label: "Core Curriculum", icon: CheckSquare },
+    ],
+  },
+  {
+    label: "Planning utilities",
+    items: [
+      { path: "/schedule", label: "Weekly Schedule", icon: Calendar },
+      { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
+      { path: "/gpa", label: "GPA Calculator", icon: Calculator },
+      { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },
+      { path: "/sync-workday", label: "Sync Workday Sections", icon: ClipboardPaste },
+    ],
+  },
+  {
+    label: "Resources & feedback",
+    items: [
+      { path: "/resources", label: "SCU Resources", icon: Library },
+      { path: "/advice", label: "Advice Board", icon: Lightbulb },
+      { path: "/advisor", label: "Planning Support", icon: MessageSquareText },
+      { path: "/voice", label: "Voice Planning Support", icon: Mic },
+      { path: "/policies", label: "SCU Policies", icon: Library },
+      { path: "/evaluation", label: "AI Evaluation", icon: Gauge },
+      { path: "/feedback", label: "Feedback", icon: MessageSquarePlus },
+    ],
+  },
+];
+
+function isActive(location: string, path: string) {
+  return path === "/" ? location === "/" : location.startsWith(path);
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <div className="min-h-screen flex bg-background text-foreground">
-      <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border sticky top-0 h-screen overflow-hidden">
-        <div className="px-6 py-6 border-b border-sidebar-border shrink-0">
-          <Link
-            href="/"
-            className="flex items-center gap-3 group"
-            data-testid="link-home"
-          >
-            <Logo size={42} />
-            <div>
-              <div className="font-serif font-bold text-lg leading-none tracking-tight">
-                CampusVal
-              </div>
-              <div className="text-[11px] uppercase tracking-widest text-sidebar-primary mt-1">
-                SCU Advising
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5" data-testid="link-home">
+            <Logo size={34} />
+            <div className="leading-tight">
+              <div className="font-serif text-lg font-bold tracking-tight">CampusVal</div>
+              <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-primary">
+                SCU degree planning
               </div>
             </div>
           </Link>
-        </div>
-        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
-          {NAV.map((item, i) => {
-            const active =
-              item.path === "/"
-                ? location === "/"
-                : location.startsWith(item.path);
-            const Icon = item.icon;
-            return (
-              <motion.div
-                key={item.path}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.02 * i, duration: 0.25 }}
-              >
-                <Link
-                  href={item.path}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/ /g, "-")}`}
-                  className={cn(
-                    "group flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 relative overflow-hidden",
-                    active
-                      ? "bg-sidebar-accent text-sidebar-foreground border-l-2 border-sidebar-primary"
-                      : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground border-l-2 border-transparent hover:translate-x-0.5",
-                  )}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="nav-active-glow"
-                      className="absolute inset-0 bg-gradient-to-r from-sidebar-primary/10 to-transparent pointer-events-none"
-                    />
-                  )}
-                  <Icon
-                    className={cn(
-                      "h-4 w-4 shrink-0 transition-transform duration-200 relative",
-                      active
-                        ? "text-sidebar-primary"
-                        : "group-hover:scale-110 group-hover:text-sidebar-primary",
-                    )}
-                  />
-                  <span className="relative">{item.label}</span>
-                </Link>
-              </motion.div>
-            );
-          })}
-        </nav>
-        <div className="px-3 py-3 border-t border-sidebar-border">
-          <UserMenu />
-          <Link
-            href="/onboarding"
-            data-testid="nav-profile"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors"
-          >
-            <UserCog className="h-4 w-4" />
-            <span>Edit profile</span>
-          </Link>
-          <div className="px-3 pt-3 pb-1 flex items-center gap-2 text-xs text-sidebar-foreground/50">
-            <GraduationCap className="h-3.5 w-3.5" />
-            <span>Santa Clara University</span>
+
+          <nav className="ml-3 hidden min-w-0 items-center gap-1 lg:flex" aria-label="Primary navigation">
+            {PRIMARY_NAV.map((item) => (
+              <TopLink key={item.path} item={item} active={isActive(location, item.path)} />
+            ))}
+            <AdditionalFeatures location={location} />
+          </nav>
+
+          <div className="ml-auto hidden lg:block">
+            <AccountMenu />
           </div>
+
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="ml-auto lg:hidden" aria-label="Open navigation">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[min(22rem,90vw)] overflow-y-auto p-0">
+              <SheetTitle className="sr-only">CampusVal navigation</SheetTitle>
+              <div className="border-b border-border p-5">
+                <Link href="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
+                  <Logo size={34} />
+                  <div>
+                    <div className="font-serif font-bold">CampusVal</div>
+                    <div className="text-[10px] uppercase tracking-wider text-primary">SCU degree planning</div>
+                  </div>
+                </Link>
+              </div>
+              <nav className="space-y-1 p-3" aria-label="Mobile navigation">
+                {PRIMARY_NAV.map((item) => (
+                  <MobileLink key={item.path} item={item} active={isActive(location, item.path)} onNavigate={() => setMobileOpen(false)} />
+                ))}
+                <div className="my-3 border-t border-border" />
+                {FEATURE_GROUPS.map((group) => (
+                  <div key={group.label} className="mb-4">
+                    <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</div>
+                    {group.items.map((item) => (
+                      <MobileLink key={item.path} item={item} active={isActive(location, item.path)} onNavigate={() => setMobileOpen(false)} />
+                    ))}
+                  </div>
+                ))}
+              </nav>
+              <div className="border-t border-border p-3">
+                <AccountMenu mobile onNavigate={() => setMobileOpen(false)} />
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
-      </aside>
-      <main className="flex-1 min-w-0 overflow-y-auto">{children}</main>
+      </header>
+      <main className="min-w-0">{children}</main>
     </div>
   );
 }
 
-function UserMenu() {
+function TopLink({ item, active }: { item: NavItem; active: boolean }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.path}
+      data-testid={`nav-${item.label.toLowerCase().replace(/ /g, "-")}`}
+      className={cn(
+        "flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
+
+function MobileLink({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate: () => void }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.path}
+      onClick={onNavigate}
+      className={cn(
+        "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium",
+        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      {item.label}
+    </Link>
+  );
+}
+
+function AdditionalFeatures({ location }: { location: string }) {
+  const active = FEATURE_GROUPS.some((group) => group.items.some((item) => isActive(location, item.path)));
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className={cn("gap-1.5 px-3 text-sm", active && "bg-primary/10 text-primary")}>
+          Additional Features <ChevronDown className="h-3.5 w-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64">
+        {FEATURE_GROUPS.map((group, index) => (
+          <DropdownMenuGroup key={group.label}>
+            {index > 0 && <DropdownMenuSeparator />}
+            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">{group.label}</DropdownMenuLabel>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <DropdownMenuItem key={item.path} asChild>
+                  <Link href={item.path} className="flex cursor-pointer items-center gap-2">
+                    <Icon className="h-4 w-4" /> {item.label}
+                  </Link>
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuGroup>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function AccountMenu({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   if (!isLoaded || !user) return null;
   const email = user.primaryEmailAddress?.emailAddress ?? "";
-  const displayName =
-    user.fullName ||
-    user.firstName ||
-    (email.includes("@") ? email.split("@")[0] : "Student");
-  return (
-    <div className="px-2 pb-2 mb-2 border-b border-sidebar-border/40">
-      <div className="px-2 py-1.5">
-        <div className="text-sm font-medium text-sidebar-foreground truncate">
-          {displayName}
+  const displayName = user.fullName || user.firstName || (email.includes("@") ? email.split("@")[0] : "Student");
+  const signOutAction = () => {
+    onNavigate?.();
+    signOut({ redirectUrl: "/" });
+  };
+
+  if (mobile) {
+    return (
+      <div className="space-y-1">
+        <div className="px-3 py-2">
+          <div className="text-sm font-medium">{displayName}</div>
+          <div className="truncate text-[11px] text-muted-foreground">{email}</div>
         </div>
-        <div className="text-[11px] text-sidebar-foreground/50 truncate font-mono">
-          {email}
-        </div>
+        <Link href="/onboarding" onClick={onNavigate} data-testid="nav-profile" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+          <UserCog className="h-4 w-4" /> Edit profile
+        </Link>
+        <button type="button" onClick={signOutAction} data-testid="button-sign-out" className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={() => signOut({ redirectUrl: "/" })}
-        className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors"
-        data-testid="button-sign-out"
-      >
-        <LogOut className="h-4 w-4" />
-        <span>Sign out</span>
-      </button>
-    </div>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-auto gap-2 px-2 py-1.5">
+          <div className="hidden text-right xl:block">
+            <div className="max-w-32 truncate text-xs font-medium">{displayName}</div>
+            <div className="max-w-32 truncate text-[10px] text-muted-foreground">{email}</div>
+          </div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <UserCog className="h-4 w-4" />
+          </div>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel>
+          <div className="truncate text-sm">{displayName}</div>
+          <div className="truncate text-[10px] font-normal text-muted-foreground">{email}</div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/onboarding" data-testid="nav-profile" className="flex cursor-pointer items-center gap-2"><UserCog className="h-4 w-4" /> Edit profile</Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={signOutAction} data-testid="button-sign-out" className="gap-2"><LogOut className="h-4 w-4" /> Sign out</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -180,30 +298,12 @@ export function PageHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-border bg-card relative overflow-hidden">
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-[0.08] pointer-events-none cv-gradient-sweep"
-        style={{
-          background:
-            "linear-gradient(120deg, hsl(var(--primary)) 0%, transparent 40%, hsl(var(--accent)) 80%)",
-        }}
-      />
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="max-w-7xl mx-auto px-8 py-6 flex items-start justify-between gap-6 relative"
-      >
+    <div className="relative overflow-hidden border-b border-border bg-card">
+      <div aria-hidden className="cv-gradient-sweep pointer-events-none absolute inset-0 opacity-[0.08]" style={{ background: "linear-gradient(120deg, hsl(var(--primary)) 0%, transparent 40%, hsl(var(--accent)) 80%)" }} />
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} className="relative mx-auto flex max-w-[1600px] items-start justify-between gap-6 px-4 py-5 sm:px-6 lg:px-8">
         <div>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">
-              {subtitle}
-            </p>
-          )}
+          <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">{title}</h1>
+          {subtitle && <p className="mt-1.5 max-w-3xl text-sm text-muted-foreground">{subtitle}</p>}
         </div>
         {right}
       </motion.div>
@@ -213,12 +313,7 @@ export function PageHeader({
 
 export function PageContent({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
-      className="max-w-7xl mx-auto px-8 py-8 space-y-6"
-    >
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }} className="mx-auto max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       {children}
     </motion.div>
   );
