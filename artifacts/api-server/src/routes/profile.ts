@@ -10,6 +10,7 @@ function rowToDto(row: typeof studentProfilesTable.$inferSelect) {
   return {
     id: row.id,
     name: row.name,
+    studentId: row.studentId ?? null,
     studentType: row.studentType,
     college: row.college,
     major: row.major,
@@ -57,6 +58,7 @@ router.put("/profile", requireAuth, async (req, res) => {
     userId: req.userId!,
     email: req.userEmail ?? null,
     name: body.name,
+    studentId: body.studentId?.trim() || null,
     studentType: body.studentType,
     college: body.college,
     major: body.major,

@@ -17,6 +17,9 @@ export const studentProfilesTable = pgTable(
     userId: text("user_id").notNull(),
     email: text("email"),
     name: text("name").notNull(),
+    // Optional trusted Workday/SCU student ID, used only to verify that an
+    // uploaded Academic Progress Report belongs to this student.
+    studentId: text("student_id"),
     studentType: text("student_type").notNull(),
     college: text("college").notNull(),
     major: text("major").notNull(),

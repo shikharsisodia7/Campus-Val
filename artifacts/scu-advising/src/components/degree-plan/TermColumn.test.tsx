@@ -180,6 +180,61 @@ describe("TermColumn conflict warning wiring", () => {
     expect(screen.queryByTestId("time-conflict-note-302")).toBeNull();
     expect(screen.getByText("Official schedule not published yet")).toBeTruthy();
   });
+
+  it("clears the conflict warning immediately when the conflicting course is removed from the plan (tasks #40/#41)", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 60_000 } },
+    });
+    const sectionsByCode = {
+      "CHEM 11": [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05")],
+      "MATH 11": [section("MATH 11", "01", ["M", "W"], "08:30", "09:35")],
+    };
+    for (const [code, sections] of Object.entries(sectionsByCode)) {
+      queryClient.setQueryData(
+        getListCourseSectionsQueryKey(code, { term: TERM as Term, year: YEAR }),
+        sections,
+      );
+    }
+    const ctx = {
+      activePlan: undefined,
+      activePlanId: 1,
+      setActivePlanId: () => {},
+      profile: undefined,
+      requirements: undefined,
+      scheduleAvailability: availability("published", ["CHEM 11", "MATH 11"]),
+      catalog: undefined,
+    };
+    const tree = (items: PlanItem[]) => (
+      <QueryClientProvider client={queryClient}>
+        <DegreePlanProvider value={ctx}>
+          <DndContext>
+            <TermColumn
+              id={`${YEAR}-${TERM}`}
+              year={YEAR}
+              term={TERM}
+              items={items}
+              availableYears={[YEAR]}
+            />
+          </DndContext>
+        </DegreePlanProvider>
+      </QueryClientProvider>
+    );
+
+    const { rerender } = render(tree([planItem(701, "CHEM 11"), planItem(702, "MATH 11")]));
+    expect(await screen.findByTestId("time-conflict-note-701")).toBeTruthy();
+    expect(await screen.findByTestId("time-conflict-note-702")).toBeTruthy();
+
+    // Student removes MATH 11 — the same render pass must clear the warning,
+    // even though the cached section data is still "fresh" (60s staleTime):
+    // conflicts derive from the CURRENT plan items, never stale plan state.
+    rerender(tree([planItem(701, "CHEM 11")]));
+    expect(screen.queryByTestId("time-conflict-note-701")).toBeNull();
+    expect(screen.queryByTestId("time-conflict-note-702")).toBeNull();
+
+    // And re-adding it brings the warning back from the same cached sections.
+    rerender(tree([planItem(701, "CHEM 11"), planItem(702, "MATH 11")]));
+    expect(await screen.findByTestId("time-conflict-note-701")).toBeTruthy();
+  });
 });
 
 describe("TermColumn not-in-official-schedule flag wiring", () => {

@@ -293,12 +293,30 @@ export type ParsedProgressReportCompletedCoursesItem = {
   confidence: ParsedProgressReportCompletedCoursesItemConfidence;
 };
 
+export type ParsedProgressReportNonCompletedCoursesItemStatus =
+  (typeof ParsedProgressReportNonCompletedCoursesItemStatus)[keyof typeof ParsedProgressReportNonCompletedCoursesItemStatus];
+
+export const ParsedProgressReportNonCompletedCoursesItemStatus = {
+  in_progress: "in_progress",
+  not_completed: "not_completed",
+  needs_review: "needs_review",
+} as const;
+
+export type ParsedProgressReportNonCompletedCoursesItem = {
+  code: string;
+  title: string;
+  units: number;
+  status: ParsedProgressReportNonCompletedCoursesItemStatus;
+};
+
 export type ParsedProgressReportPossibleCoursesItem = {
   raw: string;
 };
 
 export interface ParsedProgressReport {
   completedCourses: ParsedProgressReportCompletedCoursesItem[];
+  /** Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework. */
+  nonCompletedCourses?: ParsedProgressReportNonCompletedCoursesItem[];
   /** Code-like tokens not found in catalog; retained for user review. */
   possibleCourses: ParsedProgressReportPossibleCoursesItem[];
   /**
@@ -306,6 +324,11 @@ export interface ParsedProgressReport {
    * @nullable
    */
   program?: string | null;
+  /**
+   * Student ID extracted from the document when confidently present.
+   * @nullable
+   */
+  reportStudentId?: string | null;
   notes: string[];
 }
 
@@ -644,6 +667,8 @@ export const Grade = {
 export interface StudentProfile {
   id: number;
   name: string;
+  /** Optional SCU/Workday student ID used to verify uploaded progress reports. */
+  studentId?: string | null;
   studentType: StudentType;
   /** e.g. "Arts and Sciences", "Engineering", "Business" */
   college: string;
@@ -669,6 +694,8 @@ export interface StudentProfile {
 
 export interface UpsertProfileBody {
   name: string;
+  /** @maxLength 20 */
+  studentId?: string | null;
   studentType: StudentType;
   college: string;
   major: string;

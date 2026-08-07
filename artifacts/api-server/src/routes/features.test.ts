@@ -793,3 +793,131 @@ describe("progress report parser", () => {
     // Passed - the guarantee is in the parser implementation itself
   });
 });
+
+// =============================================================================
+// Task #38 — parser-owned fields are server-controlled
+// Task #39 — report student ID must match the student's trusted profile ID
+// =============================================================================
+
+const { studentProfilesTable } = await import("@workspace/db");
+
+async function insertProfile(userId: string, studentId: string | null) {
+  await db.delete(studentProfilesTable).where(eq(studentProfilesTable.userId, userId));
+  await db.insert(studentProfilesTable).values({
+    userId,
+    name: "Test Student",
+    studentId,
+    studentType: "undergraduate",
+    college: "Engineering",
+    major: "Computer Science and Engineering",
+    startTerm: "fall",
+    startYear: 2022,
+    expectedGradTerm: "spring",
+    expectedGradYear: 2026,
+    currentTerm: "fall",
+    currentYear: 2025,
+  });
+}
+
+describe("progress report: parser-owned fields are server-controlled (task #38)", () => {
+  beforeEach(async () => {
+    await db.delete(progressReportsTable).where(inArray(progressReportsTable.userId, TEST_USERS));
+  });
+
+  it("crafted parseStatus/parsed/parseError in the PUT body cannot manufacture a parsed report", async () => {
+    // File content is NOT a valid PDF → server-side parse must fail,
+    // no matter what parse state the client claims.
+    mockStorage.file = { size: 100, aclOwner: null, content: Buffer.from("not a pdf at all") };
+    const segA = uploadPathOwnerSegment(USER_A);
+    const res = await asA(request(reportApp).put("/api/progress-report"))
+      .send({
+        objectPath: `/objects/uploads/${segA}/crafted`,
+        fileName: "crafted.pdf",
+        fileSize: 100,
+        contentType: "application/pdf",
+        parseStatus: "parsed",
+        parsed: { completedCourses: [{ code: "CSCI 10", title: "Fake", units: 5, confidence: "high" }], possibleCourses: [], notes: [] },
+        parseError: null,
+      })
+      .expect(200);
+
+    // Server decides the status from the actual bytes (invalid PDF), never
+    // the client's claimed "parsed".
+    expect(["parse_failed", "unsupported"]).toContain(res.body.report.parseStatus);
+    const parsedCodes = (res.body.report.parsed?.completedCourses ?? []).map((c: any) => c.code);
+    expect(parsedCodes).not.toContain("CSCI 10");
+  });
+
+  it("server parse result wins for valid files (client cannot override parsed contents)", async () => {
+    const realCode = COURSES[0]!.code;
+    mockStorage.file = { size: 500, aclOwner: null, content: minimalPdf(`Completed: ${realCode} Intro 4.00 A`) };
+    const segA = uploadPathOwnerSegment(USER_A);
+    const res = await asA(request(reportApp).put("/api/progress-report"))
+      .send({
+        objectPath: `/objects/uploads/${segA}/valid`,
+        fileName: "r.pdf",
+        fileSize: 500,
+        contentType: "application/pdf",
+        parsed: { completedCourses: [{ code: "ZZZZ 999", title: "Invented", units: 4, confidence: "high" }], possibleCourses: [], notes: [] },
+      })
+      .expect(200);
+
+    expect(res.body.report.parseStatus).toBe("parsed");
+    const codes = (res.body.report.parsed?.completedCourses ?? []).map((c: any) => c.code);
+    expect(codes).toContain(realCode);
+    expect(codes).not.toContain("ZZZZ 999");
+  });
+});
+
+describe("progress report: student ID identity validation (task #39)", () => {
+  const segA = uploadPathOwnerSegment(USER_A);
+
+  beforeEach(async () => {
+    await db.delete(progressReportsTable).where(inArray(progressReportsTable.userId, TEST_USERS));
+  });
+
+  afterAll(async () => {
+    await db.delete(studentProfilesTable).where(inArray(studentProfilesTable.userId, TEST_USERS));
+  });
+
+  function reportPdf(studentIdLine: string) {
+    return minimalPdf(`Student ID: ${studentIdLine} FALL 2022-2023 CSCI 10 Intro 5.00 A`);
+  }
+
+  it("rejects (422) a report whose student ID mismatches the profile, without saving and without echoing the ID", async () => {
+    await insertProfile(USER_A, "SYNTHETIC-0001");
+    mockStorage.file = { size: 400, aclOwner: null, content: reportPdf("SYNTHETIC-9999") };
+    const res = await asA(request(reportApp).put("/api/progress-report"))
+      .send({ objectPath: `/objects/uploads/${segA}/mismatch`, fileName: "r.pdf", fileSize: 400, contentType: "application/pdf" })
+      .expect(422);
+    expect(res.body.error).toMatch(/different student/i);
+    expect(JSON.stringify(res.body)).not.toContain("SYNTHETIC-9999");
+    await asA(request(reportApp).get("/api/progress-report")).expect(404);
+  });
+
+  it("accepts a report whose student ID matches the profile (case-insensitive)", async () => {
+    await insertProfile(USER_A, "synthetic-0001");
+    mockStorage.file = { size: 400, aclOwner: null, content: reportPdf("SYNTHETIC-0001") };
+    await asA(request(reportApp).put("/api/progress-report"))
+      .send({ objectPath: `/objects/uploads/${segA}/match`, fileName: "r.pdf", fileSize: 400, contentType: "application/pdf" })
+      .expect(200);
+  });
+
+  it("does not falsely reject when the report has no extractable student ID (honest note instead)", async () => {
+    await insertProfile(USER_A, "SYNTHETIC-0001");
+    mockStorage.file = { size: 400, aclOwner: null, content: minimalPdf("FALL 2022-2023 CSCI 10 Intro 5.00 A") };
+    const res = await asA(request(reportApp).put("/api/progress-report"))
+      .send({ objectPath: `/objects/uploads/${segA}/noid`, fileName: "r.pdf", fileSize: 400, contentType: "application/pdf" })
+      .expect(200);
+    const notes: string[] = res.body.report.parsed?.notes ?? [];
+    expect(notes.some((n) => /identity could not be verified/i.test(n))).toBe(true);
+  });
+
+  it("does not reject when the profile has no student ID on record", async () => {
+    await insertProfile(USER_A, null);
+    mockStorage.file = { size: 400, aclOwner: null, content: reportPdf("SYNTHETIC-9999") };
+    await asA(request(reportApp).put("/api/progress-report"))
+      .send({ objectPath: `/objects/uploads/${segA}/noprofileid`, fileName: "r.pdf", fileSize: 400, contentType: "application/pdf" })
+      .expect(200);
+  });
+});

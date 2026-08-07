@@ -84,6 +84,8 @@ export * from "./openaiMessage";
 export * from "./parsedProgressReport";
 export * from "./parsedProgressReportCompletedCoursesItem";
 export * from "./parsedProgressReportCompletedCoursesItemConfidence";
+export * from "./parsedProgressReportNonCompletedCoursesItem";
+export * from "./parsedProgressReportNonCompletedCoursesItemStatus";
 export * from "./parsedProgressReportPossibleCoursesItem";
 export * from "./placeholderReplacement";
 export * from "./planCheckResult";

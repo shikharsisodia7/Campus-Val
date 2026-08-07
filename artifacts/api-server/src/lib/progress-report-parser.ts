@@ -8,6 +8,13 @@
  */
 
 import { COURSES } from "../data/courses";
+import {
+  classifySectionHeader,
+  classifyRowStatusText,
+  classifyAcademicRecordCompletion,
+  KNOWN_GRADE_TOKEN,
+  type ReportSectionStatus,
+} from "./academic-record-status";
 
 export interface ExtractedCourse {
   code: string;
@@ -195,26 +202,54 @@ export async function parseXlsxBuffer(buf: Buffer): Promise<ParsedProgressReport
     };
   }
 
-  const { catalogMatches, unknownTokens } = extractCodesFromText(text);
+  return buildParsedReport(text, "No course codes were detected in the spreadsheet.");
+}
+
+/** Shared assembly of a ParsedProgressReport from extracted text. */
+function buildParsedReport(text: string, emptyNote: string): ParsedProgressReport {
+  const { catalogMatches, nonCompletedMatches, unknownTokens } = extractCodesFromText(text);
   const program = extractProgram(text);
+  const reportStudentId = extractStudentId(text);
 
   const notes: string[] = [];
-  if (catalogMatches.length === 0 && unknownTokens.length === 0) {
-    notes.push("No course codes were detected in the spreadsheet.");
+  if (catalogMatches.length === 0 && unknownTokens.length === 0 && nonCompletedMatches.length === 0) {
+    notes.push(emptyNote);
+  }
+  if (nonCompletedMatches.length > 0) {
+    notes.push(
+      `${nonCompletedMatches.length} course(s) appear in the report as in-progress, withdrawn, or otherwise not completed; they were NOT counted as completed coursework.`,
+    );
+  }
+  if (!reportStudentId) {
+    notes.push("Identity could not be verified automatically (no student ID found in the document).");
   }
 
   return {
     completedCourses: catalogMatches,
+    ...(nonCompletedMatches.length > 0 ? { nonCompletedCourses: nonCompletedMatches } : {}),
     possibleCourses: unknownTokens,
     ...(program ? { program } : {}),
+    ...(reportStudentId ? { reportStudentId } : {}),
     notes,
   };
 }
 
+/** A catalog-matched course row that is NOT completed (or needs review). */
+export interface ParsedNonCompletedCourse {
+  code: string;
+  title: string;
+  units: number;
+  status: "in_progress" | "not_completed" | "needs_review";
+}
+
 export interface ParsedProgressReport {
   completedCourses: ParsedCompletedCourse[];
+  /** Catalog courses found in the report that must NOT be treated as completed. */
+  nonCompletedCourses?: ParsedNonCompletedCourse[];
   possibleCourses: ParsedPossibleCourse[];
   program?: string;
+  /** Student identifier extracted from the document, when confidently present. */
+  reportStudentId?: string;
   notes: string[];
 }
 
@@ -333,20 +368,7 @@ export async function parsePdfBuffer(buf: Buffer): Promise<ParsedProgressReport>
     };
   }
 
-  const { catalogMatches, unknownTokens } = extractCodesFromText(text);
-  const program = extractProgram(text);
-
-  const notes: string[] = [];
-  if (catalogMatches.length === 0 && unknownTokens.length === 0) {
-    notes.push("No course codes were detected in the document.");
-  }
-
-  return {
-    completedCourses: catalogMatches,
-    possibleCourses: unknownTokens,
-    ...(program ? { program } : {}),
-    notes,
-  };
+  return buildParsedReport(text, "No course codes were detected in the document.");
 }
 
 const catalogMap = new Map<string, (typeof COURSES)[0]>();
@@ -354,42 +376,142 @@ for (const c of COURSES) {
   catalogMap.set(c.code.toUpperCase().replace(/\s+/g, " ").trim(), c);
 }
 
+/** Confident student-ID line, e.g. "Student ID: 00000000" / "Student ID W1234567". */
+const STUDENT_ID_RE = /\bSTUDENT\s*ID\b\s*[:#]?\s*([A-Z0-9][A-Z0-9-]{3,19})\b/;
+
 /**
+ * Extract a student identifier from report text ONLY when it appears in an
+ * unambiguous "Student ID: <value>" form. Returns undefined otherwise —
+ * never guessed from loose digits.
+ */
+export function extractStudentId(text: string): string | undefined {
+  const m = STUDENT_ID_RE.exec(text.toUpperCase());
+  return m ? m[1] : undefined;
+}
+
+/**
+ * Section-aware extraction. Walks the report line by line, tracking the
+ * current section (completed term, transfer credit, in progress, withdrawn…)
+ * and classifying every catalog-matched course row through the single
+ * central rule in academic-record-status.ts. Only affirmatively completed
+ * records land in catalogMatches; everything else is reported separately so
+ * downstream import paths cannot mistake it for completed coursework.
+ *
  * Exported for direct testing with anonymized golden-text fixtures that
  * represent actual pdf-parse / xlsx extraction output from Workday APR files.
  */
 export function extractCodesFromText(text: string): {
   catalogMatches: ParsedCompletedCourse[];
+  nonCompletedMatches: ParsedNonCompletedCourse[];
   unknownTokens: ParsedPossibleCourse[];
 } {
   const catalogMatches: ParsedCompletedCourse[] = [];
+  const nonCompletedMatches: ParsedNonCompletedCourse[] = [];
   const unknownTokens: ParsedPossibleCourse[] = [];
   const seenCodes = new Set<string>();
 
-  const upper = text.toUpperCase();
-  let match: RegExpExecArray | null;
-  const re = new RegExp(SCU_CODE_PATTERN.source, "g");
+  let section: ReportSectionStatus = "unknown";
 
-  while ((match = re.exec(upper)) !== null) {
-    const raw = match[0];
-    const normalized = normalizeCode(raw);
-    if (seenCodes.has(normalized)) continue;
-    seenCodes.add(normalized);
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const upperLine = line.toUpperCase();
 
-    const course = catalogMap.get(normalized);
-    if (course) {
-      catalogMatches.push({
-        code: course.code,
-        title: course.title,
-        units: course.units,
-        confidence: "high",
-      });
-    } else {
-      unknownTokens.push({ raw });
+    // Normalize CSV/tab separators so xlsx-exported rows and headers
+    // ("FALL 2022-2023,,,,") classify the same way as PDF text lines.
+    const normalizedLine = upperLine.replace(/[,\t]+/g, " ").trim();
+
+    const re = new RegExp(SCU_CODE_PATTERN.source, "g");
+
+    // Does this line contain a catalog course or any code-like token besides
+    // a season+year ("FALL 2022")? Season tokens match the code pattern but
+    // belong to term headers, never course rows.
+    const SEASONS = new Set(["FALL", "WINTER", "SPRING", "SUMMER"]);
+    let lineHasCatalogCode = false;
+    let lineHasNonTermToken = false;
+    {
+      const scan = new RegExp(SCU_CODE_PATTERN.source, "g");
+      let m: RegExpExecArray | null;
+      while ((m = scan.exec(normalizedLine)) !== null) {
+        if (catalogMap.has(normalizeCode(m[0]))) lineHasCatalogCode = true;
+        const prefix = m[0].match(/^[A-Z]+/)?.[0] ?? "";
+        if (!SEASONS.has(prefix)) lineHasNonTermToken = true;
+      }
+    }
+
+    // Pure header lines (no course rows) switch the current section.
+    if (!lineHasCatalogCode && !lineHasNonTermToken) {
+      const headerStatus = classifySectionHeader(normalizedLine);
+      if (headerStatus !== null) {
+        section = headerStatus;
+        continue;
+      }
+    }
+
+    // A row-level status column ("In Progress", "Withdrawn", "Registered"…)
+    // overrides the section for this row only — never counted as completed.
+    const rowStatus = classifyRowStatusText(upperLine);
+    const effectiveSection = rowStatus ?? section;
+
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(normalizedLine)) !== null) {
+      const raw = match[0];
+      const normalized = normalizeCode(raw);
+      if (seenCodes.has(normalized)) continue;
+      seenCodes.add(normalized);
+
+      const course = catalogMap.get(normalized);
+      if (!course) {
+        unknownTokens.push({ raw });
+        continue;
+      }
+
+      // Grade: last known grade token between this course code and the NEXT
+      // code-like token (collapsed PDF extraction can put several course rows
+      // on one line — never read another course's grade column).
+      const rest = normalizedLine.slice(match.index + match[0].length);
+      const nextCode = new RegExp(SCU_CODE_PATTERN.source).exec(rest);
+      const segment = nextCode ? rest.slice(0, nextCode.index) : rest;
+      const tokens = segment.trim().split(/\s+/);
+      // Workday's grade column is at the END of the row (possibly followed by
+      // status text). Walk backwards, skipping status/filler tokens, and take
+      // a grade only from that final position — NEVER from mid-title text
+      // (e.g. the Roman numeral "I" in "Writing I and II" is not an
+      // Incomplete grade).
+      const SKIP_TOKEN = /^(COMPLETED|IN|PROGRESS|WITHDRAWN|DROPPED|REGISTERED|PLANNED|TRANSFER|CREDIT|FALL|WINTER|SPRING|SUMMER|-+|–|—|\d+(\.\d+)?|\d{4}[-–/]\d{2,4})$/;
+      let grade: string | null = null;
+      for (let t = tokens.length - 1; t >= 0; t--) {
+        const tok = tokens[t]!;
+        if (SKIP_TOKEN.test(tok)) continue;
+        if (KNOWN_GRADE_TOKEN.test(tok)) grade = tok;
+        break;
+      }
+
+      const completion = classifyAcademicRecordCompletion({ sectionStatus: effectiveSection, grade });
+      if (completion === "completed") {
+        catalogMatches.push({
+          code: course.code,
+          title: course.title,
+          units: course.units,
+          confidence: "high",
+        });
+      } else {
+        nonCompletedMatches.push({
+          code: course.code,
+          title: course.title,
+          units: course.units,
+          status:
+            effectiveSection === "in_progress"
+              ? "in_progress"
+              : completion === "not_completed"
+                ? "not_completed"
+                : "needs_review",
+        });
+      }
     }
   }
 
-  return { catalogMatches, unknownTokens };
+  return { catalogMatches, nonCompletedMatches, unknownTokens };
 }
 
 function normalizeCode(raw: string): string {

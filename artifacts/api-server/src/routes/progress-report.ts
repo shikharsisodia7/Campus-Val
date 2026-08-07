@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, progressReportsTable, type ProgressReportRow } from "@workspace/db";
+import { db, progressReportsTable, studentProfilesTable, type ProgressReportRow } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { getObjectAclPolicy } from "../lib/objectAcl";
@@ -232,6 +232,32 @@ router.put("/progress-report", requireAuth, async (req, res): Promise<void> => {
     contentType,
     fileName,
   );
+
+  // Identity/ownership validation (beyond storage ACL): if the document
+  // confidently exposes a student ID AND this student's trusted profile has
+  // one on record, a mismatch means the report belongs to someone else.
+  // Reject WITHOUT saving, and never replace an existing valid report.
+  // A report with no confidently extractable ID is NOT rejected — the parser
+  // already records an honest "identity could not be verified" note.
+  if (parsedResult.reportStudentId) {
+    const profRows = await db
+      .select({ studentId: studentProfilesTable.studentId })
+      .from(studentProfilesTable)
+      .where(eq(studentProfilesTable.userId, userId))
+      .limit(1);
+    const profileStudentId = profRows[0]?.studentId?.trim() || null;
+    if (
+      profileStudentId &&
+      parsedResult.reportStudentId.toUpperCase() !== profileStudentId.toUpperCase()
+    ) {
+      // Do not echo the document's ID back — it may identify another student.
+      res.status(422).json({
+        error:
+          "This report appears to belong to a different student. Please upload your own Academic Progress Report.",
+      });
+      return;
+    }
+  }
 
   // Upsert the report row (one per user)
   let row: ProgressReportRow;

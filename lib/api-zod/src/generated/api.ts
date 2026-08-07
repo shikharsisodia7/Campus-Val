@@ -20,6 +20,12 @@ export const HealthCheckResponse = zod.object({
 export const GetProfileResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
+  studentId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional SCU\/Workday student ID used to verify uploaded progress reports.",
+    ),
   studentType: zod.enum([
     "first_year",
     "transfer",
@@ -53,8 +59,11 @@ export const GetProfileResponse = zod.object({
 /**
  * @summary Create or update the student profile
  */
+export const upsertProfileBodyStudentIdMax = 20;
+
 export const UpsertProfileBody = zod.object({
   name: zod.string(),
+  studentId: zod.string().max(upsertProfileBodyStudentIdMax).nullish(),
   studentType: zod.enum([
     "first_year",
     "transfer",
@@ -85,6 +94,12 @@ export const UpsertProfileBody = zod.object({
 export const UpsertProfileResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
+  studentId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional SCU\/Workday student ID used to verify uploaded progress reports.",
+    ),
   studentType: zod.enum([
     "first_year",
     "transfer",
@@ -417,6 +432,12 @@ export const GetDashboardSummaryResponse = zod.object({
     .object({
       id: zod.number(),
       name: zod.string(),
+      studentId: zod
+        .string()
+        .nullish()
+        .describe(
+          "Optional SCU\/Workday student ID used to verify uploaded progress reports.",
+        ),
       studentType: zod.enum([
         "first_year",
         "transfer",
@@ -2349,6 +2370,23 @@ export const GetProgressReportResponse = zod
                     confidence: zod.enum(["high"]),
                   }),
                 ),
+                nonCompletedCourses: zod
+                  .array(
+                    zod.object({
+                      code: zod.string(),
+                      title: zod.string(),
+                      units: zod.number(),
+                      status: zod.enum([
+                        "in_progress",
+                        "not_completed",
+                        "needs_review",
+                      ]),
+                    }),
+                  )
+                  .optional()
+                  .describe(
+                    "Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework.",
+                  ),
                 possibleCourses: zod
                   .array(
                     zod.object({
@@ -2363,6 +2401,12 @@ export const GetProgressReportResponse = zod
                   .nullish()
                   .describe(
                     "Program\/major detected from the report, if clearly labeled.",
+                  ),
+                reportStudentId: zod
+                  .string()
+                  .nullish()
+                  .describe(
+                    "Student ID extracted from the document when confidently present.",
                   ),
                 notes: zod.array(zod.string()),
               }),
@@ -2425,6 +2469,23 @@ export const RegisterProgressReportResponse = zod
                     confidence: zod.enum(["high"]),
                   }),
                 ),
+                nonCompletedCourses: zod
+                  .array(
+                    zod.object({
+                      code: zod.string(),
+                      title: zod.string(),
+                      units: zod.number(),
+                      status: zod.enum([
+                        "in_progress",
+                        "not_completed",
+                        "needs_review",
+                      ]),
+                    }),
+                  )
+                  .optional()
+                  .describe(
+                    "Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework.",
+                  ),
                 possibleCourses: zod
                   .array(
                     zod.object({
@@ -2439,6 +2500,12 @@ export const RegisterProgressReportResponse = zod
                   .nullish()
                   .describe(
                     "Program\/major detected from the report, if clearly labeled.",
+                  ),
+                reportStudentId: zod
+                  .string()
+                  .nullish()
+                  .describe(
+                    "Student ID extracted from the document when confidently present.",
                   ),
                 notes: zod.array(zod.string()),
               }),

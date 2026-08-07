@@ -6,10 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ParsedProgressReportCompletedCoursesItem } from "./parsedProgressReportCompletedCoursesItem";
+import type { ParsedProgressReportNonCompletedCoursesItem } from "./parsedProgressReportNonCompletedCoursesItem";
 import type { ParsedProgressReportPossibleCoursesItem } from "./parsedProgressReportPossibleCoursesItem";
 
 export interface ParsedProgressReport {
   completedCourses: ParsedProgressReportCompletedCoursesItem[];
+  /** Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework. */
+  nonCompletedCourses?: ParsedProgressReportNonCompletedCoursesItem[];
   /** Code-like tokens not found in catalog; retained for user review. */
   possibleCourses: ParsedProgressReportPossibleCoursesItem[];
   /**
@@ -17,5 +20,10 @@ export interface ParsedProgressReport {
    * @nullable
    */
   program?: string | null;
+  /**
+   * Student ID extracted from the document when confidently present.
+   * @nullable
+   */
+  reportStudentId?: string | null;
   notes: string[];
 }

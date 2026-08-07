@@ -27,6 +27,7 @@ import {
   parseXlsxBuffer,
   parseProgressReport,
   extractCodesFromText,
+  extractStudentId,
 } from "./progress-report-parser";
 import { COURSES } from "../data/courses";
 
@@ -97,9 +98,9 @@ describe("progress-report-parser fixture: golden text — multi-term Workday APR
   /**
    * Golden expected completedCourses from the multi-term fixture.
    * These are real SCU catalog courses that appear in the fixture text
-   * in "completed" term sections. The in-progress courses (CSEN 12, PHYS 31)
-   * also appear here because the current parser cannot distinguish
-   * completed from in-progress based on text alone — see follow-up task #37.
+   * in "completed" term sections. In-progress courses (CSEN 12, PHYS 31)
+   * are classified separately (section-aware parsing) and must NEVER
+   * appear here.
    */
   const GOLDEN_CATALOG_CODES = [
     "CSCI 10",   // Fall 2022-2023 — completed
@@ -110,9 +111,10 @@ describe("progress-report-parser fixture: golden text — multi-term Workday APR
     "CSCI 61",   // Spring 2022-2023 — completed
     "MATH 13",   // Spring 2022-2023 — completed
     "BIOE 158L", // Spring 2022-2023 — completed, letter-suffix course
-    "CSEN 12",   // In-progress section: current parser matches anyway (see #37)
-    "PHYS 31",   // In-progress section: current parser matches anyway (see #37)
   ];
+
+  /** Courses in the "In Progress" section — must be nonCompleted, never completed. */
+  const GOLDEN_IN_PROGRESS_CODES = ["CSEN 12", "PHYS 31"];
 
   /**
    * Golden expected possibleCourses prefixes.
@@ -134,6 +136,31 @@ describe("progress-report-parser fixture: golden text — multi-term Workday APR
     for (const expected of GOLDEN_CATALOG_CODES) {
       expect(codes, `Expected '${expected}' in completedCourses`).toContain(expected);
     }
+  });
+
+  it("in-progress courses are classified as nonCompleted, never completed (task #37)", () => {
+    const text = loadTextFixture("workday-apr-anonymized.txt");
+    const { catalogMatches, nonCompletedMatches } = extractCodesFromText(text);
+    const completedCodes = catalogMatches.map((c) => c.code);
+    const nonCompleted = nonCompletedMatches.map((c) => c.code);
+
+    for (const code of GOLDEN_IN_PROGRESS_CODES) {
+      expect(completedCodes, `'${code}' must NOT be in completedCourses`).not.toContain(code);
+      expect(nonCompleted, `'${code}' must be in nonCompletedCourses`).toContain(code);
+    }
+    for (const rec of nonCompletedMatches) {
+      expect(rec.status).toBe("in_progress");
+    }
+  });
+
+  it("extracts the student ID confidently present in the fixture header", () => {
+    const text = loadTextFixture("workday-apr-anonymized.txt");
+    expect(extractStudentId(text)).toBe("00000000");
+  });
+
+  it("does not guess a student ID from loose digits", () => {
+    expect(extractStudentId("Term Earned: 13.00 Term GPA: 3.73")).toBeUndefined();
+    expect(extractStudentId("random 12345678 digits")).toBeUndefined();
   });
 
   it("all golden catalog matches have title and units from the real catalog, never from fixture text", () => {
@@ -258,10 +285,10 @@ describe("progress-report-parser fixture: committed xlsx — multi-term Workday 
     "CSCI 10", "MATH 11", "ENGL 1A",   // Fall 2022-2023
     "CSCI 60", "MATH 12",               // Winter 2022-2023
     "CSCI 61", "MATH 13", "BIOE 158L", // Spring 2022-2023
-    // NOTE: CSEN 12 and PHYS 31 appear under "In Progress" but are in the
-    // catalog, so the current parser matches them (see follow-up task #37).
-    "CSEN 12", "PHYS 31",
   ];
+  // CSEN 12 and PHYS 31 appear under "In Progress" — they must be classified
+  // as nonCompleted, never completed (task #37).
+  const EXPECTED_IN_PROGRESS = ["CSEN 12", "PHYS 31"];
   const EXPECTED_POSSIBLE_PREFIXES = ["XFER"]; // transfer-credit codes not in catalog
 
   it("parseXlsxBuffer returns status=parsed and finds all completed-term catalog courses", async () => {
@@ -276,6 +303,13 @@ describe("progress-report-parser fixture: committed xlsx — multi-term Workday 
     const codes = result.completedCourses.map((c) => c.code);
     for (const expected of EXPECTED_COMPLETED) {
       expect(codes, `Expected '${expected}' in xlsx completedCourses`).toContain(expected);
+    }
+    for (const inProgress of EXPECTED_IN_PROGRESS) {
+      expect(codes, `'${inProgress}' must NOT be in xlsx completedCourses`).not.toContain(inProgress);
+    }
+    const nonCompleted = (result.nonCompletedCourses ?? []).map((c) => c.code);
+    for (const inProgress of EXPECTED_IN_PROGRESS) {
+      expect(nonCompleted, `'${inProgress}' must be in xlsx nonCompletedCourses`).toContain(inProgress);
     }
   });
 
@@ -445,7 +479,7 @@ describe("progress-report-parser fixture: no fabricated data", () => {
   });
 
   it("unknown code-like tokens go to possibleCourses, never to completedCourses", () => {
-    const text = `${CA!.code} Accounting FAKE 99 Invented ZZZZ 101 Unknown`;
+    const text = `FALL 2022-2023\n${CA!.code} Accounting 4.00 A\nFAKE 99 Invented ZZZZ 101 Unknown`;
     const { catalogMatches, unknownTokens } = extractCodesFromText(text);
 
     const completedCodes = catalogMatches.map((c) => c.code);

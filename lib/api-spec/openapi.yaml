@@ -1712,6 +1712,17 @@ components:
               title: { type: string }
               units: { type: number }
               confidence: { type: string, enum: [high] }
+        nonCompletedCourses:
+          type: array
+          description: Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework.
+          items:
+            type: object
+            required: [code, title, units, status]
+            properties:
+              code: { type: string }
+              title: { type: string }
+              units: { type: number }
+              status: { type: string, enum: [in_progress, not_completed, needs_review] }
         possibleCourses:
           type: array
           description: Code-like tokens not found in catalog; retained for user review.
@@ -1723,6 +1734,9 @@ components:
         program:
           type: ["string", "null"]
           description: Program/major detected from the report, if clearly labeled.
+        reportStudentId:
+          type: ["string", "null"]
+          description: Student ID extracted from the document when confidently present.
         notes:
           type: array
           items: { type: string }
@@ -2013,6 +2027,10 @@ components:
           type: integer
         name:
           type: string
+        studentId:
+          type: string
+          nullable: true
+          description: Optional SCU/Workday student ID used to verify uploaded progress reports.
         studentType:
           $ref: "#/components/schemas/StudentType"
         college:
@@ -2089,6 +2107,10 @@ components:
       properties:
         name:
           type: string
+        studentId:
+          type: string
+          nullable: true
+          maxLength: 20
         studentType:
           $ref: "#/components/schemas/StudentType"
         college:

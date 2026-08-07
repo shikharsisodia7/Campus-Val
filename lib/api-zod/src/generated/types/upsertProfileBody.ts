@@ -10,6 +10,8 @@ import type { Term } from "./term";
 
 export interface UpsertProfileBody {
   name: string;
+  /** @maxLength 20 */
+  studentId?: string | null;
   studentType: StudentType;
   college: string;
   major: string;
