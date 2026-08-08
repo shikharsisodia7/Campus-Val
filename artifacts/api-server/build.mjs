@@ -100,6 +100,9 @@ async function buildAll() {
       "puppeteer",
       "puppeteer-core",
       "electron",
+      // pdf-parse v2 bundles pdfjs-dist's legacy build, whose module init
+      // requires DOMMatrix and crashes when bundled; it works unbundled.
+      "pdf-parse",
     ],
     sourcemap: "linked",
     plugins: [

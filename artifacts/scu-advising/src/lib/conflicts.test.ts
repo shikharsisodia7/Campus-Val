@@ -1,9 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
   findEventConflicts,
+  provenNoOverlap,
+  hasProvenConflictFreeSection,
+  provenNoSectionFits,
+  sectionsAlwaysConflict,
+  sectionOverlapDetails,
   timeToMinutes,
   minutesToLabel,
   type TimedEvent,
+  type SectionTimeLike,
 } from "./conflicts";
 
 function ev(
@@ -81,11 +87,209 @@ describe("findEventConflicts", () => {
   });
 });
 
+function sec(days: string[], start: string, end: string): SectionTimeLike {
+  return { meetingDays: days, startTime: start, endTime: end };
+}
+
+describe("sectionsAlwaysConflict", () => {
+  it("flags two single-section courses that overlap", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M", "W", "F"], "08:00", "09:05")],
+        [sec(["M", "W"], "08:30", "09:35")],
+      ),
+    ).toBe(true);
+  });
+
+  it("does not flag when at least one combination is free", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M", "W"], "08:00", "09:05"), sec(["T", "R"], "08:00", "09:05")],
+        [sec(["M", "W"], "08:30", "09:35")],
+      ),
+    ).toBe(false);
+  });
+
+  it("flags when every combination overlaps across multiple sections", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M", "W"], "09:00", "10:05"), sec(["M", "W"], "09:15", "10:20")],
+        [sec(["M"], "09:30", "10:35"), sec(["W"], "08:30", "09:35")],
+      ),
+    ).toBe(true);
+  });
+
+  it("never flags when a section has TBA/invalid times (unprovable)", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M"], "", "")],
+        [sec(["M"], "08:30", "09:35")],
+      ),
+    ).toBe(false);
+    expect(
+      sectionsAlwaysConflict(
+        [{ meetingDays: ["M"], startTime: null, endTime: null }],
+        [sec(["M"], "08:30", "09:35")],
+      ),
+    ).toBe(false);
+  });
+
+  it("never flags when either course has no sections", () => {
+    expect(sectionsAlwaysConflict([], [sec(["M"], "08:00", "09:00")])).toBe(false);
+    expect(sectionsAlwaysConflict([sec(["M"], "08:00", "09:00")], [])).toBe(false);
+  });
+
+  it("does not flag same times on disjoint days", () => {
+    expect(
+      sectionsAlwaysConflict(
+        [sec(["M", "W"], "09:00", "10:05")],
+        [sec(["T", "R"], "09:00", "10:05")],
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("sectionOverlapDetails", () => {
+  it("returns the shared days and overlap window for overlapping pairs", () => {
+    const d = sectionOverlapDetails(
+      [{ ...sec(["M", "W", "F"], "08:00", "09:05"), sectionNumber: "1" }],
+      [{ ...sec(["M", "W"], "08:30", "09:35"), sectionNumber: "2" }],
+    );
+    expect(d.length).toBe(1);
+    expect(d[0]!.aSection).toBe("§1");
+    expect(d[0]!.bSection).toBe("§2");
+    expect(d[0]!.sharedDays).toEqual(["M", "W"]);
+    expect(d[0]!.overlapStart).toBe(timeToMinutes("08:30"));
+    expect(d[0]!.overlapEnd).toBe(timeToMinutes("09:05"));
+  });
+
+  it("only includes provably overlapping pairs", () => {
+    const d = sectionOverlapDetails(
+      [
+        { ...sec(["M", "W"], "09:00", "10:05"), sectionNumber: "1" },
+        { ...sec(["T", "R"], "09:00", "10:05"), sectionNumber: "2" },
+      ],
+      [{ ...sec(["M"], "09:30", "10:35"), sectionNumber: "3" }],
+    );
+    expect(d.length).toBe(1);
+    expect(d[0]!.aSection).toBe("§1");
+    expect(d[0]!.sharedDays).toEqual(["M"]);
+  });
+
+  it("skips TBA/invalid times instead of guessing", () => {
+    expect(
+      sectionOverlapDetails(
+        [{ meetingDays: ["M"], startTime: null, endTime: null }],
+        [sec(["M"], "08:30", "09:35")],
+      ),
+    ).toEqual([]);
+  });
+
+  it("labels tentative or unnumbered sections as TBA", () => {
+    const d = sectionOverlapDetails(
+      [{ ...sec(["M"], "08:00", "09:05"), tentative: true, sectionNumber: "1" }],
+      [sec(["M"], "08:30", "09:35")],
+    );
+    expect(d[0]!.aSection).toBe("Section TBA");
+    expect(d[0]!.bSection).toBe("Section TBA");
+  });
+
+  it("orders shared days canonically (M T W R F S U)", () => {
+    const d = sectionOverlapDetails(
+      [sec(["F", "M", "W"], "08:00", "09:05")],
+      [sec(["W", "F", "M"], "08:30", "09:35")],
+    );
+    expect(d[0]!.sharedDays).toEqual(["M", "W", "F"]);
+  });
+});
+
 describe("minutesToLabel", () => {
   it("formats AM/PM correctly", () => {
     expect(minutesToLabel(0)).toBe("12:00 AM");
     expect(minutesToLabel(8 * 60 + 5)).toBe("8:05 AM");
     expect(minutesToLabel(12 * 60)).toBe("12:00 PM");
     expect(minutesToLabel(21 * 60 + 30)).toBe("9:30 PM");
+  });
+});
+
+function secN(days: string[], start?: string | null, end?: string | null): SectionTimeLike {
+  return { meetingDays: days, startTime: start, endTime: end };
+}
+
+describe("provenNoOverlap", () => {
+  it("true for disjoint days", () => {
+    expect(provenNoOverlap(secN(["M", "W"], "09:00", "10:00"), secN(["T", "R"], "09:00", "10:00"))).toBe(true);
+  });
+  it("true for shared day, disjoint times", () => {
+    expect(provenNoOverlap(secN(["M"], "08:00", "09:00"), secN(["M"], "09:00", "10:00"))).toBe(true);
+  });
+  it("false when times overlap on a shared day", () => {
+    expect(provenNoOverlap(secN(["M"], "08:00", "09:30"), secN(["M"], "09:00", "10:00"))).toBe(false);
+  });
+  it("false (never claimed) when either side has TBA times", () => {
+    expect(provenNoOverlap(secN(["M"], null, null), secN(["T"], "09:00", "10:00"))).toBe(false);
+    expect(provenNoOverlap(secN(["M"], "09:00", "10:00"), secN(["T"], "", ""))).toBe(false);
+  });
+});
+
+describe("hasProvenConflictFreeSection", () => {
+  const morning = secN(["M", "W"], "08:00", "09:05");
+  const afternoon = secN(["M", "W"], "14:00", "15:05");
+  it("true when one section avoids all planned courses", () => {
+    expect(
+      hasProvenConflictFreeSection(
+        [morning, afternoon],
+        [[secN(["M", "W"], "08:30", "09:35")]],
+      ),
+    ).toBe(true);
+  });
+  it("false when every section clashes with a planned course", () => {
+    expect(
+      hasProvenConflictFreeSection(
+        [morning],
+        [[secN(["M"], "08:30", "09:35")]],
+      ),
+    ).toBe(false);
+  });
+  it("true with no planned courses when course has a valid-timed section", () => {
+    expect(hasProvenConflictFreeSection([morning], [])).toBe(true);
+  });
+  it("false when the only course section has TBA times", () => {
+    expect(hasProvenConflictFreeSection([secN(["M"], null, null)], [])).toBe(false);
+  });
+  it("false when a planned course's sections are all TBA (can't verify)", () => {
+    expect(
+      hasProvenConflictFreeSection([morning], [[secN([], null, null)]]),
+    ).toBe(false);
+  });
+  it("false with empty course section list", () => {
+    expect(hasProvenConflictFreeSection([], [])).toBe(false);
+  });
+});
+
+describe("provenNoSectionFits", () => {
+  const a1 = secN(["M", "W"], "08:00", "09:05");
+  const a2 = secN(["T", "R"], "10:00", "11:05");
+  it("true when different sections are blocked by different planned courses", () => {
+    // a1 blocked by B (every B section overlaps a1), a2 blocked by C
+    const B = [secN(["M"], "08:30", "09:35")];
+    const C = [secN(["T"], "10:30", "11:35")];
+    expect(provenNoSectionFits([a1, a2], [B, C])).toBe(true);
+  });
+  it("false when one section escapes every planned course", () => {
+    const B = [secN(["M"], "08:30", "09:35")];
+    expect(provenNoSectionFits([a1, a2], [B])).toBe(false);
+  });
+  it("false when a course section has TBA times (block unprovable)", () => {
+    const B = [secN(["M"], "08:30", "09:35")];
+    expect(provenNoSectionFits([secN(["M"], null, null)], [B])).toBe(false);
+  });
+  it("false when the blocking course has a TBA section (not ALL overlap)", () => {
+    const B = [secN(["M"], "08:30", "09:35"), secN([], null, null)];
+    expect(provenNoSectionFits([a1], [B])).toBe(false);
+  });
+  it("false with no planned courses or no course sections", () => {
+    expect(provenNoSectionFits([], [[a1]])).toBe(false);
+    expect(provenNoSectionFits([a1], [])).toBe(false);
   });
 });

@@ -17,6 +17,7 @@ type DegreePlanContextType = {
   requirements: RequirementGroup[] | undefined;
   scheduleAvailability: ScheduleAvailability | undefined;
   catalog: Course[] | undefined;
+  aprCompletedCodes?: Set<string>;
 };
 
 const DegreePlanContext = createContext<DegreePlanContextType | null>(null);

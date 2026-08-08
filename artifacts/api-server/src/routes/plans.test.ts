@@ -176,6 +176,52 @@ describe("duplication (deep copy)", () => {
       ).expect(204);
     }
   });
+
+  it("keeps programs and course moves isolated between source and duplicate", async () => {
+    const sourceId = await degreePlanId(USER_A);
+    const item = await addCourse(sourceId, C1, "winter", 2026);
+    const sourcePrograms = {
+      additionalMajors: ["MATH"],
+      minors: [],
+      professionalGoals: [],
+    };
+    await asA(request(app).patch(`/api/plans/${sourceId}`))
+      .send({ programs: sourcePrograms })
+      .expect(200);
+
+    const duplicate = await asA(
+      request(app).post(`/api/plans/${sourceId}/duplicate`),
+    )
+      .send({ name: "Independent scenario" })
+      .expect(201);
+    const duplicateItems = await getItems(duplicate.body.id);
+
+    await asA(request(app).patch(`/api/plans/${duplicate.body.id}`))
+      .send({
+        programs: {
+          ...sourcePrograms,
+          additionalMajors: ["MATH", "ECEN"],
+        },
+      })
+      .expect(200);
+    await asA(
+      request(app).patch(
+        `/api/plans/${duplicate.body.id}/items/${duplicateItems[0].id}`,
+      ),
+    )
+      .send({ term: "spring", academicYear: 2026 })
+      .expect(200);
+
+    const source = await asA(request(app).get(`/api/plans/${sourceId}`)).expect(200);
+    const copied = await asA(request(app).get(`/api/plans/${duplicate.body.id}`)).expect(200);
+    expect(source.body.programs.additionalMajors).toEqual(["MATH"]);
+    expect(copied.body.programs.additionalMajors).toEqual(["MATH", "ECEN"]);
+    expect(source.body.items.find((i: any) => i.id === item.id).term).toBe("winter");
+    expect(copied.body.items[0].term).toBe("spring");
+
+    await asA(request(app).delete(`/api/plans/${duplicate.body.id}`)).expect(204);
+    await asA(request(app).delete(`/api/plans/${sourceId}/items/${item.id}`)).expect(204);
+  });
 });
 
 describe("promote", () => {
@@ -318,6 +364,156 @@ describe("items: moves reindex both terms contiguously", () => {
     expect(after.map((i) => [i.id, i.position])).toEqual([
       [f3.id, 0],
       [f1.id, 1],
+    ]);
+
+    for (const i of await getItems(id)) {
+      await asA(request(app).delete(`/api/plans/${id}/items/${i.id}`)).expect(204);
+    }
+  });
+});
+
+describe("completed-before-plan bucket", () => {
+  it("keeps completion provenance when copying or duplicating a plan", async () => {
+    const degreeId = await degreePlanId(USER_A);
+    await asA(request(app).post(`/api/plans/${degreeId}/items`))
+      .send({
+        itemType: "course",
+        courseCode: C1,
+        term: "fall",
+        academicYear: 2026,
+        bucket: "completed",
+        completionSource: "transfer_credit",
+        provenance: "student_asserted",
+      })
+      .expect(201);
+
+    const copied = await asA(request(app).post("/api/plans"))
+      .send({ name: "Copied provenance", copyFromPlanId: degreeId })
+      .expect(201);
+    const duplicated = await asA(
+      request(app).post(`/api/plans/${copied.body.id}/duplicate`),
+    )
+      .send({ name: "Duplicated provenance" })
+      .expect(201);
+
+    for (const planId of [copied.body.id, duplicated.body.id]) {
+      const completed = (await getItems(planId)).find(
+        (item) => item.courseCode === C1 && item.bucket === "completed",
+      );
+      expect(completed?.completionSource).toBe("transfer_credit");
+      expect(completed?.provenance).toBe("student_asserted");
+    }
+  });
+  it("accepts every explicit student-asserted provenance without changing another user's plan", async () => {
+    const aId = await degreePlanId(USER_A);
+    const bId = await degreePlanId(USER_B);
+    const sources = [
+      "prior_to_scu",
+      "transfer_credit",
+      "ap_ib_test_credit",
+      "previously_completed_scu",
+      "other_institution",
+      "manually_marked",
+    ];
+    const codes = [C1, C2, C3];
+    for (const [index, source] of sources.entries()) {
+      const created = await asA(request(app).post(`/api/plans/${aId}/items`))
+        .send({
+          itemType: "course",
+          courseCode: codes[index % codes.length],
+          term: "fall",
+          academicYear: 2026,
+          bucket: "completed",
+          completionSource: source,
+          allowDuplicate: true,
+        })
+        .expect(201);
+      expect(created.body.completionSource).toBe(source);
+    }
+    expect((await getItems(bId, USER_B)).filter((item) => item.bucket === "completed")).toHaveLength(0);
+    for (const item of await getItems(aId)) {
+      await asA(request(app).delete(`/api/plans/${aId}/items/${item.id}`)).expect(204);
+    }
+  });
+  it("requires a valid completion source and rejects sources on planned items", async () => {
+    const id = await degreePlanId(USER_A);
+    await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C1, term: "fall", academicYear: 2026, bucket: "completed" })
+      .expect(400);
+    await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C1, term: "fall", academicYear: 2026, bucket: "completed", completionSource: "made_up" })
+      .expect(400);
+    await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C1, term: "fall", academicYear: 2026, completionSource: "transfer_credit" })
+      .expect(400);
+  });
+
+  it("adds, moves to a term (clearing provenance), and marks completed again", async () => {
+    const id = await degreePlanId(USER_A);
+    const created = await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({
+        itemType: "course",
+        courseCode: C1,
+        term: "fall",
+        academicYear: 2026,
+        bucket: "completed",
+        completionSource: "ap_ib_test_credit",
+      })
+      .expect(201);
+    expect(created.body.bucket).toBe("completed");
+    expect(created.body.completionSource).toBe("ap_ib_test_credit");
+
+    // Move into a real term: becomes planned, provenance cleared.
+    const planned = await asA(request(app).patch(`/api/plans/${id}/items/${created.body.id}`))
+      .send({ bucket: "planned", term: "winter", academicYear: 2027 })
+      .expect(200);
+    expect(planned.body.bucket).toBe("planned");
+    expect(planned.body.completionSource).toBeNull();
+    expect(planned.body.term).toBe("winter");
+
+    // Mark completed again with a different source.
+    const back = await asA(request(app).patch(`/api/plans/${id}/items/${created.body.id}`))
+      .send({ bucket: "completed", completionSource: "manually_marked" })
+      .expect(200);
+    expect(back.body.bucket).toBe("completed");
+    expect(back.body.completionSource).toBe("manually_marked");
+
+    // Moving to completed without any source fails validation on a planned item.
+    const other = await addCourse(id, C2, "spring", 2027);
+    await asA(request(app).patch(`/api/plans/${id}/items/${other.id}`))
+      .send({ bucket: "completed" })
+      .expect(400);
+
+    for (const i of await getItems(id)) {
+      await asA(request(app).delete(`/api/plans/${id}/items/${i.id}`)).expect(204);
+    }
+  });
+
+  it("keeps the completed group and term groups reindexed independently", async () => {
+    const id = await degreePlanId(USER_A);
+    const c1 = await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C1, term: "fall", academicYear: 2026, bucket: "completed", completionSource: "transfer_credit" })
+      .expect(201);
+    const c2 = await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C2, term: "fall", academicYear: 2026, bucket: "completed", completionSource: "prior_to_scu" })
+      .expect(201);
+    expect([c1.body.position, c2.body.position]).toEqual([0, 1]);
+
+    const f1 = await addCourse(id, C3, "fall", 2026);
+    // Planned fall group starts at 0 independently of the completed group.
+    expect(f1.position).toBe(0);
+
+    // Move planned item into completed at position 0; completed reindexes.
+    await asA(request(app).patch(`/api/plans/${id}/items/${f1.id}`))
+      .send({ bucket: "completed", completionSource: "manually_marked", position: 0 })
+      .expect(200);
+    const completed = (await getItems(id))
+      .filter((i) => i.bucket === "completed")
+      .sort((a, b) => a.position - b.position);
+    expect(completed.map((i) => [i.id, i.position])).toEqual([
+      [f1.id, 0],
+      [c1.body.id, 1],
+      [c2.body.id, 2],
     ]);
 
     for (const i of await getItems(id)) {

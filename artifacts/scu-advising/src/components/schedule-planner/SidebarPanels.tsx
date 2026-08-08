@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, Briefcase, FileText } from "lucide-react";
 import { useScheduleWorkspace } from "./useScheduleWorkspace";
@@ -7,8 +7,24 @@ import { AdvancedSearchPanel } from "./AdvancedSearchPanel";
 import { RegistrationSummary } from "./RegistrationSummary";
 import { CommitmentsPanel } from "./CommitmentsPanel";
 
-export function SidebarPanels({ workspace }: { workspace: ReturnType<typeof useScheduleWorkspace> }) {
+export function SidebarPanels({
+  workspace,
+  initialCourse,
+  onInitialCourseConsumed,
+}: {
+  workspace: ReturnType<typeof useScheduleWorkspace>;
+  /** Pre-select a course in Quick Add (from intentions panel) */
+  initialCourse?: string | null;
+  onInitialCourseConsumed?: () => void;
+}) {
   const [activeTab, setActiveTab] = useState("quick-add");
+
+  // When a course is pushed from the intentions panel, switch to the quick-add tab
+  useEffect(() => {
+    if (initialCourse) {
+      setActiveTab("quick-add");
+    }
+  }, [initialCourse]);
 
   return (
     <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm overflow-hidden cv-card-hover">
@@ -32,7 +48,11 @@ export function SidebarPanels({ workspace }: { workspace: ReturnType<typeof useS
 
         <div className="flex-1 overflow-y-auto p-4">
           <TabsContent value="quick-add" className="m-0 h-full focus-visible:outline-none">
-            <QuickAddSearch workspace={workspace} />
+            <QuickAddSearch
+              workspace={workspace}
+              initialCourse={initialCourse}
+              onInitialCourseConsumed={onInitialCourseConsumed}
+            />
           </TabsContent>
           <TabsContent value="advanced" className="m-0 h-full focus-visible:outline-none">
             <AdvancedSearchPanel workspace={workspace} />

@@ -6,6 +6,7 @@ import {
   timestamp,
   numeric,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -23,6 +24,23 @@ export const academicPlansTable = pgTable(
     name: text("name").notNull(),
     planType: text("plan_type").notNull(), // "degree" | "tentative"
     sourcePlanId: integer("source_plan_id"),
+    // Plan-scoped display and scenario settings. These deliberately live with
+    // the plan, so tentative drafts can explore extra years independently of
+    // the official Degree Plan.
+    metadata: jsonb("metadata")
+      .$type<{
+        addedYears?: number[];
+        summerYears?: number[];
+        scenarioMajors?: string[];
+        scenarioMinors?: string[];
+      }>()
+      .notNull()
+      .default({}),
+    /**
+     * Optional program selections: { additionalMajors, minors, professionalGoals }
+     * professionalGoals are free-text labels only (no invented requirements).
+     */
+    programs: jsonb("programs"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -38,6 +56,9 @@ export const academicPlansTable = pgTable(
  * Items placed in a plan term: either a real catalog course or a
  * requirement placeholder ("I need to satisfy Religion in Winter").
  * academicYear is the START year of the academic year (2026 = 2026–2027).
+ *
+ * Special term value "completed" (with academicYear=0) represents coursework
+ * completed before the plan started. Placeholders are NOT allowed there.
  */
 export const planItemsTable = pgTable(
   "plan_items",
@@ -52,7 +73,20 @@ export const planItemsTable = pgTable(
     requirementCategory: text("requirement_category"),
     requirementLabel: text("requirement_label"),
     academicYear: integer("academic_year").notNull(),
-    term: text("term").notNull(), // fall | winter | spring | summer
+    term: text("term").notNull(), // fall | winter | spring | summer | completed
+    // Where the item lives: "planned" (a real term column) or "completed"
+    // (the Completed Before Current Plan area; academicYear/term are ignored
+    // for display but retained for history).
+    bucket: text("bucket").notNull().default("planned"),
+    // Provenance for completed items. One of: prior_to_scu | transfer_credit |
+    // ap_ib_test_credit | previously_completed_scu | other_institution |
+    // manually_marked. Null for planned items.
+    completionSource: text("completion_source"),
+    /**
+     * Provenance of this item: "student_asserted" (added manually by the student)
+     * or "report_imported" (imported from a progress report).
+     */
+    provenance: text("provenance"), // "student_asserted" | "report_imported" | null
     position: integer("position").notNull().default(0),
     note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true })

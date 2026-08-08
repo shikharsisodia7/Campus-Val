@@ -26,8 +26,10 @@ import { sql } from "drizzle-orm";
 const router: IRouter = Router();
 
 const TERMS = new Set(["fall", "winter", "spring", "summer"]);
+const PLAN_TERMS = new Set(["fall", "winter", "spring", "summer", "completed"]);
 const MIN_ACADEMIC_YEAR = 2000;
 const MAX_ACADEMIC_YEAR = 2100;
+const COMPLETED_YEAR = 0; // academicYear used for the "completed" term bucket
 
 function validAcademicYear(y: unknown): y is number {
   return (
@@ -39,6 +41,83 @@ function validAcademicYear(y: unknown): y is number {
 }
 const TERM_ORDER: Record<string, number> = { fall: 0, winter: 1, spring: 2, summer: 3 };
 
+const COMPLETION_SOURCES = new Set([
+  "prior_to_scu",
+  "transfer_credit",
+  "ap_ib_test_credit",
+  "previously_completed_scu",
+  "other_institution",
+  "manually_marked",
+]);
+
+const COMPLETION_SOURCE_LABELS: Record<string, string> = {
+  prior_to_scu: "Prior to SCU",
+  transfer_credit: "Transfer Credit",
+  ap_ib_test_credit: "AP/IB/Test Credit",
+  previously_completed_scu: "Previously Completed at SCU",
+  other_institution: "Other Institution",
+  manually_marked: "Manually Marked Completed",
+};
+
+const MAX_PROGRAMS_ENTRIES = 8;
+const MAX_PROGRAM_LABEL_LEN = 50;
+
+type PlanPrograms = {
+  additionalMajors: string[];
+  minors: string[];
+  professionalGoals: string[];
+};
+
+function validatePrograms(raw: unknown): { ok: true; value: PlanPrograms } | { ok: false; error: string } {
+  if (raw === null || raw === undefined) {
+    return { ok: true, value: { additionalMajors: [], minors: [], professionalGoals: [] } };
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, error: "programs must be an object." };
+  }
+  const obj = raw as Record<string, unknown>;
+
+  function validateArray(key: keyof PlanPrograms): string[] | string {
+    const arr = obj[key];
+    if (arr === undefined || arr === null) return [];
+    if (!Array.isArray(arr)) return `programs.${key} must be an array.`;
+    if (arr.length > MAX_PROGRAMS_ENTRIES)
+      return `programs.${key} must have at most ${MAX_PROGRAMS_ENTRIES} entries.`;
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const item of arr) {
+      if (typeof item !== "string") return `programs.${key} must contain only strings.`;
+      const trimmed = item.trim();
+      if (trimmed.length === 0) return `programs.${key} must not contain empty strings.`;
+      if (trimmed.length > MAX_PROGRAM_LABEL_LEN)
+        return `programs.${key} entries must not exceed ${MAX_PROGRAM_LABEL_LEN} characters.`;
+      const lower = trimmed.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        result.push(trimmed);
+      }
+    }
+    return result;
+  }
+
+  const majorsResult = validateArray("additionalMajors");
+  if (typeof majorsResult === "string") return { ok: false, error: majorsResult };
+  const minorsResult = validateArray("minors");
+  if (typeof minorsResult === "string") return { ok: false, error: minorsResult };
+  const goalsResult = validateArray("professionalGoals");
+  if (typeof goalsResult === "string") return { ok: false, error: goalsResult };
+
+  return {
+    ok: true,
+    value: {
+      additionalMajors: majorsResult,
+      minors: minorsResult,
+      professionalGoals: goalsResult,
+    },
+  };
+}
+
+
 function normalizeCode(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, " ");
 }
@@ -49,6 +128,8 @@ function planDto(row: AcademicPlanRow, itemCount: number) {
     name: row.name,
     planType: row.planType as "degree" | "tentative",
     sourcePlanId: row.sourcePlanId ?? null,
+    metadata: row.metadata ?? {},
+    programs: row.programs ?? null,
     itemCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -67,10 +148,33 @@ function itemDto(row: PlanItemRow) {
     requirementCategory: row.requirementCategory ?? null,
     requirementLabel: row.requirementLabel ?? null,
     academicYear: row.academicYear,
-    term: row.term as "fall" | "winter" | "spring" | "summer",
+    term: row.term as "fall" | "winter" | "spring" | "summer" | "completed",
+    bucket: (row.bucket ?? "planned") as "planned" | "completed",
+    completionSource: row.completionSource ?? null,
     position: row.position,
     note: row.note ?? null,
+    provenance: row.provenance ?? null,
   };
+}
+
+/**
+ * Validate bucket/completionSource pairing. Completed items must carry a
+ * provenance source; planned items must not.
+ */
+function bucketError(
+  bucket: string | undefined,
+  completionSource: string | null | undefined,
+): string | null {
+  const b = bucket ?? "planned";
+  if (b !== "planned" && b !== "completed") return "Invalid bucket.";
+  if (b === "completed") {
+    if (!completionSource || !COMPLETION_SOURCES.has(completionSource)) {
+      return "Completed items need a valid completion source (how it was completed).";
+    }
+  } else if (completionSource) {
+    return "Only completed items can carry a completion source.";
+  }
+  return null;
 }
 
 /** Load a plan and verify the requesting user owns it. */
@@ -119,6 +223,9 @@ async function copyItems(fromPlanId: number, toPlanId: number): Promise<void> {
       requirementLabel: i.requirementLabel,
       academicYear: i.academicYear,
       term: i.term,
+      bucket: i.bucket,
+      completionSource: i.completionSource,
+      provenance: i.provenance,
       position: i.position,
       note: i.note,
     })),
@@ -189,9 +296,18 @@ router.post("/plans", requireAuth, async (req, res) => {
     sourcePlanId = source.id;
   }
 
+  const sourcePlan = sourcePlanId !== null ? await ownedPlan(sourcePlanId, userId) : null;
   const [created] = await db
     .insert(academicPlansTable)
-    .values({ userId, name: name.trim(), planType: "tentative", sourcePlanId })
+    .values({
+      userId,
+      name: name.trim(),
+      planType: "tentative",
+      sourcePlanId,
+      metadata: sourcePlan?.metadata ?? {},
+      // Plan-scoped programs travel with the scenario copy.
+      programs: sourcePlan?.programs ?? { additionalMajors: [], minors: [], professionalGoals: [] },
+    })
     .returning();
   if (sourcePlanId !== null) await copyItems(sourcePlanId, created!.id);
   const items = await itemsOf(created!.id);
@@ -207,6 +323,8 @@ router.get("/plans/:id", requireAuth, async (req, res) => {
     name: plan.name,
     planType: plan.planType,
     sourcePlanId: plan.sourcePlanId ?? null,
+    metadata: plan.metadata ?? {},
+    programs: plan.programs ?? null,
     items: items.map(itemDto),
     createdAt: plan.createdAt.toISOString(),
     updatedAt: plan.updatedAt.toISOString(),
@@ -215,14 +333,64 @@ router.get("/plans/:id", requireAuth, async (req, res) => {
 
 router.patch("/plans/:id", requireAuth, async (req, res) => {
   const parsed = UpdatePlanBody.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Enter a plan name (1–80 characters)." });
+  if (
+    !parsed.success ||
+    (!parsed.data.name && !parsed.data.metadata && !("programs" in req.body))
+  ) {
+    return res.status(400).json({ error: "Provide a valid plan name, plan settings, or programs." });
   }
   const plan = await ownedPlan(Number(req.params.id), req.userId!);
   if (!plan) return res.status(404).json({ error: "Plan not found." });
+
+  const updateSet: Record<string, unknown> = {};
+
+  // Validate and persist programs if provided
+  if ("programs" in req.body) {
+    const programsValidation = validatePrograms(req.body.programs);
+    if (!programsValidation.ok) {
+      return res.status(400).json({ error: programsValidation.error });
+    }
+    updateSet.programs = programsValidation.value;
+  }
+
   const [updated] = await db
     .update(academicPlansTable)
-    .set({ name: parsed.data.name.trim() })
+    .set({
+      ...(parsed.data.name ? { name: parsed.data.name.trim() } : {}),
+      ...(parsed.data.metadata
+        ? {
+            metadata: {
+              addedYears: Array.from(
+                new Set(
+                  (parsed.data.metadata.addedYears ?? []).filter(validAcademicYear),
+                ),
+              ).sort((a, b) => a - b),
+              summerYears: Array.from(
+                new Set(
+                  (parsed.data.metadata.summerYears ?? []).filter(validAcademicYear),
+                ),
+              ).sort((a, b) => a - b),
+              scenarioMajors: Array.from(
+                new Set(
+                  (parsed.data.metadata.scenarioMajors ?? [])
+                    .map((value) => value.trim())
+                    .filter((value) => value.length > 0)
+                    .map((value) => value.slice(0, 120)),
+                ),
+              ),
+              scenarioMinors: Array.from(
+                new Set(
+                  (parsed.data.metadata.scenarioMinors ?? [])
+                    .map((value) => value.trim())
+                    .filter((value) => value.length > 0)
+                    .map((value) => value.slice(0, 120)),
+                ),
+              ),
+            },
+          }
+        : {}),
+      ...(updateSet.programs !== undefined ? { programs: updateSet.programs } : {}),
+    })
     .where(eq(academicPlansTable.id, plan.id))
     .returning();
   const items = await itemsOf(plan.id);
@@ -256,6 +424,8 @@ router.post("/plans/:id/duplicate", requireAuth, async (req, res) => {
       name: parsed.data.name.trim(),
       planType: "tentative",
       sourcePlanId: plan.id,
+      metadata: plan.metadata ?? {},
+      programs: plan.programs ?? { additionalMajors: [], minors: [], professionalGoals: [] },
     })
     .returning();
   await copyItems(plan.id, created!.id);
@@ -311,12 +481,45 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "Invalid plan item." });
   }
   const body = parsed.data;
-  if (!TERMS.has(body.term)) {
+
+  // Allow "completed" as a valid plan-item term (not in scheduling TERMS)
+  const termValue = body.term as string;
+  if (!PLAN_TERMS.has(termValue)) {
     return res.status(400).json({ error: "Invalid term." });
   }
-  if (!validAcademicYear(body.academicYear)) {
-    return res.status(400).json({ error: "Invalid academic year." });
+
+  const isCompletedTerm = termValue === "completed";
+
+  // Validate bucket/completionSource pairing when the bucket API is used.
+  if (
+    body.bucket !== undefined ||
+    (body.completionSource != null && !isCompletedTerm)
+  ) {
+    const addBucketErr = bucketError(body.bucket, body.completionSource ?? null);
+    if (addBucketErr) return res.status(400).json({ error: addBucketErr });
   }
+
+  // "completed" term requires academicYear=0
+  if (isCompletedTerm) {
+    if (body.academicYear !== COMPLETED_YEAR) {
+      return res.status(400).json({
+        error: "Items in the 'completed' area must use academicYear=0.",
+      });
+    }
+  } else {
+    if (!validAcademicYear(body.academicYear)) {
+      return res.status(400).json({ error: "Invalid academic year." });
+    }
+  }
+
+  // Placeholders are not allowed in the completed area
+  if (isCompletedTerm && body.itemType === "requirement_placeholder") {
+    return res.status(400).json({
+      error: "Requirement placeholders are not allowed in the 'completed' area.",
+    });
+  }
+
+
   const plan = await ownedPlan(Number(req.params.id), req.userId!);
   if (!plan) return res.status(404).json({ error: "Plan not found." });
 
@@ -349,6 +552,11 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
         });
       }
     }
+
+    // Default provenance to "student_asserted" when adding to completed area
+    const provenance: string = (body as any).provenance ??
+      (isCompletedTerm ? "student_asserted" : "student_asserted");
+
     values = {
       planId: plan.id,
       itemType: "course",
@@ -356,8 +564,9 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
       courseTitle: course.title,
       units: String(course.units),
       academicYear: body.academicYear,
-      term: body.term,
+      term: termValue,
       note: body.note ?? null,
+      provenance,
       position: 0,
     };
   } else {
@@ -373,23 +582,43 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
       requirementCategory: body.requirementCategory ?? null,
       requirementLabel: body.requirementLabel,
       academicYear: body.academicYear,
-      term: body.term,
+      term: termValue,
       note: body.note ?? null,
+      provenance: (body as any).provenance ?? "student_asserted",
       position: 0,
     };
   }
 
-  // Append at the end of the target term.
+  values.bucket = body.bucket ?? (isCompletedTerm ? "completed" : "planned");
+  values.completionSource =
+    values.bucket === "completed"
+      ? (body.completionSource ?? (isCompletedTerm ? "manually_marked" : null))
+      : null;
+  // Canonical completed representation: completed items always live in
+  // term="completed" / academicYear=0 with bucket="completed" and a source.
+  if (values.bucket === "completed") {
+    values.term = "completed";
+    values.academicYear = COMPLETED_YEAR;
+  }
+
+  // Append at the end of the target group. Completed items form a single
+  // group regardless of year/term; planned items group per year+term.
+  const groupWhere =
+    values.bucket === "completed"
+      ? and(
+          eq(planItemsTable.planId, plan.id),
+          eq(planItemsTable.bucket, "completed"),
+        )
+      : and(
+          eq(planItemsTable.planId, plan.id),
+          eq(planItemsTable.bucket, "planned"),
+          eq(planItemsTable.academicYear, values.academicYear),
+          eq(planItemsTable.term, values.term),
+        );
   const [{ max }] = (await db
     .select({ max: sql<number>`coalesce(max(${planItemsTable.position}), -1)::int` })
     .from(planItemsTable)
-    .where(
-      and(
-        eq(planItemsTable.planId, plan.id),
-        eq(planItemsTable.academicYear, values.academicYear),
-        eq(planItemsTable.term, values.term),
-      ),
-    )) as [{ max: number }];
+    .where(groupWhere)) as [{ max: number }];
   values.position = max + 1;
 
   const [created] = await db.insert(planItemsTable).values(values).returning();
@@ -397,16 +626,128 @@ router.post("/plans/:id/items", requireAuth, async (req, res) => {
   res.status(201).json(itemDto(created!));
 });
 
+// ---------------------------------------------------------------------------
+// Bulk import from progress report
+// ---------------------------------------------------------------------------
+
+router.post("/plans/:id/items/bulk-import", requireAuth, async (req, res) => {
+  const plan = await ownedPlan(Number(req.params.id), req.userId!);
+  if (!plan) return res.status(404).json({ error: "Plan not found." });
+
+  const { courseCodes } = req.body;
+  if (!Array.isArray(courseCodes) || courseCodes.length === 0) {
+    return res.status(400).json({ error: "Provide at least one course code." });
+  }
+  if (courseCodes.length > 50) {
+    return res.status(400).json({ error: "At most 50 courses can be imported at once." });
+  }
+  if (courseCodes.some((c: unknown) => typeof c !== "string")) {
+    return res.status(400).json({ error: "All course codes must be strings." });
+  }
+
+  const normalized: string[] = (courseCodes as string[]).map(normalizeCode);
+
+  const invalidCodes: string[] = [];
+  const validCourses: Array<{ code: string; title: string; units: number }> = [];
+  for (const code of normalized) {
+    const course = findCourse(code);
+    if (course) {
+      validCourses.push({ code: course.code, title: course.title, units: course.units });
+    } else {
+      invalidCodes.push(code);
+    }
+  }
+  if (invalidCodes.length > 0) {
+    return res.status(400).json({
+      error: `Not in the SCU catalog: ${invalidCodes.join(", ")}.`,
+    });
+  }
+
+  // Find courses already present anywhere in this plan
+  const existing = await db
+    .select({ courseCode: planItemsTable.courseCode })
+    .from(planItemsTable)
+    .where(eq(planItemsTable.planId, plan.id));
+  const existingCodes = new Set(
+    existing.map((e) => e.courseCode?.toUpperCase()).filter(Boolean),
+  );
+
+  const toAdd = validCourses.filter((c) => !existingCodes.has(c.code.toUpperCase()));
+  const skipped = validCourses
+    .filter((c) => existingCodes.has(c.code.toUpperCase()))
+    .map((c) => c.code);
+
+  // Determine starting position in the completed bucket
+  const [{ maxPos }] = (await db
+    .select({
+      maxPos: sql<number>`coalesce(max(${planItemsTable.position}), -1)::int`,
+    })
+    .from(planItemsTable)
+    .where(
+      and(eq(planItemsTable.planId, plan.id), eq(planItemsTable.bucket, "completed")),
+    )) as [{ maxPos: number }];
+
+  const added: PlanItemRow[] = [];
+  let nextPosition = maxPos + 1;
+  for (const course of toAdd) {
+    const [created] = await db
+      .insert(planItemsTable)
+      .values({
+        planId: plan.id,
+        itemType: "course",
+        courseCode: course.code,
+        courseTitle: course.title,
+        units: String(course.units),
+        academicYear: COMPLETED_YEAR,
+        term: "completed",
+        bucket: "completed",
+        completionSource: "previously_completed_scu",
+        provenance: "report_imported",
+        position: nextPosition++,
+      })
+      .returning();
+    added.push(created!);
+  }
+
+  if (added.length > 0) {
+    await touchPlan(plan.id);
+  }
+
+  res.status(201).json({ added: added.map(itemDto), skipped });
+});
+
 router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
   const parsed = UpdatePlanItemBody.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid update." });
   const body = parsed.data;
-  if (body.term !== undefined && !TERMS.has(body.term)) {
+  const newTermRaw = body.term as string | undefined;
+  if (newTermRaw !== undefined && !PLAN_TERMS.has(newTermRaw)) {
     return res.status(400).json({ error: "Invalid term." });
   }
-  if (body.academicYear !== undefined && !validAcademicYear(body.academicYear)) {
-    return res.status(400).json({ error: "Invalid academic year." });
+  const movingToCompleted = newTermRaw === "completed";
+  const movingFromCompleted = newTermRaw !== undefined && newTermRaw !== "completed";
+
+  if (movingToCompleted) {
+    // When moving to "completed", academicYear must be 0
+    if (body.academicYear !== undefined && body.academicYear !== COMPLETED_YEAR) {
+      return res.status(400).json({
+        error: "Items in the 'completed' area must use academicYear=0.",
+      });
+    }
+  } else if (!movingToCompleted && newTermRaw !== undefined) {
+    // Moving out of completed or to a regular term
+    if (body.academicYear !== undefined && !validAcademicYear(body.academicYear)) {
+      return res.status(400).json({ error: "Invalid academic year." });
+    }
+  } else if (body.academicYear !== undefined) {
+    // No term change, just year change
+    if (body.academicYear === COMPLETED_YEAR) {
+      // Only valid for the completed term
+    } else if (!validAcademicYear(body.academicYear)) {
+      return res.status(400).json({ error: "Invalid academic year." });
+    }
   }
+
   if (
     body.position !== undefined &&
     (!Number.isInteger(body.position) || body.position < 0)
@@ -418,15 +759,77 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
   const item = await ownedItem(plan.id, Number(req.params.itemId));
   if (!item) return res.status(404).json({ error: "Plan item not found." });
 
-  const targetYear = body.academicYear ?? item.academicYear;
-  const targetTerm = body.term ?? item.term;
+  // Prevent moving placeholders into the completed area
+  if (movingToCompleted && item.itemType === "requirement_placeholder") {
+    return res.status(400).json({
+      error: "Requirement placeholders are not allowed in the 'completed' area.",
+    });
+  }
+
+  // Determine target academicYear: moving to completed → 0
+  const targetYear = movingToCompleted
+    ? COMPLETED_YEAR
+    : (body.academicYear ?? item.academicYear);
+  const targetTerm = (body.term as string | undefined) ?? item.term;
+  const itemBucket = (item.bucket ?? "planned") as "planned" | "completed";
+  const explicitBucket = body.bucket as "planned" | "completed" | undefined;
+  const targetBucket =
+    explicitBucket ??
+    (movingToCompleted ? "completed" : movingFromCompleted ? "planned" : itemBucket);
+  let targetSource =
+    body.completionSource !== undefined
+      ? body.completionSource
+      : targetBucket === "completed"
+        ? item.completionSource
+        : null;
+  // Strict pairing validation when the bucket API is used explicitly;
+  // term-based moves to the completed area default the source instead.
+  if (explicitBucket !== undefined || body.completionSource !== undefined) {
+    const moveBucketErr = bucketError(targetBucket, targetSource ?? null);
+    if (moveBucketErr) return res.status(400).json({ error: moveBucketErr });
+  } else if (targetBucket === "completed" && !targetSource) {
+    targetSource = "manually_marked";
+  }
+  // Canonical completed representation: resolve bucket/term/year atomically.
+  let resolvedTerm = targetTerm;
+  let resolvedYear = targetYear;
+  if (targetBucket === "completed") {
+    resolvedTerm = "completed";
+    resolvedYear = COMPLETED_YEAR;
+  } else if (resolvedTerm === "completed") {
+    // Moving out of the completed bucket requires a real destination term.
+    return res.status(400).json({
+      error: "Specify a destination term and academicYear when moving an item out of the completed area.",
+    });
+  } else if (!validAcademicYear(resolvedYear)) {
+    return res.status(400).json({ error: "Invalid academic year." });
+  }
+  const bucketChanged = targetBucket !== itemBucket;
   const termChanged =
-    targetYear !== item.academicYear || targetTerm !== item.term;
+    !bucketChanged &&
+    targetBucket === "planned" &&
+    (resolvedYear !== item.academicYear || resolvedTerm !== item.term);
   const positionChanged = body.position !== undefined;
 
+  /** Group an item belongs to for ordering: completed is one flat group. */
+  const groupKey = (i: {
+    bucket: string | null;
+    academicYear: number;
+    term: string;
+  }) =>
+    (i.bucket ?? "planned") === "completed"
+      ? "completed"
+      : `planned:${i.academicYear}:${i.term}`;
+  const targetGroupKey =
+    targetBucket === "completed"
+      ? "completed"
+      : `planned:${resolvedYear}:${resolvedTerm}`;
+  const sourceGroupKey = groupKey(item);
+  const groupMoved = bucketChanged || termChanged;
+
   let updated: PlanItemRow;
-  if (termChanged || positionChanged) {
-    // Move with deterministic, contiguous reindexing of both affected terms.
+  if (groupMoved || positionChanged) {
+    // Move with deterministic, contiguous reindexing of both affected groups.
     updated = await db.transaction(async (tx) => {
       const all = await tx
         .select()
@@ -435,10 +838,7 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
         .orderBy(asc(planItemsTable.position), asc(planItemsTable.id));
 
       const target = all.filter(
-        (i) =>
-          i.id !== item.id &&
-          i.academicYear === targetYear &&
-          i.term === targetTerm,
+        (i) => i.id !== item.id && groupKey(i) === targetGroupKey,
       );
       const insertAt = Math.min(
         Math.max(body.position ?? target.length, 0),
@@ -446,16 +846,20 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
       );
       target.splice(insertAt, 0, item);
 
-      // Reindex target term.
+      // Reindex target group.
       for (let idx = 0; idx < target.length; idx++) {
         const t = target[idx]!;
         const patch: Partial<typeof planItemsTable.$inferInsert> = {
           position: idx,
         };
         if (t.id === item.id) {
-          patch.academicYear = targetYear;
-          patch.term = targetTerm;
+          patch.academicYear = resolvedYear;
+          patch.term = resolvedTerm;
+          patch.bucket = targetBucket;
+          patch.completionSource =
+            targetBucket === "completed" ? targetSource : null;
           if (body.note !== undefined) patch.note = body.note;
+          if ((body as any).provenance !== undefined) patch.provenance = (body as any).provenance;
         }
         await tx
           .update(planItemsTable)
@@ -463,13 +867,10 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
           .where(eq(planItemsTable.id, t.id));
       }
 
-      // Reindex the source term the item left, closing any gap.
-      if (termChanged) {
+      // Reindex the source group the item left, closing any gap.
+      if (groupMoved) {
         const source = all.filter(
-          (i) =>
-            i.id !== item.id &&
-            i.academicYear === item.academicYear &&
-            i.term === item.term,
+          (i) => i.id !== item.id && groupKey(i) === sourceGroupKey,
         );
         for (let idx = 0; idx < source.length; idx++) {
           if (source[idx]!.position !== idx) {
@@ -491,6 +892,13 @@ router.patch("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
   } else {
     const patch: Partial<typeof planItemsTable.$inferInsert> = {};
     if (body.note !== undefined) patch.note = body.note;
+    if (
+      body.completionSource !== undefined &&
+      itemBucket === "completed"
+    ) {
+      patch.completionSource = targetSource;
+    }
+    if ((body as any).provenance !== undefined) patch.provenance = (body as any).provenance;
     if (Object.keys(patch).length === 0) {
       return res.json(itemDto(item));
     }
@@ -600,7 +1008,7 @@ router.get("/plans/:id/export", requireAuth, async (req, res) => {
 
   ws.columns = [
     { header: "Academic Year", key: "year", width: 14 },
-    { header: "Term", key: "term", width: 10 },
+    { header: "Term", key: "term", width: 18 },
     { header: "Item Type", key: "type", width: 22 },
     { header: "Course Code", key: "code", width: 14 },
     { header: "Course Title / Requirement", key: "title", width: 48 },
@@ -639,20 +1047,31 @@ router.get("/plans/:id/export", requireAuth, async (req, res) => {
     ws.getRow(r).getCell(4).font = { bold: true };
   }
 
+  // Completed-before-plan items first (with provenance), then planned terms.
+  const isCompleted = (i: PlanItemRow) => (i.bucket ?? "planned") === "completed";
   const sorted = [...items].sort(
     (a, b) =>
+      Number(isCompleted(b)) - Number(isCompleted(a)) ||
       a.academicYear - b.academicYear ||
       (TERM_ORDER[a.term] ?? 9) - (TERM_ORDER[b.term] ?? 9) ||
       a.position - b.position,
   );
   let lastKey = "";
   for (const item of sorted) {
-    const key = `${item.academicYear}-${item.term}`;
+    const completedItem = isCompleted(item);
+    const key = completedItem
+      ? "completed"
+      : `${item.academicYear}-${item.term}`;
     const isNewGroup = key !== lastKey;
     lastKey = key;
     const row = ws.addRow({
-      year: `${item.academicYear}–${item.academicYear + 1}`,
-      term: item.term.charAt(0).toUpperCase() + item.term.slice(1),
+      year: completedItem
+        ? "Completed / Prior"
+        : `${item.academicYear}–${item.academicYear + 1}`,
+      term: completedItem
+        ? (COMPLETION_SOURCE_LABELS[item.completionSource ?? ""] ??
+          "Completed (source unspecified)")
+        : item.term.charAt(0).toUpperCase() + item.term.slice(1),
       type:
         item.itemType === "course" ? "Course" : "Requirement Placeholder",
       code: item.itemType === "course" ? (item.courseCode ?? "") : "",

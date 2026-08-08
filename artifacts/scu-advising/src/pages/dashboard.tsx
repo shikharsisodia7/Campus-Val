@@ -169,7 +169,11 @@ export default function Dashboard() {
             icon={<Award className="h-5 w-5" />}
             label="Next-term unit cap"
             primary={`${summary.unitCapNextTerm} units`}
-            secondary={summary.canOverloadNextTerm ? "Overload-eligible" : "Standard load"}
+            secondary={
+              summary.canOverloadNextTerm
+                ? "May qualify — approval required"
+                : "Standard load — verify exceptions"
+            }
           />
         </div>
 

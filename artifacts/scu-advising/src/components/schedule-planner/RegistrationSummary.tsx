@@ -1,3 +1,4 @@
+import { WORKDAY_STUDENT_URL } from "@/lib/workday";
 import { useScheduleWorkspace } from "./useScheduleWorkspace";
 import { Button } from "@/components/ui/button";
 import { Copy, ExternalLink, FileText, Trash2 } from "lucide-react";
@@ -75,7 +76,7 @@ export function RegistrationSummary({ workspace }: { workspace: ReturnType<typeo
             </div>
 
             <a 
-              href="https://www.myworkday.com/scu/d/home.htmld" 
+              href={WORKDAY_STUDENT_URL}
               target="_blank" 
               rel="noopener noreferrer"
               className="block"

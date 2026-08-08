@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { GraduationCap, BookCheck, Award } from "lucide-react";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
+import { ProgressReportSection } from "@/components/ProgressReportSection";
 
 /**
  * Persistent right-side panel summarizing the student's declared program and
@@ -123,6 +124,8 @@ export function AcademicProgress({ className }: { className?: string }) {
               </div>
             </div>
           )}
+
+          <ProgressReportSection />
         </div>
       )}
     </Card>

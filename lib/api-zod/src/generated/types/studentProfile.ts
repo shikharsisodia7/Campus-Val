@@ -11,6 +11,8 @@ import type { Term } from "./term";
 export interface StudentProfile {
   id: number;
   name: string;
+  /** Optional SCU/Workday student ID used to verify uploaded progress reports. */
+  studentId?: string | null;
   studentType: StudentType;
   /** e.g. "Arts and Sciences", "Engineering", "Business" */
   college: string;

@@ -1,6 +1,7 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   AcademicPlanDetail,
+  BulkImportPlanItemsResult,
   PlanItem,
   getGetPlanQueryKey,
   useDeletePlanItem,
@@ -114,6 +115,32 @@ export function useOptimisticUpdatePlanItem() {
       onSettled: () =>
         queryClient.invalidateQueries({ predicate: plansPredicate }),
     },
+  });
+}
+
+/** Bulk-import report-completed courses into the Completed area. */
+export function useBulkImportReportCourses() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    BulkImportPlanItemsResult,
+    Error,
+    { planId: number; courseCodes: string[] }
+  >({
+    mutationFn: async ({ planId, courseCodes }) => {
+      const res = await fetch(`/api/plans/${planId}/items/bulk-import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseCodes }),
+        credentials: "same-origin",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "Failed to import courses.");
+      }
+      return res.json() as Promise<BulkImportPlanItemsResult>;
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ predicate: plansPredicate }),
   });
 }
 

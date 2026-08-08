@@ -5,8 +5,11 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { CompletionSource } from "./completionSource";
+import type { PlanItemBucket } from "./planItemBucket";
+import type { PlanItemInputProvenance } from "./planItemInputProvenance";
 import type { PlanItemType } from "./planItemType";
-import type { Term } from "./term";
+import type { PlanTerm } from "./planTerm";
 
 export interface PlanItemInput {
   itemType: PlanItemType;
@@ -16,9 +19,14 @@ export interface PlanItemInput {
   requirementCategory?: string;
   /** Required for requirement_placeholder items. */
   requirementLabel?: string;
+  /** Use 0 with term="completed" for pre-plan coursework. */
   academicYear: number;
-  term: Term;
+  term: PlanTerm;
   note?: string;
   /** Set true to add a course already present in this plan. */
   allowDuplicate?: boolean;
+  bucket?: PlanItemBucket;
+  completionSource?: CompletionSource;
+  /** Defaults to student_asserted when adding to the completed area. */
+  provenance?: PlanItemInputProvenance;
 }

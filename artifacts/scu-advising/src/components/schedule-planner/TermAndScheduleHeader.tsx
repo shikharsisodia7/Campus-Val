@@ -29,8 +29,11 @@ import { useScheduleWorkspace } from "./useScheduleWorkspace";
 
 export function TermAndScheduleHeader({
   workspace,
+  allowedTerms,
 }: {
   workspace: ReturnType<typeof useScheduleWorkspace>;
+  /** If provided, only show terms whose `term` field is in this set. */
+  allowedTerms?: Set<string>;
 }) {
   const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
@@ -126,11 +129,11 @@ export function TermAndScheduleHeader({
   }
 
   return (
-    <div className="mb-6 space-y-4">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
+    <div className="mb-6 space-y-4 min-w-0">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 min-w-0">
+        <div className="min-w-0">
           <h1 className="font-serif text-3xl font-bold mb-2 flex items-center gap-3">
-            <CalendarRange className="h-7 w-7 text-primary" />
+            <CalendarRange className="h-7 w-7 text-primary shrink-0" />
             Schedule Planner
           </h1>
           <p className="text-muted-foreground text-sm max-w-2xl">
@@ -138,7 +141,7 @@ export function TermAndScheduleHeader({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Quarter
@@ -159,11 +162,13 @@ export function TermAndScheduleHeader({
                 <SelectValue placeholder="Select term" />
               </SelectTrigger>
               <SelectContent>
-                {workspace.availability?.terms.map((t) => (
-                  <SelectItem key={`${t.term}|${t.year}`} value={`${t.term}|${t.year}`}>
-                    {capitalize(t.term)} {t.year}
-                  </SelectItem>
-                ))}
+                {workspace.availability?.terms
+                  .filter((t) => !allowedTerms || allowedTerms.has(t.term))
+                  .map((t) => (
+                    <SelectItem key={`${t.term}|${t.year}`} value={`${t.term}|${t.year}`}>
+                      {capitalize(t.term)} {t.year}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -205,18 +210,18 @@ export function TermAndScheduleHeader({
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-b border-border pb-4">
-        <div className="flex items-center gap-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border pb-4">
+        <div className="flex items-center gap-3 text-sm min-w-0">
           {currentTermAvailability && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border">
               {currentTermAvailability.status === "published" ? (
                 <>
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                   <span>Official schedule published</span>
                 </>
               ) : (
                 <>
-                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
                   <span className="text-amber-700 font-medium">Tentative schedule (Instructors TBA)</span>
                 </>
               )}
@@ -224,7 +229,7 @@ export function TermAndScheduleHeader({
           )}
         </div>
         {workspace.activeScheduleId && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
@@ -246,7 +251,7 @@ export function TermAndScheduleHeader({
       </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Create New Schedule</DialogTitle>
           </DialogHeader>
@@ -271,7 +276,7 @@ export function TermAndScheduleHeader({
       </Dialog>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Rename Schedule</DialogTitle>
           </DialogHeader>

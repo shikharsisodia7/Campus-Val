@@ -1,30 +1,106 @@
-import { useState } from "react";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, CheckCircle2, CircleDashed, GraduationCap, Landmark, BookOpenCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlanItemType, RequirementGroupKind, RequirementItem } from "@workspace/api-client-react";
 import { useAddPlanItem } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useMemo, useState, useEffect } from "react";
+import { Search, Plus, CheckCircle2, CircleDashed, GraduationCap, Landmark, BookOpenCheck, Info } from "lucide-react";
+import { PlanItemType, RequirementItem } from "@workspace/api-client-react";
 
 const GROUP_ICONS = {
   university_core: GraduationCap,
   college: Landmark,
   major: BookOpenCheck,
+  minor: BookOpenCheck,
+  professional_prep: GraduationCap,
 };
 
+const COMPLETED_DESTINATION = "0:completed";
 export function Palette() {
   const { requirements, activePlan, catalog } = useDegreePlanContext();
   const [search, setSearch] = useState("");
+  const [destination, setDestination] = useState("2026:fall");
   const queryClient = useQueryClient();
   const addPlanItem = useAddPlanItem();
 
+  // Extra major requirement groups loaded from graduation-paths
+  const [extraMajorGroups, setExtraMajorGroups] = useState<ExtraMajorGroup[]>([]);
+
+  const planPrograms = activePlan?.programs;
+
+  // Load requirements for each additional major in the plan
+  useEffect(() => {
+    const additionalMajors = planPrograms?.additionalMajors ?? [];
+    if (additionalMajors.length === 0) {
+      setExtraMajorGroups([]);
+      return;
+    }
+
+    // Only fetch for majors not already loaded
+    setExtraMajorGroups(prev => {
+      const existing = new Map(prev.map(g => [g.majorCode, g]));
+      const next: ExtraMajorGroup[] = additionalMajors.map(code => {
+        if (existing.has(code)) return existing.get(code)!;
+        return { majorCode: code, majorTitle: code, groups: null, error: false };
+      });
+      return next;
+    });
+
+    // Fetch requirements for each
+    additionalMajors.forEach(async (code) => {
+      const result = await fetchMajorRequirements(code);
+      setExtraMajorGroups(prev =>
+        prev.map(g =>
+          g.majorCode === code
+            ? { ...g, groups: result?.groups ?? null, error: result === null }
+            : g
+        )
+      );
+    });
+  }, [planPrograms?.additionalMajors?.join(',')]);
+
+  const isCompletedDestination = destination === COMPLETED_DESTINATION;
+
+  const destinationOptions = useMemo(() => {
+    const years = new Set<number>([2026]);
+    activePlan?.items.forEach((item) => {
+      if (item.term !== 'completed') years.add(item.academicYear);
+    });
+    const lastYear = Math.max(...years);
+    years.add(lastYear + 1);
+    const termOptions = Array.from(years)
+      .sort((a, b) => a - b)
+      .flatMap((year) =>
+        ["fall", "winter", "spring", "summer"].map((term) => ({
+          value: `${year}:${term}`,
+          label: `${term.charAt(0).toUpperCase()}${term.slice(1)} ${year}`,
+        })),
+      );
+    return [
+      { value: COMPLETED_DESTINATION, label: "Completed before plan" },
+      ...termOptions,
+    ];
+  }, [activePlan?.items]);
+
+  const [academicYear, term] = destination.split(":");
+  const placement = {
+    academicYear: Number(academicYear),
+    term: term as "fall" | "winter" | "spring" | "summer" | "completed",
+  };
+
   const handleAddPlaceholder = (group: any, req: RequirementItem) => {
-    if (!activePlan) return;
+    if (!activePlan || isCompletedDestination) return;
     addPlanItem.mutate({
       id: activePlan.id,
       data: {
@@ -32,8 +108,8 @@ export function Palette() {
         requirementId: req.id,
         requirementCategory: group.title,
         requirementLabel: req.label,
-        academicYear: 2026, // Fallback, the board will let them drag it or select it
-        term: "fall",
+        academicYear: placement.academicYear,
+        term: placement.term as any,
       }
     }, {
       onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") })
@@ -50,13 +126,12 @@ export function Palette() {
         requirementId: req?.id,
         requirementCategory: group?.title,
         requirementLabel: req?.label,
-        academicYear: 2026, // Default
-        term: "fall",
+        academicYear: placement.academicYear,
+        term: placement.term as any,
       }
     }, {
       onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") }),
       onError: (err: any) => {
-        // Handle duplicate error gracefully later in a global context or inside this component
         if (err.data?.duplicate) {
           if (confirm(`${courseCode} is already in this plan. Add it again?`)) {
             addPlanItem.mutate({
@@ -67,8 +142,8 @@ export function Palette() {
                 requirementId: req?.id,
                 requirementCategory: group?.title,
                 requirementLabel: req?.label,
-                academicYear: 2026,
-                term: "fall",
+                academicYear: placement.academicYear,
+                term: placement.term as any,
                 allowDuplicate: true,
               }
             }, {
@@ -93,6 +168,9 @@ export function Palette() {
     c.title.toLowerCase().includes(search.toLowerCase())
   ).slice(0, 20);
 
+  const planMinors = planPrograms?.minors ?? [];
+  const planGoals = planPrograms?.professionalGoals ?? [];
+
   return (
     <Card className="h-full flex flex-col border-border/60 shadow-sm bg-card overflow-hidden">
       <div className="p-4 border-b border-border/60">
@@ -110,6 +188,36 @@ export function Palette() {
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+        </div>
+        <div className="mt-3">
+          <label
+            htmlFor="plan-destination"
+            className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            Add new items to
+          </label>
+          <Select value={destination} onValueChange={setDestination}>
+            <SelectTrigger id="plan-destination" data-testid="select-plan-destination" className="h-8 text-xs bg-background">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {destinationOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="text-xs">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {isCompletedDestination && (
+            <p className="mt-1.5 text-[10px] leading-relaxed text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+              Only courses can be added to the completed area (no placeholders).
+            </p>
+          )}
+          {!isCompletedDestination && (
+            <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+              You can drag items later. A course in this plan is not a registration.
+            </p>
+          )}
         </div>
       </div>
 
@@ -142,6 +250,7 @@ export function Palette() {
           </div>
         ) : (
           <Accordion type="multiple" className="px-2 pb-4">
+            {/* Official degree requirements */}
             {requirements?.map(group => {
               const Icon = GROUP_ICONS[group.kind as keyof typeof GROUP_ICONS] || GraduationCap;
               return (
@@ -168,16 +277,19 @@ export function Palette() {
                           
                           {status !== 'completed' && status !== 'planned' && (
                             <div className="mt-3 space-y-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="w-full h-7 text-xs justify-start"
-                                onClick={() => handleAddPlaceholder(group, req)}
-                                disabled={addPlanItem.isPending}
-                                data-testid={`add-placeholder-${req.id}`}
-                              >
-                                <Plus className="h-3 w-3 mr-1" /> Add placeholder
-                              </Button>
+                              {/* Hide placeholder button when destination is completed area */}
+                              {!isCompletedDestination && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="w-full h-7 text-xs justify-start"
+                                  onClick={() => handleAddPlaceholder(group, req)}
+                                  disabled={addPlanItem.isPending}
+                                  data-testid={`add-placeholder-${req.id}`}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" /> Add placeholder
+                                </Button>
+                              )}
                               
                               {req.courses.length > 0 && (
                                 <div className="pt-2">
@@ -217,9 +329,127 @@ export function Palette() {
                 </AccordionItem>
               );
             })}
+
+            {/* Additional major requirement groups */}
+            {extraMajorGroups.map(extraMajor => (
+              <AccordionItem key={`major-${extraMajor.majorCode}`} value={`major-${extraMajor.majorCode}`} className="border-b-0">
+                <AccordionTrigger className="hover:no-underline px-2 py-3 text-sm font-semibold hover:bg-muted/30 rounded-md transition-colors data-[state=open]:bg-muted/30 group">
+                  <div className="flex items-center gap-2 text-left">
+                    <BookOpenCheck className="h-4 w-4 text-secondary group-hover:text-primary transition-colors" />
+                    <span>{extraMajor.majorTitle}</span>
+                    <Badge variant="outline" className="text-[9px] font-normal">plan major</Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-1 pb-3 px-2 space-y-3">
+                  {extraMajor.groups === null && !extraMajor.error && (
+                    <div className="text-xs text-muted-foreground italic py-2">Loading requirements…</div>
+                  )}
+                  {extraMajor.error && (
+                    <div className="flex gap-2 p-3 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-900">
+                      <Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
+                      <span>Couldn't load requirements for this major right now. Try again later.</span>
+                    </div>
+                  )}
+                  {extraMajor.groups?.map((grp, gIdx) => (
+                    <div key={gIdx} className="space-y-2">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{grp.label}</div>
+                      {grp.courses.length === 0 ? (
+                        <div className="text-[10px] text-muted-foreground italic">No courses listed for this group.</div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {grp.courses.map(c => (
+                            <Badge
+                              key={c.code}
+                              variant="secondary"
+                              className="text-[10px] font-mono cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                              onClick={() => handleAddCourse(c.code)}
+                              data-testid={`extra-major-course-${c.code}`}
+                            >
+                              {c.code}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+
+            {/* Minors notice */}
+            {planMinors.length > 0 && (
+              <AccordionItem value="plan-minors" className="border-b-0">
+                <AccordionTrigger className="hover:no-underline px-2 py-3 text-sm font-semibold hover:bg-muted/30 rounded-md transition-colors data-[state=open]:bg-muted/30 group">
+                  <div className="flex items-center gap-2 text-left">
+                    <BookOpenCheck className="h-4 w-4 text-muted-foreground" />
+                    Plan Minors ({planMinors.length})
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-1 pb-3 px-2">
+                  <div className="flex gap-2 p-3 rounded-md border border-border bg-muted/20 text-xs text-muted-foreground">
+                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>
+                      SCU doesn't publish a machine-readable requirement list for {planMinors.length === 1 ? 'this minor' : 'these minors'} in CampusVal — confirm with the department/advisor.
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {planMinors.map(code => (
+                      <Badge key={code} variant="outline" className="text-[10px]">{code} minor</Badge>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+
+            {/* Professional goals notice */}
+            {planGoals.length > 0 && (
+              <AccordionItem value="plan-goals" className="border-b-0">
+                <AccordionTrigger className="hover:no-underline px-2 py-3 text-sm font-semibold hover:bg-muted/30 rounded-md transition-colors data-[state=open]:bg-muted/30 group">
+                  <div className="flex items-center gap-2 text-left">
+                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                    Professional Goals ({planGoals.length})
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-1 pb-3 px-2">
+                  <div className="flex gap-2 p-3 rounded-md border border-border bg-muted/20 text-xs text-muted-foreground">
+                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>
+                      Not official SCU programs — for your planning only. Confirm requirements with the department/advisor.
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {planGoals.map(goal => (
+                      <Badge key={goal} variant="outline" className="text-[10px] border-dashed">{goal}</Badge>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
           </Accordion>
         )}
       </ScrollArea>
     </Card>
   );
+}
+
+async function fetchMajorRequirements(
+  major: string,
+): Promise<{ groups: { label: string; courses: { code: string; title: string; units: number }[] }[] } | null> {
+  try {
+    const params = new URLSearchParams();
+    params.set("major", major);
+    const url = `${import.meta.env.BASE_URL}api/graduation-paths/requirements?${params.toString()}`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+interface ExtraMajorGroup {
+  majorCode: string;
+  majorTitle: string;
+  groups: { label: string; courses: { code: string; title: string; units: number }[] }[] | null;
+  error: boolean;
 }

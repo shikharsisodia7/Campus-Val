@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/campusval-mobile/"
+title = "CampusVal Mobile"
+description = "A mobile companion app for CampusVal — SCU AI Advising. Students can view their Degree Plan terms and courses, Quarter Plan weekly schedule, and registration-window countdown. Uses the same Clerk account as the web app."
+version = "1.0.0"
+id = "artifacts/campusval-mobile"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/campusval-mobile/" ]
+localPort = 19081
+
+[services.development]
+run = "pnpm --filter @workspace/campusval-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/campusval-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/campusval-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "19081"
+BASE_PATH = "/campusval-mobile/"

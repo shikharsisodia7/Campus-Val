@@ -31,6 +31,10 @@ tags:
     description: 3-year and 4-year recommended graduation path templates
   - name: evaluation
     description: AI advisor evaluation framework (benchmark scenarios + scoring)
+  - name: storage
+    description: Object storage upload and serving endpoints
+  - name: progress-report
+    description: Academic progress report upload, import, and retrieval
 paths:
   /healthz:
     get:
@@ -475,6 +479,17 @@ paths:
       operationId: getDegreeRequirements
       tags: [requirements]
       summary: College-aware degree requirements (University Core, college/school, and major) with official SCU source URLs and completion status
+      parameters:
+        - name: scenarioMajors
+          in: query
+          schema:
+            type: string
+            description: Comma-separated draft-only additional majors to include (tentative scenarios); does not alter the profile.
+        - name: scenarioMinors
+          in: query
+          schema:
+            type: string
+            description: Comma-separated draft-only additional minors to include (tentative scenarios); does not alter the profile.
       responses:
         "200":
           description: Requirement groups for the student's college and major, with per-item completion computed from the profile's completed courses. Items SCU defines as "choose from an approved list" are flagged needsVerification instead of being fabricated.
@@ -862,6 +877,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlanDuplicateWarning"
+  /plans/{id}/items/bulk-import:
+    post:
+      operationId: bulkImportPlanItems
+      tags: [plans]
+      summary: Import report-completed courses into the Completed area in one step
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkImportPlanItemsBody"
+      responses:
+        "201":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkImportPlanItemsResult"
+        "400":
+          description: Invalid input
+        "404":
+          description: Not found
   /plans/{id}/items/{itemId}:
     patch:
       operationId: updatePlanItem
@@ -1246,6 +1289,171 @@ paths:
               schema:
                 $ref: "#/components/schemas/CourseSearchResult"
 
+  /storage/uploads/request-url:
+    post:
+      tags: [storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      description: |
+        Returns a presigned GCS URL for direct upload. The client sends JSON
+        metadata here, then uploads the file directly to the returned URL.
+        Requires authentication.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlRequest'
+      responses:
+        '200':
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+        '400':
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to generate upload URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /storage/public-objects/{filePath}:
+    get:
+      tags: [storage]
+      operationId: getPublicObject
+      summary: Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+      description: |
+        Unconditionally public — no authentication or ACL checks.
+        Searches PUBLIC_OBJECT_SEARCH_PATHS for the given file path.
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Relative file path within the public search paths.
+      responses:
+        '200':
+          description: Object content streamed with correct Content-Type.
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to serve public object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /storage/objects/{objectPath}:
+    get:
+      tags: [storage]
+      operationId: getStorageObject
+      summary: Serve an object entity from PRIVATE_OBJECT_DIR
+      description: |
+        Serves object entities uploaded via presigned URLs.
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Object path within the private object dir.
+      responses:
+        '200':
+          description: Object content streamed with correct Content-Type.
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Object not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to serve object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /progress-report:
+    get:
+      operationId: getProgressReport
+      tags: [progress-report]
+      summary: Get the authenticated student's current progress report (metadata + parsed payload)
+      description: |
+        Returns 200 with the report if one exists, or 404 if none.
+        If object storage is not configured, returns 200 with { available: false }.
+      responses:
+        "200":
+          description: Progress report or unavailability indicator
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressReportEnvelope"
+        "404":
+          description: No report found for this user
+    put:
+      operationId: registerProgressReport
+      tags: [progress-report]
+      summary: Register an uploaded progress report (PDF or Excel) after client PUT to presigned URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressReportInput"
+      responses:
+        "200":
+          description: Report registered and parsed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressReportEnvelope"
+        "400":
+          description: Validation error (bad type, oversize, bad path)
+    delete:
+      operationId: deleteProgressReport
+      tags: [progress-report]
+      summary: Delete the authenticated student's progress report
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: No report found
+  /progress-report/file:
+    get:
+      operationId: downloadProgressReportFile
+      tags: [progress-report]
+      summary: Stream the authenticated student's own progress report file
+      responses:
+        "200":
+          description: File content
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: No report found
+
 components:
   schemas:
     QuarterSchedule:
@@ -1401,6 +1609,173 @@ components:
       required:
         - status
 
+    PlanTerm:
+      type: string
+      enum: [fall, winter, spring, summer, completed]
+      description: Term for plan items. "completed" (with academicYear=0) means completed before the plan started.
+
+    PlanPrograms:
+      type: object
+      required: [additionalMajors, minors, professionalGoals]
+      properties:
+        additionalMajors:
+          type: array
+          items: { type: string }
+          description: Additional majors (beyond the one in the student profile).
+        minors:
+          type: array
+          items: { type: string }
+          description: Declared minors.
+        professionalGoals:
+          type: array
+          items: { type: string }
+          description: Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.
+
+    PlanProgramsUpdate:
+      type: object
+      required: [additionalMajors, minors, professionalGoals]
+      properties:
+        additionalMajors:
+          type: array
+          items: { type: string }
+        minors:
+          type: array
+          items: { type: string }
+        professionalGoals:
+          type: array
+          items: { type: string }
+
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Original file name.
+        size:
+          type: integer
+          minimum: 1
+          description: File size in bytes.
+        contentType:
+          type: string
+          minLength: 1
+          description: MIME type of the file (e.g. application/pdf).
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+          description: Presigned GCS URL for PUT upload.
+        objectPath:
+          type: string
+          description: Normalized object path (e.g. /objects/uploads/uuid). Store this in your database.
+        metadata:
+          $ref: '#/components/schemas/UploadUrlRequest'
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    ProgressReportInput:
+      type: object
+      required: [objectPath, fileName, fileSize, contentType]
+      properties:
+        objectPath:
+          type: string
+          description: Object path returned by the upload URL endpoint (must start with /objects/).
+        fileName:
+          type: string
+          description: Original file name (used to detect extension).
+        fileSize:
+          type: integer
+          description: File size in bytes (must be <= 10 MB).
+        contentType:
+          type: string
+          description: MIME type (must be application/pdf or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet).
+
+    ParsedProgressReport:
+      type: object
+      required: [completedCourses, possibleCourses, notes]
+      properties:
+        completedCourses:
+          type: array
+          items:
+            type: object
+            required: [code, title, units, confidence]
+            properties:
+              code: { type: string }
+              title: { type: string }
+              units: { type: number }
+              confidence: { type: string, enum: [high] }
+        nonCompletedCourses:
+          type: array
+          description: Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework.
+          items:
+            type: object
+            required: [code, title, units, status]
+            properties:
+              code: { type: string }
+              title: { type: string }
+              units: { type: number }
+              status: { type: string, enum: [in_progress, not_completed, needs_review] }
+        possibleCourses:
+          type: array
+          description: Code-like tokens not found in catalog; retained for user review.
+          items:
+            type: object
+            required: [raw]
+            properties:
+              raw: { type: string }
+        program:
+          type: ["string", "null"]
+          description: Program/major detected from the report, if clearly labeled.
+        reportStudentId:
+          type: ["string", "null"]
+          description: Student ID extracted from the document when confidently present.
+        notes:
+          type: array
+          items: { type: string }
+
+    ProgressReport:
+      type: object
+      required: [id, userId, fileName, fileSize, contentType, objectPath, uploadedAt, parseStatus, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        userId: { type: string }
+        fileName: { type: string }
+        fileSize: { type: integer }
+        contentType: { type: string }
+        objectPath: { type: string }
+        uploadedAt: { type: string, format: date-time }
+        parsed:
+          oneOf:
+            - $ref: "#/components/schemas/ParsedProgressReport"
+            - type: "null"
+        parseStatus:
+          type: string
+          enum: [pending, parsed, unsupported, failed]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ProgressReportEnvelope:
+      type: object
+      required: [available]
+      description: |
+        When available=false, object storage is not configured.
+        When available=true, report may be null (no upload yet) or a full ProgressReport.
+      properties:
+        available:
+          type: boolean
+        report:
+          oneOf:
+            - $ref: "#/components/schemas/ProgressReport"
+            - type: "null"
+
     StudentType:
       type: string
       enum: [first_year, transfer, continuing, graduate, postgrad]
@@ -1418,7 +1793,12 @@ components:
         name: { type: string }
         planType: { $ref: "#/components/schemas/PlanType" }
         sourcePlanId: { type: ["integer", "null"] }
+        metadata: { $ref: "#/components/schemas/PlanMetadata" }
         itemCount: { type: integer }
+        programs:
+          oneOf:
+            - $ref: "#/components/schemas/PlanPrograms"
+            - type: "null"
         createdAt: { type: string }
         updatedAt: { type: string }
     AcademicPlanList:
@@ -1438,14 +1818,39 @@ components:
           description: Copy all items from this plan; omit or null to start blank.
     AcademicPlanUpdate:
       type: object
-      required: [name]
       properties:
         name: { type: string, minLength: 1, maxLength: 80 }
+        metadata: { $ref: "#/components/schemas/PlanMetadata" }
+        programs:
+          oneOf:
+            - $ref: "#/components/schemas/PlanPrograms"
+            - type: "null"
     AcademicPlanDuplicateInput:
       type: object
       required: [name]
       properties:
         name: { type: string, minLength: 1, maxLength: 80 }
+    BulkImportPlanItemsBody:
+      type: object
+      required: [courseCodes]
+      properties:
+        courseCodes:
+          type: array
+          items: { type: string }
+          minItems: 1
+          maxItems: 50
+          description: Course codes from the progress report to add to the Completed area.
+    BulkImportPlanItemsResult:
+      type: object
+      required: [added, skipped]
+      properties:
+        added:
+          type: array
+          items: { $ref: "#/components/schemas/PlanItem" }
+        skipped:
+          type: array
+          items: { type: string }
+          description: Course codes already present anywhere in the plan (not re-added).
     PlanItem:
       type: object
       required: [id, planId, itemType, academicYear, term, position]
@@ -1461,10 +1866,19 @@ components:
         requirementLabel: { type: ["string", "null"] }
         academicYear:
           type: integer
-          description: Start year of the academic year (2026 = 2026-2027)
-        term: { $ref: "#/components/schemas/Term" }
+          description: Start year of the academic year (2026 = 2026-2027). Use 0 with term="completed".
+        term: { $ref: "#/components/schemas/PlanTerm" }
+        bucket: { $ref: "#/components/schemas/PlanItemBucket" }
+        completionSource:
+          oneOf:
+            - $ref: "#/components/schemas/CompletionSource"
+            - type: "null"
         position: { type: integer }
         note: { type: ["string", "null"] }
+        provenance:
+          type: ["string", "null"]
+          enum: ["student_asserted", "report_imported", null]
+          description: How this item was added. Defaults to student_asserted.
     AcademicPlanDetail:
       type: object
       required: [id, name, planType, items, createdAt, updatedAt]
@@ -1473,6 +1887,11 @@ components:
         name: { type: string }
         planType: { $ref: "#/components/schemas/PlanType" }
         sourcePlanId: { type: ["integer", "null"] }
+        metadata: { $ref: "#/components/schemas/PlanMetadata" }
+        programs:
+          oneOf:
+            - $ref: "#/components/schemas/PlanPrograms"
+            - type: "null"
         items:
           type: array
           items: { $ref: "#/components/schemas/PlanItem" }
@@ -1491,19 +1910,72 @@ components:
         requirementLabel:
           type: string
           description: Required for requirement_placeholder items.
-        academicYear: { type: integer }
-        term: { $ref: "#/components/schemas/Term" }
+        academicYear:
+          type: integer
+          description: Use 0 with term="completed" for pre-plan coursework.
+        term: { $ref: "#/components/schemas/PlanTerm" }
         note: { type: string }
         allowDuplicate:
           type: boolean
           description: Set true to add a course already present in this plan.
+        bucket:
+          $ref: "#/components/schemas/PlanItemBucket"
+        completionSource:
+          $ref: "#/components/schemas/CompletionSource"
+        provenance:
+          type: string
+          enum: [student_asserted, report_imported]
+          description: Defaults to student_asserted when adding to the completed area.
     PlanItemUpdate:
       type: object
       properties:
         academicYear: { type: integer }
-        term: { $ref: "#/components/schemas/Term" }
+        term: { $ref: "#/components/schemas/PlanTerm" }
+        bucket: { $ref: "#/components/schemas/PlanItemBucket" }
+        completionSource:
+          oneOf:
+            - $ref: "#/components/schemas/CompletionSource"
+            - type: "null"
         position: { type: integer }
         note: { type: ["string", "null"] }
+        provenance:
+          type: string
+          enum: [student_asserted, report_imported]
+    PlanMetadata:
+      type: object
+      properties:
+        addedYears:
+          type: array
+          items: { type: integer, minimum: 2000, maximum: 2100 }
+        summerYears:
+          type: array
+          items: { type: integer, minimum: 2000, maximum: 2100 }
+        scenarioMajors:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 120 }
+          description: Draft-only additional majors; does not alter the official student profile.
+        scenarioMinors:
+          type: array
+          items: { type: string, minLength: 1, maxLength: 120 }
+          description: Draft-only additional minors; does not alter the official student profile.
+    PlanItemBucket:
+      type: string
+      enum: [planned, completed]
+      description: >-
+        Where the item lives: "planned" places it in a real term column;
+        "completed" places it in the Completed Before Current Plan area.
+    CompletionSource:
+      type: string
+      enum:
+        - prior_to_scu
+        - transfer_credit
+        - ap_ib_test_credit
+        - previously_completed_scu
+        - other_institution
+        - manually_marked
+      description: >-
+        Student-asserted provenance for a completed item. Distinct from
+        verified Academic Progress Report data.
     PlaceholderReplacement:
       type: object
       required: [courseCode]
@@ -1555,6 +2027,10 @@ components:
           type: integer
         name:
           type: string
+        studentId:
+          type: string
+          nullable: true
+          description: Optional SCU/Workday student ID used to verify uploaded progress reports.
         studentType:
           $ref: "#/components/schemas/StudentType"
         college:
@@ -1631,6 +2107,10 @@ components:
       properties:
         name:
           type: string
+        studentId:
+          type: string
+          nullable: true
+          maxLength: 20
         studentType:
           $ref: "#/components/schemas/StudentType"
         college:

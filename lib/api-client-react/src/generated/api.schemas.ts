@@ -210,6 +210,162 @@ export interface HealthStatus {
   status: string;
 }
 
+/**
+ * Term for plan items. "completed" (with academicYear=0) means completed before the plan started.
+ */
+export type PlanTerm = (typeof PlanTerm)[keyof typeof PlanTerm];
+
+export const PlanTerm = {
+  fall: "fall",
+  winter: "winter",
+  spring: "spring",
+  summer: "summer",
+  completed: "completed",
+} as const;
+
+export interface PlanPrograms {
+  /** Additional majors (beyond the one in the student profile). */
+  additionalMajors: string[];
+  /** Declared minors. */
+  minors: string[];
+  /** Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements. */
+  professionalGoals: string[];
+}
+
+export interface PlanProgramsUpdate {
+  additionalMajors: string[];
+  minors: string[];
+  professionalGoals: string[];
+}
+
+export interface UploadUrlRequest {
+  /**
+   * Original file name.
+   * @minLength 1
+   */
+  name: string;
+  /**
+   * File size in bytes.
+   * @minimum 1
+   */
+  size: number;
+  /**
+   * MIME type of the file (e.g. application/pdf).
+   * @minLength 1
+   */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  /** Presigned GCS URL for PUT upload. */
+  uploadURL: string;
+  /** Normalized object path (e.g. /objects/uploads/uuid). Store this in your database. */
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
+export interface ErrorEnvelope {
+  error: string;
+}
+
+export interface ProgressReportInput {
+  /** Object path returned by the upload URL endpoint (must start with /objects/). */
+  objectPath: string;
+  /** Original file name (used to detect extension). */
+  fileName: string;
+  /** File size in bytes (must be <= 10 MB). */
+  fileSize: number;
+  /** MIME type (must be application/pdf or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). */
+  contentType: string;
+}
+
+export type ParsedProgressReportCompletedCoursesItemConfidence =
+  (typeof ParsedProgressReportCompletedCoursesItemConfidence)[keyof typeof ParsedProgressReportCompletedCoursesItemConfidence];
+
+export const ParsedProgressReportCompletedCoursesItemConfidence = {
+  high: "high",
+} as const;
+
+export type ParsedProgressReportCompletedCoursesItem = {
+  code: string;
+  title: string;
+  units: number;
+  confidence: ParsedProgressReportCompletedCoursesItemConfidence;
+};
+
+export type ParsedProgressReportNonCompletedCoursesItemStatus =
+  (typeof ParsedProgressReportNonCompletedCoursesItemStatus)[keyof typeof ParsedProgressReportNonCompletedCoursesItemStatus];
+
+export const ParsedProgressReportNonCompletedCoursesItemStatus = {
+  in_progress: "in_progress",
+  not_completed: "not_completed",
+  needs_review: "needs_review",
+} as const;
+
+export type ParsedProgressReportNonCompletedCoursesItem = {
+  code: string;
+  title: string;
+  units: number;
+  status: ParsedProgressReportNonCompletedCoursesItemStatus;
+};
+
+export type ParsedProgressReportPossibleCoursesItem = {
+  raw: string;
+};
+
+export interface ParsedProgressReport {
+  completedCourses: ParsedProgressReportCompletedCoursesItem[];
+  /** Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework. */
+  nonCompletedCourses?: ParsedProgressReportNonCompletedCoursesItem[];
+  /** Code-like tokens not found in catalog; retained for user review. */
+  possibleCourses: ParsedProgressReportPossibleCoursesItem[];
+  /**
+   * Program/major detected from the report, if clearly labeled.
+   * @nullable
+   */
+  program?: string | null;
+  /**
+   * Student ID extracted from the document when confidently present.
+   * @nullable
+   */
+  reportStudentId?: string | null;
+  notes: string[];
+}
+
+export type ProgressReportParseStatus =
+  (typeof ProgressReportParseStatus)[keyof typeof ProgressReportParseStatus];
+
+export const ProgressReportParseStatus = {
+  pending: "pending",
+  parsed: "parsed",
+  unsupported: "unsupported",
+  failed: "failed",
+} as const;
+
+export interface ProgressReport {
+  id: number;
+  userId: string;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
+  objectPath: string;
+  uploadedAt: string;
+  parsed?: ParsedProgressReport | null;
+  parseStatus: ProgressReportParseStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * When available=false, object storage is not configured.
+When available=true, report may be null (no upload yet) or a full ProgressReport.
+
+ */
+export interface ProgressReportEnvelope {
+  available: boolean;
+  report?: ProgressReport | null;
+}
+
 export type StudentType = (typeof StudentType)[keyof typeof StudentType];
 
 export const StudentType = {
@@ -234,13 +390,24 @@ export const PlanItemType = {
   requirement_placeholder: "requirement_placeholder",
 } as const;
 
+export interface PlanMetadata {
+  addedYears?: number[];
+  summerYears?: number[];
+  /** Draft-only additional majors; does not alter the official student profile. */
+  scenarioMajors?: string[];
+  /** Draft-only additional minors; does not alter the official student profile. */
+  scenarioMinors?: string[];
+}
+
 export interface AcademicPlan {
   id: number;
   name: string;
   planType: PlanType;
   /** @nullable */
   sourcePlanId?: number | null;
+  metadata?: PlanMetadata;
   itemCount: number;
+  programs?: PlanPrograms | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -267,7 +434,9 @@ export interface AcademicPlanUpdate {
    * @minLength 1
    * @maxLength 80
    */
-  name: string;
+  name?: string;
+  metadata?: PlanMetadata;
+  programs?: PlanPrograms | null;
 }
 
 export interface AcademicPlanDuplicateInput {
@@ -278,13 +447,52 @@ export interface AcademicPlanDuplicateInput {
   name: string;
 }
 
-export type Term = (typeof Term)[keyof typeof Term];
+export interface BulkImportPlanItemsBody {
+  /**
+   * Course codes from the progress report to add to the Completed area.
+   * @minItems 1
+   * @maxItems 50
+   */
+  courseCodes: string[];
+}
 
-export const Term = {
-  fall: "fall",
-  winter: "winter",
-  spring: "spring",
-  summer: "summer",
+/**
+ * Where the item lives: "planned" places it in a real term column; "completed" places it in the Completed Before Current Plan area.
+ */
+export type PlanItemBucket =
+  (typeof PlanItemBucket)[keyof typeof PlanItemBucket];
+
+export const PlanItemBucket = {
+  planned: "planned",
+  completed: "completed",
+} as const;
+
+/**
+ * Student-asserted provenance for a completed item. Distinct from verified Academic Progress Report data.
+ */
+export type CompletionSource =
+  (typeof CompletionSource)[keyof typeof CompletionSource];
+
+export const CompletionSource = {
+  prior_to_scu: "prior_to_scu",
+  transfer_credit: "transfer_credit",
+  ap_ib_test_credit: "ap_ib_test_credit",
+  previously_completed_scu: "previously_completed_scu",
+  other_institution: "other_institution",
+  manually_marked: "manually_marked",
+} as const;
+
+/**
+ * How this item was added. Defaults to student_asserted.
+ * @nullable
+ */
+export type PlanItemProvenance =
+  | (typeof PlanItemProvenance)[keyof typeof PlanItemProvenance]
+  | null;
+
+export const PlanItemProvenance = {
+  student_asserted: "student_asserted",
+  report_imported: "report_imported",
 } as const;
 
 export interface PlanItem {
@@ -303,12 +511,25 @@ export interface PlanItem {
   requirementCategory?: string | null;
   /** @nullable */
   requirementLabel?: string | null;
-  /** Start year of the academic year (2026 = 2026-2027) */
+  /** Start year of the academic year (2026 = 2026-2027). Use 0 with term="completed". */
   academicYear: number;
-  term: Term;
+  term: PlanTerm;
+  bucket?: PlanItemBucket;
+  completionSource?: CompletionSource | null;
   position: number;
   /** @nullable */
   note?: string | null;
+  /**
+   * How this item was added. Defaults to student_asserted.
+   * @nullable
+   */
+  provenance?: PlanItemProvenance;
+}
+
+export interface BulkImportPlanItemsResult {
+  added: PlanItem[];
+  /** Course codes already present anywhere in the plan (not re-added). */
+  skipped: string[];
 }
 
 export interface AcademicPlanDetail {
@@ -317,10 +538,23 @@ export interface AcademicPlanDetail {
   planType: PlanType;
   /** @nullable */
   sourcePlanId?: number | null;
+  metadata?: PlanMetadata;
+  programs?: PlanPrograms | null;
   items: PlanItem[];
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Defaults to student_asserted when adding to the completed area.
+ */
+export type PlanItemInputProvenance =
+  (typeof PlanItemInputProvenance)[keyof typeof PlanItemInputProvenance];
+
+export const PlanItemInputProvenance = {
+  student_asserted: "student_asserted",
+  report_imported: "report_imported",
+} as const;
 
 export interface PlanItemInput {
   itemType: PlanItemType;
@@ -330,19 +564,35 @@ export interface PlanItemInput {
   requirementCategory?: string;
   /** Required for requirement_placeholder items. */
   requirementLabel?: string;
+  /** Use 0 with term="completed" for pre-plan coursework. */
   academicYear: number;
-  term: Term;
+  term: PlanTerm;
   note?: string;
   /** Set true to add a course already present in this plan. */
   allowDuplicate?: boolean;
+  bucket?: PlanItemBucket;
+  completionSource?: CompletionSource;
+  /** Defaults to student_asserted when adding to the completed area. */
+  provenance?: PlanItemInputProvenance;
 }
+
+export type PlanItemUpdateProvenance =
+  (typeof PlanItemUpdateProvenance)[keyof typeof PlanItemUpdateProvenance];
+
+export const PlanItemUpdateProvenance = {
+  student_asserted: "student_asserted",
+  report_imported: "report_imported",
+} as const;
 
 export interface PlanItemUpdate {
   academicYear?: number;
-  term?: Term;
+  term?: PlanTerm;
+  bucket?: PlanItemBucket;
+  completionSource?: CompletionSource | null;
   position?: number;
   /** @nullable */
   note?: string | null;
+  provenance?: PlanItemUpdateProvenance;
 }
 
 export interface PlaceholderReplacement {
@@ -364,6 +614,15 @@ export type ScheduleAvailabilityTermStatus =
 export const ScheduleAvailabilityTermStatus = {
   published: "published",
   tentative: "tentative",
+} as const;
+
+export type Term = (typeof Term)[keyof typeof Term];
+
+export const Term = {
+  fall: "fall",
+  winter: "winter",
+  spring: "spring",
+  summer: "summer",
 } as const;
 
 export interface ScheduleAvailabilityTerm {
@@ -408,6 +667,8 @@ export const Grade = {
 export interface StudentProfile {
   id: number;
   name: string;
+  /** Optional SCU/Workday student ID used to verify uploaded progress reports. */
+  studentId?: string | null;
   studentType: StudentType;
   /** e.g. "Arts and Sciences", "Engineering", "Business" */
   college: string;
@@ -433,6 +694,8 @@ export interface StudentProfile {
 
 export interface UpsertProfileBody {
   name: string;
+  /** @maxLength 20 */
+  studentId?: string | null;
   studentType: StudentType;
   college: string;
   major: string;
@@ -1199,6 +1462,17 @@ export type ListProfessorsParams = {
    * Optional case-insensitive substring match on instructor name or department.
    */
   q?: string;
+};
+
+export type GetDegreeRequirementsParams = {
+  /**
+   * Comma-separated draft-only additional majors to include (tentative scenarios); does not alter the profile.
+   */
+  scenarioMajors?: string;
+  /**
+   * Comma-separated draft-only additional minors to include (tentative scenarios); does not alter the profile.
+   */
+  scenarioMinors?: string;
 };
 
 export type ListRequirementCompletionsParams = {

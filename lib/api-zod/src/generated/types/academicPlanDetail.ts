@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { PlanItem } from "./planItem";
+import type { PlanMetadata } from "./planMetadata";
+import type { PlanPrograms } from "./planPrograms";
 import type { PlanType } from "./planType";
 
 export interface AcademicPlanDetail {
@@ -14,6 +16,8 @@ export interface AcademicPlanDetail {
   planType: PlanType;
   /** @nullable */
   sourcePlanId?: number | null;
+  metadata?: PlanMetadata;
+  programs?: PlanPrograms | null;
   items: PlanItem[];
   createdAt: string;
   updatedAt: string;
