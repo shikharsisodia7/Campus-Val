@@ -47,6 +47,10 @@ export default function Planner() {
   const { toast } = useToast();
   const workspace = useScheduleWorkspace();
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
+  const isTentativeSchedule =
+    workspace.availability?.terms.find(
+      (t) => t.term === workspace.activeTerm && t.year === workspace.activeYear,
+    )?.status === "tentative";
 
   // Intentions panel: jump a course into Quick Add
   const [intentionCourse, setIntentionCourse] = useState<string | null>(null);
@@ -163,6 +167,7 @@ export default function Planner() {
                   <CalendarGrid
                     events={workspace.activeSchedule?.events || []}
                     onEventClick={setSelectedEvent}
+                    isTentativeSchedule={isTentativeSchedule}
                   />
                 </div>
                 <ConflictsPanel events={workspace.activeSchedule?.events || []} />
@@ -299,6 +304,7 @@ export default function Planner() {
         event={selectedEvent}
         open={!!selectedEvent}
         onOpenChange={(o) => !o && setSelectedEvent(null)}
+        isTentativeSchedule={isTentativeSchedule}
       />
     </AppShell>
   );

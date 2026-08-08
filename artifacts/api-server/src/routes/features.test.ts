@@ -46,6 +46,13 @@ vi.mock("../lib/storage", async () => {
   }
   const provider = {
     isUploadPathOwnedBy,
+    createUploadTarget: vi.fn().mockImplementation(async (owner: string) => {
+      const segment = createHash("sha256").update(owner).digest("hex").slice(0, 16);
+      return {
+        uploadURL: `https://mock-upload.test/${segment}/${Date.now()}`,
+        objectPath: `/objects/uploads/${segment}/${Date.now()}`,
+      };
+    }),
     finalizeUpload: vi.fn().mockImplementation(async () => {
       if (!mockStorage.file) throw new Error("no object");
     }),
@@ -61,10 +68,11 @@ vi.mock("../lib/storage", async () => {
     downloadObject: vi.fn().mockImplementation(async () => {
       if (!mockStorage.file) throw new MockObjectNotFoundError();
       const { Readable } = await import("stream");
+      const content = mockStorage.file.content ?? Buffer.from("plain text no courses");
       return {
-        stream: Readable.from([mockStorage.file.content ?? Buffer.from("plain text no courses")]),
+        stream: Readable.from([content]),
         contentType: "application/pdf",
-        size: mockStorage.file.size,
+        size: content.length,
       };
     }),
     deleteObject: vi.fn().mockResolvedValue(undefined),
@@ -79,16 +87,34 @@ vi.mock("../lib/storage", async () => {
 const { db, academicPlansTable, planItemsTable, progressReportsTable } = await import("@workspace/db");
 const plansRouter = (await import("./plans")).default;
 const progressReportRouter = (await import("./progress-report")).default;
+const storageRouter = (await import("./storage")).default;
 const { COURSES } = await import("../data/courses");
 const { uploadPathOwnerSegment } = await import("../lib/uploadPath");
 
+// Real routes call req.log.error/warn/info (populated by pino-http in the
+// real app). Without a stub here, those calls throw on undefined and get
+// swallowed by Express's default error handler — masking the route's actual
+// intended status code behind a generic 500 for ANY subsequent error,
+// whether or not it matches. Stub it so tests exercise the real code path.
+const stubLogger = (req: any, _res: any, next: any) => {
+  req.log = { error: () => {}, warn: () => {}, info: () => {}, debug: () => {} };
+  next();
+};
+
 const plansApp = express();
 plansApp.use(express.json());
+plansApp.use(stubLogger);
 plansApp.use("/api", plansRouter);
 
 const reportApp = express();
 reportApp.use(express.json());
+reportApp.use(stubLogger);
 reportApp.use("/api", progressReportRouter);
+
+const storageApp = express();
+storageApp.use(express.json());
+storageApp.use(stubLogger);
+storageApp.use("/api", storageRouter);
 
 // Set PRIVATE_OBJECT_DIR so isStorageAvailable() returns true
 process.env.PRIVATE_OBJECT_DIR = "/test-bucket/private";
@@ -926,5 +952,99 @@ describe("progress report: student ID identity validation (task #39)", () => {
     await asA(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/noprofileid`, fileName: "r.pdf", fileSize: 400, contentType: "application/pdf" })
       .expect(200);
+  });
+});
+
+describe("progress report: file download", () => {
+  const segA = uploadPathOwnerSegment(USER_A);
+
+  beforeEach(async () => {
+    await db.delete(progressReportsTable).where(eq(progressReportsTable.userId, USER_A));
+  });
+
+  it("rejects unauthenticated requests", async () => {
+    await request(reportApp).get("/api/progress-report/file").expect(401);
+  });
+
+  it("404s when the user has no report", async () => {
+    await asA(request(reportApp).get("/api/progress-report/file")).expect(404);
+  });
+
+  it("streams the owner's own file content", async () => {
+    mockStorage.file = { size: 2048, content: Buffer.from("PDF bytes here") };
+    await asA(request(reportApp).put("/api/progress-report"))
+      .send({ objectPath: `/objects/uploads/${segA}/dl`, fileName: "r.pdf", fileSize: 2048, contentType: "application/pdf" })
+      .expect(200);
+
+    const res = await asA(request(reportApp).get("/api/progress-report/file")).expect(200);
+    expect(res.headers["content-type"]).toMatch(/application\/pdf/);
+    expect(Buffer.isBuffer(res.body) ? res.body.toString() : res.text).toBe("PDF bytes here");
+
+    await asA(request(reportApp).delete("/api/progress-report")).expect(204);
+  });
+
+  it("rejects a different user's request for the file (403), never a leaked 200", async () => {
+    mockStorage.file = { size: 2048, content: Buffer.from("private content") };
+    await asA(request(reportApp).put("/api/progress-report"))
+      .send({ objectPath: `/objects/uploads/${segA}/private`, fileName: "r.pdf", fileSize: 2048, contentType: "application/pdf" })
+      .expect(200);
+
+    // B has no report row of their own, so the route 404s before any
+    // ownership check on A's file — confirming B can never even discover
+    // A's file exists via this endpoint, let alone read it.
+    await asB(request(reportApp).get("/api/progress-report/file")).expect(404);
+
+    await asA(request(reportApp).delete("/api/progress-report")).expect(204);
+  });
+});
+
+describe("storage: upload URL + object read routes", () => {
+  const segA = uploadPathOwnerSegment(USER_A);
+  const segB = uploadPathOwnerSegment(USER_B);
+
+  beforeEach(() => {
+    mockStorage.file = null;
+  });
+
+  it("rejects unauthenticated upload-url requests", async () => {
+    await request(storageApp)
+      .post("/api/storage/uploads/request-url")
+      .send({ name: "r.pdf", size: 1000, contentType: "application/pdf" })
+      .expect(401);
+  });
+
+  it("rejects a malformed upload-url request body", async () => {
+    await asA(request(storageApp).post("/api/storage/uploads/request-url"))
+      .send({ name: "", size: -1 })
+      .expect(400);
+  });
+
+  it("mints an owner-bound objectPath and echoes metadata", async () => {
+    const res = await asA(request(storageApp).post("/api/storage/uploads/request-url"))
+      .send({ name: "r.pdf", size: 1000, contentType: "application/pdf" })
+      .expect(200);
+    expect(res.body.objectPath).toMatch(new RegExp(`^/objects/uploads/${segA}/`));
+    expect(typeof res.body.uploadURL).toBe("string");
+    expect(res.body.metadata).toEqual({ name: "r.pdf", size: 1000, contentType: "application/pdf" });
+  });
+
+  it("rejects unauthenticated object reads", async () => {
+    await request(storageApp).get(`/api/storage/objects/uploads/${segA}/x`).expect(401);
+  });
+
+  it("404s when the object doesn't exist", async () => {
+    mockStorage.file = null;
+    await asA(request(storageApp).get(`/api/storage/objects/uploads/${segA}/missing`)).expect(404);
+  });
+
+  it("403s when a different user requests an object minted for someone else", async () => {
+    mockStorage.file = { size: 100, content: Buffer.from("hello") };
+    await asB(request(storageApp).get(`/api/storage/objects/uploads/${segA}/x`)).expect(403);
+  });
+
+  it("200s and streams content for the owning user", async () => {
+    mockStorage.file = { size: 100, content: Buffer.from("hello") };
+    const res = await asA(request(storageApp).get(`/api/storage/objects/uploads/${segA}/x`)).expect(200);
+    expect(Buffer.isBuffer(res.body) ? res.body.toString() : res.text).toBe("hello");
   });
 });

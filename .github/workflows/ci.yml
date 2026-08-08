@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [replit-main]
+  pull_request:
+    branches: [replit-main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: campusval
+          POSTGRES_PASSWORD: campusval
+          POSTGRES_DB: campusval
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://campusval:campusval@localhost:5432/campusval
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Push DB schema
+        run: pnpm --filter @workspace/db run push
+
+      - name: API server tests
+        run: pnpm --filter @workspace/api-server run test
+
+      - name: Frontend tests
+        run: pnpm --filter @workspace/scu-advising run test
+
+      - name: Mobile typecheck + smoke test
+        run: |
+          pnpm --filter @workspace/campusval-mobile run typecheck
+          pnpm --filter @workspace/campusval-mobile run test
+
+      - name: Build frontend
+        run: pnpm --filter @workspace/scu-advising run build
+
+      - name: Build API server
+        run: pnpm --filter @workspace/api-server run build

@@ -16,9 +16,18 @@ const GRID_HEIGHT = TOTAL_MIN * PX_PER_MIN;
 export function CalendarGrid({
   events,
   onEventClick,
+  isTentativeSchedule = false,
 }: {
   events: ScheduleEvent[];
   onEventClick?: (event: ScheduleEvent) => void;
+  /**
+   * True when this schedule's term hasn't published section numbers/
+   * instructors yet (see GET /api/schedule-availability, the single source
+   * of truth for published vs tentative quarter schedules). Every "section"
+   * event on a tentative schedule is tentative — it's a property of the
+   * quarter, not of individual sections.
+   */
+  isTentativeSchedule?: boolean;
 }) {
   const [showWeekends, setShowWeekends] = useState(false);
 
@@ -129,7 +138,7 @@ export function CalendarGrid({
                       : colorMap.get(`commitment-${s.id}`);
 
                   const isConflict = conflictIds.has(s.id);
-                  const isTentative = s.kind === "section" && !s.instructor; // Rough proxy for tentative section
+                  const isTentative = s.kind === "section" && isTentativeSchedule;
 
                   return (
                     <div
@@ -142,8 +151,18 @@ export function CalendarGrid({
                       } ${s.kind === "commitment" ? "border-dashed" : ""}`}
                       style={{ top, height }}
                     >
-                      <div className="font-semibold truncate">
-                        {s.kind === "section" ? `${s.courseCode}-${s.sectionNumber}` : s.name}
+                      <div className="font-semibold truncate flex items-center gap-1">
+                        <span className="truncate">
+                          {s.kind === "section" ? `${s.courseCode}-${s.sectionNumber}` : s.name}
+                        </span>
+                        {isTentative && (
+                          <span
+                            className="shrink-0 rounded-sm bg-amber-200/80 px-1 text-[8px] font-medium uppercase tracking-wide text-amber-900"
+                            title="This term's schedule is tentative — section number and instructor may change."
+                          >
+                            Tentative
+                          </span>
+                        )}
                       </div>
                       <div className="truncate opacity-90 text-[10px]">
                         {s.kind === "section" ? s.instructor || "Instructor TBA" : capitalize(s.category || "")}

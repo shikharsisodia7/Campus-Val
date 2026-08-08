@@ -581,3 +581,40 @@ describe("placeholder replace", () => {
     await asA(request(app).delete(`/api/plans/${id}/items/${ph.body.id}`)).expect(204);
   });
 });
+
+describe(".xlsx export", () => {
+  it("exports a plan as a non-trivial .xlsx workbook", async () => {
+    const id = await degreePlanId(USER_A);
+    const item = await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({ itemType: "course", courseCode: C1, term: "fall", academicYear: 2026 })
+      .expect(201);
+
+    const res = await asA(request(app).get(`/api/plans/${id}/export`).buffer(true).parse((r, cb) => {
+      const chunks: Buffer[] = [];
+      r.on("data", (c: Buffer) => chunks.push(c));
+      r.on("end", () => cb(null, Buffer.concat(chunks)));
+    })).expect(200);
+    expect(res.headers["content-type"]).toBe(
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    expect(res.headers["content-disposition"]).toMatch(/attachment/);
+    // A real xlsx is a zip archive (starts with the "PK" magic bytes) and
+    // is never trivially small.
+    const buf: Buffer = res.body;
+    expect(Buffer.isBuffer(buf)).toBe(true);
+    expect(buf.length).toBeGreaterThan(1000);
+    expect(buf.subarray(0, 2).toString("latin1")).toBe("PK");
+
+    await asA(request(app).delete(`/api/plans/${id}/items/${item.body.id}`)).expect(204);
+  });
+
+  it("404s exporting a plan that isn't yours", async () => {
+    const aPlanId = await degreePlanId(USER_A);
+    await asB(request(app).get(`/api/plans/${aPlanId}/export`)).expect(404);
+  });
+
+  it("requires authentication", async () => {
+    const id = await degreePlanId(USER_A);
+    await request(app).get(`/api/plans/${id}/export`).expect(401);
+  });
+});

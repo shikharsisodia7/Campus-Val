@@ -16,10 +16,13 @@ export function CourseDetailsDialog({
   event,
   open,
   onOpenChange,
+  isTentativeSchedule = false,
 }: {
   event: ScheduleEvent | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** See CalendarGrid's prop of the same name. */
+  isTentativeSchedule?: boolean;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -60,6 +63,15 @@ export function CourseDetailsDialog({
               <DialogTitle className="flex items-center justify-between gap-4">
                 <span className="font-bold text-xl">{courseCode}-{event.sectionNumber}</span>
                 <div className="flex items-center gap-2">
+                  {isTentativeSchedule && (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-400 bg-amber-50 text-amber-900"
+                      title="This term's schedule is tentative — section number and instructor may change."
+                    >
+                      Tentative
+                    </Badge>
+                  )}
                   {course && <Badge variant="outline">{course.units} units</Badge>}
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleRemove}>
                     <Trash2 className="h-4 w-4" />
