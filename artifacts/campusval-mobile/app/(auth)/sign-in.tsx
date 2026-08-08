@@ -101,7 +101,7 @@ export default function SignInPage() {
             <Text style={styles.logoText}>CV</Text>
           </View>
           <Text style={styles.appName}>CampusVal</Text>
-          <Text style={styles.tagline}>SCU Academic Advising</Text>
+          <Text style={styles.tagline}>SCU Academic Planning</Text>
         </View>
 
         {/* Google SSO */}

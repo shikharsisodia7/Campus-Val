@@ -1,97 +1,38 @@
-import express, { type Express, type Request, type Response } from "express";
-import cors from "cors";
-import pinoHttp from "pino-http";
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs";
-import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
-import {
-  CLERK_PROXY_PATH,
-  clerkProxyMiddleware,
-  getClerkProxyHost,
-} from "./middlewares/clerkProxyMiddleware";
-import router from "./routes";
-import { logger } from "./lib/logger";
+#!/usr/bin/env node
+// Bakes SEO content into dist/public/index.html at build time, for
+// deployments (Vercel) where "/" is served as a static file with no server
+// in front of it to inject anything per-request.
+//
+// This mirrors buildLandingHtml() / LANDING_PRERENDER in
+// artifacts/api-server/src/app.ts, which does the equivalent injection
+// dynamically per-request for local/Replit execution (where Express really
+// does serve "/"). Keep the two in sync if either changes — there is no
+// shared module between the two workspace packages, by design (avoids a
+// third package for ~80 lines of marketing HTML).
+import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
-const app: Express = express();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const indexPath = path.resolve(__dirname, "../dist/public/index.html");
 
-app.use(
-  pinoHttp({
-    logger,
-    serializers: {
-      req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
-      },
-      res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
-      },
-    },
-  }),
-);
+// Same fallback baked into the source index.html — see INDEX_HTML_FALLBACK_ORIGIN
+// in artifacts/api-server/src/app.ts.
+const FALLBACK_ORIGIN = "https://campusval.replit.app";
 
-// Clerk proxy must be mounted BEFORE body parsers (it streams raw bytes).
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+function resolveCanonicalOrigin() {
+  if (process.env.PUBLIC_APP_URL) return process.env.PUBLIC_APP_URL.replace(/\/$/, "");
+  // VERCEL_PROJECT_PRODUCTION_URL is the stable production domain; only
+  // meaningful/desired for an actual production build. Preview builds use
+  // their own deployment URL (VERCEL_URL) so a preview never claims to be
+  // the production canonical.
+  if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  }
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return FALLBACK_ORIGIN;
+}
 
-app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env["CLERK_PUBLISHABLE_KEY"],
-    ),
-  })),
-);
-
-app.use("/api", router);
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const candidates = [
-  path.resolve(__dirname, "../../scu-advising/dist/public"),
-  path.resolve(__dirname, "../../../artifacts/scu-advising/dist/public"),
-  path.resolve(process.cwd(), "artifacts/scu-advising/dist/public"),
-];
-const staticDir = candidates.find((p) => fs.existsSync(path.join(p, "index.html")));
-
-const SPA_ROUTES = new Set([
-  "/",
-  "/sign-in",
-  "/sign-up",
-  "/onboarding",
-  "/courses",
-  "/planner",
-  "/degree-plan",
-  "/tentative-plans",
-  "/schedule",
-  "/gpa",
-  "/transfer",
-  "/sync-workday",
-  "/policies",
-  "/advisor",
-  "/voice",
-  "/graduation-paths",
-  "/professors",
-  "/core-reqs",
-  "/compare",
-  "/advice",
-  "/resources",
-  "/evaluation",
-  "/feedback",
-  "/progress-report",
-]);
-
-// Static prerendered landing HTML injected for crawlers that don't execute JS.
-// React will hydrate/overwrite this on the client.
 const LANDING_PRERENDER = `
 <div style="min-height:100vh;font-family:Inter,system-ui,sans-serif;background:#fff;color:#1a1a1a">
   <header style="position:sticky;top:0;z-index:40;border-bottom:1px solid #e5e7eb;background:rgba(255,255,255,0.8);backdrop-filter:blur(8px)">
@@ -176,106 +117,30 @@ const LANDING_PRERENDER = `
 </div>
 `.trim();
 
-// The fallback origin baked into index.html's static og:image/JSON-LD tags,
-// used only if this file is ever served without going through this function
-// (e.g. `vite preview` locally). Rewritten below to the real request origin
-// so production never advertises a stale/decommissioned domain.
-const INDEX_HTML_FALLBACK_ORIGIN = "https://campusval.replit.app";
+const origin = resolveCanonicalOrigin();
+const canonical = `${origin}/`;
 
-function buildLandingHtml(indexHtml: string, origin: string): string {
-  const canonical = `${origin}/`;
-  let html = indexHtml;
+let html = readFileSync(indexPath, "utf-8");
 
-  // Inject canonical + og:url + twitter:url into <head>
-  const canonicalTag = `<link rel="canonical" href="${canonical}" />\n    <meta property="og:url" content="${canonical}" />\n    <meta name="twitter:url" content="${canonical}" />`;
-  html = html.replace(
-    "<!-- canonical injected server-side for the root route -->",
-    canonicalTag,
-  );
+const canonicalTag = `<link rel="canonical" href="${canonical}" />\n    <meta property="og:url" content="${canonical}" />\n    <meta name="twitter:url" content="${canonical}" />`;
+html = html.replace("<!-- canonical injected server-side for the root route -->", canonicalTag);
+html = html.replace("<!--CAMPUSVAL_PRERENDER-->", LANDING_PRERENDER);
+html = html.split(FALLBACK_ORIGIN).join(origin);
 
-  // Inject prerendered landing content into #root
-  html = html.replace(
-    "<!--CAMPUSVAL_PRERENDER-->",
-    LANDING_PRERENDER,
-  );
+writeFileSync(indexPath, html);
+console.log(`[postbuild-seo] baked canonical origin ${origin} into dist/public/index.html`);
 
-  // Rewrite the fallback origin baked into og:image/twitter:image/JSON-LD to
-  // this request's real origin, so the deployed domain never leaks a stale
-  // hardcoded one (e.g. after moving off Replit).
-  html = html.split(INDEX_HTML_FALLBACK_ORIGIN).join(origin);
-
-  return html;
+// robots.txt / sitemap.xml are served directly as static files by Vercel's
+// filesystem phase — no rewrite or Express route ever runs for them there
+// (unlike on Replit/local, where app.ts serves them dynamically). Bake the
+// same origin into them here so they never point at a stale/wrong domain.
+for (const file of ["robots.txt", "sitemap.xml"]) {
+  const filePath = path.resolve(__dirname, `../dist/public/${file}`);
+  try {
+    const contents = readFileSync(filePath, "utf-8");
+    writeFileSync(filePath, contents.split(FALLBACK_ORIGIN).join(origin));
+    console.log(`[postbuild-seo] baked canonical origin ${origin} into dist/public/${file}`);
+  } catch (err) {
+    if (err.code !== "ENOENT") throw err;
+  }
 }
-
-if (staticDir) {
-  logger.info({ staticDir }, "Serving static frontend");
-
-  // Root route: inject canonical URL + prerendered landing HTML for crawlers.
-  // Must be registered BEFORE express.static so the directory index doesn't
-  // short-circuit this handler.
-  app.get("/", (req: Request, res: Response) => {
-    const indexPath = path.join(staticDir, "index.html");
-    fs.readFile(indexPath, "utf-8", (err, data) => {
-      if (err) {
-        res.status(500).send("Internal Server Error");
-        return;
-      }
-      const origin = `${req.protocol}://${req.get("host")}`;
-      const html = buildLandingHtml(data, origin);
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.send(html);
-    });
-  });
-
-  // Static assets (JS, CSS, images, fonts, etc.) — registered after the root
-  // handler so GET / is handled above, not by the directory index.
-  app.use(express.static(staticDir));
-
-  // Crawler governance files: serve from static if present, otherwise real 404.
-  // robots.txt/sitemap.xml embed an absolute domain, so rewrite the fallback
-  // origin baked into the static files to this request's real origin.
-  app.get(["/robots.txt", "/sitemap.xml", "/llms.txt"], (req, res) => {
-    const filePath = path.join(staticDir, req.path);
-    if (!fs.existsSync(filePath)) {
-      res.status(404).end();
-      return;
-    }
-    if (req.path === "/llms.txt") {
-      res.sendFile(filePath);
-      return;
-    }
-    fs.readFile(filePath, "utf-8", (err, data) => {
-      if (err) {
-        res.status(500).end();
-        return;
-      }
-      const origin = `${req.protocol}://${req.get("host")}`;
-      const contentType = req.path === "/sitemap.xml" ? "application/xml" : "text/plain";
-      res.setHeader("Content-Type", `${contentType}; charset=utf-8`);
-      res.send(data.split(INDEX_HTML_FALLBACK_ORIGIN).join(origin));
-    });
-  });
-
-  app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {
-    const firstSegment = "/" + (req.path.split("/").filter(Boolean)[0] ?? "");
-    const known = SPA_ROUTES.has(req.path) || SPA_ROUTES.has(firstSegment);
-    const status = known ? 200 : 404;
-    fs.readFile(path.join(staticDir, "index.html"), "utf-8", (err, data) => {
-      if (err) {
-        res.status(500).send("Internal Server Error");
-        return;
-      }
-      const origin = `${req.protocol}://${req.get("host")}`;
-      const html = data.split(INDEX_HTML_FALLBACK_ORIGIN).join(origin);
-      res.status(status).setHeader("Content-Type", "text/html; charset=utf-8").send(html);
-    });
-  });
-
-  app.use("/api", (_req, res) => {
-    res.status(404).json({ error: "Not Found" });
-  });
-} else {
-  logger.warn({ candidates }, "Frontend build not found; only /api will be served");
-}
-
-export default app;

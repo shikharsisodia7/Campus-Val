@@ -334,7 +334,7 @@ export default function Onboarding() {
             </div>
             <div className="text-sm text-muted-foreground flex items-center gap-1.5">
               <GraduationCap className="h-3.5 w-3.5" />
-              Santa Clara University academic advising
+              Santa Clara University academic planning
             </div>
           </div>
         </div>
@@ -632,7 +632,7 @@ export default function Onboarding() {
                   <p className="text-sm text-foreground">
                     <span className="font-semibold">Almost there.</span>{" "}
                     CampusVal will personalize your dashboard, planner, and AI
-                    advisor with everything you've shared. You can edit this any
+                    assistant with everything you've shared. You can edit this any
                     time from Profile.
                   </p>
                 </div>

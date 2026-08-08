@@ -51,7 +51,7 @@ export default function Dashboard() {
     <AppShell>
       <PageHeader
         title={sp ? `Welcome back, ${sp.name.split(" ")[0]}` : "CampusVal"}
-        subtitle="Personalized academic advising for Santa Clara University students — grounded in real SCU policy, your transcript, and your degree progress."
+        subtitle="Personalized academic planning support for Santa Clara University students — grounded in real SCU policy, your transcript, and your degree progress."
         right={
           <Badge
             variant="secondary"
@@ -303,7 +303,7 @@ const QUICK_ACTIONS = [
   },
   {
     path: "/advisor",
-    label: "Ask the AI advisor",
+    label: "Ask the AI assistant",
     subtitle: "Get answers grounded in SCU policy",
   },
   {

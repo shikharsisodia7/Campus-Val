@@ -65,7 +65,13 @@ export function DegreePlanWorkspace({ mode = "degree" }: DegreePlanWorkspaceProp
   const selectPlan = (planId: number | null) => {
     setActivePlanId(planId);
     if (mode === 'tentative') {
-      if (planId !== null) {
+      // Only remember an id that's actually a tentative plan — selecting the
+      // Degree Plan (e.g. via "Official Degree Plan", or the post-delete
+      // fallback) must not poison the remembered-tentative-plan key.
+      const isTentative =
+        planId !== null &&
+        plansList?.plans.some((p) => p.id === planId && p.planType === 'tentative');
+      if (isTentative) {
         sessionStorage.setItem(LAST_TENTATIVE_PLAN_KEY, String(planId));
       } else {
         sessionStorage.removeItem(LAST_TENTATIVE_PLAN_KEY);

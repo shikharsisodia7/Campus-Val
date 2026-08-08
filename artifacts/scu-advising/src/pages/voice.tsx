@@ -36,7 +36,7 @@ const NAV_TARGETS: { path: string; label: string; keywords: string[] }[] = [
   { path: "/transfer", label: "Transfer Credit", keywords: ["transfer credit", "transfer course", "articulation", "assist.org", "community college", "transfer my"] },
   { path: "/professors", label: "Professors", keywords: ["professor", "instructor", "course evaluations", "who teaches"] },
   { path: "/advice", label: "Advice Board", keywords: ["advice board", "student advice", "tips board"] },
-  { path: "/advisor", label: "AI Advisor", keywords: ["ai advisor", "chat advisor", "text advisor", "type to the advisor"] },
+  { path: "/advisor", label: "Planning Support", keywords: ["ai advisor", "chat advisor", "text advisor", "type to the advisor"] },
   { path: "/policies", label: "SCU Policies", keywords: ["policy", "policies", "academic rules", "regulation"] },
   { path: "/feedback", label: "Feedback", keywords: ["feedback", "report a bug", "feature request", "suggestion"] },
   { path: "/", label: "Dashboard", keywords: ["dashboard", "home page", "homepage", "main page", "overview"] },
@@ -244,8 +244,8 @@ export default function VoiceAdvisor() {
   return (
     <AppShell>
       <PageHeader
-        title="Voice Advisor"
-        subtitle="Ask SCU advising questions out loud. Tap the mic, speak naturally, and the advisor will reply by voice."
+        title="Voice Planning Support"
+        subtitle="Ask SCU planning questions out loud. Tap the mic, speak naturally, and the assistant will reply by voice."
       />
 
       <div className="grid lg:grid-cols-[1fr_22rem] gap-6 mt-6">
@@ -281,7 +281,7 @@ export default function VoiceAdvisor() {
               {isRecording
                 ? `Listening… ${formatElapsed(elapsed)}`
                 : isBusy
-                  ? "Transcribing & asking the advisor…"
+                  ? "Transcribing & asking the assistant…"
                   : phase === "speaking"
                     ? "Playing answer"
                     : phase === "error"
@@ -317,7 +317,7 @@ export default function VoiceAdvisor() {
             />
             <p className="mt-3 text-xs text-muted-foreground">
               Audio is sent to OpenAI Whisper for transcription and to the
-              SCU-grounded advisor for an answer. Nothing is stored except the
+              SCU-grounded assistant for an answer. Nothing is stored except the
               transcript shown below.
             </p>
           </Card>
@@ -366,7 +366,7 @@ export default function VoiceAdvisor() {
                     </div>
                     <div className="flex-1">
                       <div className="text-[11px] uppercase tracking-wider font-semibold text-secondary mb-1 flex items-center gap-2">
-                        Advisor reply
+                        Assistant reply
                         {phase === "speaking" && (
                           <span className="inline-flex items-center gap-1 text-[10px] text-primary normal-case font-normal">
                             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
@@ -436,7 +436,7 @@ export default function VoiceAdvisor() {
                       </div>
                       <div className="border-t pt-3">
                         <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
-                          <Sparkles className="h-3 w-3" /> Advisor
+                          <Sparkles className="h-3 w-3" /> Assistant
                         </div>
                         <p className="text-sm whitespace-pre-wrap" data-testid={`voice-answer-${i + 1}`}>
                           {t.answer}
@@ -478,13 +478,13 @@ export default function VoiceAdvisor() {
           <Card className="p-5 text-sm text-muted-foreground space-y-2">
             <h3 className="font-semibold text-foreground">How it works</h3>
             <p>1. Press the mic and speak your question.</p>
-            <p>2. We transcribe with Whisper and ask the SCU advisor.</p>
+            <p>2. We transcribe with Whisper and ask the SCU planning assistant.</p>
             <p>3. The answer plays back automatically as speech.</p>
             <p className="pt-2 text-xs">
               Voice answers are kept short and conversational. For long
               syllabus-style answers, use the typed{" "}
               <a href="/advisor" className="text-primary underline">
-                AI Advisor
+                Planning Support
               </a>
               .
             </p>

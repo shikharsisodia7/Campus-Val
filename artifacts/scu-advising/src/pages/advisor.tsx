@@ -228,9 +228,12 @@ export default function Advisor() {
   return (
     <AppShell>
       <PageHeader
-        title="AI Advisor"
-        subtitle="Grounded in verified SCU policies. The advisor knows your profile and uses it to personalize answers."
+        title="Planning Support"
+        subtitle="Grounded in verified SCU policies. The assistant knows your profile and uses it to personalize answers."
       />
+      <div className="max-w-7xl mx-auto px-8 pt-3 text-xs text-muted-foreground">
+        CampusVal is an independent planning tool. Always verify with official SCU sources and a human advisor.
+      </div>
       <div className="max-w-7xl mx-auto px-8 py-6 flex-1 min-h-0 flex flex-col">
         <Card className="p-0 overflow-hidden grid grid-cols-12 flex-1 min-h-[500px] max-h-[calc(100vh-180px)]">
           <aside className="col-span-3 border-r border-border bg-muted/20 flex flex-col min-h-0 min-w-0">
@@ -351,7 +354,7 @@ function EmptyState({
         Ask CampusVal
       </h2>
       <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">
-        Confident answers grounded in verified SCU policies. The advisor knows
+        Confident answers grounded in verified SCU policies. The assistant knows
         your profile and uses it to personalize advice.
       </p>
       <div className="mt-8 grid gap-2 w-full">

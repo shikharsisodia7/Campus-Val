@@ -172,7 +172,10 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                   data-testid={`completed-source-${item.id}`}
                 >
                   <CheckCircle2 className="h-3 w-3 shrink-0" />
-                  <span>{COMPLETION_SOURCE_LABELS[item.completionSource ?? ""] ?? "Completed"} · student-entered</span>
+                  <span>
+                    {COMPLETION_SOURCE_LABELS[item.completionSource ?? ""] ?? "Completed"} ·{" "}
+                    {item.provenance === "report_imported" ? "from your progress report" : "student-entered"}
+                  </span>
                 </div>
               )}
               {notInOfficialSchedule && (

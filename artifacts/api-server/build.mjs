@@ -15,7 +15,15 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    // index.ts: traditional entry (app.listen), used by `pnpm start` locally
+    //   and on Replit.
+    // vercel.ts: bare Express app export (no listen), used by the Vercel
+    //   Function entry at /api/index.ts — see artifacts/api-server/README
+    //   or docs/DEPLOYMENT.md for how the two are wired up.
+    entryPoints: [
+      path.resolve(artifactDir, "src/index.ts"),
+      path.resolve(artifactDir, "src/vercel.ts"),
+    ],
     platform: "node",
     bundle: true,
     format: "esm",

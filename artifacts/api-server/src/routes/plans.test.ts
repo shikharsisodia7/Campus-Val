@@ -554,4 +554,30 @@ describe("placeholder replace", () => {
 
     await asA(request(app).delete(`/api/plans/${id}/items/${ph.body.id}`)).expect(204);
   });
+
+  it("rejects replacing a requirement-linked placeholder with a course that isn't on that requirement's verified list", async () => {
+    const id = await degreePlanId(USER_A);
+    // "student-professional-preparation-goal" always has an empty verified
+    // course list (planning-only, never auto-tracked) — no course should
+    // ever be accepted for it via this endpoint.
+    const ph = await asA(request(app).post(`/api/plans/${id}/items`))
+      .send({
+        itemType: "requirement_placeholder",
+        requirementId: "student-professional-preparation-goal",
+        requirementLabel: "Professional prep goal",
+        requirementCategory: "Professional Preparation",
+        term: "spring",
+        academicYear: 2027,
+      })
+      .expect(201);
+
+    const res = await asA(
+      request(app).post(`/api/plans/${id}/items/${ph.body.id}/replace`),
+    )
+      .send({ courseCode: C1 })
+      .expect(400);
+    expect(res.body.error).toMatch(/verified course list/i);
+
+    await asA(request(app).delete(`/api/plans/${id}/items/${ph.body.id}`)).expect(204);
+  });
 });

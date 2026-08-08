@@ -81,7 +81,7 @@ export default function ComparePage() {
                   <p className="text-xs text-muted-foreground mt-1">
                     Use this view to weigh workload, prereqs, and how each
                     course satisfies your Core or major. For deeper guidance
-                    about which one fits your plan, ask the AI Advisor with all
+                    about which one fits your plan, ask the AI assistant with all
                     course codes listed above.
                   </p>
                 </div>

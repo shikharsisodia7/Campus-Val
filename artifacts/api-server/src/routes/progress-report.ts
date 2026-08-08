@@ -2,11 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, progressReportsTable, studentProfilesTable, type ProgressReportRow } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
-import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { getObjectAclPolicy } from "../lib/objectAcl";
-import { isUploadPathOwnedBy } from "../lib/uploadPath";
+import { getPrivateObjectStorage, isPrivateStorageConfigured, ObjectNotFoundError } from "../lib/storage";
 import { parseProgressReport } from "../lib/progress-report-parser";
-import { Readable } from "stream";
 
 const router: IRouter = Router();
 
@@ -18,7 +15,7 @@ const ALLOWED_CONTENT_TYPES = new Set([
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".xlsx"]);
 
 function isStorageAvailable(): boolean {
-  return !!(process.env.PRIVATE_OBJECT_DIR);
+  return isPrivateStorageConfigured();
 }
 
 function reportDto(row: ProgressReportRow) {
@@ -134,51 +131,26 @@ router.put("/progress-report", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const storageService = new ObjectStorageService();
+  const storage = await getPrivateObjectStorage();
 
-  // Resolve the object and enforce ownership BEFORE touching its ACL or
-  // contents. A freshly uploaded object has no ACL policy yet; an object
-  // with an existing policy may only be (re-)registered by its owner.
-  let objectFile;
+  // Enforce ownership BEFORE touching contents. The path itself is
+  // owner-bound at mint time (see uploadPath.ts), so this also rejects any
+  // attempt to register a path minted for a different user.
+  if (!storage.isUploadPathOwnedBy(objectPath, userId)) {
+    res.status(403).json({ error: "Forbidden." });
+    return;
+  }
+
+  // Validate authoritative storage-backend metadata rather than trusting the client.
+  let actualSize = 0;
   try {
-    objectFile = await storageService.getObjectEntityFile(objectPath);
+    const meta = await storage.getMetadata(objectPath);
+    actualSize = meta.size;
   } catch (err) {
     if (err instanceof ObjectNotFoundError) {
       res.status(400).json({ error: "Uploaded file not found. Upload the file first, then register it." });
       return;
     }
-    req.log.error({ err: (err as Error).message }, "Failed to access progress report object");
-    res.status(500).json({ error: "Could not access the uploaded file." });
-    return;
-  }
-
-  try {
-    const existingAcl = await getObjectAclPolicy(objectFile);
-    if (existingAcl && existingAcl.owner) {
-      // Never allow claiming an object owned by someone else.
-      if (existingAcl.owner !== userId) {
-        res.status(403).json({ error: "Forbidden." });
-        return;
-      }
-    } else if (!isUploadPathOwnedBy(objectPath, userId)) {
-      // Fresh objects (no ACL yet) may only be registered through an upload
-      // path minted for this user by /storage/uploads/request-url.
-      res.status(403).json({ error: "Forbidden." });
-      return;
-    }
-  } catch (err) {
-    // Fail closed: if ownership can't be verified, refuse registration.
-    req.log.error({ err: (err as Error).message }, "Failed to read ACL of progress report object");
-    res.status(500).json({ error: "Could not verify file ownership." });
-    return;
-  }
-
-  // Validate authoritative GCS metadata rather than trusting the client.
-  let actualSize = 0;
-  try {
-    const [meta] = await objectFile.getMetadata();
-    actualSize = Number(meta.size ?? 0);
-  } catch (err) {
     req.log.error({ err: (err as Error).message }, "Failed to read metadata of progress report object");
     res.status(500).json({ error: "Could not verify the uploaded file." });
     return;
@@ -188,24 +160,20 @@ router.put("/progress-report", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // Set ACL: owner = userId, private. Fail closed on errors.
+  // Finalize (e.g. set ACL on providers that need one). Fail closed on errors.
   try {
-    await storageService.trySetObjectEntityAclPolicy(objectPath, {
-      owner: userId,
-      visibility: "private",
-    });
+    await storage.finalizeUpload(objectPath, userId);
   } catch (err) {
-    req.log.error({ err: (err as Error).message }, "Failed to set ACL on progress report object");
+    req.log.error({ err: (err as Error).message }, "Failed to finalize progress report object");
     res.status(500).json({ error: "Could not secure the uploaded file. Try again." });
     return;
   }
 
-  // If a previous report exists, best-effort delete its GCS object
+  // If a previous report exists, best-effort delete its old object.
   const existing = await getUserReport(userId);
   if (existing && existing.objectPath !== objectPath) {
     try {
-      const oldFile = await storageService.getObjectEntityFile(existing.objectPath);
-      await oldFile.delete();
+      await storage.deleteObject(existing.objectPath);
     } catch {
       // Best effort — ignore errors
     }
@@ -214,8 +182,12 @@ router.put("/progress-report", requireAuth, async (req, res): Promise<void> => {
   // Download the file buffer for parsing (size verified above).
   let fileBuf: Buffer;
   try {
-    const [fileContents] = await objectFile.download();
-    fileBuf = fileContents;
+    const { stream } = await storage.downloadObject(objectPath);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    fileBuf = Buffer.concat(chunks);
     if (fileBuf.length > MAX_FILE_SIZE) {
       res.status(400).json({ error: "File size exceeds the 10 MB limit." });
       return;
@@ -313,11 +285,9 @@ router.delete("/progress-report", requireAuth, async (req, res): Promise<void> =
     return;
   }
 
-  // Best-effort delete the GCS object
+  // Best-effort delete the underlying object
   try {
-    const storageService = new ObjectStorageService();
-    const file = await storageService.getObjectEntityFile(report.objectPath);
-    await file.delete();
+    await (await getPrivateObjectStorage()).deleteObject(report.objectPath);
   } catch {
     // Best effort — ignore errors
   }
@@ -347,31 +317,19 @@ router.get("/progress-report/file", requireAuth, async (req, res): Promise<void>
   }
 
   try {
-    const storageService = new ObjectStorageService();
-    const objectFile = await storageService.getObjectEntityFile(report.objectPath);
+    const storage = await getPrivateObjectStorage();
 
-    // Verify ownership via ACL
-    const canAccess = await storageService.canAccessObjectEntity({
-      userId,
-      objectFile,
-    });
+    const canAccess = await storage.canRead(report.objectPath, userId);
     if (!canAccess) {
       res.status(403).json({ error: "Forbidden." });
       return;
     }
 
-    const response = await storageService.downloadObject(objectFile);
-    res.status(response.status);
-    response.headers.forEach((value: string, key: string) => res.setHeader(key, value));
-
-    if (response.body) {
-      const nodeStream = Readable.fromWeb(
-        response.body as ReadableStream<Uint8Array>,
-      );
-      nodeStream.pipe(res);
-    } else {
-      res.end();
-    }
+    const { stream, contentType, size } = await storage.downloadObject(report.objectPath);
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    if (size) res.setHeader("Content-Length", String(size));
+    stream.pipe(res);
   } catch (err) {
     if (err instanceof ObjectNotFoundError) {
       res.status(404).json({ error: "File not found in storage." });

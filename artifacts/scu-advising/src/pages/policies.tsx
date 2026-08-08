@@ -39,7 +39,7 @@ export default function Policies() {
     <AppShell>
       <PageHeader
         title="SCU Academic Policies"
-        subtitle="The verified policies CampusVal's AI advisor uses as ground truth."
+        subtitle="The verified policies CampusVal's AI assistant uses as ground truth."
       />
       <PageContent>
         <Card className="p-4 space-y-3">

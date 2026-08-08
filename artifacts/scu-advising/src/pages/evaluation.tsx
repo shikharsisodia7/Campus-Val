@@ -40,8 +40,8 @@ export default function Evaluation() {
   return (
     <AppShell>
       <PageHeader
-        title="AI Advisor Evaluation Framework"
-        subtitle="Benchmark the AI advisor against curated SCU policy scenarios. Each scenario is graded on whether the response includes required keywords, avoids forbidden patterns, and meets a risk-weighted bar."
+        title="AI Planning Assistant Evaluation Framework"
+        subtitle="Benchmark the AI planning assistant against curated SCU policy scenarios. Each scenario is graded on whether the response includes required keywords, avoids forbidden patterns, and meets a risk-weighted bar."
         right={
           <div className="flex gap-2">
             <Button
@@ -71,7 +71,7 @@ export default function Evaluation() {
               {scenarios.length} scenarios in the benchmark
             </div>
             <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
-              Each scenario sends a prompt to the AI advisor and grades the
+              Each scenario sends a prompt to the AI assistant and grades the
               response. "Critical" scenarios test rules where a wrong answer
               could cost a student tuition or graduation timing (e.g.
               post-enrollment outside coursework, the 87.5-unit transfer cap,
@@ -114,7 +114,7 @@ export default function Evaluation() {
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Sending {selected?.length ?? scenarios.length} scenarios to the
-              advisor model. This typically takes 20-60 seconds.
+              assistant model. This typically takes 20-60 seconds.
             </p>
           </Card>
         )}

@@ -1,20 +1,19 @@
-import { Readable } from 'stream';
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from '@workspace/api-zod';
 import { Router, type IRouter, type Request, type Response } from 'express';
 
-import { ObjectPermission } from '../lib/objectAcl';
-import {
-  ObjectNotFoundError,
-  ObjectStorageService,
-} from '../lib/objectStorage';
+import { ObjectNotFoundError, getPrivateObjectStorage } from '../lib/storage';
 
 import { requireAuth } from '../middlewares/requireAuth';
 
 const router: IRouter = Router();
-const objectStorageService = new ObjectStorageService();
+
+// Kept in sync with MAX_FILE_SIZE in progress-report.ts. Must not be derived
+// from client-supplied size — this bounds what the signed upload token
+// itself will accept, ahead of the authoritative post-upload metadata check.
+const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 
 /**
  * POST /storage/uploads/request-url
@@ -40,11 +39,11 @@ router.post(
       // Assign ownership before the browser receives the signed PUT URL. This
       // binds the opaque object path to the authenticated requester, so it
       // cannot later be claimed by a different student at registration time.
-      const { uploadURL, objectPath } =
-        await objectStorageService.getObjectEntityUploadURL({
-          owner: req.userId!,
-          visibility: 'private',
-        });
+      const storage = await getPrivateObjectStorage();
+      const { uploadURL, objectPath } = await storage.createUploadTarget(
+        req.userId!,
+        { contentType, maxSizeBytes: MAX_UPLOAD_SIZE_BYTES },
+      );
 
       res.json(
         RequestUploadUrlResponse.parse({
@@ -61,50 +60,9 @@ router.post(
 );
 
 /**
- * GET /storage/public-objects/*
- *
- * Serve public assets from PUBLIC_OBJECT_SEARCH_PATHS.
- * These are unconditionally public — no authentication or ACL checks.
- * IMPORTANT: Always provide this endpoint when object storage is set up.
- */
-router.get(
-  '/storage/public-objects/*filePath',
-  async (req: Request, res: Response) => {
-    try {
-      const raw = req.params.path;
-      const filePath = Array.isArray(raw) ? raw.join('/') : raw;
-      const file = await objectStorageService.searchPublicObject(filePath);
-      if (!file) {
-        res.status(404).json({ error: 'File not found' });
-        return;
-      }
-
-      const response = await objectStorageService.downloadObject(file);
-
-      res.status(response.status);
-      response.headers.forEach((value, key) => res.setHeader(key, value));
-
-      if (response.body) {
-        const nodeStream = Readable.fromWeb(
-          response.body as ReadableStream<Uint8Array>,
-        );
-        nodeStream.pipe(res);
-      } else {
-        res.end();
-      }
-    } catch (error) {
-      req.log.error({ err: error }, 'Error serving public object');
-      res.status(500).json({ error: 'Failed to serve public object' });
-    }
-  },
-);
-
-/**
  * GET /storage/objects/*
  *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
+ * Serve private object entities (e.g. Academic Progress Reports). Owner-only.
  */
 router.get(
   '/storage/objects/*path',
@@ -114,33 +72,19 @@ router.get(
       const raw = req.params.path;
       const wildcardPath = Array.isArray(raw) ? raw.join('/') : raw;
       const objectPath = `/objects/${wildcardPath}`;
-      const objectFile =
-        await objectStorageService.getObjectEntityFile(objectPath);
+      const storage = await getPrivateObjectStorage();
 
-      // Private objects (e.g. Academic Progress Reports) are owner-only.
-      const canAccess = await objectStorageService.canAccessObjectEntity({
-        userId: req.userId,
-        objectFile,
-        requestedPermission: ObjectPermission.READ,
-      });
+      const canAccess = await storage.canRead(objectPath, req.userId);
       if (!canAccess) {
         res.status(403).json({ error: 'Forbidden' });
         return;
       }
 
-      const response = await objectStorageService.downloadObject(objectFile);
-
-      res.status(response.status);
-      response.headers.forEach((value, key) => res.setHeader(key, value));
-
-      if (response.body) {
-        const nodeStream = Readable.fromWeb(
-          response.body as ReadableStream<Uint8Array>,
-        );
-        nodeStream.pipe(res);
-      } else {
-        res.end();
-      }
+      const { stream, contentType, size } = await storage.downloadObject(objectPath);
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'private, max-age=3600');
+      if (size) res.setHeader('Content-Length', String(size));
+      stream.pipe(res);
     } catch (error) {
       if (error instanceof ObjectNotFoundError) {
         req.log.warn({ err: error }, 'Object not found');

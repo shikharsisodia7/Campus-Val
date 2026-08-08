@@ -22,6 +22,7 @@ import { findCourse } from "../data/courses";
 import { OFFERED_TERMS, isTentativeTerm, OFFERED_SECTIONS } from "../data/offered-sections";
 import { courseSectionsTable } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import { buildRequirementsResponse } from "./requirements";
 
 const router: IRouter = Router();
 
@@ -923,6 +924,38 @@ router.delete("/plans/:id/items/:itemId", requireAuth, async (req, res) => {
   res.status(204).end();
 });
 
+/**
+ * Server-side mirror of the frontend's placeholder-replacement eligibility
+ * check (CourseCard.tsx): a course may only fill a requirement placeholder
+ * if it's actually in that requirement's verified course list. Returns null
+ * if the requirement can't be resolved at all (e.g. stale/unknown id).
+ */
+async function getEligibleCoursesForRequirement(
+  userId: string,
+  plan: AcademicPlanRow,
+  requirementId: string,
+): Promise<string[] | null> {
+  const profileRows = await db
+    .select()
+    .from(studentProfilesTable)
+    .where(eq(studentProfilesTable.userId, userId))
+    .limit(1);
+  const profile = profileRows[0];
+  if (!profile) return null;
+
+  const programs = (plan.programs ?? {}) as Partial<PlanPrograms>;
+  const metadata = (plan.metadata ?? {}) as { scenarioMajors?: string[]; scenarioMinors?: string[] };
+  const scenarioMajors = [...(programs.additionalMajors ?? []), ...(metadata.scenarioMajors ?? [])];
+  const scenarioMinors = [...(programs.minors ?? []), ...(metadata.scenarioMinors ?? [])];
+
+  const { groups } = buildRequirementsResponse(profile, scenarioMajors, scenarioMinors);
+  for (const group of groups as Array<{ items: Array<{ id: string; courses: string[] }> }>) {
+    const found = group.items.find((i) => i.id === requirementId);
+    if (found) return found.courses;
+  }
+  return null;
+}
+
 router.post(
   "/plans/:id/items/:itemId/replace",
   requireAuth,
@@ -943,6 +976,20 @@ router.post(
       return res.status(400).json({
         error: `${normalizeCode(parsed.data.courseCode)} is not in the SCU catalog.`,
       });
+    }
+    if (item.requirementId) {
+      const eligible = await getEligibleCoursesForRequirement(req.userId!, plan, item.requirementId);
+      const eligibleCodes = new Set((eligible ?? []).map((c) => normalizeCode(c)));
+      if (eligibleCodes.size === 0) {
+        return res.status(400).json({
+          error: "CampusVal doesn't have a verified course list for this requirement yet.",
+        });
+      }
+      if (!eligibleCodes.has(course.code)) {
+        return res.status(400).json({
+          error: `${course.code} doesn't fulfill ${item.requirementLabel ?? "this requirement"}.`,
+        });
+      }
     }
     // Same plan, same term/year, same slot: swap placeholder for the course.
     const [updated] = await db

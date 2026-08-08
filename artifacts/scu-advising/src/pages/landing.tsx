@@ -77,7 +77,7 @@ function Hero() {
         transition={{ duration: 0.6, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
         className="font-serif text-4xl md:text-5xl font-bold leading-tight tracking-tight max-w-2xl mx-auto"
       >
-        Your AI academic advisor for{" "}
+        Academic planning for{" "}
         <span className="text-[#8C1515]">Santa Clara</span>
       </motion.h1>
 
@@ -149,7 +149,7 @@ function Features() {
     },
     {
       icon: MessageSquareText,
-      title: "AI advisor",
+      title: "AI planning support",
       desc: "Answers grounded in SCU's bulletin and policies.",
     },
     {

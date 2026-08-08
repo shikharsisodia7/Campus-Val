@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm run vercel-build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "outputDirectory": "artifacts/scu-advising/dist/public",
+  "functions": {
+    "api/[[...path]].mjs": {
+      "maxDuration": 30,
+      "includeFiles": "artifacts/api-server/dist/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, studentProfilesTable } from "@workspace/db";
+import { db, studentProfilesTable, type StudentProfileRow } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import {
   buildRequirementGroups,
@@ -60,17 +60,19 @@ function resolveGroup(
   };
 }
 
-router.get("/requirements", requireAuth, async (req, res) => {
-  const rows = await db
-    .select()
-    .from(studentProfilesTable)
-    .where(eq(studentProfilesTable.userId, req.userId!))
-    .limit(1);
-  const profile = rows[0];
-  if (!profile) {
-    return res.status(404).json({ error: "Complete onboarding first." });
-  }
-
+/**
+ * Builds the full requirement-groups response for a student profile, given
+ * optional plan-scoped scenario majors/minors. Shared by GET /requirements
+ * and by server-side placeholder-replacement validation (POST
+ * /plans/:id/items/:itemId/replace) so both use the exact same requirement
+ * resolution — a course is only ever "eligible" for a requirement if it
+ * appears here.
+ */
+export function buildRequirementsResponse(
+  profile: StudentProfileRow,
+  scenarioMajors: string[] = [],
+  scenarioMinors: string[] = [],
+) {
   const collegeCode: College = COLLEGE_CODE[profile.college] ?? "CAS";
   const completed = new Set(
     (profile.completedCourseCodes ?? []).map(normalize),
@@ -143,16 +145,6 @@ router.get("/requirements", requireAuth, async (req, res) => {
     };
   };
 
-  const scenarioMajors = String(req.query.scenarioMajors ?? "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .slice(0, 10);
-  const scenarioMinors = String(req.query.scenarioMinors ?? "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .slice(0, 10);
   const declaredMajors = [
     profile.major,
     profile.secondMajor,
@@ -215,7 +207,7 @@ router.get("/requirements", requireAuth, async (req, res) => {
     manualCount: 1,
   };
 
-  res.json({
+  return {
     college: profile.college,
     collegeCode,
     major: profile.major ?? null,
@@ -233,7 +225,35 @@ router.get("/requirements", requireAuth, async (req, res) => {
       professionalPreparation,
       resolveGroup(college, completed),
     ],
-  });
+  };
+}
+
+function parseScenarioList(raw: unknown): string[] {
+  return String(raw ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 10);
+}
+
+router.get("/requirements", requireAuth, async (req, res) => {
+  const rows = await db
+    .select()
+    .from(studentProfilesTable)
+    .where(eq(studentProfilesTable.userId, req.userId!))
+    .limit(1);
+  const profile = rows[0];
+  if (!profile) {
+    return res.status(404).json({ error: "Complete onboarding first." });
+  }
+
+  res.json(
+    buildRequirementsResponse(
+      profile,
+      parseScenarioList(req.query.scenarioMajors),
+      parseScenarioList(req.query.scenarioMinors),
+    ),
+  );
 });
 
 export default router;

@@ -21,56 +21,60 @@ vi.mock("../middlewares/requireAuth", () => ({
   },
 }));
 
-// Controllable mock storage state for progress-report tests (no GCS needed).
+// Controllable mock storage state for progress-report tests (no real
+// backend needed). `storageError: true` simulates a storage-backend failure
+// during metadata lookup (the one remaining async step that can throw) —
+// ownership itself is a pure path-hash check under the current
+// PrivateObjectStorage abstraction, so it can no longer fail asynchronously.
 const mockStorage = {
-  // When null, getObjectEntityFile rejects (object missing).
   file: null as null | {
     size: number;
-    aclOwner: string | null;
-    aclError?: boolean;
+    storageError?: boolean;
     content?: Buffer;
   },
 };
 
-// Mock object storage service so progress-report tests don't need GCS
-vi.mock("../lib/objectStorage", () => {
+// Mock the storage abstraction so progress-report tests don't need a real backend.
+vi.mock("../lib/storage", async () => {
+  const { createHash } = await import("crypto");
+  const isUploadPathOwnedBy = (objectPath: string, owner: string) => {
+    const segment = createHash("sha256").update(owner).digest("hex").slice(0, 16);
+    return objectPath.startsWith(`/objects/uploads/${segment}/`);
+  };
   class MockObjectNotFoundError extends Error {
     constructor() { super("Object not found"); this.name = "ObjectNotFoundError"; }
   }
-  class MockObjectStorageService {
-    getObjectEntityFile = vi.fn().mockImplementation(async () => {
-      if (!mockStorage.file) throw new MockObjectNotFoundError();
-      const f = mockStorage.file;
-      return {
-        getMetadata: async () => [{ size: String(f.size) }],
-        download: async () => [f.content ?? Buffer.from("plain text no courses")],
-        delete: async () => {},
-      };
-    });
-    trySetObjectEntityAclPolicy = vi.fn().mockImplementation(async () => {
+  const provider = {
+    isUploadPathOwnedBy,
+    finalizeUpload: vi.fn().mockImplementation(async () => {
       if (!mockStorage.file) throw new Error("no object");
-      mockStorage.file.aclOwner = "SET_BY_ROUTE";
-      return "/objects/test-path";
-    });
-    canAccessObjectEntity = vi.fn().mockResolvedValue(true);
-    downloadObject = vi.fn().mockResolvedValue(new Response("file content", { status: 200 }));
-    getPrivateObjectDir = vi.fn().mockReturnValue("/test-bucket/objects");
-    normalizeObjectEntityPath = vi.fn().mockReturnValue("/objects/test-path");
-  }
+    }),
+    canRead: vi.fn().mockImplementation(async (objectPath: string, userId?: string) => {
+      if (!userId) return false;
+      return isUploadPathOwnedBy(objectPath, userId);
+    }),
+    getMetadata: vi.fn().mockImplementation(async () => {
+      if (!mockStorage.file) throw new MockObjectNotFoundError();
+      if (mockStorage.file.storageError) throw new Error("storage backend error");
+      return { size: mockStorage.file.size, contentType: "application/pdf" };
+    }),
+    downloadObject: vi.fn().mockImplementation(async () => {
+      if (!mockStorage.file) throw new MockObjectNotFoundError();
+      const { Readable } = await import("stream");
+      return {
+        stream: Readable.from([mockStorage.file.content ?? Buffer.from("plain text no courses")]),
+        contentType: "application/pdf",
+        size: mockStorage.file.size,
+      };
+    }),
+    deleteObject: vi.fn().mockResolvedValue(undefined),
+  };
   return {
-    ObjectStorageService: MockObjectStorageService,
+    getPrivateObjectStorage: () => provider,
+    isPrivateStorageConfigured: () => true,
     ObjectNotFoundError: MockObjectNotFoundError,
   };
 });
-
-vi.mock("../lib/objectAcl", () => ({
-  getObjectAclPolicy: vi.fn().mockImplementation(async () => {
-    if (!mockStorage.file) return null;
-    if (mockStorage.file.aclError) throw new Error("ACL read failed");
-    if (mockStorage.file.aclOwner == null) return null;
-    return { owner: mockStorage.file.aclOwner, visibility: "private" };
-  }),
-}));
 
 const { db, academicPlansTable, planItemsTable, progressReportsTable } = await import("@workspace/db");
 const plansRouter = (await import("./plans")).default;
@@ -587,31 +591,34 @@ describe("progress report: ownership and metadata protections", () => {
   });
 
   it("rejects (403) registering a fresh object minted for another user's path", async () => {
-    mockStorage.file = { size: 1000, aclOwner: null };
+    mockStorage.file = { size: 1000 };
     await asB(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/fresh`, fileName: "r.pdf", fileSize: 1000, contentType: "application/pdf" })
       .expect(403);
   });
 
-  it("rejects (403) claiming an object already owned by another user", async () => {
-    mockStorage.file = { size: 1000, aclOwner: USER_A };
+  it("rejects (403) claiming a path minted for another user, even if it appears to already have content", async () => {
+    // Ownership is derived entirely from the path hash — a path minted for
+    // A can never be claimed by B, regardless of whether the underlying
+    // object already exists.
+    mockStorage.file = { size: 1000 };
     const res = await asB(request(reportApp).put("/api/progress-report"))
-      .send({ objectPath: `/objects/uploads/${segB}/a-file`, fileName: "r.pdf", fileSize: 1000, contentType: "application/pdf" })
+      .send({ objectPath: `/objects/uploads/${segA}/a-file`, fileName: "r.pdf", fileSize: 1000, contentType: "application/pdf" })
       .expect(403);
     expect(res.body.error).toMatch(/forbidden/i);
     // No report row created for B
     await asB(request(reportApp).get("/api/progress-report")).expect(404);
   });
 
-  it("fails closed (500) when ownership cannot be verified", async () => {
-    mockStorage.file = { size: 1000, aclOwner: USER_A, aclError: true };
+  it("fails closed (500) when the storage backend errors while verifying the uploaded file", async () => {
+    mockStorage.file = { size: 1000, storageError: true };
     await asA(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/x`, fileName: "r.pdf", fileSize: 1000, contentType: "application/pdf" })
       .expect(500);
   });
 
   it("rejects when actual stored object exceeds 10 MB even if client lies about fileSize", async () => {
-    mockStorage.file = { size: 11 * 1024 * 1024, aclOwner: null };
+    mockStorage.file = { size: 11 * 1024 * 1024 };
     const res = await asA(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/big`, fileName: "r.pdf", fileSize: 1000, contentType: "application/pdf" })
       .expect(400);
@@ -619,13 +626,13 @@ describe("progress report: ownership and metadata protections", () => {
   });
 
   it("registers a fresh unowned object, persists authoritative size, and allows re-register by owner", async () => {
-    mockStorage.file = { size: 2048, aclOwner: null };
+    mockStorage.file = { size: 2048 };
     const res = await asA(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/mine`, fileName: "r.pdf", fileSize: 999999, contentType: "application/pdf" })
       .expect(200);
     expect(res.body.report.fileSize).toBe(2048); // metadata wins over client claim
     // Re-register by the same owner is allowed
-    mockStorage.file = { size: 2048, aclOwner: USER_A };
+    mockStorage.file = { size: 2048 };
     await asA(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/mine`, fileName: "r.pdf", fileSize: 2048, contentType: "application/pdf" })
       .expect(200);
@@ -827,7 +834,7 @@ describe("progress report: parser-owned fields are server-controlled (task #38)"
   it("crafted parseStatus/parsed/parseError in the PUT body cannot manufacture a parsed report", async () => {
     // File content is NOT a valid PDF → server-side parse must fail,
     // no matter what parse state the client claims.
-    mockStorage.file = { size: 100, aclOwner: null, content: Buffer.from("not a pdf at all") };
+    mockStorage.file = { size: 100, content: Buffer.from("not a pdf at all") };
     const segA = uploadPathOwnerSegment(USER_A);
     const res = await asA(request(reportApp).put("/api/progress-report"))
       .send({
@@ -850,7 +857,7 @@ describe("progress report: parser-owned fields are server-controlled (task #38)"
 
   it("server parse result wins for valid files (client cannot override parsed contents)", async () => {
     const realCode = COURSES[0]!.code;
-    mockStorage.file = { size: 500, aclOwner: null, content: minimalPdf(`Completed: ${realCode} Intro 4.00 A`) };
+    mockStorage.file = { size: 500, content: minimalPdf(`Completed: ${realCode} Intro 4.00 A`) };
     const segA = uploadPathOwnerSegment(USER_A);
     const res = await asA(request(reportApp).put("/api/progress-report"))
       .send({
@@ -886,7 +893,7 @@ describe("progress report: student ID identity validation (task #39)", () => {
 
   it("rejects (422) a report whose student ID mismatches the profile, without saving and without echoing the ID", async () => {
     await insertProfile(USER_A, "SYNTHETIC-0001");
-    mockStorage.file = { size: 400, aclOwner: null, content: reportPdf("SYNTHETIC-9999") };
+    mockStorage.file = { size: 400, content: reportPdf("SYNTHETIC-9999") };
     const res = await asA(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/mismatch`, fileName: "r.pdf", fileSize: 400, contentType: "application/pdf" })
       .expect(422);
@@ -897,7 +904,7 @@ describe("progress report: student ID identity validation (task #39)", () => {
 
   it("accepts a report whose student ID matches the profile (case-insensitive)", async () => {
     await insertProfile(USER_A, "synthetic-0001");
-    mockStorage.file = { size: 400, aclOwner: null, content: reportPdf("SYNTHETIC-0001") };
+    mockStorage.file = { size: 400, content: reportPdf("SYNTHETIC-0001") };
     await asA(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/match`, fileName: "r.pdf", fileSize: 400, contentType: "application/pdf" })
       .expect(200);
@@ -905,7 +912,7 @@ describe("progress report: student ID identity validation (task #39)", () => {
 
   it("does not falsely reject when the report has no extractable student ID (honest note instead)", async () => {
     await insertProfile(USER_A, "SYNTHETIC-0001");
-    mockStorage.file = { size: 400, aclOwner: null, content: minimalPdf("FALL 2022-2023 CSCI 10 Intro 5.00 A") };
+    mockStorage.file = { size: 400, content: minimalPdf("FALL 2022-2023 CSCI 10 Intro 5.00 A") };
     const res = await asA(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/noid`, fileName: "r.pdf", fileSize: 400, contentType: "application/pdf" })
       .expect(200);
@@ -915,7 +922,7 @@ describe("progress report: student ID identity validation (task #39)", () => {
 
   it("does not reject when the profile has no student ID on record", async () => {
     await insertProfile(USER_A, null);
-    mockStorage.file = { size: 400, aclOwner: null, content: reportPdf("SYNTHETIC-9999") };
+    mockStorage.file = { size: 400, content: reportPdf("SYNTHETIC-9999") };
     await asA(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/noprofileid`, fileName: "r.pdf", fileSize: 400, contentType: "application/pdf" })
       .expect(200);

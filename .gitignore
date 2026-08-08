@@ -41,12 +41,24 @@ testem.log
 .DS_Store
 Thumbs.db
 
+# env / secrets
+.env
+.env.*
+!.env.example
+
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
 # Replit
 .cache/
 .local/
+
+# Vercel
+.vercel
+
+# Claude Code local tooling (not part of the app)
+.claude/
+skills-lock.json
 
 # Private / never publish (prompts, screenshots, agent state)
 attached_assets/
@@ -55,3 +67,5 @@ attached_assets/
 /actg.html
 /mgmt.html
 /campusval-source.zip
+.env*
+!.env.example

@@ -162,6 +162,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="min-w-0">{children}</main>
+      <footer className="border-t border-border bg-card/50 px-4 py-2 text-center text-[11px] text-muted-foreground sm:px-6 lg:px-8">
+        Independent planning tool — not official SCU advising. Verify with your advisor.
+      </footer>
     </div>
   );
 }

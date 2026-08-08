@@ -430,7 +430,7 @@ export default function GraduationPaths() {
                   ))}
                 </div>
                 <div className="mt-4 text-[11px] text-muted-foreground italic">
-                  Need help with any of these courses? Ask the AI advisor — it knows the SCU tutoring centers (Drahmann, HUB Writing, Math/CS Tutoring, Engineering Tutoring, Leavey Business Tutoring) and free video resources (Khan Academy, Professor Leonard, 3Blue1Brown).
+                  Need help with any of these courses? Ask the AI assistant — it knows the SCU tutoring centers (Drahmann, HUB Writing, Math/CS Tutoring, Engineering Tutoring, Leavey Business Tutoring) and free video resources (Khan Academy, Professor Leonard, 3Blue1Brown).
                 </div>
               </Card>
             )}
