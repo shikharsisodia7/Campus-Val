@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://campus-val.vercel.app/sitemap.xml
+Sitemap: https://campusval.vercel.app/sitemap.xml
