@@ -108,6 +108,7 @@ export * from "./planTerm";
 export * from "./planType";
 export * from "./policy";
 export * from "./prereqCheckResult";
+export * from "./professionalGoal";
 export * from "./professorEntry";
 export * from "./professorList";
 export * from "./progressReport";

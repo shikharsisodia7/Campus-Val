@@ -1055,14 +1055,13 @@ const MINORS: MinorOption[] = [
   // College of Arts & Sciences
   { code: "ANTH-MIN", title: "Anthropology", college: "CAS" },
   { code: "ARTH-MIN", title: "Art History", college: "CAS" },
-  { code: "ARTS-MIN", title: "Art Studio", college: "CAS" },
+  { code: "ARTS-MIN", title: "Studio Art", college: "CAS" },
   { code: "ASCI-MIN", title: "Asian Studies", college: "CAS" },
   { code: "BIOL-MIN", title: "Biology", college: "CAS" },
   { code: "BIOC-MIN", title: "Biochemistry", college: "CAS" },
   { code: "CTHL-MIN", title: "Catholic Studies", college: "CAS" },
   { code: "CHEM-MIN", title: "Chemistry", college: "CAS" },
-  { code: "CHST-MIN", title: "Child Studies", college: "CAS" },
-  { code: "CLAS-MIN", title: "Classical Studies", college: "CAS" },
+  { code: "CLAS-MIN", title: "Classics and Ancient Studies", college: "CAS" },
   { code: "COMM-MIN", title: "Communication", college: "CAS" },
   { code: "CWRT-MIN", title: "Creative Writing", college: "CAS" },
   { code: "DANC-MIN", title: "Dance", college: "CAS" },
@@ -1071,66 +1070,272 @@ const MINORS: MinorOption[] = [
   { code: "ENVS-MIN", title: "Environmental Studies", college: "CAS" },
   { code: "ETHN-MIN", title: "Ethnic Studies", college: "CAS" },
   { code: "FREN-MIN", title: "French & Francophone Studies", college: "CAS" },
-  { code: "GERM-MIN", title: "German Studies", college: "CAS" },
   { code: "HIST-MIN", title: "History", college: "CAS" },
   { code: "INTL-MIN", title: "International Studies", college: "CAS" },
   { code: "ITAL-MIN", title: "Italian Studies", college: "CAS" },
   { code: "JAPN-MIN", title: "Japanese Studies", college: "CAS" },
-  { code: "JWST-MIN", title: "Jewish Studies", college: "CAS" },
-  { code: "LATN-MIN", title: "Latin", college: "CAS" },
   { code: "LAS-MIN", title: "Latin American Studies", college: "CAS" },
-  { code: "LGBT-MIN", title: "LGBTQ+ Studies", college: "CAS" },
+  { code: "LGBT-MIN", title: "Gender and Sexuality Studies", college: "CAS" },
   { code: "MATH-MIN", title: "Mathematics", college: "CAS" },
-  { code: "MDVL-MIN", title: "Medieval & Renaissance Studies", college: "CAS" },
+  { code: "MDVL-MIN", title: "Premodern Studies", college: "CAS" },
   { code: "MUSC-MIN", title: "Music", college: "CAS" },
-  { code: "NEUR-MIN", title: "Neuroscience", college: "CAS" },
   { code: "PHIL-MIN", title: "Philosophy", college: "CAS" },
   { code: "PHYS-MIN", title: "Physics", college: "CAS" },
   { code: "POLI-MIN", title: "Political Science", college: "CAS" },
-  { code: "PSYC-MIN", title: "Psychology", college: "CAS" },
-  { code: "PUBH-MIN", title: "Public Health Science", college: "CAS" },
-  { code: "RSOC-MIN", title: "Religion & Society (Religious Studies)", college: "CAS" },
+  { code: "PUBH-MIN", title: "Public Health", college: "CAS" },
+  { code: "RSOC-MIN", title: "Religious Studies", college: "CAS" },
   { code: "SOCI-MIN", title: "Sociology", college: "CAS" },
   { code: "SPAN-MIN", title: "Spanish Studies", college: "CAS" },
   { code: "SUST-MIN", title: "Sustainability", college: "CAS" },
-  { code: "THTR-MIN", title: "Theatre Arts", college: "CAS" },
+  { code: "THTR-MIN", title: "Theatre", college: "CAS" },
   { code: "URBN-MIN", title: "Urban Education", college: "CAS" },
   { code: "WGST-MIN", title: "Women's & Gender Studies", college: "CAS" },
-  { code: "DTSC-MIN", title: "Data Science", college: "CAS" },
   { code: "MUSP-MIN", title: "Music Performance", college: "CAS" },
   { code: "ARAB-MIN", title: "Arabic, Islamic & Middle Eastern Studies", college: "CAS" },
-  { code: "PEAC-MIN", title: "Peace & Justice Studies", college: "CAS" },
 
   // School of Engineering
   { code: "AERO-MIN", title: "Aerospace Engineering", college: "SOE" },
   { code: "BIOE-MIN", title: "Bioengineering", college: "SOE" },
-  { code: "CENG-MIN", title: "Civil Engineering", college: "SOE" },
   { code: "CSEN-MIN", title: "Computer Engineering", college: "SOE" },
-  { code: "CSCI-MIN-SOE", title: "Computer Science & Engineering", college: "SOE" },
+  { code: "CSCI-MIN-SOE", title: "Computer Science and Engineering", college: "SOE" },
   { code: "ECEN-MIN", title: "Electrical & Computer Engineering", college: "SOE" },
   { code: "MECH-MIN", title: "Mechanical Engineering", college: "SOE" },
   { code: "GENG-MIN", title: "General Engineering", college: "SOE" },
-  { code: "SENG-MIN", title: "Sustainable Energy", college: "SOE" },
-  { code: "ROBO-MIN", title: "Robotics & Automation", college: "SOE" },
 
   // Leavey School of Business
-  { code: "ACTG-MIN", title: "Accounting", college: "LSB" },
   { code: "ANLY-MIN", title: "Business Analytics", college: "LSB" },
   { code: "ECON-MIN-LSB", title: "Economics (LSB)", college: "LSB" },
   { code: "ENTR-MIN", title: "Entrepreneurship", college: "LSB" },
-  { code: "FNCE-MIN", title: "Finance", college: "LSB" },
-  { code: "MGMT-MIN", title: "Management", college: "LSB" },
   { code: "MIS-MIN", title: "Management Information Systems", college: "LSB" },
   { code: "MKTG-MIN", title: "Marketing", college: "LSB" },
   { code: "RLES-MIN", title: "Real Estate", college: "LSB" },
-  { code: "SCHM-MIN", title: "Supply Chain Management", college: "LSB" },
-  { code: "SPMG-MIN", title: "Sports Management", college: "LSB" },
   { code: "RTLM-MIN", title: "Retail Studies", college: "LSB" },
-  { code: "BUSS-MIN", title: "Business for Non-Business Majors (Business minor)", college: "LSB" },
 ];
 
 export function getAvailableMinors(): MinorOption[] {
   return MINORS.slice().sort((a, b) =>
     a.college.localeCompare(b.college) || a.title.localeCompare(b.title),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Verified 2026-27 minor recipes
+// ---------------------------------------------------------------------------
+
+export interface MinorRequirementGroup {
+  label: string;
+  /** A group with one required course per entry, or a verified choice set. */
+  courses: string[];
+  minimumCourses?: number;
+  minimumUnits?: number;
+  needsVerification?: boolean;
+  notes?: string[];
+}
+
+export interface MinorRecipe {
+  code: string;
+  title: string;
+  sourceUrl: string;
+  sourceLabel: string;
+  catalogYear: string;
+  lastVerified: string;
+  notes: string[];
+  groups: MinorRequirementGroup[];
+}
+
+const BULLETIN_2026_27 = "2026-27 Undergraduate Bulletin";
+const VERIFIED_MINOR_DATE = "2026-08-11";
+
+/**
+ * Course lists appear only when the Bulletin names the course explicitly.
+ * Approved-list, overlap, lab, and residency rules remain honest manual
+ * verification requirements instead of being guessed from department prose.
+ */
+const MINOR_RECIPES: Record<string, MinorRecipe> = {
+  "ANTH-MIN": {
+    code: "ANTH-MIN", title: "Anthropology",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/anthropology.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Anthropology",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Complete ANTH 1 or ANTH 2, ANTH 3, one additional lower-division anthropology course, ANTH 110, and two approved upper-division anthropology courses."],
+    groups: [
+      { label: "Introduction to Anthropology", courses: ["ANTH 1", "ANTH 2"], minimumCourses: 1 },
+      { label: "Anthropology foundations", courses: ["ANTH 3", "ANTH 110"] },
+      { label: "Additional lower-division anthropology course", courses: [], minimumCourses: 1, needsVerification: true },
+      { label: "Approved upper-division anthropology courses", courses: [], minimumCourses: 2, needsVerification: true },
+    ],
+  },
+  "ASCI-MIN": {
+    code: "ASCI-MIN", title: "Asian Studies",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/asian-studies.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Asian Studies",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Two lower-division and four upper-division approved culture courses are required. No more than two upper-division courses may overlap the major and no more than three may be from one department. Language third-quarter/proficiency must be verified."],
+    groups: [
+      { label: "Approved lower-division Asian Studies culture courses", courses: [], minimumCourses: 2, needsVerification: true },
+      { label: "Approved upper-division Asian Studies culture courses", courses: [], minimumCourses: 4, needsVerification: true },
+      { label: "Asian language third-quarter or proficiency", courses: [], minimumCourses: 1, needsVerification: true },
+    ],
+  },
+  "BIOL-MIN": {
+    code: "BIOL-MIN", title: "Biology",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Biology",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Three upper-division BIOL courses are required; two must include laboratories."],
+    groups: [
+      { label: "Biology lower division", courses: ["BIOL 1A", "BIOL 1B", "BIOL 1C"] },
+      { label: "Chemistry supporting courses", courses: ["CHEM 11", "CHEM 12", "CHEM 31"] },
+      { label: "Upper-division biology courses", courses: [], minimumCourses: 3, needsVerification: true, notes: ["Verify that at least two selected courses include laboratories."] },
+    ],
+  },
+  "CHEM-MIN": {
+    code: "CHEM-MIN", title: "Chemistry",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/chemistry-and-biochemistry.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Chemistry and Biochemistry",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Complete CHEM 11 and 12 or CHEM 14; CHEM 31, 32, and 33; and 20 CHEM units numbered 50 or above. CHEM 115 and 182 do not count."],
+    groups: [
+      { label: "General chemistry", courses: ["CHEM 11", "CHEM 12", "CHEM 14"], minimumCourses: 2, needsVerification: true, notes: ["Verify the Bulletin's CHEM 11/12 versus CHEM 14 sequence rule."] },
+      { label: "Organic chemistry", courses: ["CHEM 31", "CHEM 32", "CHEM 33"] },
+      { label: "Upper-division chemistry", courses: [], minimumUnits: 20, needsVerification: true, notes: ["CHEM 115 and CHEM 182 are excluded."] },
+    ],
+  },
+  "CWRT-MIN": {
+    code: "CWRT-MIN", title: "Creative Writing",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/english.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — English",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Complete ENGL 71 or 72, two ENGL 91 courses, three selected electives, and ENGL 171 or 172."],
+    groups: [
+      { label: "Introductory creative writing", courses: ["ENGL 71", "ENGL 72"], minimumCourses: 1 },
+      { label: "Creative writing workshops", courses: ["ENGL 91"], minimumCourses: 2 },
+      { label: "Selected creative writing electives", courses: [], minimumCourses: 3, needsVerification: true },
+      { label: "Advanced creative writing", courses: ["ENGL 171", "ENGL 172"], minimumCourses: 1 },
+    ],
+  },
+  "ECON-MIN-CAS": {
+    code: "ECON-MIN-CAS", title: "Economics (CAS)",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/economics.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Economics",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Complete ECON 1, 2, 3, 113, and 115; two additional upper-division ECON courses; and an approved calculus sequence."],
+    groups: [
+      { label: "Economics foundations", courses: ["ECON 1", "ECON 2", "ECON 3", "ECON 113", "ECON 115"] },
+      { label: "Additional upper-division economics", courses: [], minimumCourses: 2, needsVerification: true },
+      { label: "Calculus sequence", courses: ["MATH 30", "MATH 31", "MATH 11", "MATH 12", "MATH 13"], minimumCourses: 2, needsVerification: true },
+    ],
+  },
+  "ENGL-MIN": {
+    code: "ENGL-MIN", title: "English",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/english.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — English",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Complete ENGL 14 or 15, ENGL 16, and five English electives, four of which must be upper division."],
+    groups: [
+      { label: "English foundations", courses: ["ENGL 14", "ENGL 15"], minimumCourses: 1 },
+      { label: "English foundations", courses: ["ENGL 16"] },
+      { label: "English electives", courses: [], minimumCourses: 5, needsVerification: true, notes: ["Verify that four selected electives are upper division."] },
+    ],
+  },
+  "HIST-MIN": {
+    code: "HIST-MIN", title: "History",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/history.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — History",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Seven HIST courses are required; at least four must be upper division."],
+    groups: [{ label: "History courses", courses: [], minimumCourses: 7, needsVerification: true, notes: ["Verify that at least four selected courses are upper division."] }],
+  },
+  "MATH-MIN": {
+    code: "MATH-MIN", title: "Mathematics",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Mathematics and Computer Science",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Complete MATH 11, 12, 13, 14, and either 52 or 53, plus three approved five-unit upper-division MATH courses. MATH 100, 192, and 195 do not count."],
+    groups: [
+      { label: "Mathematics foundations", courses: ["MATH 11", "MATH 12", "MATH 13", "MATH 14"] },
+      { label: "Linear algebra or differential equations", courses: ["MATH 52", "MATH 53"], minimumCourses: 1 },
+      { label: "Approved upper-division mathematics", courses: [], minimumCourses: 3, needsVerification: true, notes: ["Select five-unit courses; MATH 100, 192, and 195 are excluded."] },
+    ],
+  },
+  "PHIL-MIN": {
+    code: "PHIL-MIN", title: "Philosophy",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/philosophy.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Philosophy",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Complete PHIL 14 or 15; PHIL 17 or 18; four PHIL courses numbered 108–199; and PHIL 199 for five units."],
+    groups: [
+      { label: "Philosophy foundation", courses: ["PHIL 14", "PHIL 15"], minimumCourses: 1 },
+      { label: "Philosophy foundation", courses: ["PHIL 17", "PHIL 18"], minimumCourses: 1 },
+      { label: "Upper-division philosophy", courses: [], minimumCourses: 4, needsVerification: true },
+      { label: "Philosophy seminar", courses: ["PHIL 199"], minimumCourses: 1, needsVerification: true, notes: ["Verify five-unit enrollment."] },
+    ],
+  },
+  "SOCI-MIN": {
+    code: "SOCI-MIN", title: "Sociology",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/sociology.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Sociology",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Complete SOCI 1, 35, and 119, then either one specified lower-division course plus three upper-division electives, or four upper-division electives."],
+    groups: [
+      { label: "Sociology foundations", courses: ["SOCI 1", "SOCI 35", "SOCI 119"] },
+      { label: "Sociology electives", courses: [], minimumCourses: 4, needsVerification: true, notes: ["Verify the Bulletin's alternative lower/upper-division pathway."] },
+    ],
+  },
+  "CSCI-MIN-SOE": {
+    code: "CSCI-MIN-SOE", title: "Computer Science and Engineering",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/computer-science-and-engineering.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Computer Science and Engineering",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["At least two courses must be beyond the student's primary-major/free-elective requirements."],
+    groups: [
+      { label: "Programming foundations", courses: ["CSEN 11", "CSCI 60"], minimumCourses: 1 },
+      { label: "Programming foundations", courses: ["CSEN 12", "CSCI 61"], minimumCourses: 1 },
+      { label: "Computer science foundations", courses: ["CSEN 20"] },
+      { label: "Computer engineering foundations", courses: ["ECEN 21", "CSEN 21"], minimumCourses: 1 },
+      { label: "Approved technical selections", courses: [], minimumCourses: 4, needsVerification: true },
+    ],
+  },
+  "ANLY-MIN": {
+    code: "ANLY-MIN", title: "Business Analytics",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/information-systems-and-analytics.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Information Systems and Analytics",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Available to business students. OMIS 30 is a prerequisite; verify college eligibility and the approved elective."],
+    groups: [
+      { label: "Business analytics courses", courses: ["OMIS 105", "OMIS 109", "OMIS 114", "OMIS 115"] },
+      { label: "Approved business analytics elective", courses: [], minimumCourses: 1, needsVerification: true },
+    ],
+  },
+  "MIS-MIN": {
+    code: "MIS-MIN", title: "Management Information Systems",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/information-systems-and-analytics.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Information Systems and Analytics",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Non-business students have additional approved math, statistics/data, and business-course requirements."],
+    groups: [
+      { label: "Information systems foundations", courses: ["OMIS 30", "OMIS 105"] },
+      { label: "Approved OMIS electives", courses: [], minimumCourses: 3, needsVerification: true },
+      { label: "Non-business student foundations", courses: [], minimumCourses: 1, needsVerification: true },
+    ],
+  },
+  "MKTG-MIN": {
+    code: "MKTG-MIN", title: "Marketing",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/marketing.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Marketing",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Complete MKTG 181 and four approved MKTG electives."],
+    groups: [
+      { label: "Marketing foundation", courses: ["MKTG 181"] },
+      { label: "Approved marketing electives", courses: [], minimumCourses: 4, needsVerification: true },
+    ],
+  },
+};
+
+export function getMinorRequirements(codeOrTitle: string): MinorRecipe | null {
+  const normalized = codeOrTitle.trim().toUpperCase();
+  const byCode = MINOR_RECIPES[normalized];
+  if (byCode) return byCode;
+  const option = MINORS.find((minor) => minor.title.toUpperCase() === normalized);
+  return option ? MINOR_RECIPES[option.code] ?? null : null;
 }

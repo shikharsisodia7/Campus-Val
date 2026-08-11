@@ -223,19 +223,30 @@ export const PlanTerm = {
   completed: "completed",
 } as const;
 
+export interface ProfessionalGoal {
+  /** Stable plan-scoped identifier. */
+  id: string;
+  name: string;
+  notes: string;
+  /** Student-selected SCU catalog courses; not externally prescribed requirements. */
+  courseCodes: string[];
+  /** Student-authored manual planning placeholders. */
+  placeholders: string[];
+}
+
 export interface PlanPrograms {
   /** Additional majors (beyond the one in the student profile). */
   additionalMajors: string[];
   /** Declared minors. */
   minors: string[];
-  /** Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements. */
-  professionalGoals: string[];
+  /** Student-authored professional planning goals. They are never official SCU graduation requirements. */
+  professionalGoals: ProfessionalGoal[];
 }
 
 export interface PlanProgramsUpdate {
   additionalMajors: string[];
   minors: string[];
-  professionalGoals: string[];
+  professionalGoals: (string | ProfessionalGoal)[];
 }
 
 export interface UploadUrlRequest {
@@ -1495,6 +1506,10 @@ export type GetDegreeRequirementsParams = {
    * Comma-separated draft-only additional minors to include (tentative scenarios); does not alter the profile.
    */
   scenarioMinors?: string;
+  /**
+   * JSON-encoded plan-scoped student planning goals. These are not official SCU graduation requirements.
+   */
+  professionalGoals?: string;
 };
 
 export type ListRequirementCompletionsParams = {

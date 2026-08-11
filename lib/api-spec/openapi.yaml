@@ -490,6 +490,11 @@ paths:
           schema:
             type: string
             description: Comma-separated draft-only additional minors to include (tentative scenarios); does not alter the profile.
+        - name: professionalGoals
+          in: query
+          schema:
+            type: string
+          description: JSON-encoded plan-scoped student planning goals. These are not official SCU graduation requirements.
       responses:
         "200":
           description: Requirement groups for the student's college and major, with per-item completion computed from the profile's completed courses. Items SCU defines as "choose from an approved list" are flagged needsVerification instead of being fabricated.
@@ -1628,8 +1633,28 @@ components:
           description: Declared minors.
         professionalGoals:
           type: array
+          items: { $ref: "#/components/schemas/ProfessionalGoal" }
+          description: Student-authored professional planning goals. They are never official SCU graduation requirements.
+
+    ProfessionalGoal:
+      type: object
+      required: [id, name, notes, courseCodes, placeholders]
+      properties:
+        id:
+          type: string
+          description: Stable plan-scoped identifier.
+        name:
+          type: string
+        notes:
+          type: string
+        courseCodes:
+          type: array
           items: { type: string }
-          description: Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.
+          description: Student-selected SCU catalog courses; not externally prescribed requirements.
+        placeholders:
+          type: array
+          items: { type: string }
+          description: Student-authored manual planning placeholders.
 
     PlanProgramsUpdate:
       type: object
@@ -1643,7 +1668,11 @@ components:
           items: { type: string }
         professionalGoals:
           type: array
-          items: { type: string }
+          items:
+            oneOf:
+              - type: string
+                description: Legacy free-text goal retained for backward-compatible writes.
+              - $ref: "#/components/schemas/ProfessionalGoal"
 
     UploadUrlRequest:
       type: object

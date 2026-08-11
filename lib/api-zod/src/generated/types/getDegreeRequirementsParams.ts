@@ -15,4 +15,8 @@ export type GetDegreeRequirementsParams = {
    * Comma-separated draft-only additional minors to include (tentative scenarios); does not alter the profile.
    */
   scenarioMinors?: string;
+  /**
+   * JSON-encoded plan-scoped student planning goals. These are not official SCU graduation requirements.
+   */
+  professionalGoals?: string;
 };

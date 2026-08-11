@@ -37,10 +37,23 @@ export const academicPlansTable = pgTable(
       .notNull()
       .default({}),
     /**
-     * Optional program selections: { additionalMajors, minors, professionalGoals }
-     * professionalGoals are free-text labels only (no invented requirements).
+     * Optional plan-scoped program selections. Professional goals are student
+     * planning data only; they never represent official SCU requirements.
      */
-    programs: jsonb("programs"),
+    programs: jsonb("programs").$type<{
+      additionalMajors?: string[];
+      minors?: string[];
+      professionalGoals?: Array<
+        | string
+        | {
+            id: string;
+            name: string;
+            notes: string;
+            courseCodes: string[];
+            placeholders: string[];
+          }
+      >;
+    }>(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

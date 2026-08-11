@@ -184,7 +184,15 @@ describe("plan programs: validation", () => {
     expect(res.body.programs).toBeDefined();
     expect(res.body.programs.additionalMajors).toContain("MATH");
     expect(res.body.programs.minors).toContain("philosophy");
-    expect(res.body.programs.professionalGoals).toContain("Pre-Med");
+    expect(res.body.programs.professionalGoals).toEqual([
+      expect.objectContaining({
+        id: "legacy-pre-med-1",
+        name: "Pre-Med",
+        notes: "",
+        courseCodes: [],
+        placeholders: [],
+      }),
+    ]);
   });
 
   it("returns the programs field on GET /plans/:id", async () => {
@@ -538,10 +546,21 @@ describe("plan programs: programs-only PATCH and scenario copies", () => {
       .expect(200);
   });
 
-  it("copying and duplicating a plan carries programs into the tentative scenario", async () => {
+  it("normalizes legacy professional goals and keeps structured goals isolated through copy and duplicate", async () => {
     const planId = await degreePlanId(USER_A);
-    const programs = { additionalMajors: ["Accounting"], minors: [], professionalGoals: ["Pre-Law (not an official program)"] };
-    await asA(request(plansApp).patch(`/api/plans/${planId}`)).send({ programs }).expect(200);
+    const programs = {
+      additionalMajors: ["Accounting"],
+      minors: [],
+      professionalGoals: [{
+        id: "medical-school",
+        name: "Medical School",
+        notes: "Student planning goal",
+        courseCodes: ["CHEM 11"],
+        placeholders: ["Clinical experience planning"],
+      }],
+    };
+    const updated = await asA(request(plansApp).patch(`/api/plans/${planId}`)).send({ programs }).expect(200);
+    expect(updated.body.programs).toEqual(programs);
 
     const copied = await asA(request(plansApp).post(`/api/plans`))
       .send({ name: "Scenario copy", copyFromPlanId: planId })
@@ -552,6 +571,21 @@ describe("plan programs: programs-only PATCH and scenario copies", () => {
       .send({ name: "Scenario dup" })
       .expect(201);
     expect(dup.body.programs).toEqual(programs);
+
+    await asA(request(plansApp).patch(`/api/plans/${copied.body.id}`)).send({
+      programs: {
+        ...programs,
+        professionalGoals: [{
+          ...programs.professionalGoals[0],
+          name: "CPA Preparation",
+          courseCodes: [],
+        }],
+      },
+    }).expect(200);
+    const original = await asA(request(plansApp).get(`/api/plans/${planId}`)).expect(200);
+    const duplicate = await asA(request(plansApp).get(`/api/plans/${dup.body.id}`)).expect(200);
+    expect(original.body.programs.professionalGoals[0].name).toBe("Medical School");
+    expect(duplicate.body.programs.professionalGoals[0].name).toBe("Medical School");
 
     await asA(request(plansApp).delete(`/api/plans/${dup.body.id}`)).expect(204);
     await asA(request(plansApp).delete(`/api/plans/${copied.body.id}`)).expect(204);
@@ -595,6 +629,83 @@ describe("degree requirements: plan-scoped scenario programs", () => {
       expect(titles.join(" ")).toMatch(/Accounting/);
       expect(titles.join(" ")).toMatch(/Mathematics/);
       expect(baseTitles.join(" ")).not.toMatch(/Accounting/);
+    } finally {
+      await reqDb.delete(studentProfilesTable).where(eq(studentProfilesTable.userId, USER_A));
+    }
+  });
+
+  it("returns verified minor requirement groups with eligible course choices", async () => {
+    const { db: reqDb, studentProfilesTable } = await import("@workspace/db");
+    const requirementsRouter = (await import("./requirements")).default;
+    const reqApp = express();
+    reqApp.use(express.json());
+    reqApp.use("/api", requirementsRouter);
+    await reqDb.insert(studentProfilesTable).values({
+      userId: USER_A,
+      name: "Test Student",
+      studentType: "first_year",
+      college: "School of Engineering",
+      major: "Computer Science and Engineering",
+      startTerm: "fall",
+      startYear: 2025,
+      expectedGradTerm: "spring",
+      expectedGradYear: 2029,
+      currentTerm: "fall",
+      currentYear: 2026,
+    } as any);
+    try {
+      const result = await asA(
+        request(reqApp).get("/api/requirements?scenarioMinors=MATH-MIN"),
+      ).expect(200);
+      const group = result.body.groups.find((candidate: any) => candidate.id === "minor-math-min");
+      expect(group).toMatchObject({
+        title: "Minor Requirements — Mathematics",
+        sourceUrl: expect.stringMatching(/^https:\/\/www\.scu\.edu\//),
+        academicYear: "2026-27 Undergraduate Bulletin",
+      });
+      expect(group.items).toContainEqual(expect.objectContaining({
+        label: "Linear algebra or differential equations — choose 1",
+        courses: ["MATH 52", "MATH 53"],
+      }));
+    } finally {
+      await reqDb.delete(studentProfilesTable).where(eq(studentProfilesTable.userId, USER_A));
+    }
+  });
+
+  it("shows student-selected professional goal courses only for that plan request", async () => {
+    const { db: reqDb, studentProfilesTable } = await import("@workspace/db");
+    const requirementsRouter = (await import("./requirements")).default;
+    const reqApp = express();
+    reqApp.use(express.json());
+    reqApp.use("/api", requirementsRouter);
+    await reqDb.insert(studentProfilesTable).values({
+      userId: USER_A,
+      name: "Test Student",
+      studentType: "first_year",
+      college: "School of Engineering",
+      major: "Computer Science and Engineering",
+      startTerm: "fall",
+      startYear: 2025,
+      expectedGradTerm: "spring",
+      expectedGradYear: 2029,
+      currentTerm: "fall",
+      currentYear: 2026,
+    } as any);
+    try {
+      const goal = encodeURIComponent(JSON.stringify([{
+        id: "medical-school",
+        name: "Medical School",
+        notes: "Student planning goal",
+        courseCodes: ["CHEM 11"],
+        placeholders: ["Clinical experience"],
+      }]));
+      const withGoal = await asA(request(reqApp).get(`/api/requirements?professionalGoals=${goal}`)).expect(200);
+      const withoutGoal = await asA(request(reqApp).get("/api/requirements")).expect(200);
+      expect(withGoal.body.groups).toContainEqual(expect.objectContaining({
+        id: "professional-medical-school",
+        title: "Professional Preparation — Medical School",
+      }));
+      expect(withoutGoal.body.groups.map((group: any) => group.id)).not.toContain("professional-medical-school");
     } finally {
       await reqDb.delete(studentProfilesTable).where(eq(studentProfilesTable.userId, USER_A));
     }

@@ -5,12 +5,13 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { ProfessionalGoal } from "./professionalGoal";
 
 export interface PlanPrograms {
   /** Additional majors (beyond the one in the student profile). */
   additionalMajors: string[];
   /** Declared minors. */
   minors: string[];
-  /** Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements. */
-  professionalGoals: string[];
+  /** Student-authored professional planning goals. They are never official SCU graduation requirements. */
+  professionalGoals: ProfessionalGoal[];
 }

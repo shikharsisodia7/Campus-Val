@@ -99,14 +99,19 @@ export function DegreePlanWorkspace({ mode = "degree" }: DegreePlanWorkspaceProp
       ...(activePlan?.programs?.minors ?? []),
       ...(activePlan?.metadata?.scenarioMinors ?? []),
     ].join(",") || undefined;
+  const professionalGoalsQuery =
+    activePlan?.programs?.professionalGoals?.length
+      ? JSON.stringify(activePlan.programs.professionalGoals)
+      : undefined;
   const { data: reqsData } = useGetDegreeRequirements(
     {
       ...(scenarioMajorQuery ? { scenarioMajors: scenarioMajorQuery } : {}),
       ...(scenarioMinorQuery ? { scenarioMinors: scenarioMinorQuery } : {}),
+      ...(professionalGoalsQuery ? { professionalGoals: professionalGoalsQuery } : {}),
     },
     {
       query: {
-        queryKey: ["/api/requirements", scenarioMajorQuery, scenarioMinorQuery],
+        queryKey: ["/api/requirements", scenarioMajorQuery, scenarioMinorQuery, professionalGoalsQuery],
       },
     },
   );

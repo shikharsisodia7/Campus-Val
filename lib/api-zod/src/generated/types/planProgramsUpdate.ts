@@ -5,9 +5,10 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { ProfessionalGoal } from "./professionalGoal";
 
 export interface PlanProgramsUpdate {
   additionalMajors: string[];
   minors: string[];
-  professionalGoals: string[];
+  professionalGoals: (string | ProfessionalGoal)[];
 }

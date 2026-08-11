@@ -861,6 +861,12 @@ export const ListProfessorsResponse = zod.object({
 export const GetDegreeRequirementsQueryParams = zod.object({
   scenarioMajors: zod.coerce.string().optional(),
   scenarioMinors: zod.coerce.string().optional(),
+  professionalGoals: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      "JSON-encoded plan-scoped student planning goals. These are not official SCU graduation requirements.",
+    ),
 });
 
 export const GetDegreeRequirementsResponse = zod.object({
@@ -1198,9 +1204,23 @@ export const ListPlansResponse = zod.object({
               ),
             minors: zod.array(zod.string()).describe("Declared minors."),
             professionalGoals: zod
-              .array(zod.string())
+              .array(
+                zod.object({
+                  id: zod.string().describe("Stable plan-scoped identifier."),
+                  name: zod.string(),
+                  notes: zod.string(),
+                  courseCodes: zod
+                    .array(zod.string())
+                    .describe(
+                      "Student-selected SCU catalog courses; not externally prescribed requirements.",
+                    ),
+                  placeholders: zod
+                    .array(zod.string())
+                    .describe("Student-authored manual planning placeholders."),
+                }),
+              )
               .describe(
-                "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+                "Student-authored professional planning goals. They are never official SCU graduation requirements.",
               ),
           }),
           zod.null(),
@@ -1293,9 +1313,23 @@ export const GetPlanResponse = zod.object({
           ),
         minors: zod.array(zod.string()).describe("Declared minors."),
         professionalGoals: zod
-          .array(zod.string())
+          .array(
+            zod.object({
+              id: zod.string().describe("Stable plan-scoped identifier."),
+              name: zod.string(),
+              notes: zod.string(),
+              courseCodes: zod
+                .array(zod.string())
+                .describe(
+                  "Student-selected SCU catalog courses; not externally prescribed requirements.",
+                ),
+              placeholders: zod
+                .array(zod.string())
+                .describe("Student-authored manual planning placeholders."),
+            }),
+          )
           .describe(
-            "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+            "Student-authored professional planning goals. They are never official SCU graduation requirements.",
           ),
       }),
       zod.null(),
@@ -1428,9 +1462,23 @@ export const UpdatePlanBody = zod.object({
           ),
         minors: zod.array(zod.string()).describe("Declared minors."),
         professionalGoals: zod
-          .array(zod.string())
+          .array(
+            zod.object({
+              id: zod.string().describe("Stable plan-scoped identifier."),
+              name: zod.string(),
+              notes: zod.string(),
+              courseCodes: zod
+                .array(zod.string())
+                .describe(
+                  "Student-selected SCU catalog courses; not externally prescribed requirements.",
+                ),
+              placeholders: zod
+                .array(zod.string())
+                .describe("Student-authored manual planning placeholders."),
+            }),
+          )
           .describe(
-            "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+            "Student-authored professional planning goals. They are never official SCU graduation requirements.",
           ),
       }),
       zod.null(),
@@ -1506,9 +1554,23 @@ export const UpdatePlanResponse = zod.object({
           ),
         minors: zod.array(zod.string()).describe("Declared minors."),
         professionalGoals: zod
-          .array(zod.string())
+          .array(
+            zod.object({
+              id: zod.string().describe("Stable plan-scoped identifier."),
+              name: zod.string(),
+              notes: zod.string(),
+              courseCodes: zod
+                .array(zod.string())
+                .describe(
+                  "Student-selected SCU catalog courses; not externally prescribed requirements.",
+                ),
+              placeholders: zod
+                .array(zod.string())
+                .describe("Student-authored manual planning placeholders."),
+            }),
+          )
           .describe(
-            "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+            "Student-authored professional planning goals. They are never official SCU graduation requirements.",
           ),
       }),
       zod.null(),
@@ -1613,9 +1675,23 @@ export const PromotePlanResponse = zod.object({
           ),
         minors: zod.array(zod.string()).describe("Declared minors."),
         professionalGoals: zod
-          .array(zod.string())
+          .array(
+            zod.object({
+              id: zod.string().describe("Stable plan-scoped identifier."),
+              name: zod.string(),
+              notes: zod.string(),
+              courseCodes: zod
+                .array(zod.string())
+                .describe(
+                  "Student-selected SCU catalog courses; not externally prescribed requirements.",
+                ),
+              placeholders: zod
+                .array(zod.string())
+                .describe("Student-authored manual planning placeholders."),
+            }),
+          )
           .describe(
-            "Free-text professional preparation labels (e.g. Pre-Med). Labels only — no invented requirements.",
+            "Student-authored professional planning goals. They are never official SCU graduation requirements.",
           ),
       }),
       zod.null(),

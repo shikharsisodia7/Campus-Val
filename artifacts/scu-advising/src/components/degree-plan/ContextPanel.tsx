@@ -16,10 +16,12 @@ import {
   useListGraduationMinors,
   AcademicPlan,
   PlanPrograms,
+  ProfessionalGoal,
 } from "@workspace/api-client-react";
 import { Copy, Download, Trash2, Rocket, Plus, ShieldCheck, AlertTriangle, Edit2, Files, X, GraduationCap, BookOpen, Target } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useQueryClient } from "@tanstack/react-query";
@@ -58,6 +60,8 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   const [majorDraft, setMajorDraft] = useState("");
   const [minorDraft, setMinorDraft] = useState("");
   const [goalDraft, setGoalDraft] = useState("");
+  const [goalCourseDrafts, setGoalCourseDrafts] = useState<Record<string, string>>({});
+  const [goalPlaceholderDrafts, setGoalPlaceholderDrafts] = useState<Record<string, string>>({});
 
   const degreePlan = plans.find(p => p.planType === 'degree');
   const tentativePlans = plans.filter(p => p.planType === 'tentative');
@@ -137,18 +141,50 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
     if (!trimmed) return;
     const updated = {
       ...currentPrograms,
-      professionalGoals: [...currentPrograms.professionalGoals, trimmed],
+      professionalGoals: [
+        ...currentPrograms.professionalGoals,
+        {
+          id: `goal-${crypto.randomUUID()}`,
+          name: trimmed,
+          notes: "",
+          courseCodes: [],
+          placeholders: [],
+        },
+      ],
     };
     updatePrograms(updated);
     setGoalDraft("");
   };
 
-  const removeGoal = (goal: string) => {
+  const updateGoal = (goalId: string, update: Partial<ProfessionalGoal>) => {
+    updatePrograms({
+      ...currentPrograms,
+      professionalGoals: currentPrograms.professionalGoals.map((goal) =>
+        goal.id === goalId ? { ...goal, ...update } : goal,
+      ),
+    });
+  };
+
+  const removeGoal = (goalId: string) => {
     const updated = {
       ...currentPrograms,
-      professionalGoals: currentPrograms.professionalGoals.filter(g => g !== goal),
+      professionalGoals: currentPrograms.professionalGoals.filter((goal) => goal.id !== goalId),
     };
     updatePrograms(updated);
+  };
+
+  const addGoalCourse = (goal: ProfessionalGoal) => {
+    const courseCode = goalCourseDrafts[goal.id]?.trim();
+    if (!courseCode || goal.courseCodes.includes(courseCode.toUpperCase())) return;
+    updateGoal(goal.id, { courseCodes: [...goal.courseCodes, courseCode] });
+    setGoalCourseDrafts((drafts) => ({ ...drafts, [goal.id]: "" }));
+  };
+
+  const addGoalPlaceholder = (goal: ProfessionalGoal) => {
+    const placeholder = goalPlaceholderDrafts[goal.id]?.trim();
+    if (!placeholder || goal.placeholders.includes(placeholder)) return;
+    updateGoal(goal.id, { placeholders: [...goal.placeholders, placeholder] });
+    setGoalPlaceholderDrafts((drafts) => ({ ...drafts, [goal.id]: "" }));
   };
 
   // Major/minor options (filter out already-selected)
@@ -463,13 +499,13 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                   {currentPrograms.professionalGoals.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {currentPrograms.professionalGoals.map(goal => (
-                        <Badge key={goal} variant="outline" className="gap-1 text-[10px] border-dashed"
-                          data-testid={`plan-goal-chip-${goal}`}>
-                          {goal}
+                        <Badge key={goal.id} variant="outline" className="gap-1 text-[10px] border-dashed"
+                          data-testid={`plan-goal-chip-${goal.id}`}>
+                          {goal.name}
                           <button
-                            onClick={() => removeGoal(goal)}
-                            data-testid={`remove-plan-goal-${goal}`}
-                            aria-label={`Remove goal ${goal} from plan`}
+                            onClick={() => removeGoal(goal.id)}
+                            data-testid={`remove-plan-goal-${goal.id}`}
+                            aria-label={`Remove goal ${goal.name} from plan`}
                           >
                             <X className="h-2.5 w-2.5" />
                           </button>
@@ -491,6 +527,59 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                       <Plus className="h-3 w-3" />
                     </Button>
                   </div>
+                  {currentPrograms.professionalGoals.map((goal) => (
+                    <div key={goal.id} className="rounded-md border border-border/60 bg-muted/10 p-2.5 space-y-2">
+                      <div className="text-xs font-medium">{goal.name}</div>
+                      <Textarea
+                        value={goal.notes}
+                        onChange={(event) => updateGoal(goal.id, { notes: event.target.value })}
+                        onBlur={(event) => updateGoal(goal.id, { notes: event.target.value })}
+                        placeholder="Student planning notes…"
+                        className="min-h-14 text-xs"
+                        data-testid={`input-plan-goal-notes-${goal.id}`}
+                      />
+                      <div className="flex flex-wrap gap-1">
+                        {goal.courseCodes.map((courseCode) => (
+                          <Badge key={courseCode} variant="secondary" className="gap-1 font-mono text-[10px]">
+                            {courseCode}
+                            <button onClick={() => updateGoal(goal.id, { courseCodes: goal.courseCodes.filter((code) => code !== courseCode) })} aria-label={`Remove ${courseCode}`}>
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Input
+                          className="h-7 text-xs"
+                          placeholder="SCU course code, e.g. CHEM 11"
+                          value={goalCourseDrafts[goal.id] ?? ""}
+                          onChange={(event) => setGoalCourseDrafts((drafts) => ({ ...drafts, [goal.id]: event.target.value }))}
+                          onKeyDown={(event) => event.key === "Enter" && addGoalCourse(goal)}
+                        />
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addGoalCourse(goal)}>Add course</Button>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {goal.placeholders.map((placeholder) => (
+                          <Badge key={placeholder} variant="outline" className="gap-1 text-[10px] border-dashed">
+                            {placeholder}
+                            <button onClick={() => updateGoal(goal.id, { placeholders: goal.placeholders.filter((value) => value !== placeholder) })} aria-label={`Remove ${placeholder}`}>
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Input
+                          className="h-7 text-xs"
+                          placeholder="Manual planning placeholder"
+                          value={goalPlaceholderDrafts[goal.id] ?? ""}
+                          onChange={(event) => setGoalPlaceholderDrafts((drafts) => ({ ...drafts, [goal.id]: event.target.value }))}
+                          onKeyDown={(event) => event.key === "Enter" && addGoalPlaceholder(goal)}
+                        />
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addGoalPlaceholder(goal)}>Add placeholder</Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 

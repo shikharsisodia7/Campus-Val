@@ -66,8 +66,96 @@ const MAX_PROGRAM_LABEL_LEN = 50;
 type PlanPrograms = {
   additionalMajors: string[];
   minors: string[];
-  professionalGoals: string[];
+  professionalGoals: ProfessionalGoal[];
 };
+
+type ProfessionalGoal = {
+  id: string;
+  name: string;
+  notes: string;
+  courseCodes: string[];
+  placeholders: string[];
+};
+
+function goalId(value: string, index: number): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 32);
+  return `legacy-${slug || "goal"}-${index + 1}`;
+}
+
+function normalizeProfessionalGoals(raw: unknown): ProfessionalGoal[] | string {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) return "programs.professionalGoals must be an array.";
+  if (raw.length > MAX_PROGRAMS_ENTRIES) {
+    return `programs.professionalGoals must have at most ${MAX_PROGRAMS_ENTRIES} entries.`;
+  }
+
+  const seenNames = new Set<string>();
+  const goals: ProfessionalGoal[] = [];
+  for (let index = 0; index < raw.length; index += 1) {
+    const entry = raw[index];
+    const legacyName = typeof entry === "string" ? entry : null;
+    const candidate = legacyName
+      ? {
+          id: goalId(legacyName, index),
+          name: legacyName,
+          notes: "",
+          courseCodes: [],
+          placeholders: [],
+        }
+      : entry;
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+      return "programs.professionalGoals entries must be a legacy name or a goal object.";
+    }
+    const goal = candidate as Record<string, unknown>;
+    const name = typeof goal.name === "string" ? goal.name.trim() : "";
+    const id = typeof goal.id === "string" ? goal.id.trim() : "";
+    if (!name || name.length > MAX_PROGRAM_LABEL_LEN) {
+      return `programs.professionalGoals names must be 1-${MAX_PROGRAM_LABEL_LEN} characters.`;
+    }
+    if (!id || !/^[a-z0-9][a-z0-9-]{0,63}$/i.test(id)) {
+      return "programs.professionalGoals ids must contain only letters, numbers, and hyphens.";
+    }
+    const normalizedName = name.toLocaleLowerCase();
+    if (seenNames.has(normalizedName)) continue;
+    seenNames.add(normalizedName);
+
+    const notes = typeof goal.notes === "string" ? goal.notes.trim().slice(0, 1000) : "";
+    const readList = (key: "courseCodes" | "placeholders", maxLength: number) => {
+      const list = goal[key] ?? [];
+      if (!Array.isArray(list) || list.some((value) => typeof value !== "string")) return null;
+      return Array.from(
+        new Set(
+          list
+            .map((value) => value.trim())
+            .filter(Boolean)
+            .map((value) => value.slice(0, maxLength)),
+        ),
+      );
+    };
+    const courseCodes = readList("courseCodes", 32);
+    const placeholders = readList("placeholders", 120);
+    if (!courseCodes || !placeholders) {
+      return "programs.professionalGoals courseCodes and placeholders must be string arrays.";
+    }
+    const invalidCourse = courseCodes.find((courseCode) => !findCourse(normalizeCode(courseCode)));
+    if (invalidCourse) {
+      return `${invalidCourse} is not in the SCU catalog.`;
+    }
+    goals.push({
+      id,
+      name,
+      notes,
+      courseCodes: courseCodes.map(normalizeCode),
+      placeholders,
+    });
+  }
+  return goals;
+}
 
 function validatePrograms(raw: unknown): { ok: true; value: PlanPrograms } | { ok: false; error: string } {
   if (raw === null || raw === undefined) {
@@ -105,7 +193,7 @@ function validatePrograms(raw: unknown): { ok: true; value: PlanPrograms } | { o
   if (typeof majorsResult === "string") return { ok: false, error: majorsResult };
   const minorsResult = validateArray("minors");
   if (typeof minorsResult === "string") return { ok: false, error: minorsResult };
-  const goalsResult = validateArray("professionalGoals");
+  const goalsResult = normalizeProfessionalGoals(obj.professionalGoals);
   if (typeof goalsResult === "string") return { ok: false, error: goalsResult };
 
   return {
@@ -124,13 +212,14 @@ function normalizeCode(code: string): string {
 }
 
 function planDto(row: AcademicPlanRow, itemCount: number) {
+  const programsValidation = validatePrograms(row.programs);
   return {
     id: row.id,
     name: row.name,
     planType: row.planType as "degree" | "tentative",
     sourcePlanId: row.sourcePlanId ?? null,
     metadata: row.metadata ?? {},
-    programs: row.programs ?? null,
+    programs: programsValidation.ok ? programsValidation.value : null,
     itemCount,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -319,13 +408,14 @@ router.get("/plans/:id", requireAuth, async (req, res) => {
   const plan = await ownedPlan(Number(req.params.id), req.userId!);
   if (!plan) return res.status(404).json({ error: "Plan not found." });
   const items = await itemsOf(plan.id);
+  const programsValidation = validatePrograms(plan.programs);
   res.json({
     id: plan.id,
     name: plan.name,
     planType: plan.planType,
     sourcePlanId: plan.sourcePlanId ?? null,
     metadata: plan.metadata ?? {},
-    programs: plan.programs ?? null,
+    programs: programsValidation.ok ? programsValidation.value : null,
     items: items.map(itemDto),
     createdAt: plan.createdAt.toISOString(),
     updatedAt: plan.updatedAt.toISOString(),
@@ -333,7 +423,22 @@ router.get("/plans/:id", requireAuth, async (req, res) => {
 });
 
 router.patch("/plans/:id", requireAuth, async (req, res) => {
-  const parsed = UpdatePlanBody.safeParse(req.body);
+  // The generated OpenAPI input uses the normalized goal object. Accept
+  // persisted/legacy string goals at this boundary, normalize them first,
+  // then keep the rest of the request under the generated zod contract.
+  const rawPrograms = req.body?.programs;
+  const normalizedGoals =
+    rawPrograms && typeof rawPrograms === "object" && !Array.isArray(rawPrograms)
+      ? normalizeProfessionalGoals((rawPrograms as Record<string, unknown>).professionalGoals)
+      : undefined;
+  const bodyForSchema =
+    typeof normalizedGoals === "string" || normalizedGoals === undefined
+      ? req.body
+      : {
+          ...req.body,
+          programs: { ...(rawPrograms as Record<string, unknown>), professionalGoals: normalizedGoals },
+        };
+  const parsed = UpdatePlanBody.safeParse(bodyForSchema);
   if (
     !parsed.success ||
     (!parsed.data.name && !parsed.data.metadata && !("programs" in req.body))
@@ -948,7 +1053,12 @@ async function getEligibleCoursesForRequirement(
   const scenarioMajors = [...(programs.additionalMajors ?? []), ...(metadata.scenarioMajors ?? [])];
   const scenarioMinors = [...(programs.minors ?? []), ...(metadata.scenarioMinors ?? [])];
 
-  const { groups } = buildRequirementsResponse(profile, scenarioMajors, scenarioMinors);
+  const { groups } = buildRequirementsResponse(
+    profile,
+    scenarioMajors,
+    scenarioMinors,
+    programs.professionalGoals ?? [],
+  );
   for (const group of groups as Array<{ items: Array<{ id: string; courses: string[] }> }>) {
     const found = group.items.find((i) => i.id === requirementId);
     if (found) return found.courses;
