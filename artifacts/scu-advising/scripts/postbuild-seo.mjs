@@ -18,7 +18,7 @@ const indexPath = path.resolve(__dirname, "../dist/public/index.html");
 
 // Same fallback baked into the source index.html — see INDEX_HTML_FALLBACK_ORIGIN
 // in artifacts/api-server/src/app.ts.
-const FALLBACK_ORIGIN = "https://campusval.replit.app";
+const FALLBACK_ORIGIN = "https://campus-val.vercel.app";
 
 function resolveCanonicalOrigin() {
   if (process.env.PUBLIC_APP_URL) return process.env.PUBLIC_APP_URL.replace(/\/$/, "");

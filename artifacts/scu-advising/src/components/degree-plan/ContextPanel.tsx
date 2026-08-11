@@ -87,8 +87,17 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
     });
   };
 
+  const normalized = (value: string) => value.trim().toLocaleLowerCase();
+  const majorMatchesProfile = (code: string) => {
+    const option = majorsList?.majors.find((major) => major.code === code);
+    const declared = [profile?.major, profile?.secondMajor, ...(profile?.additionalMajors ?? [])]
+      .filter((value): value is string => !!value)
+      .map(normalized);
+    return declared.includes(normalized(code)) || (!!option && declared.includes(normalized(option.title)));
+  };
+
   const addMajor = (majorCode = majorDraft) => {
-    if (!majorCode || !activePlanId || !activePlan) return;
+    if (!majorCode || !activePlanId || !activePlan || majorMatchesProfile(majorCode)) return;
     const updated = {
       ...currentPrograms,
       additionalMajors: [...currentPrograms.additionalMajors, majorCode],
@@ -106,7 +115,7 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   };
 
   const addMinor = () => {
-    if (!minorDraft) return;
+    if (!minorDraft || currentPrograms.minors.some((minor) => normalized(minor) === normalized(minorDraft))) return;
     const updated = {
       ...currentPrograms,
       minors: [...currentPrograms.minors, minorDraft],
@@ -144,10 +153,16 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
 
   // Major/minor options (filter out already-selected)
   const majorOptions = (majorsList?.majors ?? []).filter(
-    m => !currentPrograms.additionalMajors.includes(m.code)
+    (major) =>
+      !currentPrograms.additionalMajors.some((selected) => normalized(selected) === normalized(major.code)) &&
+      !majorMatchesProfile(major.code),
   );
   const minorOptions = (minorsList?.minors ?? []).filter(
-    m => !currentPrograms.minors.includes(m.code)
+    (minor) =>
+      !currentPrograms.minors.some((selected) => normalized(selected) === normalized(minor.code)) &&
+      ![profile?.minor, ...(profile?.additionalMinors ?? [])]
+        .filter((value): value is string => !!value)
+        .some((selected) => normalized(selected) === normalized(minor.code)),
   );
 
   const handleCreate = () => {

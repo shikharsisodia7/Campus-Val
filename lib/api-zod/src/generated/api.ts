@@ -1897,6 +1897,23 @@ export const GetScheduleAvailabilityResponse = zod.object({
         .describe(
           "published = official schedule with sections\/instructors; tentative = registrar tentative schedule (no instructors\/sections confirmed)",
         ),
+      sourceUrl: zod
+        .string()
+        .describe("Official SCU source for the term schedule."),
+      sourceLabel: zod.string(),
+      publishedDate: zod
+        .string()
+        .nullable()
+        .describe("Official publication date when known."),
+      lastVerified: zod
+        .string()
+        .describe(
+          "Date the term data was last checked against the official source.",
+        ),
+      importedDate: zod
+        .string()
+        .describe("Date CampusVal imported this schedule snapshot."),
+      freshness: zod.enum(["fresh", "verify_soon", "stale"]),
       officialSectionCount: zod.number(),
       syncedSectionCount: zod.number(),
       offeredCourseCodes: zod

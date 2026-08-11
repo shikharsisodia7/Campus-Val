@@ -37,8 +37,11 @@ export function AcademicProgress({ className }: { className?: string }) {
     <Card className={`p-5 ${className ?? ""}`} data-testid="academic-progress-panel">
       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
         <GraduationCap className="h-4 w-4 text-primary" />
-        Academic Progress
+        Academic Progress Report — official reference
       </div>
+      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+        CampusVal does not change your academic record. Verify discrepancies in Workday or with SCU.
+      </p>
 
       {!profile ? (
         <p className="text-sm text-muted-foreground mt-3">

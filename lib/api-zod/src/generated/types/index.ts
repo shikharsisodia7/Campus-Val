@@ -130,6 +130,7 @@ export * from "./resetRequirementCompletionsParams";
 export * from "./runEvaluationBody";
 export * from "./scheduleAvailability";
 export * from "./scheduleAvailabilityTerm";
+export * from "./scheduleAvailabilityTermFreshness";
 export * from "./scheduleAvailabilityTermStatus";
 export * from "./scheduleEvent";
 export * from "./scheduleEventInput";

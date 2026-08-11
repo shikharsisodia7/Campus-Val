@@ -19,7 +19,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 import { findCourse } from "../data/courses";
-import { OFFERED_TERMS, isTentativeTerm, OFFERED_SECTIONS } from "../data/offered-sections";
+import { OFFERED_TERMS, OFFERED_SECTIONS, scheduleFreshness } from "../data/offered-sections";
 import { courseSectionsTable } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { buildRequirementsResponse } from "./requirements";
@@ -1185,14 +1185,15 @@ router.get("/schedule-availability", requireAuth, async (_req, res) => {
   const syncedMap = new Map(synced.map((s) => [`${s.term}-${s.year}`, s.count]));
 
   res.json({
-    terms: OFFERED_TERMS.map(({ term, year }) => ({
-      term,
-      year,
-      status: isTentativeTerm(term, year) ? "tentative" : "published",
-      officialSectionCount: officialCounts.get(`${term}-${year}`) ?? 0,
-      syncedSectionCount: syncedMap.get(`${term}-${year}`) ?? 0,
+    terms: OFFERED_TERMS.map((metadata) => ({
+      ...metadata,
+      freshness: scheduleFreshness(metadata),
+      term: metadata.term,
+      year: metadata.year,
+      officialSectionCount: officialCounts.get(`${metadata.term}-${metadata.year}`) ?? 0,
+      syncedSectionCount: syncedMap.get(`${metadata.term}-${metadata.year}`) ?? 0,
       offeredCourseCodes: Array.from(
-        officialCodes.get(`${term}-${year}`) ?? [],
+        officialCodes.get(`${metadata.term}-${metadata.year}`) ?? [],
       ).sort(),
     })),
     note: "Quarters not listed here have no official SCU schedule published yet. Course sections, instructors, and times for those terms are unknown — plan with courses and requirement placeholders instead.",

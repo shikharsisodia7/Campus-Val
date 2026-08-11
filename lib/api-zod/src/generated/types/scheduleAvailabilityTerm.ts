@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { ScheduleAvailabilityTermFreshness } from "./scheduleAvailabilityTermFreshness";
 import type { ScheduleAvailabilityTermStatus } from "./scheduleAvailabilityTermStatus";
 import type { Term } from "./term";
 
@@ -13,6 +14,19 @@ export interface ScheduleAvailabilityTerm {
   year: number;
   /** published = official schedule with sections/instructors; tentative = registrar tentative schedule (no instructors/sections confirmed) */
   status: ScheduleAvailabilityTermStatus;
+  /** Official SCU source for the term schedule. */
+  sourceUrl: string;
+  sourceLabel: string;
+  /**
+   * Official publication date when known.
+   * @nullable
+   */
+  publishedDate: string | null;
+  /** Date the term data was last checked against the official source. */
+  lastVerified: string;
+  /** Date CampusVal imported this schedule snapshot. */
+  importedDate: string;
+  freshness: ScheduleAvailabilityTermFreshness;
   officialSectionCount: number;
   syncedSectionCount: number;
   /** Normalized (uppercase, single-spaced) course codes present in the official schedule for this term. Used to flag planned courses absent from the published/tentative schedule. */

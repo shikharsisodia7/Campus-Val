@@ -110,7 +110,9 @@ export function buildRequirementsResponse(
         sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
         academicYear: universityCore.academicYear,
         lastVerified: universityCore.lastVerified,
-        notes: `Course-by-course requirements for ${majorName} aren't loaded in CampusVal yet. Check the SCU Bulletin and your department advisor.`,
+        notes: [
+          `Course-by-course requirements for ${majorName} aren't loaded in CampusVal yet. Check the SCU Bulletin and your department advisor.`,
+        ],
         items: [],
         autoTrackedCount: 0,
         autoCompletedCount: 0,
@@ -155,8 +157,8 @@ export function buildRequirementsResponse(
     buildMajorGroup(m, idx === 0 ? "primary" : `extra-${idx}`),
   );
 
-  // Declared minors: CampusVal doesn't have verified course-by-course minor
-  // requirements, so these groups are honest placeholders — no invented items.
+  // Declared minors without a verified recipe remain explicitly unverified.
+  // We still provide a planning placeholder, but never invent eligible courses.
   const declaredMinors = [
     profile.minor,
     ...(profile.additionalMinors ?? []),
@@ -172,11 +174,26 @@ export function buildRequirementsResponse(
     sourceLabel: "SCU Undergraduate Bulletin (minor department chapter)",
     academicYear: universityCore.academicYear,
     lastVerified: universityCore.lastVerified,
-    notes: `Course-by-course requirements for the ${minorName} minor aren't loaded in CampusVal yet. Check the SCU Bulletin and the minor's department advisor.`,
-    items: [],
+    notes: [
+      `Requirements not yet verified for the ${minorName} minor. CampusVal will not invent eligible courses; verify the official SCU Bulletin and your department.`,
+    ],
+    items: [
+      {
+        id: `minor-${idx}-planning-placeholder`,
+        label: `${minorName} minor course requirement`,
+        description:
+          "Planning placeholder only. Replace it after verifying an eligible course in the official SCU Bulletin.",
+        courses: [],
+        phase: null,
+        autoTracked: false,
+        needsVerification: true,
+        satisfiedBy: [],
+        complete: false,
+      },
+    ],
     autoTrackedCount: 0,
     autoCompletedCount: 0,
-    manualCount: 0,
+    manualCount: 1,
   }));
   const professionalPreparation = {
     id: "professional-preparation",
@@ -186,8 +203,9 @@ export function buildRequirementsResponse(
     sourceLabel: "Student planning only",
     academicYear: universityCore.academicYear,
     lastVerified: universityCore.lastVerified,
-    notes:
-      "Student-added professional preparation goals are not official SCU graduation requirements. Verify professional-school prerequisites directly with that program.",
+    notes: [
+      "Student planning goal — not an official SCU graduation requirement. Verify professional-school prerequisites directly with that program.",
+    ],
     items: [
       {
         id: "student-professional-preparation-goal",

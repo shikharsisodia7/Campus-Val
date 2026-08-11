@@ -12,7 +12,7 @@ import { useUpdatePlan } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function Board({ plans }: { plans: any[] }) {
-  const { activePlan, activePlanId, scheduleAvailability, aprCompletedCodes = new Set() } = useDegreePlanContext();
+  const { activePlan, activePlanId, profile, scheduleAvailability, aprCompletedCodes = new Set() } = useDegreePlanContext();
   const updatePlanItem = useOptimisticUpdatePlanItem();
   const updatePlan = useUpdatePlan();
   const queryClient = useQueryClient();
@@ -68,9 +68,9 @@ export function Board({ plans }: { plans: any[] }) {
   const displayYears = useMemo(() => {
     let base = Array.from(yearsWithItems);
     addedYears.forEach(y => { if (!base.includes(y)) base.push(y); });
-    if (base.length === 0) base = [2026];
+    if (base.length === 0) base = [profile?.currentYear ?? scheduleAvailability?.terms[0]?.year ?? new Date().getFullYear()];
     return base.sort();
-  }, [yearsWithItems, addedYears]);
+  }, [yearsWithItems, addedYears, profile?.currentYear, scheduleAvailability?.terms]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -170,7 +170,9 @@ export function Board({ plans }: { plans: any[] }) {
   };
 
   const handleAddYear = () => {
-    const nextYear = displayYears.length > 0 ? displayYears[displayYears.length - 1] + 1 : 2026;
+    const nextYear = displayYears.length > 0
+      ? displayYears[displayYears.length - 1] + 1
+      : (profile?.currentYear ?? scheduleAvailability?.terms[0]?.year ?? new Date().getFullYear());
     const years = Array.from(new Set([...addedYears, nextYear])).sort((a, b) => a - b);
     setAddedYears(years);
     saveLayout(years, addedSummers);

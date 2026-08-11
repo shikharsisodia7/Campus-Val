@@ -180,7 +180,7 @@ const LANDING_PRERENDER = `
 // used only if this file is ever served without going through this function
 // (e.g. `vite preview` locally). Rewritten below to the real request origin
 // so production never advertises a stale/decommissioned domain.
-const INDEX_HTML_FALLBACK_ORIGIN = "https://campusval.replit.app";
+const INDEX_HTML_FALLBACK_ORIGIN = "https://campus-val.vercel.app";
 
 function buildLandingHtml(indexHtml: string, origin: string): string {
   const canonical = `${origin}/`;

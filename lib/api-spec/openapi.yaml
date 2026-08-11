@@ -1989,7 +1989,7 @@ components:
         duplicate: { type: boolean }
     ScheduleAvailabilityTerm:
       type: object
-      required: [term, year, status, officialSectionCount, syncedSectionCount]
+      required: [term, year, status, sourceUrl, sourceLabel, publishedDate, lastVerified, importedDate, freshness, officialSectionCount, syncedSectionCount]
       properties:
         term: { $ref: "#/components/schemas/Term" }
         year: { type: integer }
@@ -1997,6 +1997,22 @@ components:
           type: string
           enum: [published, tentative]
           description: published = official schedule with sections/instructors; tentative = registrar tentative schedule (no instructors/sections confirmed)
+        sourceUrl:
+          type: string
+          description: Official SCU source for the term schedule.
+        sourceLabel: { type: string }
+        publishedDate:
+          type: [string, "null"]
+          description: Official publication date when known.
+        lastVerified:
+          type: string
+          description: Date the term data was last checked against the official source.
+        importedDate:
+          type: string
+          description: Date CampusVal imported this schedule snapshot.
+        freshness:
+          type: string
+          enum: [fresh, verify_soon, stale]
         officialSectionCount: { type: integer }
         syncedSectionCount: { type: integer }
         offeredCourseCodes:

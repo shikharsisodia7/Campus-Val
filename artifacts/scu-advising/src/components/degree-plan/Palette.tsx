@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useMemo, useState, useEffect } from "react";
-import { Search, Plus, CheckCircle2, CircleDashed, GraduationCap, Landmark, BookOpenCheck, Info } from "lucide-react";
+import { Search, Plus, CheckCircle2, CircleDashed, GraduationCap, Landmark, BookOpenCheck } from "lucide-react";
 import { PlanItemType, RequirementItem } from "@workspace/api-client-react";
 
 const GROUP_ICONS = {
@@ -28,52 +28,17 @@ const GROUP_ICONS = {
 
 const COMPLETED_DESTINATION = "0:completed";
 export function Palette() {
-  const { requirements, activePlan, catalog } = useDegreePlanContext();
+  const { requirements, activePlan, catalog, profile, scheduleAvailability } = useDegreePlanContext();
   const [search, setSearch] = useState("");
-  const [destination, setDestination] = useState("2026:fall");
+  const [destination, setDestination] = useState("");
   const queryClient = useQueryClient();
   const addPlanItem = useAddPlanItem();
 
-  // Extra major requirement groups loaded from graduation-paths
-  const [extraMajorGroups, setExtraMajorGroups] = useState<ExtraMajorGroup[]>([]);
-
-  const planPrograms = activePlan?.programs;
-
-  // Load requirements for each additional major in the plan
-  useEffect(() => {
-    const additionalMajors = planPrograms?.additionalMajors ?? [];
-    if (additionalMajors.length === 0) {
-      setExtraMajorGroups([]);
-      return;
-    }
-
-    // Only fetch for majors not already loaded
-    setExtraMajorGroups(prev => {
-      const existing = new Map(prev.map(g => [g.majorCode, g]));
-      const next: ExtraMajorGroup[] = additionalMajors.map(code => {
-        if (existing.has(code)) return existing.get(code)!;
-        return { majorCode: code, majorTitle: code, groups: null, error: false };
-      });
-      return next;
-    });
-
-    // Fetch requirements for each
-    additionalMajors.forEach(async (code) => {
-      const result = await fetchMajorRequirements(code);
-      setExtraMajorGroups(prev =>
-        prev.map(g =>
-          g.majorCode === code
-            ? { ...g, groups: result?.groups ?? null, error: result === null }
-            : g
-        )
-      );
-    });
-  }, [planPrograms?.additionalMajors?.join(',')]);
-
-  const isCompletedDestination = destination === COMPLETED_DESTINATION;
-
   const destinationOptions = useMemo(() => {
-    const years = new Set<number>([2026]);
+    const currentYear = new Date().getFullYear();
+    const years = new Set<number>([
+      profile?.currentYear ?? scheduleAvailability?.terms?.[0]?.year ?? currentYear,
+    ]);
     activePlan?.items.forEach((item) => {
       if (item.term !== 'completed') years.add(item.academicYear);
     });
@@ -91,7 +56,15 @@ export function Palette() {
       { value: COMPLETED_DESTINATION, label: "Completed before plan" },
       ...termOptions,
     ];
-  }, [activePlan?.items]);
+  }, [activePlan?.items, profile?.currentYear, scheduleAvailability?.terms]);
+
+  useEffect(() => {
+    if (destinationOptions.length <= 1) return;
+    const current = destinationOptions.find((option) => option.value === destination);
+    if (!current) setDestination(destinationOptions[1]!.value);
+  }, [destination, destinationOptions]);
+
+  const isCompletedDestination = destination === COMPLETED_DESTINATION;
 
   const [academicYear, term] = destination.split(":");
   const placement = {
@@ -167,9 +140,6 @@ export function Palette() {
     c.code.toLowerCase().includes(search.toLowerCase()) || 
     c.title.toLowerCase().includes(search.toLowerCase())
   ).slice(0, 20);
-
-  const planMinors = planPrograms?.minors ?? [];
-  const planGoals = planPrograms?.professionalGoals ?? [];
 
   return (
     <Card className="h-full flex flex-col border-border/60 shadow-sm bg-card overflow-hidden">
@@ -262,6 +232,14 @@ export function Palette() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pt-1 pb-3 px-2 space-y-3">
+                    {group.notes.map((note) => (
+                      <p key={note} className="rounded-md border border-muted bg-muted/30 px-2 py-1.5 text-[10px] leading-relaxed text-muted-foreground">
+                        {note}
+                      </p>
+                    ))}
+                    {group.items.length === 0 && (
+                      <p className="py-2 text-xs text-muted-foreground">No verified course requirements are available for this group.</p>
+                    )}
                     {group.items.map(req => {
                       const completed = req.complete;
                       const planned = isPlanned(req.id, req.courses);
@@ -330,126 +308,9 @@ export function Palette() {
               );
             })}
 
-            {/* Additional major requirement groups */}
-            {extraMajorGroups.map(extraMajor => (
-              <AccordionItem key={`major-${extraMajor.majorCode}`} value={`major-${extraMajor.majorCode}`} className="border-b-0">
-                <AccordionTrigger className="hover:no-underline px-2 py-3 text-sm font-semibold hover:bg-muted/30 rounded-md transition-colors data-[state=open]:bg-muted/30 group">
-                  <div className="flex items-center gap-2 text-left">
-                    <BookOpenCheck className="h-4 w-4 text-secondary group-hover:text-primary transition-colors" />
-                    <span>{extraMajor.majorTitle}</span>
-                    <Badge variant="outline" className="text-[9px] font-normal">plan major</Badge>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-1 pb-3 px-2 space-y-3">
-                  {extraMajor.groups === null && !extraMajor.error && (
-                    <div className="text-xs text-muted-foreground italic py-2">Loading requirements…</div>
-                  )}
-                  {extraMajor.error && (
-                    <div className="flex gap-2 p-3 rounded-md border border-amber-200 bg-amber-50 text-xs text-amber-900">
-                      <Info className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
-                      <span>Couldn't load requirements for this major right now. Try again later.</span>
-                    </div>
-                  )}
-                  {extraMajor.groups?.map((grp, gIdx) => (
-                    <div key={gIdx} className="space-y-2">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{grp.label}</div>
-                      {grp.courses.length === 0 ? (
-                        <div className="text-[10px] text-muted-foreground italic">No courses listed for this group.</div>
-                      ) : (
-                        <div className="flex flex-wrap gap-1.5">
-                          {grp.courses.map(c => (
-                            <Badge
-                              key={c.code}
-                              variant="secondary"
-                              className="text-[10px] font-mono cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                              onClick={() => handleAddCourse(c.code)}
-                              data-testid={`extra-major-course-${c.code}`}
-                            >
-                              {c.code}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-
-            {/* Minors notice */}
-            {planMinors.length > 0 && (
-              <AccordionItem value="plan-minors" className="border-b-0">
-                <AccordionTrigger className="hover:no-underline px-2 py-3 text-sm font-semibold hover:bg-muted/30 rounded-md transition-colors data-[state=open]:bg-muted/30 group">
-                  <div className="flex items-center gap-2 text-left">
-                    <BookOpenCheck className="h-4 w-4 text-muted-foreground" />
-                    Plan Minors ({planMinors.length})
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-1 pb-3 px-2">
-                  <div className="flex gap-2 p-3 rounded-md border border-border bg-muted/20 text-xs text-muted-foreground">
-                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                    <span>
-                      SCU doesn't publish a machine-readable requirement list for {planMinors.length === 1 ? 'this minor' : 'these minors'} in CampusVal — confirm with the department/advisor.
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {planMinors.map(code => (
-                      <Badge key={code} variant="outline" className="text-[10px]">{code} minor</Badge>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Professional goals notice */}
-            {planGoals.length > 0 && (
-              <AccordionItem value="plan-goals" className="border-b-0">
-                <AccordionTrigger className="hover:no-underline px-2 py-3 text-sm font-semibold hover:bg-muted/30 rounded-md transition-colors data-[state=open]:bg-muted/30 group">
-                  <div className="flex items-center gap-2 text-left">
-                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                    Professional Goals ({planGoals.length})
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-1 pb-3 px-2">
-                  <div className="flex gap-2 p-3 rounded-md border border-border bg-muted/20 text-xs text-muted-foreground">
-                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                    <span>
-                      Not official SCU programs — for your planning only. Confirm requirements with the department/advisor.
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {planGoals.map(goal => (
-                      <Badge key={goal} variant="outline" className="text-[10px] border-dashed">{goal}</Badge>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
           </Accordion>
         )}
       </ScrollArea>
     </Card>
   );
-}
-
-async function fetchMajorRequirements(
-  major: string,
-): Promise<{ groups: { label: string; courses: { code: string; title: string; units: number }[] }[] } | null> {
-  try {
-    const params = new URLSearchParams();
-    params.set("major", major);
-    const url = `${import.meta.env.BASE_URL}api/graduation-paths/requirements?${params.toString()}`;
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    return await r.json();
-  } catch {
-    return null;
-  }
-}
-
-interface ExtraMajorGroup {
-  majorCode: string;
-  majorTitle: string;
-  groups: { label: string; courses: { code: string; title: string; units: number }[] }[] | null;
-  error: boolean;
 }

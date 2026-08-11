@@ -213,18 +213,28 @@ export function TermAndScheduleHeader({
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border pb-4">
         <div className="flex items-center gap-3 text-sm min-w-0">
           {currentTermAvailability && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 rounded-full bg-muted/50 border border-border">
               {currentTermAvailability.status === "published" ? (
                 <>
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Official schedule published</span>
+                  <span>Published SCU Registrar Schedule</span>
                 </>
               ) : (
                 <>
                   <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                  <span className="text-amber-700 font-medium">Tentative schedule (Instructors TBA)</span>
+                  <span className="text-amber-700 font-medium">Tentative SCU Registrar Schedule</span>
                 </>
               )}
+              <a
+                href={currentTermAvailability.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] text-primary underline underline-offset-2"
+              >
+                {currentTermAvailability.freshness === "stale"
+                  ? "Needs re-verification — check SCU Registrar"
+                  : `Verified ${currentTermAvailability.lastVerified}`}
+              </a>
             </div>
           )}
         </div>

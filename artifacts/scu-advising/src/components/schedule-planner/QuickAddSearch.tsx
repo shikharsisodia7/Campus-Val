@@ -170,7 +170,7 @@ export function QuickAddSearch({
                   <div key={sec.id} className={`border rounded-md p-3 transition-colors bg-card ${isOnSchedule ? "border-emerald-500 bg-emerald-50/30" : "hover:border-primary/50"}`}>
                     <div className="flex justify-between items-start mb-2">
                       <div className="font-mono font-bold text-primary flex items-center gap-2">
-                        Sec {sec.sectionNumber}
+                        {sec.tentative ? "Tentative offering" : `Section ${sec.sectionNumber}`}
                         {isOnSchedule && <Badge variant="default" className="text-[10px] bg-emerald-600 hover:bg-emerald-600">Added</Badge>}
                       </div>
                       {sec.tentative && (
@@ -187,7 +187,7 @@ export function QuickAddSearch({
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{sec.instructor || "Instructor TBA"}</span>
+                        <span className="truncate">{sec.tentative ? "Instructor not published" : (sec.instructor || "Instructor TBA")}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />

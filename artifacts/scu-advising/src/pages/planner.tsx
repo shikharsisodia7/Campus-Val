@@ -35,6 +35,7 @@ import { CalendarGrid } from "@/components/schedule-planner/CalendarGrid";
 import { ConflictsPanel } from "@/components/schedule-planner/ConflictsPanel";
 import { SidebarPanels } from "@/components/schedule-planner/SidebarPanels";
 import { CourseDetailsDialog } from "@/components/schedule-planner/CourseDetailsDialog";
+import { AcademicProgress } from "@/components/AcademicProgress";
 import { ScheduleEvent } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -122,7 +123,9 @@ export default function Planner() {
     const lines = selectedSections.map((s) => {
       const days = s.meetingDays.join("") || "TBA";
       const time = s.startTime && s.endTime ? `${s.startTime}–${s.endTime}` : "Time TBA";
-      return `${s.courseCode}-${s.sectionNumber}  ${days} ${time}`;
+      return isTentativeSchedule
+        ? `${s.courseCode} — Tentative offering  ${days} ${time}`
+        : `${s.courseCode}-${s.sectionNumber}  ${days} ${time}`;
     });
     navigator.clipboard.writeText(lines.join("\n"));
     toast({ title: "Section list copied to clipboard" });
@@ -186,6 +189,7 @@ export default function Planner() {
             <WorkdayHandoffCard
               sections={selectedSections}
               onCopy={onCopyHandoff}
+              isTentativeSchedule={isTentativeSchedule}
             />
 
             {/* Load Check Collapsible */}
@@ -211,7 +215,7 @@ export default function Planner() {
               {loadCheckOpen && (
                 <div className="mt-4 space-y-4">
                   <p className="text-xs text-muted-foreground">
-                    Checks run against the course sections currently on your selected schedule. Add sections to the calendar first.
+                    Checks use the courses in your selected schedule. CampusVal cannot verify seats, holds, restrictions, or registration eligibility.
                   </p>
                   <Button
                     onClick={onRunLoadCheck}
@@ -254,7 +258,7 @@ export default function Planner() {
                         {loadCheckResult.issues.length === 0 ? (
                           <div className="flex items-start gap-2 text-sm text-emerald-700">
                             <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                            No issues found. This plan looks safe to register.
+                            No issues were detected in the information CampusVal can verify. Confirm prerequisites, restrictions, seats, and registration eligibility in Workday before registering.
                           </div>
                         ) : (
                           loadCheckResult.issues.map((issue, i) => (
@@ -283,8 +287,8 @@ export default function Planner() {
             </Card>
           </div>
 
-          {/* Right: Section search sidebar */}
-          <div className="xl:col-span-4 xl:col-start-9 flex flex-col min-w-0">
+          {/* Right: section search plus the official progress reference. */}
+          <div className="xl:col-span-4 xl:col-start-9 flex flex-col gap-4 min-w-0">
             {workspace.activeScheduleId ? (
               <SidebarPanels
                 workspace={workspace}
@@ -296,6 +300,9 @@ export default function Planner() {
                 Please create a schedule to access section search tools.
               </div>
             )}
+            <div className="max-h-[38rem] overflow-y-auto">
+              <AcademicProgress className="p-4" />
+            </div>
           </div>
         </div>
       </PageContent>
@@ -479,9 +486,11 @@ function IssueRow({
 function WorkdayHandoffCard({
   sections,
   onCopy,
+  isTentativeSchedule,
 }: {
   sections: ScheduleEvent[];
   onCopy: () => void;
+  isTentativeSchedule: boolean;
 }) {
   return (
     <Card className="p-4" data-testid="workday-handoff-card">
@@ -506,7 +515,7 @@ function WorkdayHandoffCard({
             const time = s.startTime && s.endTime ? `${s.startTime}–${s.endTime}` : "Time TBA";
             return (
               <div key={s.id} data-testid={`handoff-section-${s.id}`} className="whitespace-nowrap">
-                {s.courseCode}-{s.sectionNumber}{"  "}{days} {time}
+                {isTentativeSchedule ? `${s.courseCode} — Tentative offering` : `${s.courseCode}-${s.sectionNumber}`}{"  "}{days} {time}
               </div>
             );
           })}

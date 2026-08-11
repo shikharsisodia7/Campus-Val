@@ -33,6 +33,38 @@ export interface OfferedSection {
 
 export const OFFERED_SECTIONS = rawOffered as OfferedSection[];
 
+export type ScheduleFreshness = "fresh" | "verify_soon" | "stale";
+
+export interface OfferedTermMetadata {
+  term: Term;
+  year: number;
+  status: "published" | "tentative";
+  sourceUrl: string;
+  sourceLabel: string;
+  publishedDate: string | null;
+  lastVerified: string;
+  importedDate: string;
+}
+
+const REGISTRAR_SCHEDULE_URL = "https://www.scu.edu/registrar/";
+
+/**
+ * Schedule facts age much faster than catalog requirements. Published
+ * schedules should be rechecked every 30 days; tentative schedules every
+ * 14 days. Dates are deliberately hidden as authoritative facts when stale.
+ */
+export function scheduleFreshness(
+  metadata: Pick<OfferedTermMetadata, "status" | "lastVerified">,
+  now = new Date(),
+): ScheduleFreshness {
+  const verified = new Date(`${metadata.lastVerified}T00:00:00Z`);
+  const ageDays = Math.floor((now.getTime() - verified.getTime()) / 86_400_000);
+  const threshold = metadata.status === "tentative" ? 14 : 30;
+  if (ageDays > threshold) return "stale";
+  if (ageDays > Math.floor(threshold * 0.7)) return "verify_soon";
+  return "fresh";
+}
+
 const byCode = new Map<string, OfferedSection[]>();
 for (const s of OFFERED_SECTIONS) {
   const key = s.courseCode.toUpperCase().replace(/\s+/g, " ");
@@ -59,8 +91,35 @@ export function offeredSectionsFor(
 }
 
 /** Terms that have a published schedule, newest first. */
-export const OFFERED_TERMS: { term: Term; year: number }[] = [
-  { term: "fall", year: 2026 },
-  { term: "winter", year: 2027 },
-  { term: "spring", year: 2027 },
+export const OFFERED_TERMS: OfferedTermMetadata[] = [
+  {
+    term: "fall",
+    year: 2026,
+    status: "published",
+    sourceUrl: REGISTRAR_SCHEDULE_URL,
+    sourceLabel: "SCU Registrar Schedule",
+    publishedDate: "2026-05-07",
+    lastVerified: "2026-05-07",
+    importedDate: "2026-05-07",
+  },
+  {
+    term: "winter",
+    year: 2027,
+    status: "tentative",
+    sourceUrl: REGISTRAR_SCHEDULE_URL,
+    sourceLabel: "SCU Registrar Tentative Schedule",
+    publishedDate: null,
+    lastVerified: "2026-05-07",
+    importedDate: "2026-05-07",
+  },
+  {
+    term: "spring",
+    year: 2027,
+    status: "tentative",
+    sourceUrl: REGISTRAR_SCHEDULE_URL,
+    sourceLabel: "SCU Registrar Tentative Schedule",
+    publishedDate: null,
+    lastVerified: "2026-05-07",
+    importedDate: "2026-05-07",
+  },
 ];

@@ -61,13 +61,15 @@ export function CourseDetailsDialog({
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between gap-4">
-                <span className="font-bold text-xl">{courseCode}-{event.sectionNumber}</span>
+                <span className="font-bold text-xl">
+                  {isTentativeSchedule ? `${courseCode} — Tentative offering` : `${courseCode}-${event.sectionNumber}`}
+                </span>
                 <div className="flex items-center gap-2">
                   {isTentativeSchedule && (
                     <Badge
                       variant="outline"
                       className="border-amber-400 bg-amber-50 text-amber-900"
-                      title="This term's schedule is tentative — section number and instructor may change."
+                      title="This term's schedule is tentative. SCU has not published a section number or instructor."
                     >
                       Tentative
                     </Badge>
@@ -104,7 +106,9 @@ export function CourseDetailsDialog({
                     <Users className="h-4 w-4 mt-0.5 text-primary" />
                     <div>
                       <div className="font-semibold text-foreground">Instructor</div>
-                      <div className="text-muted-foreground">{event.instructor || "Instructor TBA"}</div>
+                      <div className="text-muted-foreground">
+                        {isTentativeSchedule ? "Instructor not published" : (event.instructor || "Instructor TBA")}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
@@ -148,6 +152,9 @@ export function CourseDetailsDialog({
                       {course.prereqLogic || "Prerequisite information unavailable"}
                     </p>
                   </div>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Course and prerequisite information is for planning. Always verify requirements in the official SCU Bulletin/Course Catalog and consult your advisor when needed.
+                  </p>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center">Course details unavailable.</p>
