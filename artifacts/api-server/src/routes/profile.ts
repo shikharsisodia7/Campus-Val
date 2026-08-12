@@ -47,7 +47,14 @@ router.get("/profile", requireAuth, async (req, res) => {
 });
 
 router.put("/profile", requireAuth, async (req, res) => {
-  const body = UpsertProfileBody.parse(req.body);
+  const parsed = UpsertProfileBody.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: "Invalid profile. Check student type, terms, college, major, and numeric fields.",
+      details: parsed.error.flatten(),
+    });
+  }
+  const body = parsed.data;
   const existing = await db
     .select()
     .from(studentProfilesTable)
