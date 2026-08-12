@@ -69,3 +69,4 @@ attached_assets/
 /campusval-source.zip
 .env*
 !.env.example
+.cursor/mcp.json
