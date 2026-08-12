@@ -24,7 +24,8 @@ function rowToDto(row: typeof studentProfilesTable.$inferSelect) {
     expectedGradYear: row.expectedGradYear,
     unitsCompletedAtSCU: Number(row.unitsCompletedAtScu),
     unitsTransferredIn: Number(row.unitsTransferredIn),
-    cumulativeGpa: row.cumulativeGpa === null ? null : Number(row.cumulativeGpa),
+    cumulativeGpa:
+      row.cumulativeGpa === null ? null : Number(row.cumulativeGpa),
     majorGpa: row.majorGpa === null ? null : Number(row.majorGpa),
     completedCourseCodes: row.completedCourseCodes ?? [],
     priorityRegistration: row.priorityRegistration,
@@ -50,7 +51,8 @@ router.put("/profile", requireAuth, async (req, res) => {
   const parsed = UpsertProfileBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
-      error: "Invalid profile. Check student type, terms, college, major, and numeric fields.",
+      error:
+        "Invalid profile. Check student type, terms, college, major, and numeric fields.",
       details: parsed.error.flatten(),
     });
   }
@@ -79,7 +81,8 @@ router.put("/profile", requireAuth, async (req, res) => {
     expectedGradYear: body.expectedGradYear,
     unitsCompletedAtScu: String(body.unitsCompletedAtSCU),
     unitsTransferredIn: String(body.unitsTransferredIn),
-    cumulativeGpa: body.cumulativeGpa == null ? null : String(body.cumulativeGpa),
+    cumulativeGpa:
+      body.cumulativeGpa == null ? null : String(body.cumulativeGpa),
     majorGpa: body.majorGpa == null ? null : String(body.majorGpa),
     completedCourseCodes: body.completedCourseCodes,
     priorityRegistration: body.priorityRegistration,
@@ -111,9 +114,7 @@ router.put("/profile", requireAuth, async (req, res) => {
 router.delete("/profile", requireAuth, async (req, res) => {
   // Wipe everything tied to this user. Messages cascade-delete from conversations.
   await db.transaction(async (tx) => {
-    await tx
-      .delete(conversations)
-      .where(eq(conversations.userId, req.userId!));
+    await tx.delete(conversations).where(eq(conversations.userId, req.userId!));
     await tx
       .delete(studentProfilesTable)
       .where(eq(studentProfilesTable.userId, req.userId!));

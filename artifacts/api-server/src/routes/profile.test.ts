@@ -20,7 +20,12 @@ const { db, studentProfilesTable } = await import("@workspace/db");
 const profileRouter = (await import("./profile")).default;
 
 const stubLogger = (req: any, _res: any, next: any) => {
-  req.log = { error: () => {}, warn: () => {}, info: () => {}, debug: () => {} };
+  req.log = {
+    error: () => {},
+    warn: () => {},
+    info: () => {},
+    debug: () => {},
+  };
   next();
 };
 
@@ -53,7 +58,9 @@ const validBody = {
 
 describe("PUT /api/profile validation", () => {
   afterAll(async () => {
-    await db.delete(studentProfilesTable).where(eq(studentProfilesTable.userId, USER));
+    await db
+      .delete(studentProfilesTable)
+      .where(eq(studentProfilesTable.userId, USER));
   });
 
   it("returns 400 (not 500) for invalid studentType / term casing", async () => {
