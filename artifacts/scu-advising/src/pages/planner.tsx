@@ -47,7 +47,9 @@ const QUARTER_PLAN_TERMS = new Set(["fall", "winter", "spring"]);
 export default function Planner() {
   const { toast } = useToast();
   const workspace = useScheduleWorkspace();
-  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(
+    null,
+  );
   const isTentativeSchedule =
     workspace.availability?.terms.find(
       (t) => t.term === workspace.activeTerm && t.year === workspace.activeYear,
@@ -67,30 +69,49 @@ export default function Planner() {
 
   // Degree plan (find the 'degree' type plan)
   const { data: plansList } = useListPlans();
-  const degreePlan = plansList?.plans.find((p) => p.planType === "degree") ?? plansList?.plans[0] ?? null;
+  const degreePlan =
+    plansList?.plans.find((p) => p.planType === "degree") ??
+    plansList?.plans[0] ??
+    null;
   const { data: activePlan } = useGetPlan(degreePlan?.id ?? 0, {
-    query: { enabled: !!degreePlan?.id, queryKey: getGetPlanQueryKey(degreePlan?.id ?? 0) },
+    query: {
+      enabled: !!degreePlan?.id,
+      queryKey: getGetPlanQueryKey(degreePlan?.id ?? 0),
+    },
   });
 
   // Items in the degree plan for the selected quarter
   const degreeItems: PlanItem[] = useMemo(() => {
-    if (!activePlan || !workspace.activeTerm || !workspace.activeYear) return [];
+    if (!activePlan || !workspace.activeTerm || !workspace.activeYear)
+      return [];
     return activePlan.items.filter(
-      (i) => i.term === workspace.activeTerm && i.academicYear === workspace.activeYear,
+      (i) =>
+        i.term === workspace.activeTerm &&
+        i.academicYear === workspace.activeYear,
     );
   }, [activePlan, workspace.activeTerm, workspace.activeYear]);
 
   // Sections already selected in this quarter's active schedule
-  const selectedSections = workspace.activeSchedule?.events.filter((e) => e.kind === "section") ?? [];
-  const selectedCourseCodes = new Set(selectedSections.map((e) => e.courseCode?.toUpperCase() ?? ""));
+  const selectedSections =
+    workspace.activeSchedule?.events.filter((e) => e.kind === "section") ?? [];
+  const selectedCourseCodes = new Set(
+    selectedSections.map((e) => e.courseCode?.toUpperCase() ?? ""),
+  );
 
   // Run load check against scheduled courses
   const onRunLoadCheck = () => {
-    if (!workspace.activeSchedule || !workspace.activeTerm || !workspace.activeYear) return;
+    if (
+      !workspace.activeSchedule ||
+      !workspace.activeTerm ||
+      !workspace.activeYear
+    )
+      return;
     const apIb = creditedCourses(loadStoredExams());
     const mergedCompleted = Array.from(
       new Set(
-        [...(profile?.completedCourseCodes ?? []), ...apIb].map((c) => c.toUpperCase()),
+        [...(profile?.completedCourseCodes ?? []), ...apIb].map((c) =>
+          c.toUpperCase(),
+        ),
       ),
     );
     const scheduledCourses = selectedSections
@@ -122,7 +143,8 @@ export default function Planner() {
     }
     const lines = selectedSections.map((s) => {
       const days = s.meetingDays.join("") || "TBA";
-      const time = s.startTime && s.endTime ? `${s.startTime}–${s.endTime}` : "Time TBA";
+      const time =
+        s.startTime && s.endTime ? `${s.startTime}–${s.endTime}` : "Time TBA";
       return isTentativeSchedule
         ? `${s.courseCode} — Tentative offering  ${days} ${time}`
         : `${s.courseCode}-${s.sectionNumber}  ${days} ${time}`;
@@ -146,10 +168,15 @@ export default function Planner() {
           allowedTerms={QUARTER_PLAN_TERMS}
         />
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          {/* Left: Calendar + Conflicts + Degree Intentions */}
-          <div className="xl:col-span-8 xl:col-start-1 flex flex-col gap-6 min-w-0">
-
+        <div
+          className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]"
+          data-testid="quarter-plan-layout"
+        >
+          {/* Center: Calendar + Conflicts + Degree Intentions — dominant workspace */}
+          <div
+            className="flex min-w-0 flex-col gap-4"
+            data-testid="quarter-plan-calendar-column"
+          >
             {/* Degree Plan Intentions Panel */}
             <DegreePlanIntentionsPanel
               items={degreeItems}
@@ -173,14 +200,19 @@ export default function Planner() {
                     isTentativeSchedule={isTentativeSchedule}
                   />
                 </div>
-                <ConflictsPanel events={workspace.activeSchedule?.events || []} />
+                <ConflictsPanel
+                  events={workspace.activeSchedule?.events || []}
+                />
               </>
             ) : (
               <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl bg-muted/10 p-8 text-center text-muted-foreground min-h-[300px]">
                 <CalendarCheck className="h-10 w-10 mb-3 opacity-30" />
-                <h2 className="text-xl font-semibold mb-2">No Schedule Selected</h2>
+                <h2 className="text-xl font-semibold mb-2">
+                  No Schedule Selected
+                </h2>
                 <p className="max-w-sm text-sm">
-                  Create a new schedule or select an existing one above to start placing sections on the calendar.
+                  Create a new schedule or select an existing one above to start
+                  placing sections on the calendar.
                 </p>
               </div>
             )}
@@ -215,11 +247,15 @@ export default function Planner() {
               {loadCheckOpen && (
                 <div className="mt-4 space-y-4">
                   <p className="text-xs text-muted-foreground">
-                    Checks use the courses in your selected schedule. CampusVal cannot verify seats, holds, restrictions, or registration eligibility.
+                    Checks use the courses in your selected schedule. CampusVal
+                    cannot verify seats, holds, restrictions, or registration
+                    eligibility.
                   </p>
                   <Button
                     onClick={onRunLoadCheck}
-                    disabled={checkPlan.isPending || !workspace.activeScheduleId}
+                    disabled={
+                      checkPlan.isPending || !workspace.activeScheduleId
+                    }
                     data-testid="button-check-plan"
                     size="sm"
                   >
@@ -231,24 +267,38 @@ export default function Planner() {
                       <div>
                         <div className="flex items-baseline justify-between">
                           <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                            Units · {standingTitle(loadCheckResult.classStanding)}
+                            Units ·{" "}
+                            {standingTitle(loadCheckResult.classStanding)}
                           </div>
                           <div className="text-sm font-semibold">
-                            {loadCheckResult.totalUnits} / {loadCheckResult.unitCap}
+                            {loadCheckResult.totalUnits} /{" "}
+                            {loadCheckResult.unitCap}
                           </div>
                         </div>
                         <Progress
-                          value={Math.min(100, (loadCheckResult.totalUnits / loadCheckResult.unitCap) * 100)}
+                          value={Math.min(
+                            100,
+                            (loadCheckResult.totalUnits /
+                              loadCheckResult.unitCap) *
+                              100,
+                          )}
                           className="mt-2"
                         />
                         <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground font-mono">
-                          <span>Standard cap: {loadCheckResult.standardCap}</span>
-                          <span>Approved cap: {loadCheckResult.approvedCap}</span>
+                          <span>
+                            Standard cap: {loadCheckResult.standardCap}
+                          </span>
+                          <span>
+                            Approved cap: {loadCheckResult.approvedCap}
+                          </span>
                         </div>
                       </div>
                       {loadCheckResult.requiresAdvisorApproval && (
                         <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 leading-snug">
-                          <strong>Advisor approval required:</strong> this plan is over your standard cap. Even if eligible to overload, you need written dean approval before registration.
+                          <strong>Advisor approval required:</strong> this plan
+                          is over your standard cap. Even if eligible to
+                          overload, you need written dean approval before
+                          registration.
                         </div>
                       )}
                       <div className="text-xs text-muted-foreground italic">
@@ -258,7 +308,10 @@ export default function Planner() {
                         {loadCheckResult.issues.length === 0 ? (
                           <div className="flex items-start gap-2 text-sm text-emerald-700">
                             <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-                            No issues were detected in the information CampusVal can verify. Confirm prerequisites, restrictions, seats, and registration eligibility in Workday before registering.
+                            No issues were detected in the information CampusVal
+                            can verify. Confirm prerequisites, restrictions,
+                            seats, and registration eligibility in Workday
+                            before registering.
                           </div>
                         ) : (
                           loadCheckResult.issues.map((issue, i) => (
@@ -273,7 +326,11 @@ export default function Planner() {
                           </div>
                           <div className="flex flex-wrap gap-1.5">
                             {loadCheckResult.coreAreasFulfilled.map((a) => (
-                              <Badge key={a} variant="secondary" className="text-xs">
+                              <Badge
+                                key={a}
+                                variant="secondary"
+                                className="text-xs"
+                              >
                                 {a}
                               </Badge>
                             ))}
@@ -287,8 +344,11 @@ export default function Planner() {
             </Card>
           </div>
 
-          {/* Right: section search plus the official progress reference. */}
-          <div className="xl:col-span-4 xl:col-start-9 flex flex-col gap-4 min-w-0">
+          {/* Right: compact section search + official progress reference. */}
+          <div
+            className="flex min-w-0 flex-col gap-3"
+            data-testid="quarter-plan-sidebar-column"
+          >
             {workspace.activeScheduleId ? (
               <SidebarPanels
                 workspace={workspace}
@@ -296,12 +356,12 @@ export default function Planner() {
                 onInitialCourseConsumed={() => setIntentionCourse(null)}
               />
             ) : (
-              <div className="flex-1 rounded-xl bg-card border shadow-sm opacity-50 pointer-events-none p-6 text-center text-sm flex items-center justify-center">
+              <div className="flex flex-1 items-center justify-center rounded-xl border bg-card p-6 text-center text-sm opacity-50 pointer-events-none shadow-sm">
                 Please create a schedule to access section search tools.
               </div>
             )}
-            <div className="max-h-[38rem] overflow-y-auto">
-              <AcademicProgress className="p-4" />
+            <div className="max-h-[28rem] overflow-y-auto 2xl:max-h-[34rem]">
+              <AcademicProgress className="p-3" />
             </div>
           </div>
         </div>
@@ -334,12 +394,17 @@ function DegreePlanIntentionsPanel({
 }) {
   if (isLoadingAvailability || (!activeTerm && !activeYear)) return null;
 
-  const courses = items.filter((i) => i.itemType === "course" && !!i.courseCode);
-  const placeholders = items.filter((i) => i.itemType === "requirement_placeholder");
+  const courses = items.filter(
+    (i) => i.itemType === "course" && !!i.courseCode,
+  );
+  const placeholders = items.filter(
+    (i) => i.itemType === "requirement_placeholder",
+  );
 
-  const quarterLabel = activeTerm && activeYear
-    ? `${activeTerm.charAt(0).toUpperCase()}${activeTerm.slice(1)} ${activeYear}`
-    : "this quarter";
+  const quarterLabel =
+    activeTerm && activeYear
+      ? `${activeTerm.charAt(0).toUpperCase()}${activeTerm.slice(1)} ${activeYear}`
+      : "this quarter";
 
   return (
     <Card className="p-4" data-testid="intentions-panel">
@@ -351,7 +416,12 @@ function DegreePlanIntentionsPanel({
           </span>
         </div>
         <Link href="/degree-plan">
-          <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" data-testid="link-go-to-degree-plan">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs shrink-0"
+            data-testid="link-go-to-degree-plan"
+          >
             Edit Degree Plan
           </Button>
         </Link>
@@ -360,7 +430,11 @@ function DegreePlanIntentionsPanel({
       {items.length === 0 ? (
         <div className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">
           No courses are planned for {quarterLabel} in your Degree Plan.{" "}
-          <Link href="/degree-plan" className="underline text-primary" data-testid="link-degree-plan-empty">
+          <Link
+            href="/degree-plan"
+            className="underline text-primary"
+            data-testid="link-degree-plan-empty"
+          >
             Add courses to your Degree Plan
           </Link>{" "}
           to see them here.
@@ -374,7 +448,9 @@ function DegreePlanIntentionsPanel({
               <div
                 key={item.id}
                 className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border ${
-                  isSelected ? "border-emerald-300 bg-emerald-50/40" : "border-border bg-muted/20"
+                  isSelected
+                    ? "border-emerald-300 bg-emerald-50/40"
+                    : "border-border bg-muted/20"
                 }`}
                 data-testid={`intention-course-${item.id}`}
               >
@@ -385,15 +461,22 @@ function DegreePlanIntentionsPanel({
                     <div className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/30" />
                   )}
                   <div className="min-w-0 overflow-hidden">
-                    <span className="font-mono text-sm font-bold text-primary">{code}</span>
+                    <span className="font-mono text-sm font-bold text-primary">
+                      {code}
+                    </span>
                     {item.courseTitle && (
-                      <span className="ml-2 text-xs text-muted-foreground truncate inline-block max-w-full">{item.courseTitle}</span>
+                      <span className="ml-2 text-xs text-muted-foreground truncate inline-block max-w-full">
+                        {item.courseTitle}
+                      </span>
                     )}
                   </div>
                 </div>
                 <div className="shrink-0">
                   {isSelected ? (
-                    <Badge variant="secondary" className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200">
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200"
+                    >
                       Section added
                     </Badge>
                   ) : (
@@ -421,9 +504,11 @@ function DegreePlanIntentionsPanel({
               <div className="h-4 w-4 shrink-0 rounded-full border-2 border-dashed border-muted-foreground/30" />
               <div className="text-xs text-muted-foreground italic">
                 <span className="font-medium not-italic text-foreground/70">
-                  {item.requirementLabel || item.requirementCategory || "Requirement placeholder"}
-                </span>
-                {" "}— decide a course in the{" "}
+                  {item.requirementLabel ||
+                    item.requirementCategory ||
+                    "Requirement placeholder"}
+                </span>{" "}
+                — decide a course in the{" "}
                 <Link href="/degree-plan" className="underline text-primary/80">
                   Degree Plan
                 </Link>{" "}
@@ -439,11 +524,16 @@ function DegreePlanIntentionsPanel({
 
 function standingTitle(s: string): string {
   switch (s) {
-    case "freshman": return "First Year";
-    case "sophomore": return "Sophomore";
-    case "junior": return "Junior";
-    case "senior": return "Senior";
-    default: return s;
+    case "freshman":
+      return "First Year";
+    case "sophomore":
+      return "Sophomore";
+    case "junior":
+      return "Junior";
+    case "senior":
+      return "Senior";
+    default:
+      return s;
   }
 }
 
@@ -457,7 +547,10 @@ function IssueRow({
     relatedCourse?: string | null;
   };
 }) {
-  const config: Record<string, { icon: React.ReactNode; bg: string; border: string }> = {
+  const config: Record<
+    string,
+    { icon: React.ReactNode; bg: string; border: string }
+  > = {
     error: {
       icon: <XCircle className="h-4 w-4 text-destructive" />,
       bg: "bg-destructive/5",
@@ -478,7 +571,9 @@ function IssueRow({
   return (
     <div className={`flex gap-2.5 p-3 rounded-md border ${c.border} ${c.bg}`}>
       <span className="shrink-0 mt-0.5">{c.icon}</span>
-      <div className="text-sm text-foreground/90 leading-snug">{issue.message}</div>
+      <div className="text-sm text-foreground/90 leading-snug">
+        {issue.message}
+      </div>
     </div>
   );
 }
@@ -496,12 +591,17 @@ function WorkdayHandoffCard({
     <Card className="p-4" data-testid="workday-handoff-card">
       <div className="flex items-center gap-2 mb-3">
         <ExternalLink className="h-4 w-4 text-primary" />
-        <span className="text-sm font-semibold text-foreground">Workday Handoff</span>
+        <span className="text-sm font-semibold text-foreground">
+          Workday Handoff
+        </span>
       </div>
 
       <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-        <strong className="text-foreground">CampusVal cannot register you for classes.</strong>{" "}
-        This plan is not enrollment. When you're ready, copy your section list and open Workday Student to register manually.
+        <strong className="text-foreground">
+          CampusVal cannot register you for classes.
+        </strong>{" "}
+        This plan is not enrollment. When you're ready, copy your section list
+        and open Workday Student to register manually.
       </p>
 
       {sections.length === 0 ? (
@@ -512,10 +612,21 @@ function WorkdayHandoffCard({
         <div className="bg-muted/30 border border-border/50 rounded-md p-3 mb-3 font-mono text-xs space-y-1 overflow-x-auto">
           {sections.map((s) => {
             const days = s.meetingDays.join("") || "TBA";
-            const time = s.startTime && s.endTime ? `${s.startTime}–${s.endTime}` : "Time TBA";
+            const time =
+              s.startTime && s.endTime
+                ? `${s.startTime}–${s.endTime}`
+                : "Time TBA";
             return (
-              <div key={s.id} data-testid={`handoff-section-${s.id}`} className="whitespace-nowrap">
-                {isTentativeSchedule ? `${s.courseCode} — Tentative offering` : `${s.courseCode}-${s.sectionNumber}`}{"  "}{days} {time}
+              <div
+                key={s.id}
+                data-testid={`handoff-section-${s.id}`}
+                className="whitespace-nowrap"
+              >
+                {isTentativeSchedule
+                  ? `${s.courseCode} — Tentative offering`
+                  : `${s.courseCode}-${s.sectionNumber}`}
+                {"  "}
+                {days} {time}
               </div>
             );
           })}
@@ -539,7 +650,10 @@ function WorkdayHandoffCard({
           rel="noopener noreferrer"
           data-testid="link-open-workday"
         >
-          <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button
+            size="sm"
+            className="h-8 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
             Open Workday Student <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
           </Button>
         </a>

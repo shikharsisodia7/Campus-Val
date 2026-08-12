@@ -4,11 +4,11 @@ import { DegreePlanWorkspace } from "@/components/degree-plan/DegreePlanWorkspac
 export default function DegreePlanPage() {
   return (
     <AppShell>
-      <PageHeader 
-        title="Degree Plan" 
-        subtitle="Build your academic plan quarter by quarter. This workspace lets you drag courses and requirement placeholders into terms." 
+      <PageHeader
+        title="Degree Plan"
+        subtitle="Build your academic plan quarter by quarter. This workspace lets you drag courses and requirement placeholders into terms."
       />
-      <div className="flex-1 w-full max-w-none px-4 py-4 md:px-6 lg:px-8">
+      <div className="w-full max-w-none flex-1 px-3 py-3 md:px-4 lg:px-6">
         <DegreePlanWorkspace />
       </div>
     </AppShell>

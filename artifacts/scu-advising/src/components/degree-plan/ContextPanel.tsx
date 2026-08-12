@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  useCreatePlan, 
-  useDuplicatePlan, 
-  useDeletePlan, 
+import {
+  useCreatePlan,
+  useDuplicatePlan,
+  useDeletePlan,
   usePromotePlan,
   useUpdatePlan,
   getGetPlanQueryKey,
@@ -18,8 +18,29 @@ import {
   PlanPrograms,
   ProfessionalGoal,
 } from "@workspace/api-client-react";
-import { Copy, Download, Trash2, Rocket, Plus, ShieldCheck, AlertTriangle, Edit2, Files, X, GraduationCap, BookOpen, Target } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Copy,
+  Download,
+  Trash2,
+  Rocket,
+  Plus,
+  ShieldCheck,
+  AlertTriangle,
+  Edit2,
+  Files,
+  X,
+  GraduationCap,
+  BookOpen,
+  Target,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -36,10 +57,11 @@ import {
 import { PlanProgressPanel } from "./PlanProgressPanel";
 
 export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
-  const { activePlan, activePlanId, setActivePlanId, profile } = useDegreePlanContext();
+  const { activePlan, activePlanId, setActivePlanId, profile } =
+    useDegreePlanContext();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const createPlan = useCreatePlan();
   const duplicatePlan = useDuplicatePlan();
   const deletePlan = useDeletePlan();
@@ -50,9 +72,9 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   const { data: minorsList } = useListGraduationMinors();
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [newPlanName, setNewPlanName] = useState("My Tentative Plan");
+  const [newPlanName, setNewPlanName] = useState("My Tentative Degree Plan");
   const [createMode, setCreateMode] = useState("copy"); // copy | blank
-  
+
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
 
@@ -60,11 +82,15 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   const [majorDraft, setMajorDraft] = useState("");
   const [minorDraft, setMinorDraft] = useState("");
   const [goalDraft, setGoalDraft] = useState("");
-  const [goalCourseDrafts, setGoalCourseDrafts] = useState<Record<string, string>>({});
-  const [goalPlaceholderDrafts, setGoalPlaceholderDrafts] = useState<Record<string, string>>({});
+  const [goalCourseDrafts, setGoalCourseDrafts] = useState<
+    Record<string, string>
+  >({});
+  const [goalPlaceholderDrafts, setGoalPlaceholderDrafts] = useState<
+    Record<string, string>
+  >({});
 
-  const degreePlan = plans.find(p => p.planType === 'degree');
-  const tentativePlans = plans.filter(p => p.planType === 'tentative');
+  const degreePlan = plans.find((p) => p.planType === "degree");
+  const tentativePlans = plans.filter((p) => p.planType === "tentative");
 
   const currentPrograms: PlanPrograms = activePlan?.programs ?? {
     additionalMajors: [],
@@ -75,33 +101,53 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   const updatePrograms = (programs: PlanPrograms) => {
     if (!activePlanId || !activePlan) return;
     const planId = activePlanId;
-    updatePlan.mutate({
-      id: planId,
-      data: { name: activePlan.name, programs }
-    }, {
-      onSuccess: (updatedPlan) => {
-        // PATCH returns the plan's current metadata/programs. Write it to the
-        // exact plan cache before broad invalidation so switching scenarios
-        // never renders another plan's program chips.
-        queryClient.setQueryData(getGetPlanQueryKey(planId), (current: AcademicPlan | undefined) =>
-          current ? { ...current, ...updatedPlan } : current,
-        );
-        queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
-      }
-    });
+    updatePlan.mutate(
+      {
+        id: planId,
+        data: { name: activePlan.name, programs },
+      },
+      {
+        onSuccess: (updatedPlan) => {
+          // PATCH returns the plan's current metadata/programs. Write it to the
+          // exact plan cache before broad invalidation so switching scenarios
+          // never renders another plan's program chips.
+          queryClient.setQueryData(
+            getGetPlanQueryKey(planId),
+            (current: AcademicPlan | undefined) =>
+              current ? { ...current, ...updatedPlan } : current,
+          );
+          queryClient.invalidateQueries({
+            predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
+          });
+        },
+      },
+    );
   };
 
   const normalized = (value: string) => value.trim().toLocaleLowerCase();
   const majorMatchesProfile = (code: string) => {
     const option = majorsList?.majors.find((major) => major.code === code);
-    const declared = [profile?.major, profile?.secondMajor, ...(profile?.additionalMajors ?? [])]
+    const declared = [
+      profile?.major,
+      profile?.secondMajor,
+      ...(profile?.additionalMajors ?? []),
+    ]
       .filter((value): value is string => !!value)
       .map(normalized);
-    return declared.includes(normalized(code)) || (!!option && declared.includes(normalized(option.title)));
+    return (
+      declared.includes(normalized(code)) ||
+      (!!option && declared.includes(normalized(option.title)))
+    );
   };
 
   const addMajor = (majorCode = majorDraft) => {
-    if (!majorCode || !activePlanId || !activePlan || majorMatchesProfile(majorCode)) return;
+    if (
+      !majorCode ||
+      !activePlanId ||
+      !activePlan ||
+      majorMatchesProfile(majorCode)
+    )
+      return;
     const updated = {
       ...currentPrograms,
       additionalMajors: [...currentPrograms.additionalMajors, majorCode],
@@ -113,13 +159,21 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   const removeMajor = (code: string) => {
     const updated = {
       ...currentPrograms,
-      additionalMajors: currentPrograms.additionalMajors.filter(m => m !== code),
+      additionalMajors: currentPrograms.additionalMajors.filter(
+        (m) => m !== code,
+      ),
     };
     updatePrograms(updated);
   };
 
   const addMinor = () => {
-    if (!minorDraft || currentPrograms.minors.some((minor) => normalized(minor) === normalized(minorDraft))) return;
+    if (
+      !minorDraft ||
+      currentPrograms.minors.some(
+        (minor) => normalized(minor) === normalized(minorDraft),
+      )
+    )
+      return;
     const updated = {
       ...currentPrograms,
       minors: [...currentPrograms.minors, minorDraft],
@@ -131,7 +185,7 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   const removeMinor = (code: string) => {
     const updated = {
       ...currentPrograms,
-      minors: currentPrograms.minors.filter(m => m !== code),
+      minors: currentPrograms.minors.filter((m) => m !== code),
     };
     updatePrograms(updated);
   };
@@ -168,14 +222,17 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   const removeGoal = (goalId: string) => {
     const updated = {
       ...currentPrograms,
-      professionalGoals: currentPrograms.professionalGoals.filter((goal) => goal.id !== goalId),
+      professionalGoals: currentPrograms.professionalGoals.filter(
+        (goal) => goal.id !== goalId,
+      ),
     };
     updatePrograms(updated);
   };
 
   const addGoalCourse = (goal: ProfessionalGoal) => {
     const courseCode = goalCourseDrafts[goal.id]?.trim();
-    if (!courseCode || goal.courseCodes.includes(courseCode.toUpperCase())) return;
+    if (!courseCode || goal.courseCodes.includes(courseCode.toUpperCase()))
+      return;
     updateGoal(goal.id, { courseCodes: [...goal.courseCodes, courseCode] });
     setGoalCourseDrafts((drafts) => ({ ...drafts, [goal.id]: "" }));
   };
@@ -190,53 +247,77 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   // Major/minor options (filter out already-selected)
   const majorOptions = (majorsList?.majors ?? []).filter(
     (major) =>
-      !currentPrograms.additionalMajors.some((selected) => normalized(selected) === normalized(major.code)) &&
-      !majorMatchesProfile(major.code),
+      !currentPrograms.additionalMajors.some(
+        (selected) => normalized(selected) === normalized(major.code),
+      ) && !majorMatchesProfile(major.code),
   );
   const minorOptions = (minorsList?.minors ?? []).filter(
     (minor) =>
-      !currentPrograms.minors.some((selected) => normalized(selected) === normalized(minor.code)) &&
+      !currentPrograms.minors.some(
+        (selected) => normalized(selected) === normalized(minor.code),
+      ) &&
       ![profile?.minor, ...(profile?.additionalMinors ?? [])]
         .filter((value): value is string => !!value)
         .some((selected) => normalized(selected) === normalized(minor.code)),
   );
 
   const handleCreate = () => {
-    createPlan.mutate({
-      data: {
-        name: newPlanName,
-        copyFromPlanId: createMode === 'copy' ? degreePlan?.id : null
-      }
-    }, {
-      onSuccess: (newPlan) => {
-        setCreateOpen(false);
-        queryClient.removeQueries({ queryKey: getGetPlanQueryKey(newPlan.id) });
-        setActivePlanId(newPlan.id);
-        queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
-      }
-    });
+    createPlan.mutate(
+      {
+        data: {
+          name: newPlanName,
+          copyFromPlanId: createMode === "copy" ? degreePlan?.id : null,
+        },
+      },
+      {
+        onSuccess: (newPlan) => {
+          setCreateOpen(false);
+          queryClient.removeQueries({
+            queryKey: getGetPlanQueryKey(newPlan.id),
+          });
+          setActivePlanId(newPlan.id);
+          queryClient.invalidateQueries({
+            predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
+          });
+        },
+      },
+    );
   };
 
   const handleDelete = () => {
-    if (!activePlanId || activePlan?.planType === 'degree') return;
+    if (!activePlanId || activePlan?.planType === "degree") return;
     if (confirm("Are you sure you want to delete this tentative plan?")) {
-      deletePlan.mutate({ id: activePlanId }, {
-        onSuccess: () => {
-          setActivePlanId(degreePlan?.id || null);
-          queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
-        }
-      });
+      deletePlan.mutate(
+        { id: activePlanId },
+        {
+          onSuccess: () => {
+            setActivePlanId(degreePlan?.id || null);
+            queryClient.invalidateQueries({
+              predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
+            });
+          },
+        },
+      );
     }
   };
 
   const handlePromote = () => {
-    if (!activePlanId || activePlan?.planType === 'degree') return;
-    if (confirm("Make this your official Degree Plan? Your current Degree Plan will be saved as a tentative backup.")) {
-      promotePlan.mutate({ id: activePlanId }, {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
-        }
-      });
+    if (!activePlanId || activePlan?.planType === "degree") return;
+    if (
+      confirm(
+        "Make this your official Degree Plan? Your current Degree Plan will be saved as a tentative backup.",
+      )
+    ) {
+      promotePlan.mutate(
+        { id: activePlanId },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({
+              predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
+            });
+          },
+        },
+      );
     }
   };
 
@@ -250,50 +331,65 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
       duplicateName = `${baseName} ${copyNumber}`;
       copyNumber += 1;
     }
-    duplicatePlan.mutate({
-      id: activePlanId,
-      data: { name: duplicateName }
-    }, {
-      onSuccess: (newPlan) => {
-        queryClient.removeQueries({ queryKey: getGetPlanQueryKey(newPlan.id) });
-        setActivePlanId(newPlan.id);
-        queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
-      }
-    });
+    duplicatePlan.mutate(
+      {
+        id: activePlanId,
+        data: { name: duplicateName },
+      },
+      {
+        onSuccess: (newPlan) => {
+          queryClient.removeQueries({
+            queryKey: getGetPlanQueryKey(newPlan.id),
+          });
+          setActivePlanId(newPlan.id);
+          queryClient.invalidateQueries({
+            predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
+          });
+        },
+      },
+    );
   };
 
   const handleRename = () => {
-    if (!activePlanId || activePlan?.planType === 'degree') return;
-    updatePlan.mutate({
-      id: activePlanId,
-      data: { name: renameValue }
-    }, {
-      onSuccess: () => {
-        setRenameOpen(false);
-        queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
-      }
-    });
+    if (!activePlanId || activePlan?.planType === "degree") return;
+    updatePlan.mutate(
+      {
+        id: activePlanId,
+        data: { name: renameValue },
+      },
+      {
+        onSuccess: () => {
+          setRenameOpen(false);
+          queryClient.invalidateQueries({
+            predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
+          });
+        },
+      },
+    );
   };
 
   const handleCopySummary = () => {
     if (!activePlan) return;
     let text = `${activePlan.name} Summary\n`;
     text += `Total items: ${activePlan.items.length}\n\n`;
-    const byYearTerm = activePlan.items.reduce((acc, item) => {
-      const key = `${item.academicYear} ${item.term}`;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(item);
-      return acc;
-    }, {} as Record<string, typeof activePlan.items>);
+    const byYearTerm = activePlan.items.reduce(
+      (acc, item) => {
+        const key = `${item.academicYear} ${item.term}`;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(item);
+        return acc;
+      },
+      {} as Record<string, typeof activePlan.items>,
+    );
 
     for (const [term, items] of Object.entries(byYearTerm)) {
       text += `--- ${term} ---\n`;
-      items.forEach(i => {
+      items.forEach((i) => {
         text += `- ${i.courseCode || i.requirementLabel}\n`;
       });
       text += "\n";
     }
-    
+
     navigator.clipboard.writeText(text);
     toast({
       title: "Copied",
@@ -306,92 +402,153 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   const exportUrl = `${import.meta.env.BASE_URL}api/plans/${activePlan.id}/export`;
 
   return (
-    <Card className="h-full flex flex-col border-border/60 shadow-sm bg-card overflow-hidden">
-      <div className="p-4 border-b border-border/60">
-        <h2 className="font-serif text-lg font-bold">Context</h2>
-        <p className="text-xs text-muted-foreground mt-1">Plan details & sharing</p>
+    <Card className="flex h-full flex-col overflow-hidden border-border/60 bg-card shadow-sm">
+      <div className="border-b border-border/60 px-3 py-2.5">
+        <h2 className="font-serif text-base font-bold">Academic Progress</h2>
+        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+          Official progress reference from your uploaded report / Workday data.
+          CampusVal is planning support only.
+        </p>
       </div>
 
-      <Tabs defaultValue="plan" className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-3 pt-2 border-b border-border/60">
+      <Tabs
+        defaultValue="progress"
+        className="flex flex-1 flex-col overflow-hidden"
+      >
+        <div className="border-b border-border/60 px-2 pt-1.5">
           <TabsList className="h-8 w-full">
-            <TabsTrigger value="plan" className="flex-1 text-xs" data-testid="tab-plan-details">Plan</TabsTrigger>
-            <TabsTrigger value="progress" className="flex-1 text-xs" data-testid="tab-academic-progress">Progress</TabsTrigger>
+            <TabsTrigger
+              value="progress"
+              className="flex-1 text-xs"
+              data-testid="tab-academic-progress"
+            >
+              Progress
+            </TabsTrigger>
+            <TabsTrigger
+              value="plan"
+              className="flex-1 text-xs"
+              data-testid="tab-plan-controls"
+            >
+              Plan Controls
+            </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="plan" className="flex-1 overflow-hidden mt-0">
+        <TabsContent value="plan" className="mt-0 flex-1 overflow-hidden">
           <ScrollArea className="h-full">
-            <div className="p-4 space-y-6">
-              
+            <div className="space-y-5 p-3">
               <div className="space-y-3">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Select Plan</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Select Plan
+                </Label>
                 <div className="space-y-1">
                   {degreePlan && (
-                    <Button 
-                      variant={activePlanId === degreePlan.id ? "default" : "outline"} 
-                      className={`w-full justify-start ${activePlanId === degreePlan.id ? 'bg-primary hover:bg-primary/90' : ''}`}
+                    <Button
+                      variant={
+                        activePlanId === degreePlan.id ? "default" : "outline"
+                      }
+                      className={`w-full justify-start ${activePlanId === degreePlan.id ? "bg-primary hover:bg-primary/90" : ""}`}
                       onClick={() => setActivePlanId(degreePlan.id)}
                     >
-                      <ShieldCheck className="h-4 w-4 mr-2" /> Official Degree Plan
+                      <ShieldCheck className="h-4 w-4 mr-2" /> Official Degree
+                      Plan
                     </Button>
                   )}
-                  {tentativePlans.map(tp => (
-                    <Button 
+                  {tentativePlans.map((tp) => (
+                    <Button
                       key={tp.id}
-                      variant={activePlanId === tp.id ? "default" : "outline"} 
+                      variant={activePlanId === tp.id ? "default" : "outline"}
                       className="w-full justify-start font-normal"
                       onClick={() => setActivePlanId(tp.id)}
                     >
                       {tp.name}
                     </Button>
                   ))}
-                  <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={() => setCreateOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" /> New tentative plan
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-muted-foreground"
+                    onClick={() => setCreateOpen(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> New Tentative Degree Plan
                   </Button>
                 </div>
               </div>
 
-              {activePlan.planType === 'tentative' && (
+              {activePlan.planType === "tentative" && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
                   <div className="flex items-center gap-2 text-amber-800 font-medium text-sm mb-2">
                     <AlertTriangle className="h-4 w-4" />
                     TENTATIVE PLAN
                   </div>
                   <div className="text-xs text-amber-700/80 mb-3">
-                    This is a draft. Promote it when you are ready to make it your official plan.
+                    This is a draft. Promote it when you are ready to make it
+                    your official plan.
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm" className="h-8 text-xs border-amber-300 text-amber-800 hover:bg-amber-100" onClick={handlePromote}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs border-amber-300 text-amber-800 hover:bg-amber-100"
+                      onClick={handlePromote}
+                    >
                       <Rocket className="h-3 w-3 mr-1" /> Use as Official
                     </Button>
-                    <Button variant="outline" size="sm" className="h-8 text-xs border-red-200 text-red-700 hover:bg-red-50" onClick={handleDelete}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs border-red-200 text-red-700 hover:bg-red-50"
+                      onClick={handleDelete}
+                    >
                       <Trash2 className="h-3 w-3 mr-1" /> Delete
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-2">
-                    <Button variant="outline" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setRenameValue(activePlan.name); setRenameOpen(true); }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs text-muted-foreground"
+                      onClick={() => {
+                        setRenameValue(activePlan.name);
+                        setRenameOpen(true);
+                      }}
+                    >
                       <Edit2 className="h-3 w-3 mr-1" /> Rename
                     </Button>
-                    <Button variant="outline" size="sm" className="h-8 text-xs text-muted-foreground" onClick={handleDuplicate}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs text-muted-foreground"
+                      onClick={handleDuplicate}
+                    >
                       <Files className="h-3 w-3 mr-1" /> Duplicate
                     </Button>
                   </div>
                 </div>
               )}
 
-              {activePlan.planType === 'degree' && (
+              {activePlan.planType === "degree" && (
                 <div className="p-3 bg-muted/30 border border-border rounded-md mt-4">
-                  <Button variant="outline" size="sm" className="w-full h-8 text-xs text-muted-foreground" onClick={handleDuplicate}>
-                    <Files className="h-3 w-3 mr-1" /> Duplicate to Tentative Plan
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-8 text-xs text-muted-foreground"
+                    onClick={handleDuplicate}
+                  >
+                    <Files className="h-3 w-3 mr-1" /> Duplicate to Tentative
+                    Plan
                   </Button>
                 </div>
               )}
 
               {/* Programs for this plan */}
-              <div className="space-y-3 pt-4 border-t border-border/60" data-testid="plan-programs-section">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Programs for this plan</Label>
-                
+              <div
+                className="space-y-3 pt-4 border-t border-border/60"
+                data-testid="plan-programs-section"
+              >
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Programs for this plan
+                </Label>
+
                 {/* Additional Majors */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -400,10 +557,15 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                   </div>
                   {currentPrograms.additionalMajors.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {currentPrograms.additionalMajors.map(code => (
-                        <Badge key={code} variant="secondary" className="gap-1 text-[10px]"
-                          data-testid={`plan-major-chip-${code}`}>
-                          {majorsList?.majors.find(m => m.code === code)?.title ?? code}
+                      {currentPrograms.additionalMajors.map((code) => (
+                        <Badge
+                          key={code}
+                          variant="secondary"
+                          className="gap-1 text-[10px]"
+                          data-testid={`plan-major-chip-${code}`}
+                        >
+                          {majorsList?.majors.find((m) => m.code === code)
+                            ?.title ?? code}
                           <button
                             onClick={() => removeMajor(code)}
                             data-testid={`remove-plan-major-${code}`}
@@ -426,19 +588,31 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                         addMajor(code);
                       }}
                     >
-                      <SelectTrigger className="h-7 text-xs flex-1" data-testid="select-plan-additional-major">
+                      <SelectTrigger
+                        className="h-7 text-xs flex-1"
+                        data-testid="select-plan-additional-major"
+                      >
                         <SelectValue placeholder="Add major…" />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px]">
-                        {majorOptions.map(m => (
-                          <SelectItem key={m.code} value={m.code} className="text-xs">
+                        {majorOptions.map((m) => (
+                          <SelectItem
+                            key={m.code}
+                            value={m.code}
+                            className="text-xs"
+                          >
                             {m.title} ({m.code})
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button size="sm" className="h-7 px-2" onClick={() => addMajor()} disabled={!majorDraft || updatePlan.isPending}
-                      data-testid="button-add-plan-major">
+                    <Button
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={() => addMajor()}
+                      disabled={!majorDraft || updatePlan.isPending}
+                      data-testid="button-add-plan-major"
+                    >
                       <Plus className="h-3 w-3" />
                     </Button>
                   </div>
@@ -452,10 +626,16 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                   </div>
                   {currentPrograms.minors.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {currentPrograms.minors.map(code => (
-                        <Badge key={code} variant="outline" className="gap-1 text-[10px]"
-                          data-testid={`plan-minor-chip-${code}`}>
-                          {minorsList?.minors.find(m => m.code === code)?.title ?? code} minor
+                      {currentPrograms.minors.map((code) => (
+                        <Badge
+                          key={code}
+                          variant="outline"
+                          className="gap-1 text-[10px]"
+                          data-testid={`plan-minor-chip-${code}`}
+                        >
+                          {minorsList?.minors.find((m) => m.code === code)
+                            ?.title ?? code}{" "}
+                          minor
                           <button
                             onClick={() => removeMinor(code)}
                             data-testid={`remove-plan-minor-${code}`}
@@ -469,19 +649,31 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                   )}
                   <div className="flex gap-1.5">
                     <Select value={minorDraft} onValueChange={setMinorDraft}>
-                      <SelectTrigger className="h-7 text-xs flex-1" data-testid="select-plan-minor">
+                      <SelectTrigger
+                        className="h-7 text-xs flex-1"
+                        data-testid="select-plan-minor"
+                      >
                         <SelectValue placeholder="Add minor…" />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px]">
-                        {minorOptions.map(m => (
-                          <SelectItem key={m.code} value={m.code} className="text-xs">
+                        {minorOptions.map((m) => (
+                          <SelectItem
+                            key={m.code}
+                            value={m.code}
+                            className="text-xs"
+                          >
                             {m.title}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button size="sm" className="h-7 px-2" onClick={addMinor} disabled={!minorDraft || updatePlan.isPending}
-                      data-testid="button-add-plan-minor">
+                    <Button
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={addMinor}
+                      disabled={!minorDraft || updatePlan.isPending}
+                      data-testid="button-add-plan-minor"
+                    >
                       <Plus className="h-3 w-3" />
                     </Button>
                   </div>
@@ -498,9 +690,13 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                   </div>
                   {currentPrograms.professionalGoals.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {currentPrograms.professionalGoals.map(goal => (
-                        <Badge key={goal.id} variant="outline" className="gap-1 text-[10px] border-dashed"
-                          data-testid={`plan-goal-chip-${goal.id}`}>
+                      {currentPrograms.professionalGoals.map((goal) => (
+                        <Badge
+                          key={goal.id}
+                          variant="outline"
+                          className="gap-1 text-[10px] border-dashed"
+                          data-testid={`plan-goal-chip-${goal.id}`}
+                        >
                           {goal.name}
                           <button
                             onClick={() => removeGoal(goal.id)}
@@ -518,31 +714,56 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                       className="h-7 text-xs flex-1"
                       placeholder="e.g. Pre-Med, Pre-Law…"
                       value={goalDraft}
-                      onChange={e => setGoalDraft(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && addGoal()}
+                      onChange={(e) => setGoalDraft(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addGoal()}
                       data-testid="input-plan-goal"
                     />
-                    <Button size="sm" className="h-7 px-2" onClick={addGoal} disabled={!goalDraft.trim() || updatePlan.isPending}
-                      data-testid="button-add-plan-goal">
+                    <Button
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={addGoal}
+                      disabled={!goalDraft.trim() || updatePlan.isPending}
+                      data-testid="button-add-plan-goal"
+                    >
                       <Plus className="h-3 w-3" />
                     </Button>
                   </div>
                   {currentPrograms.professionalGoals.map((goal) => (
-                    <div key={goal.id} className="rounded-md border border-border/60 bg-muted/10 p-2.5 space-y-2">
+                    <div
+                      key={goal.id}
+                      className="rounded-md border border-border/60 bg-muted/10 p-2.5 space-y-2"
+                    >
                       <div className="text-xs font-medium">{goal.name}</div>
                       <Textarea
                         value={goal.notes}
-                        onChange={(event) => updateGoal(goal.id, { notes: event.target.value })}
-                        onBlur={(event) => updateGoal(goal.id, { notes: event.target.value })}
+                        onChange={(event) =>
+                          updateGoal(goal.id, { notes: event.target.value })
+                        }
+                        onBlur={(event) =>
+                          updateGoal(goal.id, { notes: event.target.value })
+                        }
                         placeholder="Student planning notes…"
                         className="min-h-14 text-xs"
                         data-testid={`input-plan-goal-notes-${goal.id}`}
                       />
                       <div className="flex flex-wrap gap-1">
                         {goal.courseCodes.map((courseCode) => (
-                          <Badge key={courseCode} variant="secondary" className="gap-1 font-mono text-[10px]">
+                          <Badge
+                            key={courseCode}
+                            variant="secondary"
+                            className="gap-1 font-mono text-[10px]"
+                          >
                             {courseCode}
-                            <button onClick={() => updateGoal(goal.id, { courseCodes: goal.courseCodes.filter((code) => code !== courseCode) })} aria-label={`Remove ${courseCode}`}>
+                            <button
+                              onClick={() =>
+                                updateGoal(goal.id, {
+                                  courseCodes: goal.courseCodes.filter(
+                                    (code) => code !== courseCode,
+                                  ),
+                                })
+                              }
+                              aria-label={`Remove ${courseCode}`}
+                            >
                               <X className="h-2.5 w-2.5" />
                             </button>
                           </Badge>
@@ -553,16 +774,43 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                           className="h-7 text-xs"
                           placeholder="SCU course code, e.g. CHEM 11"
                           value={goalCourseDrafts[goal.id] ?? ""}
-                          onChange={(event) => setGoalCourseDrafts((drafts) => ({ ...drafts, [goal.id]: event.target.value }))}
-                          onKeyDown={(event) => event.key === "Enter" && addGoalCourse(goal)}
+                          onChange={(event) =>
+                            setGoalCourseDrafts((drafts) => ({
+                              ...drafts,
+                              [goal.id]: event.target.value,
+                            }))
+                          }
+                          onKeyDown={(event) =>
+                            event.key === "Enter" && addGoalCourse(goal)
+                          }
                         />
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addGoalCourse(goal)}>Add course</Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => addGoalCourse(goal)}
+                        >
+                          Add course
+                        </Button>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {goal.placeholders.map((placeholder) => (
-                          <Badge key={placeholder} variant="outline" className="gap-1 text-[10px] border-dashed">
+                          <Badge
+                            key={placeholder}
+                            variant="outline"
+                            className="gap-1 text-[10px] border-dashed"
+                          >
                             {placeholder}
-                            <button onClick={() => updateGoal(goal.id, { placeholders: goal.placeholders.filter((value) => value !== placeholder) })} aria-label={`Remove ${placeholder}`}>
+                            <button
+                              onClick={() =>
+                                updateGoal(goal.id, {
+                                  placeholders: goal.placeholders.filter(
+                                    (value) => value !== placeholder,
+                                  ),
+                                })
+                              }
+                              aria-label={`Remove ${placeholder}`}
+                            >
                               <X className="h-2.5 w-2.5" />
                             </button>
                           </Badge>
@@ -573,10 +821,24 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                           className="h-7 text-xs"
                           placeholder="Manual planning placeholder"
                           value={goalPlaceholderDrafts[goal.id] ?? ""}
-                          onChange={(event) => setGoalPlaceholderDrafts((drafts) => ({ ...drafts, [goal.id]: event.target.value }))}
-                          onKeyDown={(event) => event.key === "Enter" && addGoalPlaceholder(goal)}
+                          onChange={(event) =>
+                            setGoalPlaceholderDrafts((drafts) => ({
+                              ...drafts,
+                              [goal.id]: event.target.value,
+                            }))
+                          }
+                          onKeyDown={(event) =>
+                            event.key === "Enter" && addGoalPlaceholder(goal)
+                          }
                         />
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => addGoalPlaceholder(goal)}>Add placeholder</Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => addGoalPlaceholder(goal)}
+                        >
+                          Add placeholder
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -584,14 +846,25 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
               </div>
 
               <div className="space-y-3 pt-4 border-t border-border/60">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Share & Export</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Share & Export
+                </Label>
                 <div className="grid gap-2">
-                  <Button variant="outline" className="w-full justify-start" asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    asChild
+                  >
                     <a href={exportUrl} download>
-                      <Download className="h-4 w-4 mr-2" /> Download Excel (.xlsx)
+                      <Download className="h-4 w-4 mr-2" /> Download Excel
+                      (.xlsx)
                     </a>
                   </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={handleCopySummary}>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={handleCopySummary}
+                  >
                     <Copy className="h-4 w-4 mr-2" /> Copy text summary
                   </Button>
                 </div>
@@ -599,14 +872,17 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
                   Share the Excel file with your advisor before your meeting.
                 </div>
               </div>
-
             </div>
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="progress" className="flex-1 overflow-hidden mt-0">
+        <TabsContent
+          value="progress"
+          className="mt-0 flex-1 overflow-hidden"
+          data-testid="academic-progress-tab-panel"
+        >
           <ScrollArea className="h-full">
-            <div className="p-4">
+            <div className="p-3">
               <PlanProgressPanel />
             </div>
           </ScrollArea>
@@ -616,13 +892,19 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>New Tentative Plan</DialogTitle>
-            <DialogDescription>Create a sandbox plan to explore options.</DialogDescription>
+            <DialogTitle>New Tentative Degree Plan</DialogTitle>
+            <DialogDescription>
+              Create a sandbox plan to explore options without changing your
+              official Degree Plan.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Plan Name</Label>
-              <Input value={newPlanName} onChange={e => setNewPlanName(e.target.value)} />
+              <Input
+                value={newPlanName}
+                onChange={(e) => setNewPlanName(e.target.value)}
+              />
             </div>
             <RadioGroup value={createMode} onValueChange={setCreateMode}>
               <div className="flex items-center space-x-2">
@@ -636,8 +918,15 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
             </RadioGroup>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={!newPlanName || createPlan.isPending}>Create</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={!newPlanName || createPlan.isPending}
+            >
+              Create
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -650,12 +939,23 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Plan Name</Label>
-              <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleRename()} />
+              <Input
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleRename()}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameOpen(false)}>Cancel</Button>
-            <Button onClick={handleRename} disabled={!renameValue || updatePlan.isPending}>Save</Button>
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRename}
+              disabled={!renameValue || updatePlan.isPending}
+            >
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
