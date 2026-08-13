@@ -2,55 +2,136 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { PlanItem, PlanItemType, useReplacePlanPlaceholder, useGetCourse, useListCourseSections, getListCourseSectionsQueryKey, type Term, type ScheduleAvailabilityTermStatus } from "@workspace/api-client-react";
-import { useOptimisticDeletePlanItem, useOptimisticUpdatePlanItem } from "./usePlanItemMutations";
+import {
+  PlanItem,
+  PlanItemType,
+  useReplacePlanPlaceholder,
+  useGetCourse,
+  useListCourseSections,
+  getListCourseSectionsQueryKey,
+  type Term,
+  type ScheduleAvailabilityTermStatus,
+} from "@workspace/api-client-react";
+import {
+  useOptimisticDeletePlanItem,
+  useOptimisticUpdatePlanItem,
+} from "./usePlanItemMutations";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useDegreePlanContext } from "./DegreePlanContext";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { minutesToLabel } from "@/lib/conflicts";
 import type { CourseConflictDetail } from "./useTermCourseConflicts";
-import { useQuarterFitSuggestions, type QuarterFitSuggestion } from "./useQuarterFitSuggestions";
+import {
+  useQuarterFitSuggestions,
+  type QuarterFitSuggestion,
+} from "./useQuarterFitSuggestions";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Trash2, GripVertical, MoveRight, BookOpen, AlertCircle, Loader2, CalendarClock, CheckCircle2 } from "lucide-react";
-import { COMPLETION_SOURCE_OPTIONS, COMPLETION_SOURCE_LABELS } from "./completionSources";
+import {
+  Trash2,
+  GripVertical,
+  MoveRight,
+  BookOpen,
+  AlertCircle,
+  Loader2,
+  CalendarClock,
+  CheckCircle2,
+} from "lucide-react";
+import {
+  COMPLETION_SOURCE_OPTIONS,
+  COMPLETION_SOURCE_LABELS,
+} from "./completionSources";
 
-function CourseDetailDialog({ code, term, year, termStatus, open, onOpenChange }: { code: string, term?: string, year?: number, termStatus?: ScheduleAvailabilityTermStatus, open: boolean, onOpenChange: (o: boolean) => void }) {
-  const { data: courseDetails, isLoading } = useGetCourse(code, { query: { enabled: open, queryKey: ['/api/courses', code] } });
+function CourseDetailDialog({
+  code,
+  term,
+  year,
+  termStatus,
+  open,
+  onOpenChange,
+}: {
+  code: string;
+  term?: string;
+  year?: number;
+  termStatus?: ScheduleAvailabilityTermStatus;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  const { data: courseDetails, isLoading } = useGetCourse(code, {
+    query: { enabled: open, queryKey: ["/api/courses", code] },
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent aria-describedby={undefined}>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="font-mono text-xl">{code}</DialogTitle>
-          <DialogDescription>{courseDetails?.title || "Loading..."}</DialogDescription>
+          <DialogDescription>
+            {courseDetails?.title || "Loading..."}
+          </DialogDescription>
         </DialogHeader>
         {isLoading ? (
-          <div className="flex justify-center py-8 text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          <div className="flex justify-center py-8 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
         ) : (
           <div className="space-y-4 py-2">
             <div className="flex gap-2">
               <Badge variant="outline">{courseDetails?.units} Units</Badge>
-              {courseDetails?.coreAreas?.map(a => <Badge key={a} variant="secondary">{a}</Badge>)}
+              {courseDetails?.coreAreas?.map((a) => (
+                <Badge key={a} variant="secondary">
+                  {a}
+                </Badge>
+              ))}
             </div>
-            <p className="text-sm text-muted-foreground">{courseDetails?.description || "Description not available."}</p>
-            
+            <p className="text-sm text-muted-foreground">
+              {courseDetails?.description || "Description not available."}
+            </p>
+
             {term && year !== undefined && (
-              <TermSectionsPanel code={code} term={term} year={year} status={termStatus} />
+              <TermSectionsPanel
+                code={code}
+                term={term}
+                year={year}
+                status={termStatus}
+              />
             )}
 
             <div className="p-3 bg-muted/20 rounded-md border border-border text-sm">
               <div className="font-semibold mb-1">Prerequisites</div>
-              <div>{courseDetails?.prereqLogic || "Prerequisite information unavailable."}</div>
+              <div>
+                {courseDetails?.prereqLogic ||
+                  "Prerequisite information unavailable."}
+              </div>
             </div>
-            
+
             <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-blue-50 text-blue-800 p-2 rounded border border-blue-100">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              <span>Prerequisite advisories are informational. Always verify with your advisor.</span>
+              <span>
+                Prerequisite advisories are informational. Always verify with
+                your advisor.
+              </span>
             </div>
           </div>
         )}
@@ -59,19 +140,46 @@ function CourseDetailDialog({ code, term, year, termStatus, open, onOpenChange }
   );
 }
 
-export function CourseCard({ item, isOverlay, availableYears, notInOfficialSchedule, conflicts }: { item: PlanItem, isOverlay?: boolean, availableYears: number[], notInOfficialSchedule?: boolean, conflicts?: CourseConflictDetail[] }) {
-  const { activePlanId, catalog, profile, requirements, scheduleAvailability } = useDegreePlanContext();
+export function CourseCard({
+  item,
+  isOverlay,
+  availableYears,
+  notInOfficialSchedule,
+  conflicts,
+}: {
+  item: PlanItem;
+  isOverlay?: boolean;
+  availableYears: number[];
+  notInOfficialSchedule?: boolean;
+  conflicts?: CourseConflictDetail[];
+}) {
+  const { activePlanId, catalog, profile, requirements, scheduleAvailability } =
+    useDegreePlanContext();
   const deletePlanItem = useOptimisticDeletePlanItem();
   const queryClient = useQueryClient();
   const updatePlanItem = useOptimisticUpdatePlanItem();
-  const replacePlaceholder = useReplacePlanPlaceholder({ mutation: { onSuccess: () => queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans") }) } });
-  
+  const replacePlaceholder = useReplacePlanPlaceholder({
+    mutation: {
+      onSuccess: () =>
+        queryClient.invalidateQueries({
+          predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
+        }),
+    },
+  });
+
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isReplaceOpen, setIsReplaceOpen] = useState(false);
   const [replaceSearch, setReplaceSearch] = useState("");
-  
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
-  
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -98,8 +206,10 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
         academicYear: year,
         term: term as any,
         // Moving a completed item into a real term makes it planned again.
-        ...(isCompletedItem ? { bucket: "planned" as const, completionSource: null } : {}),
-      }
+        ...(isCompletedItem
+          ? { bucket: "planned" as const, completionSource: null }
+          : {}),
+      },
     });
   };
 
@@ -115,37 +225,43 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
 
   const handleReplace = (courseCode: string) => {
     if (!activePlanId) return;
-    replacePlaceholder.mutate({
-      id: activePlanId,
-      itemId: item.id,
-      data: { courseCode }
-    }, {
-      onSuccess: () => setIsReplaceOpen(false)
-    });
+    replacePlaceholder.mutate(
+      {
+        id: activePlanId,
+        itemId: item.id,
+        data: { courseCode },
+      },
+      {
+        onSuccess: () => setIsReplaceOpen(false),
+      },
+    );
   };
 
   const isPlaceholder = item.itemType === PlanItemType.requirement_placeholder;
-  const courseDetails = !isPlaceholder && catalog ? catalog.find(c => c.code === item.courseCode) : null;
+  const courseDetails =
+    !isPlaceholder && catalog
+      ? catalog.find((c) => c.code === item.courseCode)
+      : null;
 
-  const terms = ['fall', 'winter', 'spring', 'summer'];
+  const terms = ["fall", "winter", "spring", "summer"];
   const isInCompletedArea = isCompletedItem;
 
   const content = (
-    <Card 
-      className={`relative group ${isPlaceholder ? 'border-dashed border-primary/40 bg-primary/[0.02]' : 'bg-card border-border'} ${isOverlay ? 'shadow-lg rotate-2 scale-105' : 'shadow-sm hover:shadow-md transition-all'}`}
+    <Card
+      className={`relative group ${isPlaceholder ? "border-dashed border-primary/40 bg-primary/[0.02]" : "bg-card border-border"} ${isOverlay ? "shadow-lg rotate-2 scale-105" : "shadow-sm hover:shadow-md transition-all"}`}
     >
-      <div className="p-2.5 flex items-start gap-2">
-        <div 
-          {...attributes} 
-          {...listeners} 
+      <div className="flex items-start gap-1.5 p-2">
+        <div
+          {...attributes}
+          {...listeners}
           className="mt-1 text-muted-foreground/40 cursor-grab hover:text-foreground transition-colors outline-none"
           tabIndex={0}
           aria-label={`Drag ${item.courseCode || item.requirementLabel}`}
         >
           <GripVertical className="h-4 w-4" />
         </div>
-        
-        <div 
+
+        <div
           className="flex-1 min-w-0 cursor-pointer"
           onClick={() => {
             if (isPlaceholder) setIsReplaceOpen(true);
@@ -154,18 +270,38 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
         >
           {isPlaceholder ? (
             <>
-              <Badge variant="outline" className="text-[9px] mb-1 font-mono uppercase tracking-widest text-primary border-primary/20">Requirement</Badge>
-              <div className="font-medium text-sm leading-tight text-foreground/90">{item.requirementLabel}</div>
-              <div className="text-[10px] text-muted-foreground mt-1 truncate">{item.requirementCategory}</div>
-              <div className="text-[10px] text-muted-foreground mt-1">Units TBD</div>
+              <Badge
+                variant="outline"
+                className="text-[9px] mb-1 font-mono uppercase tracking-widest text-primary border-primary/20"
+              >
+                Requirement
+              </Badge>
+              <div className="font-medium text-sm leading-tight text-foreground/90">
+                {item.requirementLabel}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1 truncate">
+                {item.requirementCategory}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Units TBD
+              </div>
             </>
           ) : (
             <>
               <div className="flex justify-between items-start gap-1">
-                <div className="font-mono text-sm font-bold text-primary truncate">{item.courseCode}</div>
-                <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">{item.units}u</Badge>
+                <div className="font-mono text-sm font-bold text-primary truncate">
+                  {item.courseCode}
+                </div>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1 py-0 h-4"
+                >
+                  {item.units}u
+                </Badge>
               </div>
-              <div className="text-xs text-foreground/80 mt-1 line-clamp-2 leading-snug">{item.courseTitle || courseDetails?.title}</div>
+              <div className="text-xs text-foreground/80 mt-1 line-clamp-2 leading-snug">
+                {item.courseTitle || courseDetails?.title}
+              </div>
               {isCompletedItem && (
                 <div
                   className="flex items-center gap-1 mt-1.5 text-[10px] text-emerald-700"
@@ -173,8 +309,12 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                 >
                   <CheckCircle2 className="h-3 w-3 shrink-0" />
                   <span>
-                    {COMPLETION_SOURCE_LABELS[item.completionSource ?? ""] ?? "Completed"} ·{" "}
-                    {item.provenance === "report_imported" ? "from your progress report" : "student-entered"}
+                    {COMPLETION_SOURCE_LABELS[item.completionSource ?? ""] ??
+                      "Completed"}{" "}
+                    ·{" "}
+                    {item.provenance === "report_imported"
+                      ? "from your progress report"
+                      : "student-entered"}
                   </span>
                 </div>
               )}
@@ -193,28 +333,40 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                   conflicts={conflicts}
                   onMove={(year, term) => {
                     if (!activePlanId) return;
-                    updatePlanItem.mutate({ id: activePlanId, itemId: item.id, data: { academicYear: year, term: term as any } });
+                    updatePlanItem.mutate({
+                      id: activePlanId,
+                      itemId: item.id,
+                      data: { academicYear: year, term: term as any },
+                    });
                   }}
                 />
               )}
             </>
           )}
         </div>
-        
+
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={e => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MoveRight className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 max-h-[300px] overflow-y-auto">
+            <DropdownMenuContent
+              align="end"
+              className="w-48 max-h-[300px] overflow-y-auto"
+            >
               <DropdownMenuLabel>Move to...</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {/* Completed before plan — only for course items */}
               {!isPlaceholder && (
                 <DropdownMenuItem
-                  onClick={(e) => handleMove(e as any, 0, 'completed')}
+                  onClick={(e) => handleMove(e as any, 0, "completed")}
                   disabled={isInCompletedArea}
                   data-testid={`move-to-completed-area-${item.id}`}
                 >
@@ -222,11 +374,21 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                 </DropdownMenuItem>
               )}
               {!isPlaceholder && <DropdownMenuSeparator />}
-              {availableYears.map(y => (
+              {availableYears.map((y) => (
                 <div key={y}>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{y}</div>
-                  {terms.map(t => (
-                    <DropdownMenuItem key={`${y}-${t}`} onClick={(e) => handleMove(e as any, y, t)} disabled={!isCompletedItem && item.academicYear === y && item.term === t}>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    {y}
+                  </div>
+                  {terms.map((t) => (
+                    <DropdownMenuItem
+                      key={`${y}-${t}`}
+                      onClick={(e) => handleMove(e as any, y, t)}
+                      disabled={
+                        !isCompletedItem &&
+                        item.academicYear === y &&
+                        item.term === t
+                      }
+                    >
                       <span className="capitalize">{t}</span>
                     </DropdownMenuItem>
                   ))}
@@ -235,12 +397,16 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
               {!isPlaceholder && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-xs">Completed before current plan</DropdownMenuLabel>
-                  {COMPLETION_SOURCE_OPTIONS.map(opt => (
+                  <DropdownMenuLabel className="text-xs">
+                    Completed before current plan
+                  </DropdownMenuLabel>
+                  {COMPLETION_SOURCE_OPTIONS.map((opt) => (
                     <DropdownMenuItem
                       key={opt.value}
                       data-testid={`mark-completed-${item.id}-${opt.value}`}
-                      disabled={isCompletedItem && item.completionSource === opt.value}
+                      disabled={
+                        isCompletedItem && item.completionSource === opt.value
+                      }
                       onClick={(e) => handleMarkCompleted(e as any, opt.value)}
                     >
                       {opt.label}
@@ -250,8 +416,13 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/70 hover:text-destructive hover:bg-destructive/10" onClick={handleDelete}>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+            onClick={handleDelete}
+          >
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
@@ -271,7 +442,11 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
           code={item.courseCode}
           term={item.term}
           year={item.academicYear}
-          termStatus={scheduleAvailability?.terms.find(t => t.year === item.academicYear && t.term === item.term)?.status}
+          termStatus={
+            scheduleAvailability?.terms.find(
+              (t) => t.year === item.academicYear && t.term === item.term,
+            )?.status
+          }
           open={isDetailOpen}
           onOpenChange={setIsDetailOpen}
         />
@@ -283,17 +458,22 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
           <DialogContent aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle>Replace Placeholder</DialogTitle>
-              <DialogDescription>Find a course to satisfy: {item.requirementLabel}</DialogDescription>
+              <DialogDescription>
+                Find a course to satisfy: {item.requirementLabel}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
               {(() => {
                 const reqItem = requirements
-                  ?.flatMap(g => g.items ?? [])
-                  .find(r => r.id === item.requirementId);
+                  ?.flatMap((g) => g.items ?? [])
+                  .find((r) => r.id === item.requirementId);
                 const eligibleCodes = new Set(
-                  (reqItem?.courses ?? []).map(c => c.toUpperCase()),
+                  (reqItem?.courses ?? []).map((c) => c.toUpperCase()),
                 );
-                const eligible = catalog?.filter(c => eligibleCodes.has(c.code.toUpperCase())) ?? [];
+                const eligible =
+                  catalog?.filter((c) =>
+                    eligibleCodes.has(c.code.toUpperCase()),
+                  ) ?? [];
                 if (eligible.length === 0) {
                   return (
                     <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
@@ -304,20 +484,42 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
                   );
                 }
                 return (
-                  <div className="space-y-2" data-testid="replace-eligible-list">
-                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Courses that satisfy this requirement</div>
+                  <div
+                    className="space-y-2"
+                    data-testid="replace-eligible-list"
+                  >
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Courses that satisfy this requirement
+                    </div>
                     <ScrollArea className="max-h-[180px] border rounded-md p-2">
-                      {eligible.map(c => (
-                        <div key={c.code} className="flex justify-between items-center p-2 hover:bg-muted rounded-md border-b last:border-0">
+                      {eligible.map((c) => (
+                        <div
+                          key={c.code}
+                          className="flex justify-between items-center p-2 hover:bg-muted rounded-md border-b last:border-0"
+                        >
                           <div>
-                            <div className="font-mono text-sm font-bold">{c.code}</div>
-                            <div className="text-xs text-muted-foreground">{c.title}</div>
+                            <div className="font-mono text-sm font-bold">
+                              {c.code}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {c.title}
+                            </div>
                           </div>
-                          <Button size="sm" data-testid={`replace-select-${c.code.replace(/\s+/g, '-')}`} onClick={() => handleReplace(c.code)} disabled={replacePlaceholder.isPending}>Select</Button>
+                          <Button
+                            size="sm"
+                            data-testid={`replace-select-${c.code.replace(/\s+/g, "-")}`}
+                            onClick={() => handleReplace(c.code)}
+                            disabled={replacePlaceholder.isPending}
+                          >
+                            Select
+                          </Button>
                         </div>
                       ))}
                     </ScrollArea>
-                    <div className="text-xs text-muted-foreground">Only listed courses can replace this requirement placeholder.</div>
+                    <div className="text-xs text-muted-foreground">
+                      Only listed courses can replace this requirement
+                      placeholder.
+                    </div>
                   </div>
                 );
               })()}
@@ -329,8 +531,16 @@ export function CourseCard({ item, isOverlay, availableYears, notInOfficialSched
   );
 }
 
-function ConflictNote({ item, conflicts, onMove }: { item: PlanItem, conflicts: CourseConflictDetail[], onMove: (year: number, term: string) => void }) {
-  const names = conflicts.map(c => c.otherCode);
+function ConflictNote({
+  item,
+  conflicts,
+  onMove,
+}: {
+  item: PlanItem;
+  conflicts: CourseConflictDetail[];
+  onMove: (year: number, term: string) => void;
+}) {
+  const names = conflicts.map((c) => c.otherCode);
   const [open, setOpen] = useState(false);
 
   const handleSuggestionMove = (year: number, term: string) => {
@@ -345,7 +555,7 @@ function ConflictNote({ item, conflicts, onMove }: { item: PlanItem, conflicts: 
           type="button"
           className="flex items-center gap-1 mt-1.5 text-[10px] text-amber-700 hover:text-amber-900 underline decoration-dotted underline-offset-2 text-left"
           data-testid={`time-conflict-note-${item.id}`}
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           aria-label={`Show clashing meeting times with ${names.join(" and ")}`}
         >
           <CalendarClock className="h-3 w-3 shrink-0" />
@@ -355,7 +565,7 @@ function ConflictNote({ item, conflicts, onMove }: { item: PlanItem, conflicts: 
       <PopoverContent
         className="w-80 p-3"
         align="start"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         data-testid={`time-conflict-details-${item.id}`}
       >
         <div className="text-xs font-semibold mb-2 flex items-center gap-1.5">
@@ -363,10 +573,11 @@ function ConflictNote({ item, conflicts, onMove }: { item: PlanItem, conflicts: 
           Why {item.courseCode} can't fit
         </div>
         <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
-          {conflicts.map(c => (
+          {conflicts.map((c) => (
             <div key={c.otherCode}>
               <div className="text-[11px] font-semibold text-foreground/90 mb-1">
-                vs <span className="font-mono">{c.otherCode}</span> — every section pairing overlaps:
+                vs <span className="font-mono">{c.otherCode}</span> — every
+                section pairing overlaps:
               </div>
               <div className="space-y-1">
                 {c.overlaps.map((o, idx) => (
@@ -375,12 +586,16 @@ function ConflictNote({ item, conflicts, onMove }: { item: PlanItem, conflicts: 
                     className="text-[11px] rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900"
                   >
                     <div>
-                      <span className="font-semibold">{o.aSection}</span> {o.aDays.join("")} {format12(o.aStart)}–{format12(o.aEnd)}
+                      <span className="font-semibold">{o.aSection}</span>{" "}
+                      {o.aDays.join("")} {format12(o.aStart)}–{format12(o.aEnd)}
                       {" ⟷ "}
-                      <span className="font-semibold">{o.bSection}</span> {o.bDays.join("")} {format12(o.bStart)}–{format12(o.bEnd)}
+                      <span className="font-semibold">{o.bSection}</span>{" "}
+                      {o.bDays.join("")} {format12(o.bStart)}–{format12(o.bEnd)}
                     </div>
                     <div className="text-amber-800/90">
-                      Overlap: {o.sharedDays.join("")} {minutesToLabel(o.overlapStart)}–{minutesToLabel(o.overlapEnd)}
+                      Overlap: {o.sharedDays.join("")}{" "}
+                      {minutesToLabel(o.overlapStart)}–
+                      {minutesToLabel(o.overlapEnd)}
                     </div>
                   </div>
                 ))}
@@ -404,7 +619,17 @@ function ConflictNote({ item, conflicts, onMove }: { item: PlanItem, conflicts: 
   );
 }
 
-function QuarterSuggestions({ item, courseCode, enabled, onMove }: { item: PlanItem, courseCode: string, enabled: boolean, onMove?: (year: number, term: string) => void }) {
+function QuarterSuggestions({
+  item,
+  courseCode,
+  enabled,
+  onMove,
+}: {
+  item: PlanItem;
+  courseCode: string;
+  enabled: boolean;
+  onMove?: (year: number, term: string) => void;
+}) {
   const { activePlan, scheduleAvailability } = useDegreePlanContext();
 
   // Latch: once the popover has been opened, keep queries alive so the cache
@@ -448,7 +673,10 @@ function QuarterSuggestions({ item, courseCode, enabled, onMove }: { item: PlanI
         : "border-border bg-muted/20 text-muted-foreground";
 
   return (
-    <div className="mt-3 pt-2 border-t border-border" data-testid={`quarter-suggestions-${item.id}`}>
+    <div
+      className="mt-3 pt-2 border-t border-border"
+      data-testid={`quarter-suggestions-${item.id}`}
+    >
       <div className="text-xs font-semibold mb-1.5 flex items-center gap-1.5">
         <MoveRight className="h-3.5 w-3.5 text-emerald-700" />
         Where {courseCode} could fit
@@ -474,7 +702,10 @@ function QuarterSuggestions({ item, courseCode, enabled, onMove }: { item: PlanI
                 type="button"
                 className="shrink-0 flex items-center gap-1 rounded bg-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-emerald-800 transition-colors"
                 data-testid={`move-here-${item.id}-${s.year}-${s.term}`}
-                onClick={(e) => { e.stopPropagation(); onMove(s.year, s.term); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMove(s.year, s.term);
+                }}
               >
                 <MoveRight className="h-3 w-3" />
                 Move here
@@ -484,7 +715,8 @@ function QuarterSuggestions({ item, courseCode, enabled, onMove }: { item: PlanI
         ))}
       </div>
       <div className="text-[10px] text-muted-foreground mt-1.5">
-        Quarters without a published or tentative SCU schedule aren't listed — their offerings are unknown.
+        Quarters without a published or tentative SCU schedule aren't listed —
+        their offerings are unknown.
       </div>
     </div>
   );
@@ -499,20 +731,36 @@ function format12(t: string): string {
   return `${h}:${m[2]} ${ampm}`;
 }
 
-function TermSectionsPanel({ code, term, year, status }: { code: string, term: string, year: number, status: ScheduleAvailabilityTermStatus | undefined }) {
+function TermSectionsPanel({
+  code,
+  term,
+  year,
+  status,
+}: {
+  code: string;
+  term: string;
+  year: number;
+  status: ScheduleAvailabilityTermStatus | undefined;
+}) {
   const hasSchedule = status === "published" || status === "tentative";
   const params = { term: term as Term, year };
-  const { data: sections = [], isLoading } = useListCourseSections(code, params, {
-    query: {
-      enabled: hasSchedule,
-      queryKey: getListCourseSectionsQueryKey(code, params),
+  const { data: sections = [], isLoading } = useListCourseSections(
+    code,
+    params,
+    {
+      query: {
+        enabled: hasSchedule,
+        queryKey: getListCourseSectionsQueryKey(code, params),
+      },
     },
-  });
+  );
 
   const heading = (
     <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1.5">
       <CalendarClock className="h-3 w-3" />
-      <span className="capitalize">{term} {year} sections</span>
+      <span className="capitalize">
+        {term} {year} sections
+      </span>
     </div>
   );
 
@@ -521,7 +769,11 @@ function TermSectionsPanel({ code, term, year, status }: { code: string, term: s
       <div className="space-y-2" data-testid="term-sections-panel">
         {heading}
         <div className="rounded-md border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
-          SCU hasn't published a schedule for <span className="capitalize">{term} {year}</span> yet, so section days and times aren't known.
+          SCU hasn't published a schedule for{" "}
+          <span className="capitalize">
+            {term} {year}
+          </span>{" "}
+          yet, so section days and times aren't known.
         </div>
       </div>
     );
@@ -532,7 +784,10 @@ function TermSectionsPanel({ code, term, year, status }: { code: string, term: s
       <div className="flex items-center gap-2 flex-wrap">
         {heading}
         {status === "tentative" && (
-          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-amber-300 bg-amber-50 text-amber-800">
+          <Badge
+            variant="outline"
+            className="text-[9px] px-1.5 py-0 h-5 border-amber-300 bg-amber-50 text-amber-800"
+          >
             Tentative — sections & instructors TBA
           </Badge>
         )}
@@ -540,28 +795,50 @@ function TermSectionsPanel({ code, term, year, status }: { code: string, term: s
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Loading sections…</div>
       ) : sections.length === 0 ? (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 flex gap-2 text-sm text-amber-900" data-testid="term-sections-empty">
+        <div
+          className="rounded-md border border-amber-200 bg-amber-50 p-3 flex gap-2 text-sm text-amber-900"
+          data-testid="term-sections-empty"
+        >
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
           <span>
-            Not in SCU's {status === "tentative" ? "tentative" : "official"} <span className="capitalize">{term} {year}</span> schedule. It may be offered in another quarter — check Workday Student.
+            Not in SCU's {status === "tentative" ? "tentative" : "official"}{" "}
+            <span className="capitalize">
+              {term} {year}
+            </span>{" "}
+            schedule. It may be offered in another quarter — check Workday
+            Student.
           </span>
         </div>
       ) : (
         <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
           {sections.map((s) => (
-            <div key={s.id} className="rounded-md border border-border p-2.5 bg-card text-sm" data-testid={`plan-section-${s.id}`}>
+            <div
+              key={s.id}
+              className="rounded-md border border-border p-2.5 bg-card text-sm"
+              data-testid={`plan-section-${s.id}`}
+            >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono font-bold text-xs">
                   {s.tentative ? "Section TBA" : `§${s.sectionNumber}`}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {s.meetingDays.length > 0 ? s.meetingDays.join("") : "Days TBA"}
-                  {s.startTime && s.endTime ? ` · ${format12(s.startTime)}–${format12(s.endTime)}` : " · Time TBA"}
+                  {s.meetingDays.length > 0
+                    ? s.meetingDays.join("")
+                    : "Days TBA"}
+                  {s.startTime && s.endTime
+                    ? ` · ${format12(s.startTime)}–${format12(s.endTime)}`
+                    : " · Time TBA"}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2 mt-1 text-xs text-muted-foreground">
-                <span>{s.tentative ? "Instructor TBA" : (s.instructor || "Instructor TBA")}</span>
-                {s.location && !s.tentative && <span className="truncate">{s.location}</span>}
+                <span>
+                  {s.tentative
+                    ? "Instructor TBA"
+                    : s.instructor || "Instructor TBA"}
+                </span>
+                {s.location && !s.tentative && (
+                  <span className="truncate">{s.location}</span>
+                )}
               </div>
             </div>
           ))}

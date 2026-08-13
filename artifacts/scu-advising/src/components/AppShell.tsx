@@ -40,7 +40,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useState } from "react";
 
 type NavItem = {
@@ -53,7 +58,11 @@ const PRIMARY_NAV: NavItem[] = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/degree-plan", label: "Degree Plan", icon: Map },
   { path: "/planner", label: "Quarter Plan", icon: CalendarRange },
-  { path: "/tentative-plans", label: "Tentative Plans", icon: FlaskConical },
+  {
+    path: "/tentative-plans",
+    label: "Tentative Degree Plan",
+    icon: FlaskConical,
+  },
 ];
 
 const FEATURE_GROUPS: { label: string; items: NavItem[] }[] = [
@@ -72,7 +81,11 @@ const FEATURE_GROUPS: { label: string; items: NavItem[] }[] = [
       { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
       { path: "/gpa", label: "GPA Calculator", icon: Calculator },
       { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },
-      { path: "/sync-workday", label: "Sync Workday Sections", icon: ClipboardPaste },
+      {
+        path: "/sync-workday",
+        label: "Sync Workday Sections",
+        icon: ClipboardPaste,
+      },
       { path: "/progress-report", label: "Progress Report", icon: FileUp },
     ],
   },
@@ -102,19 +115,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
         <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex shrink-0 items-center gap-2.5" data-testid="link-home">
+          <Link
+            href="/"
+            className="flex shrink-0 items-center gap-2.5"
+            data-testid="link-home"
+          >
             <Logo size={34} />
             <div className="leading-tight">
-              <div className="font-serif text-lg font-bold tracking-tight">CampusVal</div>
+              <div className="font-serif text-lg font-bold tracking-tight">
+                CampusVal
+              </div>
               <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-primary">
                 SCU degree planning
               </div>
             </div>
           </Link>
 
-          <nav className="ml-3 hidden min-w-0 items-center gap-1 lg:flex" aria-label="Primary navigation">
+          <nav
+            className="ml-2 hidden min-w-0 flex-1 items-center gap-0.5 xl:gap-1 lg:flex"
+            aria-label="Primary navigation"
+            data-testid="primary-nav"
+          >
             {PRIMARY_NAV.map((item) => (
-              <TopLink key={item.path} item={item} active={isActive(location, item.path)} />
+              <TopLink
+                key={item.path}
+                item={item}
+                active={isActive(location, item.path)}
+              />
             ))}
             <AdditionalFeatures location={location} />
           </nav>
@@ -125,31 +152,57 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="ml-auto lg:hidden" aria-label="Open navigation">
+              <Button
+                variant="outline"
+                size="icon"
+                className="ml-auto lg:hidden"
+                aria-label="Open navigation"
+              >
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[min(22rem,90vw)] overflow-y-auto p-0">
+            <SheetContent
+              side="right"
+              className="w-[min(22rem,90vw)] overflow-y-auto p-0"
+            >
               <SheetTitle className="sr-only">CampusVal navigation</SheetTitle>
               <div className="border-b border-border p-5">
-                <Link href="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
+                <Link
+                  href="/"
+                  className="flex items-center gap-2.5"
+                  onClick={() => setMobileOpen(false)}
+                >
                   <Logo size={34} />
                   <div>
                     <div className="font-serif font-bold">CampusVal</div>
-                    <div className="text-[10px] uppercase tracking-wider text-primary">SCU degree planning</div>
+                    <div className="text-[10px] uppercase tracking-wider text-primary">
+                      SCU degree planning
+                    </div>
                   </div>
                 </Link>
               </div>
               <nav className="space-y-1 p-3" aria-label="Mobile navigation">
                 {PRIMARY_NAV.map((item) => (
-                  <MobileLink key={item.path} item={item} active={isActive(location, item.path)} onNavigate={() => setMobileOpen(false)} />
+                  <MobileLink
+                    key={item.path}
+                    item={item}
+                    active={isActive(location, item.path)}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
                 ))}
                 <div className="my-3 border-t border-border" />
                 {FEATURE_GROUPS.map((group) => (
                   <div key={group.label} className="mb-4">
-                    <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</div>
+                    <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.label}
+                    </div>
                     {group.items.map((item) => (
-                      <MobileLink key={item.path} item={item} active={isActive(location, item.path)} onNavigate={() => setMobileOpen(false)} />
+                      <MobileLink
+                        key={item.path}
+                        item={item}
+                        active={isActive(location, item.path)}
+                        onNavigate={() => setMobileOpen(false)}
+                      />
                     ))}
                   </div>
                 ))}
@@ -163,7 +216,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
       <main className="min-w-0">{children}</main>
       <footer className="border-t border-border bg-card/50 px-4 py-2 text-center text-[11px] text-muted-foreground sm:px-6 lg:px-8">
-        Independent planning tool — not official SCU advising. Verify with your advisor.
+        Independent planning tool — not official SCU advising. Verify with your
+        advisor.
       </footer>
     </div>
   );
@@ -171,22 +225,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function TopLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
+  const testId = `nav-${item.label.toLowerCase().replace(/ /g, "-")}`;
   return (
     <Link
       href={item.path}
-      data-testid={`nav-${item.label.toLowerCase().replace(/ /g, "-")}`}
+      data-testid={testId}
       className={cn(
-        "flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        "flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors xl:gap-1.5 xl:px-2.5 xl:text-sm",
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
-      <Icon className="h-4 w-4" />
-      <span>{item.label}</span>
+      <Icon className="hidden h-4 w-4 xl:block" aria-hidden="true" />
+      <span className="whitespace-nowrap">{item.label}</span>
     </Link>
   );
 }
 
-function MobileLink({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate: () => void }) {
+function MobileLink({
+  item,
+  active,
+  onNavigate,
+}: {
+  item: NavItem;
+  active: boolean;
+  onNavigate: () => void;
+}) {
   const Icon = item.icon;
   return (
     <Link
@@ -194,7 +259,9 @@ function MobileLink({ item, active, onNavigate }: { item: NavItem; active: boole
       onClick={onNavigate}
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium",
-        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
       <Icon className="h-4 w-4" />
@@ -204,11 +271,20 @@ function MobileLink({ item, active, onNavigate }: { item: NavItem; active: boole
 }
 
 function AdditionalFeatures({ location }: { location: string }) {
-  const active = FEATURE_GROUPS.some((group) => group.items.some((item) => isActive(location, item.path)));
+  const active = FEATURE_GROUPS.some((group) =>
+    group.items.some((item) => isActive(location, item.path)),
+  );
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className={cn("gap-1.5 px-3 text-sm", active && "bg-primary/10 text-primary")}>
+        <Button
+          variant="ghost"
+          data-testid="nav-additional-features"
+          className={cn(
+            "shrink-0 gap-1 px-2 text-[13px] xl:gap-1.5 xl:px-2.5 xl:text-sm",
+            active && "bg-primary/10 text-primary",
+          )}
+        >
           Additional Features <ChevronDown className="h-3.5 w-3.5" />
         </Button>
       </DropdownMenuTrigger>
@@ -216,12 +292,17 @@ function AdditionalFeatures({ location }: { location: string }) {
         {FEATURE_GROUPS.map((group, index) => (
           <DropdownMenuGroup key={group.label}>
             {index > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">{group.label}</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {group.label}
+            </DropdownMenuLabel>
             {group.items.map((item) => {
               const Icon = item.icon;
               return (
                 <DropdownMenuItem key={item.path} asChild>
-                  <Link href={item.path} className="flex cursor-pointer items-center gap-2">
+                  <Link
+                    href={item.path}
+                    className="flex cursor-pointer items-center gap-2"
+                  >
                     <Icon className="h-4 w-4" /> {item.label}
                   </Link>
                 </DropdownMenuItem>
@@ -234,12 +315,21 @@ function AdditionalFeatures({ location }: { location: string }) {
   );
 }
 
-function AccountMenu({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
+function AccountMenu({
+  mobile = false,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   if (!isLoaded || !user) return null;
   const email = user.primaryEmailAddress?.emailAddress ?? "";
-  const displayName = user.fullName || user.firstName || (email.includes("@") ? email.split("@")[0] : "Student");
+  const displayName =
+    user.fullName ||
+    user.firstName ||
+    (email.includes("@") ? email.split("@")[0] : "Student");
   const signOutAction = () => {
     onNavigate?.();
     signOut({ redirectUrl: "/" });
@@ -250,12 +340,24 @@ function AccountMenu({ mobile = false, onNavigate }: { mobile?: boolean; onNavig
       <div className="space-y-1">
         <div className="px-3 py-2">
           <div className="text-sm font-medium">{displayName}</div>
-          <div className="truncate text-[11px] text-muted-foreground">{email}</div>
+          <div className="truncate text-[11px] text-muted-foreground">
+            {email}
+          </div>
         </div>
-        <Link href="/onboarding" onClick={onNavigate} data-testid="nav-profile" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+        <Link
+          href="/onboarding"
+          onClick={onNavigate}
+          data-testid="nav-profile"
+          className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
           <UserCog className="h-4 w-4" /> Edit profile
         </Link>
-        <button type="button" onClick={signOutAction} data-testid="button-sign-out" className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+        <button
+          type="button"
+          onClick={signOutAction}
+          data-testid="button-sign-out"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
           <LogOut className="h-4 w-4" /> Sign out
         </button>
       </div>
@@ -267,8 +369,12 @@ function AccountMenu({ mobile = false, onNavigate }: { mobile?: boolean; onNavig
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-auto gap-2 px-2 py-1.5">
           <div className="hidden text-right xl:block">
-            <div className="max-w-32 truncate text-xs font-medium">{displayName}</div>
-            <div className="max-w-32 truncate text-[10px] text-muted-foreground">{email}</div>
+            <div className="max-w-32 truncate text-xs font-medium">
+              {displayName}
+            </div>
+            <div className="max-w-32 truncate text-[10px] text-muted-foreground">
+              {email}
+            </div>
           </div>
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
             <UserCog className="h-4 w-4" />
@@ -278,14 +384,28 @@ function AccountMenu({ mobile = false, onNavigate }: { mobile?: boolean; onNavig
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel>
           <div className="truncate text-sm">{displayName}</div>
-          <div className="truncate text-[10px] font-normal text-muted-foreground">{email}</div>
+          <div className="truncate text-[10px] font-normal text-muted-foreground">
+            {email}
+          </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/onboarding" data-testid="nav-profile" className="flex cursor-pointer items-center gap-2"><UserCog className="h-4 w-4" /> Edit profile</Link>
+          <Link
+            href="/onboarding"
+            data-testid="nav-profile"
+            className="flex cursor-pointer items-center gap-2"
+          >
+            <UserCog className="h-4 w-4" /> Edit profile
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOutAction} data-testid="button-sign-out" className="gap-2"><LogOut className="h-4 w-4" /> Sign out</DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={signOutAction}
+          data-testid="button-sign-out"
+          className="gap-2"
+        >
+          <LogOut className="h-4 w-4" /> Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -302,11 +422,29 @@ export function PageHeader({
 }) {
   return (
     <div className="relative overflow-hidden border-b border-border bg-card">
-      <div aria-hidden className="cv-gradient-sweep pointer-events-none absolute inset-0 opacity-[0.08]" style={{ background: "linear-gradient(120deg, hsl(var(--primary)) 0%, transparent 40%, hsl(var(--accent)) 80%)" }} />
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} className="relative mx-auto flex max-w-[1600px] items-start justify-between gap-6 px-4 py-5 sm:px-6 lg:px-8">
+      <div
+        aria-hidden
+        className="cv-gradient-sweep pointer-events-none absolute inset-0 opacity-[0.08]"
+        style={{
+          background:
+            "linear-gradient(120deg, hsl(var(--primary)) 0%, transparent 40%, hsl(var(--accent)) 80%)",
+        }}
+      />
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative mx-auto flex max-w-[1600px] items-start justify-between gap-6 px-4 py-5 sm:px-6 lg:px-8"
+      >
         <div>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">{title}</h1>
-          {subtitle && <p className="mt-1.5 max-w-3xl text-sm text-muted-foreground">{subtitle}</p>}
+          <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-1.5 max-w-3xl text-sm text-muted-foreground">
+              {subtitle}
+            </p>
+          )}
         </div>
         {right}
       </motion.div>
@@ -316,7 +454,12 @@ export function PageHeader({
 
 export function PageContent({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }} className="mx-auto max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
+      className="mx-auto max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8"
+    >
       {children}
     </motion.div>
   );
