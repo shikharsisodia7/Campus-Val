@@ -10,7 +10,14 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-let mockReportEnvelope: any = { available: true, report: null };
+// Mirrors what useGetProgressReport (a TanStack Query hook) actually
+// returns, since GET /progress-report 404s — a real error, not a 200
+// envelope — when nothing has been uploaded yet.
+let mockReportQuery: { data: any; isLoading: boolean; error: any } = {
+  data: { available: true, report: null },
+  isLoading: false,
+  error: null,
+};
 
 vi.mock("@workspace/api-client-react", async () => {
   const actual = await vi.importActual<any>("@workspace/api-client-react");
@@ -23,7 +30,7 @@ vi.mock("@workspace/api-client-react", async () => {
     useUpdatePlan: () => ({ mutate: vi.fn(), isPending: false }),
     useListGraduationMajors: () => ({ data: { majors: [] } }),
     useListGraduationMinors: () => ({ data: { minors: [] } }),
-    useGetProgressReport: () => ({ data: mockReportEnvelope }),
+    useGetProgressReport: () => mockReportQuery,
     useGetDegreeRequirements: () => ({ data: { groups: [] } }),
   };
 });
@@ -73,7 +80,7 @@ afterEach(() => cleanup());
 
 describe("ContextPanel — APR official-reference states", () => {
   it("shows an honest 'no report uploaded' state with an upload link", () => {
-    mockReportEnvelope = { available: true, report: null };
+    mockReportQuery = { data: { available: true, report: null }, isLoading: false, error: null };
     renderPanel();
     expect(screen.getByTestId("apr-none-uploaded")).toBeTruthy();
     expect(screen.getByText("No Academic Progress Report uploaded.")).toBeTruthy();
@@ -85,20 +92,24 @@ describe("ContextPanel — APR official-reference states", () => {
   });
 
   it("labels an uploaded report as an uploaded Workday export and links the secure original file", () => {
-    mockReportEnvelope = {
-      available: true,
-      report: {
-        id: 1,
-        fileName: "Fall2026-APR.pdf",
-        fileSize: 1024,
-        contentType: "application/pdf",
-        objectPath: "/objects/x",
-        uploadedAt: "2026-08-01T00:00:00.000Z",
-        parsed: null,
-        parseStatus: "ok",
-        createdAt: "2026-08-01T00:00:00.000Z",
-        updatedAt: "2026-08-01T00:00:00.000Z",
+    mockReportQuery = {
+      data: {
+        available: true,
+        report: {
+          id: 1,
+          fileName: "Fall2026-APR.pdf",
+          fileSize: 1024,
+          contentType: "application/pdf",
+          objectPath: "/objects/x",
+          uploadedAt: "2026-08-01T00:00:00.000Z",
+          parsed: null,
+          parseStatus: "ok",
+          createdAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-08-01T00:00:00.000Z",
+        },
       },
+      isLoading: false,
+      error: null,
     };
     renderPanel();
 
@@ -113,7 +124,7 @@ describe("ContextPanel — APR official-reference states", () => {
   });
 
   it("always shows the Workday verification disclaimer, regardless of report state", () => {
-    mockReportEnvelope = { available: true, report: null };
+    mockReportQuery = { data: { available: true, report: null }, isLoading: false, error: null };
     renderPanel();
     expect(
       screen.getByText(
@@ -123,10 +134,46 @@ describe("ContextPanel — APR official-reference states", () => {
   });
 
   it("keeps parsed/derived planning data visually and textually distinct from the official report", () => {
-    mockReportEnvelope = { available: true, report: null };
+    mockReportQuery = { data: { available: true, report: null }, isLoading: false, error: null };
     renderPanel();
     expect(
       screen.getByText("CampusVal planning support (not the official record)"),
     ).toBeTruthy();
+  });
+
+  it("shows a loading state while the report request is in flight, not the 'no report' state", () => {
+    mockReportQuery = { data: undefined, isLoading: true, error: null };
+    renderPanel();
+    expect(screen.getByText("Loading…")).toBeTruthy();
+    expect(screen.queryByTestId("apr-none-uploaded")).toBeNull();
+  });
+
+  it("REGRESSION: treats the real 404 GET /progress-report returns when nothing is uploaded as 'no report uploaded', not a stuck loading spinner", () => {
+    // The actual API returns a 404 (not a 200 envelope) when the user has no
+    // report yet, so data stays undefined and the query settles into an
+    // error state. The old `reportEnvelope === undefined` check couldn't
+    // tell "still loading" apart from "errored with no data" and got stuck
+    // showing "Loading…" forever.
+    mockReportQuery = {
+      data: undefined,
+      isLoading: false,
+      error: { status: 404, message: "No progress report found." },
+    };
+    renderPanel();
+    expect(screen.queryByText("Loading…")).toBeNull();
+    expect(screen.getByTestId("apr-none-uploaded")).toBeTruthy();
+    expect(screen.getByText("No Academic Progress Report uploaded.")).toBeTruthy();
+  });
+
+  it("shows a distinct error state for a real load failure (not a 404), never claiming 'no report uploaded' incorrectly", () => {
+    mockReportQuery = {
+      data: undefined,
+      isLoading: false,
+      error: { status: 500, message: "Internal Server Error" },
+    };
+    renderPanel();
+    expect(screen.queryByText("Loading…")).toBeNull();
+    expect(screen.getByTestId("apr-load-error")).toBeTruthy();
+    expect(screen.queryByTestId("apr-none-uploaded")).toBeNull();
   });
 });

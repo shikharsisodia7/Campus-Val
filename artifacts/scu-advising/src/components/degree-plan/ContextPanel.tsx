@@ -31,9 +31,17 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
   const { activePlan } = useDegreePlanContext();
   const [controlsOpen, setControlsOpen] = useState(false);
 
-  const { data: reportEnvelope } = useGetProgressReport({
-    query: { queryKey: getGetProgressReportQueryKey() },
+  const {
+    data: reportEnvelope,
+    isLoading: isReportLoading,
+    error: reportError,
+  } = useGetProgressReport({
+    query: { queryKey: getGetProgressReportQueryKey(), retry: false },
   });
+  // GET /progress-report 404s (not a 200 envelope) when the user hasn't
+  // uploaded a report yet — that's the expected "none uploaded" signal for
+  // this endpoint, not a failure.
+  const reportNotUploaded = (reportError as any)?.status === 404;
   const report = reportEnvelope?.report;
   const fileUrl = `${import.meta.env.BASE_URL}api/progress-report/file`;
 
@@ -74,11 +82,11 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
               academic record directly in Workday.
             </p>
 
-            {reportEnvelope === undefined && (
+            {isReportLoading && (
               <p className="text-muted-foreground mt-2">Loading…</p>
             )}
 
-            {reportEnvelope && !reportEnvelope.available && (
+            {!isReportLoading && reportEnvelope && !reportEnvelope.available && (
               <div
                 className="mt-2 flex items-start gap-1.5 text-muted-foreground"
                 data-testid="apr-uploads-unavailable"
@@ -88,19 +96,30 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
               </div>
             )}
 
-            {reportEnvelope?.available && !report && (
-              <div className="mt-2" data-testid="apr-none-uploaded">
-                <div className="flex items-start gap-1.5 text-muted-foreground">
-                  <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  <span>No Academic Progress Report uploaded.</span>
+            {!isReportLoading &&
+              ((reportEnvelope?.available && !report) || reportNotUploaded) && (
+                <div className="mt-2" data-testid="apr-none-uploaded">
+                  <div className="flex items-start gap-1.5 text-muted-foreground">
+                    <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>No Academic Progress Report uploaded.</span>
+                  </div>
+                  <Link
+                    href="/progress-report"
+                    className="inline-flex items-center gap-1 mt-1.5 text-primary hover:underline font-medium"
+                    data-testid="apr-upload-link"
+                  >
+                    Upload Workday APR
+                  </Link>
                 </div>
-                <Link
-                  href="/progress-report"
-                  className="inline-flex items-center gap-1 mt-1.5 text-primary hover:underline font-medium"
-                  data-testid="apr-upload-link"
-                >
-                  Upload Workday APR
-                </Link>
+              )}
+
+            {!isReportLoading && reportError && !reportNotUploaded && (
+              <div
+                className="mt-2 flex items-start gap-1.5 text-muted-foreground"
+                data-testid="apr-load-error"
+              >
+                <FileWarning className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>Couldn't load your report right now. Try refreshing the page.</span>
               </div>
             )}
 
