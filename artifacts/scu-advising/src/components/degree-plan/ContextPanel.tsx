@@ -36,11 +36,12 @@ export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
     isLoading: isReportLoading,
     error: reportError,
   } = useGetProgressReport({
-    query: { queryKey: getGetProgressReportQueryKey(), retry: false },
+    query: { queryKey: getGetProgressReportQueryKey() },
   });
   // GET /progress-report 404s (not a 200 envelope) when the user hasn't
   // uploaded a report yet — that's the expected "none uploaded" signal for
-  // this endpoint, not a failure.
+  // this endpoint, not a failure. (Query-wide retry/refetch defaults for
+  // this key are set centrally in App.tsx — see the comment there.)
   const reportNotUploaded = (reportError as any)?.status === 404;
   const report = reportEnvelope?.report;
   const fileUrl = `${import.meta.env.BASE_URL}api/progress-report/file`;
