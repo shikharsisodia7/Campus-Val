@@ -15,6 +15,7 @@ import {
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { getGetProgressReportQueryKey } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -60,6 +61,26 @@ const queryClient = new QueryClient({
       retry: 1,
     },
   },
+});
+
+// GET /progress-report 404s (not empty data) whenever nothing is uploaded —
+// which is the everyday steady state for most students. TanStack Query's
+// "fetch" reducer resets a query with no data back to status:"pending" and
+// clears its error on every refetch (see query-core's fetchState), so the
+// global refetchInterval/retryOnMount defaults above would otherwise cycle
+// this specific query through pending→error→pending forever, flickering
+// any UI that reads it back to a loading state every ~60s and on every
+// remount. Set once here so every current and future consumer of this
+// query key is covered, not just the ones that remember to opt out
+// per-call. Upload/delete mutations already invalidate this key directly
+// on success, so passive background refetching isn't needed for it to
+// stay correct.
+queryClient.setQueryDefaults(getGetProgressReportQueryKey(), {
+  retry: false,
+  retryOnMount: false,
+  refetchInterval: false,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
 });
 
 const clerkPubKey = publishableKeyFromHost(

@@ -22,7 +22,7 @@ export function PlanProgressPanel() {
     isLoading: isReportLoading,
     error: reportError,
   } = useGetProgressReport({
-    query: { queryKey: getGetProgressReportQueryKey(), retry: false }
+    query: { queryKey: getGetProgressReportQueryKey() }
   });
   // GET /progress-report 404s (not a 200 envelope) when no report has been
   // uploaded yet — that's the expected "none uploaded" signal here, not a
