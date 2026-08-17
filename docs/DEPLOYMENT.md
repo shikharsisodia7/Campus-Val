@@ -78,6 +78,17 @@ Both providers are lazily loaded (dynamic `import()`, not a static top-level imp
 
 Authentication. This app's Clerk instance is Replit-managed (no separate Clerk.com dashboard) — the keys live in the Replit project's Secrets pane (Tools → Secrets) if you need to find them again, or in Vercel's Environment Variables (Settings → Environment Variables) once configured there. They are Clerk **development**-mode keys — fine for this project's current stage, but note Clerk's dev-instance usage limits before scaling up.
 
+## External reviewer access (GUEST_REVIEWER_EMAILS)
+
+`requireAuth` (`artifacts/api-server/src/middlewares/requireAuth.ts`) accepts any `@scu.edu` email automatically. To invite an external reviewer without one (e.g. a professor's outside contact), add their exact email to the `GUEST_REVIEWER_EMAILS` env var — comma-separated, case/whitespace-insensitive:
+
+```bash
+vercel env add GUEST_REVIEWER_EMAILS production
+# paste: jake@example.com,tom.hines@example.org
+```
+
+Then redeploy for the change to take effect (`vercel deploy --prod` or push a commit — env var changes don't apply to already-built serverless functions until the next deploy). Remove or replace it the same way (`vercel env rm GUEST_REVIEWER_EMAILS production`) when reviewer access is no longer needed. Never commit real reviewer emails to source — this env var is the only place they should live.
+
 ## Deploying to Vercel
 
 ### One-time project setup
