@@ -2,963 +2,165 @@ import { useState } from "react";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  useCreatePlan,
-  useDuplicatePlan,
-  useDeletePlan,
-  usePromotePlan,
-  useUpdatePlan,
-  getGetPlanQueryKey,
-  useListGraduationMajors,
-  useListGraduationMinors,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  useGetProgressReport,
+  getGetProgressReportQueryKey,
   AcademicPlan,
-  PlanPrograms,
-  ProfessionalGoal,
 } from "@workspace/api-client-react";
-import {
-  Copy,
-  Download,
-  Trash2,
-  Rocket,
-  Plus,
-  ShieldCheck,
-  AlertTriangle,
-  Edit2,
-  Files,
-  X,
-  GraduationCap,
-  BookOpen,
-  Target,
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SlidersHorizontal, ExternalLink, FileWarning, Info } from "lucide-react";
+import { Link } from "wouter";
 import { PlanProgressPanel } from "./PlanProgressPanel";
+import { PlanControlsPanel } from "./PlanControlsPanel";
 
+/**
+ * The right-hand column of Degree Plan / Tentative Degree Plan. Per the
+ * professor's correction, this column is ALWAYS the Academic Progress
+ * Report reference — never a Progress/Plan toggle. Plan switching and
+ * majors/minors/professional-prep editing live in PlanControlsPanel,
+ * reachable from the "Plan Controls" button below, not from here.
+ */
 export function ContextPanel({ plans }: { plans: AcademicPlan[] }) {
-  const { activePlan, activePlanId, setActivePlanId, profile } =
-    useDegreePlanContext();
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { activePlan } = useDegreePlanContext();
+  const [controlsOpen, setControlsOpen] = useState(false);
 
-  const createPlan = useCreatePlan();
-  const duplicatePlan = useDuplicatePlan();
-  const deletePlan = useDeletePlan();
-  const promotePlan = usePromotePlan();
-  const updatePlan = useUpdatePlan();
-
-  const { data: majorsList } = useListGraduationMajors();
-  const { data: minorsList } = useListGraduationMinors();
-
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newPlanName, setNewPlanName] = useState("My Tentative Degree Plan");
-  const [createMode, setCreateMode] = useState("copy"); // copy | blank
-
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [renameValue, setRenameValue] = useState("");
-
-  // Program additions
-  const [majorDraft, setMajorDraft] = useState("");
-  const [minorDraft, setMinorDraft] = useState("");
-  const [goalDraft, setGoalDraft] = useState("");
-  const [goalCourseDrafts, setGoalCourseDrafts] = useState<
-    Record<string, string>
-  >({});
-  const [goalPlaceholderDrafts, setGoalPlaceholderDrafts] = useState<
-    Record<string, string>
-  >({});
-
-  const degreePlan = plans.find((p) => p.planType === "degree");
-  const tentativePlans = plans.filter((p) => p.planType === "tentative");
-
-  const currentPrograms: PlanPrograms = activePlan?.programs ?? {
-    additionalMajors: [],
-    minors: [],
-    professionalGoals: [],
-  };
-
-  const updatePrograms = (programs: PlanPrograms) => {
-    if (!activePlanId || !activePlan) return;
-    const planId = activePlanId;
-    updatePlan.mutate(
-      {
-        id: planId,
-        data: { name: activePlan.name, programs },
-      },
-      {
-        onSuccess: (updatedPlan) => {
-          // PATCH returns the plan's current metadata/programs. Write it to the
-          // exact plan cache before broad invalidation so switching scenarios
-          // never renders another plan's program chips.
-          queryClient.setQueryData(
-            getGetPlanQueryKey(planId),
-            (current: AcademicPlan | undefined) =>
-              current ? { ...current, ...updatedPlan } : current,
-          );
-          queryClient.invalidateQueries({
-            predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
-          });
-        },
-      },
-    );
-  };
-
-  const normalized = (value: string) => value.trim().toLocaleLowerCase();
-  const majorMatchesProfile = (code: string) => {
-    const option = majorsList?.majors.find((major) => major.code === code);
-    const declared = [
-      profile?.major,
-      profile?.secondMajor,
-      ...(profile?.additionalMajors ?? []),
-    ]
-      .filter((value): value is string => !!value)
-      .map(normalized);
-    return (
-      declared.includes(normalized(code)) ||
-      (!!option && declared.includes(normalized(option.title)))
-    );
-  };
-
-  const addMajor = (majorCode = majorDraft) => {
-    if (
-      !majorCode ||
-      !activePlanId ||
-      !activePlan ||
-      majorMatchesProfile(majorCode)
-    )
-      return;
-    const updated = {
-      ...currentPrograms,
-      additionalMajors: [...currentPrograms.additionalMajors, majorCode],
-    };
-    updatePrograms(updated);
-    setMajorDraft("");
-  };
-
-  const removeMajor = (code: string) => {
-    const updated = {
-      ...currentPrograms,
-      additionalMajors: currentPrograms.additionalMajors.filter(
-        (m) => m !== code,
-      ),
-    };
-    updatePrograms(updated);
-  };
-
-  const addMinor = () => {
-    if (
-      !minorDraft ||
-      currentPrograms.minors.some(
-        (minor) => normalized(minor) === normalized(minorDraft),
-      )
-    )
-      return;
-    const updated = {
-      ...currentPrograms,
-      minors: [...currentPrograms.minors, minorDraft],
-    };
-    updatePrograms(updated);
-    setMinorDraft("");
-  };
-
-  const removeMinor = (code: string) => {
-    const updated = {
-      ...currentPrograms,
-      minors: currentPrograms.minors.filter((m) => m !== code),
-    };
-    updatePrograms(updated);
-  };
-
-  const addGoal = () => {
-    const trimmed = goalDraft.trim();
-    if (!trimmed) return;
-    const updated = {
-      ...currentPrograms,
-      professionalGoals: [
-        ...currentPrograms.professionalGoals,
-        {
-          id: `goal-${crypto.randomUUID()}`,
-          name: trimmed,
-          notes: "",
-          courseCodes: [],
-          placeholders: [],
-        },
-      ],
-    };
-    updatePrograms(updated);
-    setGoalDraft("");
-  };
-
-  const updateGoal = (goalId: string, update: Partial<ProfessionalGoal>) => {
-    updatePrograms({
-      ...currentPrograms,
-      professionalGoals: currentPrograms.professionalGoals.map((goal) =>
-        goal.id === goalId ? { ...goal, ...update } : goal,
-      ),
-    });
-  };
-
-  const removeGoal = (goalId: string) => {
-    const updated = {
-      ...currentPrograms,
-      professionalGoals: currentPrograms.professionalGoals.filter(
-        (goal) => goal.id !== goalId,
-      ),
-    };
-    updatePrograms(updated);
-  };
-
-  const addGoalCourse = (goal: ProfessionalGoal) => {
-    const courseCode = goalCourseDrafts[goal.id]?.trim();
-    if (!courseCode || goal.courseCodes.includes(courseCode.toUpperCase()))
-      return;
-    updateGoal(goal.id, { courseCodes: [...goal.courseCodes, courseCode] });
-    setGoalCourseDrafts((drafts) => ({ ...drafts, [goal.id]: "" }));
-  };
-
-  const addGoalPlaceholder = (goal: ProfessionalGoal) => {
-    const placeholder = goalPlaceholderDrafts[goal.id]?.trim();
-    if (!placeholder || goal.placeholders.includes(placeholder)) return;
-    updateGoal(goal.id, { placeholders: [...goal.placeholders, placeholder] });
-    setGoalPlaceholderDrafts((drafts) => ({ ...drafts, [goal.id]: "" }));
-  };
-
-  // Major/minor options (filter out already-selected)
-  const majorOptions = (majorsList?.majors ?? []).filter(
-    (major) =>
-      !currentPrograms.additionalMajors.some(
-        (selected) => normalized(selected) === normalized(major.code),
-      ) && !majorMatchesProfile(major.code),
-  );
-  const minorOptions = (minorsList?.minors ?? []).filter(
-    (minor) =>
-      !currentPrograms.minors.some(
-        (selected) => normalized(selected) === normalized(minor.code),
-      ) &&
-      ![profile?.minor, ...(profile?.additionalMinors ?? [])]
-        .filter((value): value is string => !!value)
-        .some((selected) => normalized(selected) === normalized(minor.code)),
-  );
-
-  const handleCreate = () => {
-    createPlan.mutate(
-      {
-        data: {
-          name: newPlanName,
-          copyFromPlanId: createMode === "copy" ? degreePlan?.id : null,
-        },
-      },
-      {
-        onSuccess: (newPlan) => {
-          setCreateOpen(false);
-          queryClient.removeQueries({
-            queryKey: getGetPlanQueryKey(newPlan.id),
-          });
-          setActivePlanId(newPlan.id);
-          queryClient.invalidateQueries({
-            predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
-          });
-        },
-      },
-    );
-  };
-
-  const handleDelete = () => {
-    if (!activePlanId || activePlan?.planType === "degree") return;
-    if (confirm("Are you sure you want to delete this tentative plan?")) {
-      deletePlan.mutate(
-        { id: activePlanId },
-        {
-          onSuccess: () => {
-            setActivePlanId(degreePlan?.id || null);
-            queryClient.invalidateQueries({
-              predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
-            });
-          },
-        },
-      );
-    }
-  };
-
-  const handlePromote = () => {
-    if (!activePlanId || activePlan?.planType === "degree") return;
-    if (
-      confirm(
-        "Make this your official Degree Plan? Your current Degree Plan will be saved as a tentative backup.",
-      )
-    ) {
-      promotePlan.mutate(
-        { id: activePlanId },
-        {
-          onSuccess: () => {
-            queryClient.invalidateQueries({
-              predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
-            });
-          },
-        },
-      );
-    }
-  };
-
-  const handleDuplicate = () => {
-    if (!activePlanId || !activePlan) return;
-    const existingNames = new Set(plans.map((plan) => plan.name));
-    const baseName = `${activePlan.name} (Copy)`;
-    let duplicateName = baseName;
-    let copyNumber = 2;
-    while (existingNames.has(duplicateName)) {
-      duplicateName = `${baseName} ${copyNumber}`;
-      copyNumber += 1;
-    }
-    duplicatePlan.mutate(
-      {
-        id: activePlanId,
-        data: { name: duplicateName },
-      },
-      {
-        onSuccess: (newPlan) => {
-          queryClient.removeQueries({
-            queryKey: getGetPlanQueryKey(newPlan.id),
-          });
-          setActivePlanId(newPlan.id);
-          queryClient.invalidateQueries({
-            predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
-          });
-        },
-      },
-    );
-  };
-
-  const handleRename = () => {
-    if (!activePlanId || activePlan?.planType === "degree") return;
-    updatePlan.mutate(
-      {
-        id: activePlanId,
-        data: { name: renameValue },
-      },
-      {
-        onSuccess: () => {
-          setRenameOpen(false);
-          queryClient.invalidateQueries({
-            predicate: (q) => String(q.queryKey[0]).startsWith("/api/plans"),
-          });
-        },
-      },
-    );
-  };
-
-  const handleCopySummary = () => {
-    if (!activePlan) return;
-    let text = `${activePlan.name} Summary\n`;
-    text += `Total items: ${activePlan.items.length}\n\n`;
-    const byYearTerm = activePlan.items.reduce(
-      (acc, item) => {
-        const key = `${item.academicYear} ${item.term}`;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(item);
-        return acc;
-      },
-      {} as Record<string, typeof activePlan.items>,
-    );
-
-    for (const [term, items] of Object.entries(byYearTerm)) {
-      text += `--- ${term} ---\n`;
-      items.forEach((i) => {
-        text += `- ${i.courseCode || i.requirementLabel}\n`;
-      });
-      text += "\n";
-    }
-
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied",
-      description: "Summary copied to clipboard",
-    });
-  };
+  const { data: reportEnvelope } = useGetProgressReport({
+    query: { queryKey: getGetProgressReportQueryKey() },
+  });
+  const report = reportEnvelope?.report;
+  const fileUrl = `${import.meta.env.BASE_URL}api/progress-report/file`;
 
   if (!activePlan) return null;
 
-  const exportUrl = `${import.meta.env.BASE_URL}api/plans/${activePlan.id}/export`;
-
   return (
     <Card className="flex h-full flex-col overflow-hidden border-border/60 bg-card shadow-sm">
-      <div className="border-b border-border/60 px-3 py-2.5">
-        <h2 className="font-serif text-base font-bold">Academic Progress</h2>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-          Official progress reference from your uploaded report / Workday data.
-          CampusVal is planning support only.
-        </p>
+      <div className="border-b border-border/60 px-3 py-2.5 flex items-start justify-between gap-2">
+        <div>
+          <h2 className="font-serif text-base font-bold">
+            Academic Progress Report
+          </h2>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">
+            Official Reference
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs shrink-0"
+          data-testid="button-open-plan-controls"
+          onClick={() => setControlsOpen(true)}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
+          Plan Controls
+        </Button>
       </div>
 
-      <Tabs
-        defaultValue="progress"
-        className="flex flex-1 flex-col overflow-hidden"
-      >
-        <div className="border-b border-border/60 px-2 pt-1.5">
-          <TabsList className="h-8 w-full">
-            <TabsTrigger
-              value="progress"
-              className="flex-1 text-xs"
-              data-testid="tab-academic-progress"
-            >
-              Progress
-            </TabsTrigger>
-            <TabsTrigger
-              value="plan"
-              className="flex-1 text-xs"
-              data-testid="tab-plan-controls"
-            >
-              Plan Controls
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      <ScrollArea className="h-full flex-1">
+        <div className="p-3 space-y-4">
+          <div
+            className="rounded-md border border-border bg-muted/20 p-3 text-xs text-foreground/90"
+            data-testid="apr-official-reference"
+          >
+            <p>
+              This report reflects official university records. CampusVal
+              does not modify the report. Always verify your official
+              academic record directly in Workday.
+            </p>
 
-        <TabsContent value="plan" className="mt-0 flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="space-y-5 p-3">
-              <div className="space-y-3">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Select Plan
-                </Label>
-                <div className="space-y-1">
-                  {degreePlan && (
-                    <Button
-                      variant={
-                        activePlanId === degreePlan.id ? "default" : "outline"
-                      }
-                      className={`w-full justify-start ${activePlanId === degreePlan.id ? "bg-primary hover:bg-primary/90" : ""}`}
-                      onClick={() => setActivePlanId(degreePlan.id)}
-                    >
-                      <ShieldCheck className="h-4 w-4 mr-2" /> Official Degree
-                      Plan
-                    </Button>
-                  )}
-                  {tentativePlans.map((tp) => (
-                    <Button
-                      key={tp.id}
-                      variant={activePlanId === tp.id ? "default" : "outline"}
-                      className="w-full justify-start font-normal"
-                      onClick={() => setActivePlanId(tp.id)}
-                    >
-                      {tp.name}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-muted-foreground"
-                    onClick={() => setCreateOpen(true)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" /> New Tentative Degree Plan
-                  </Button>
-                </div>
-              </div>
+            {reportEnvelope === undefined && (
+              <p className="text-muted-foreground mt-2">Loading…</p>
+            )}
 
-              {activePlan.planType === "tentative" && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                  <div className="flex items-center gap-2 text-amber-800 font-medium text-sm mb-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    TENTATIVE PLAN
-                  </div>
-                  <div className="text-xs text-amber-700/80 mb-3">
-                    This is a draft. Promote it when you are ready to make it
-                    your official plan.
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs border-amber-300 text-amber-800 hover:bg-amber-100"
-                      onClick={handlePromote}
-                    >
-                      <Rocket className="h-3 w-3 mr-1" /> Use as Official
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs border-red-200 text-red-700 hover:bg-red-50"
-                      onClick={handleDelete}
-                    >
-                      <Trash2 className="h-3 w-3 mr-1" /> Delete
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs text-muted-foreground"
-                      onClick={() => {
-                        setRenameValue(activePlan.name);
-                        setRenameOpen(true);
-                      }}
-                    >
-                      <Edit2 className="h-3 w-3 mr-1" /> Rename
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs text-muted-foreground"
-                      onClick={handleDuplicate}
-                    >
-                      <Files className="h-3 w-3 mr-1" /> Duplicate
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {activePlan.planType === "degree" && (
-                <div className="p-3 bg-muted/30 border border-border rounded-md mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full h-8 text-xs text-muted-foreground"
-                    onClick={handleDuplicate}
-                  >
-                    <Files className="h-3 w-3 mr-1" /> Duplicate to Tentative
-                    Plan
-                  </Button>
-                </div>
-              )}
-
-              {/* Programs for this plan */}
+            {reportEnvelope && !reportEnvelope.available && (
               <div
-                className="space-y-3 pt-4 border-t border-border/60"
-                data-testid="plan-programs-section"
+                className="mt-2 flex items-start gap-1.5 text-muted-foreground"
+                data-testid="apr-uploads-unavailable"
               >
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Programs for this plan
-                </Label>
-
-                {/* Additional Majors */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    <GraduationCap className="h-3 w-3" />
-                    Additional Majors
-                  </div>
-                  {currentPrograms.additionalMajors.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {currentPrograms.additionalMajors.map((code) => (
-                        <Badge
-                          key={code}
-                          variant="secondary"
-                          className="gap-1 text-[10px]"
-                          data-testid={`plan-major-chip-${code}`}
-                        >
-                          {majorsList?.majors.find((m) => m.code === code)
-                            ?.title ?? code}
-                          <button
-                            onClick={() => removeMajor(code)}
-                            data-testid={`remove-plan-major-${code}`}
-                            aria-label={`Remove ${code} from plan`}
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex gap-1.5">
-                    <Select
-                      value={majorDraft}
-                      onValueChange={(code) => {
-                        setMajorDraft(code);
-                        // Selecting a program is the student intent. Apply it
-                        // immediately instead of relying on a tiny adjacent
-                        // icon button that is easy to miss in compact panels.
-                        addMajor(code);
-                      }}
-                    >
-                      <SelectTrigger
-                        className="h-7 text-xs flex-1"
-                        data-testid="select-plan-additional-major"
-                      >
-                        <SelectValue placeholder="Add major…" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {majorOptions.map((m) => (
-                          <SelectItem
-                            key={m.code}
-                            value={m.code}
-                            className="text-xs"
-                          >
-                            {m.title} ({m.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      size="sm"
-                      className="h-7 px-2"
-                      onClick={() => addMajor()}
-                      disabled={!majorDraft || updatePlan.isPending}
-                      data-testid="button-add-plan-major"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Minors */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    <BookOpen className="h-3 w-3" />
-                    Minors
-                  </div>
-                  {currentPrograms.minors.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {currentPrograms.minors.map((code) => (
-                        <Badge
-                          key={code}
-                          variant="outline"
-                          className="gap-1 text-[10px]"
-                          data-testid={`plan-minor-chip-${code}`}
-                        >
-                          {minorsList?.minors.find((m) => m.code === code)
-                            ?.title ?? code}{" "}
-                          minor
-                          <button
-                            onClick={() => removeMinor(code)}
-                            data-testid={`remove-plan-minor-${code}`}
-                            aria-label={`Remove ${code} minor from plan`}
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex gap-1.5">
-                    <Select value={minorDraft} onValueChange={setMinorDraft}>
-                      <SelectTrigger
-                        className="h-7 text-xs flex-1"
-                        data-testid="select-plan-minor"
-                      >
-                        <SelectValue placeholder="Add minor…" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {minorOptions.map((m) => (
-                          <SelectItem
-                            key={m.code}
-                            value={m.code}
-                            className="text-xs"
-                          >
-                            {m.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      size="sm"
-                      className="h-7 px-2"
-                      onClick={addMinor}
-                      disabled={!minorDraft || updatePlan.isPending}
-                      data-testid="button-add-plan-minor"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Professional Goals */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    <Target className="h-3 w-3" />
-                    Professional Goals
-                  </div>
-                  <div className="text-[10px] text-muted-foreground italic">
-                    Not an official SCU program — for your planning only
-                  </div>
-                  {currentPrograms.professionalGoals.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {currentPrograms.professionalGoals.map((goal) => (
-                        <Badge
-                          key={goal.id}
-                          variant="outline"
-                          className="gap-1 text-[10px] border-dashed"
-                          data-testid={`plan-goal-chip-${goal.id}`}
-                        >
-                          {goal.name}
-                          <button
-                            onClick={() => removeGoal(goal.id)}
-                            data-testid={`remove-plan-goal-${goal.id}`}
-                            aria-label={`Remove goal ${goal.name} from plan`}
-                          >
-                            <X className="h-2.5 w-2.5" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex gap-1.5">
-                    <Input
-                      className="h-7 text-xs flex-1"
-                      placeholder="e.g. Pre-Med, Pre-Law…"
-                      value={goalDraft}
-                      onChange={(e) => setGoalDraft(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && addGoal()}
-                      data-testid="input-plan-goal"
-                    />
-                    <Button
-                      size="sm"
-                      className="h-7 px-2"
-                      onClick={addGoal}
-                      disabled={!goalDraft.trim() || updatePlan.isPending}
-                      data-testid="button-add-plan-goal"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  {currentPrograms.professionalGoals.map((goal) => (
-                    <div
-                      key={goal.id}
-                      className="rounded-md border border-border/60 bg-muted/10 p-2.5 space-y-2"
-                    >
-                      <div className="text-xs font-medium">{goal.name}</div>
-                      <Textarea
-                        value={goal.notes}
-                        onChange={(event) =>
-                          updateGoal(goal.id, { notes: event.target.value })
-                        }
-                        onBlur={(event) =>
-                          updateGoal(goal.id, { notes: event.target.value })
-                        }
-                        placeholder="Student planning notes…"
-                        className="min-h-14 text-xs"
-                        data-testid={`input-plan-goal-notes-${goal.id}`}
-                      />
-                      <div className="flex flex-wrap gap-1">
-                        {goal.courseCodes.map((courseCode) => (
-                          <Badge
-                            key={courseCode}
-                            variant="secondary"
-                            className="gap-1 font-mono text-[10px]"
-                          >
-                            {courseCode}
-                            <button
-                              onClick={() =>
-                                updateGoal(goal.id, {
-                                  courseCodes: goal.courseCodes.filter(
-                                    (code) => code !== courseCode,
-                                  ),
-                                })
-                              }
-                              aria-label={`Remove ${courseCode}`}
-                            >
-                              <X className="h-2.5 w-2.5" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex gap-1.5">
-                        <Input
-                          className="h-7 text-xs"
-                          placeholder="SCU course code, e.g. CHEM 11"
-                          value={goalCourseDrafts[goal.id] ?? ""}
-                          onChange={(event) =>
-                            setGoalCourseDrafts((drafts) => ({
-                              ...drafts,
-                              [goal.id]: event.target.value,
-                            }))
-                          }
-                          onKeyDown={(event) =>
-                            event.key === "Enter" && addGoalCourse(goal)
-                          }
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => addGoalCourse(goal)}
-                        >
-                          Add course
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {goal.placeholders.map((placeholder) => (
-                          <Badge
-                            key={placeholder}
-                            variant="outline"
-                            className="gap-1 text-[10px] border-dashed"
-                          >
-                            {placeholder}
-                            <button
-                              onClick={() =>
-                                updateGoal(goal.id, {
-                                  placeholders: goal.placeholders.filter(
-                                    (value) => value !== placeholder,
-                                  ),
-                                })
-                              }
-                              aria-label={`Remove ${placeholder}`}
-                            >
-                              <X className="h-2.5 w-2.5" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex gap-1.5">
-                        <Input
-                          className="h-7 text-xs"
-                          placeholder="Manual planning placeholder"
-                          value={goalPlaceholderDrafts[goal.id] ?? ""}
-                          onChange={(event) =>
-                            setGoalPlaceholderDrafts((drafts) => ({
-                              ...drafts,
-                              [goal.id]: event.target.value,
-                            }))
-                          }
-                          onKeyDown={(event) =>
-                            event.key === "Enter" && addGoalPlaceholder(goal)
-                          }
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => addGoalPlaceholder(goal)}
-                        >
-                          Add placeholder
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <FileWarning className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                <span>File uploads aren't configured in this environment.</span>
               </div>
+            )}
 
-              <div className="space-y-3 pt-4 border-t border-border/60">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Share & Export
-                </Label>
-                <div className="grid gap-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    asChild
-                  >
-                    <a href={exportUrl} download>
-                      <Download className="h-4 w-4 mr-2" /> Download Excel
-                      (.xlsx)
+            {reportEnvelope?.available && !report && (
+              <div className="mt-2" data-testid="apr-none-uploaded">
+                <div className="flex items-start gap-1.5 text-muted-foreground">
+                  <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>No Academic Progress Report uploaded.</span>
+                </div>
+                <Link
+                  href="/progress-report"
+                  className="inline-flex items-center gap-1 mt-1.5 text-primary hover:underline font-medium"
+                  data-testid="apr-upload-link"
+                >
+                  Upload Workday APR
+                </Link>
+              </div>
+            )}
+
+            {report && (
+              <div className="mt-3 pt-3 border-t border-border/60 space-y-2" data-testid="apr-original-report">
+                <div className="text-xs font-semibold text-foreground">
+                  Uploaded Workday Academic Progress Report
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  {report.fileName} · uploaded{" "}
+                  {new Date(report.uploadedAt).toLocaleDateString()}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                    <a
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      data-testid="button-view-original-report"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                      View Original Report
                     </a>
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={handleCopySummary}
-                  >
-                    <Copy className="h-4 w-4 mr-2" /> Copy text summary
+                  <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                    <Link href="/progress-report" data-testid="button-replace-report">
+                      Replace Report
+                    </Link>
                   </Button>
                 </div>
-                <div className="text-xs text-muted-foreground pt-1">
-                  Share the Excel file with your advisor before your meeting.
-                </div>
               </div>
-            </div>
-          </ScrollArea>
-        </TabsContent>
+            )}
+          </div>
 
-        <TabsContent
-          value="progress"
-          className="mt-0 flex-1 overflow-hidden"
-          data-testid="academic-progress-tab-panel"
+          <div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2 px-0.5">
+              CampusVal planning support (not the official record)
+            </div>
+            <PlanProgressPanel />
+          </div>
+        </div>
+      </ScrollArea>
+
+      <Sheet open={controlsOpen} onOpenChange={setControlsOpen}>
+        <SheetContent
+          className="w-full sm:max-w-md p-0 flex flex-col"
+          data-testid="sheet-plan-controls"
         >
-          <ScrollArea className="h-full">
-            <div className="p-3">
-              <PlanProgressPanel />
-            </div>
-          </ScrollArea>
-        </TabsContent>
-      </Tabs>
-
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent aria-describedby={undefined}>
-          <DialogHeader>
-            <DialogTitle>New Tentative Degree Plan</DialogTitle>
-            <DialogDescription>
-              Create a sandbox plan to explore options without changing your
-              official Degree Plan.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Plan Name</Label>
-              <Input
-                value={newPlanName}
-                onChange={(e) => setNewPlanName(e.target.value)}
-              />
-            </div>
-            <RadioGroup value={createMode} onValueChange={setCreateMode}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="copy" id="r1" />
-                <Label htmlFor="r1">Copy current Degree Plan</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="blank" id="r2" />
-                <Label htmlFor="r2">Start blank</Label>
-              </div>
-            </RadioGroup>
+          <SheetHeader className="px-4 pt-4 pb-2 border-b border-border/60">
+            <SheetTitle>Plan Controls</SheetTitle>
+            <SheetDescription>
+              Switch plans, and edit majors, minors, and Professional
+              Preparation for this plan.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-hidden">
+            <PlanControlsPanel plans={plans} />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={!newPlanName || createPlan.isPending}
-            >
-              Create
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent aria-describedby={undefined}>
-          <DialogHeader>
-            <DialogTitle>Rename Plan</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Plan Name</Label>
-              <Input
-                value={renameValue}
-                onChange={(e) => setRenameValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleRename()}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleRename}
-              disabled={!renameValue || updatePlan.isPending}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </Card>
   );
 }

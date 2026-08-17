@@ -194,9 +194,9 @@ export function Palette() {
       data-testid="requirements-palette"
     >
       <div className="border-b border-border/60 px-3 py-2">
-        <h2 className="font-serif text-base font-bold">Requirements</h2>
+        <h2 className="font-serif text-base font-bold">Planning Requirements</h2>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
-          Majors, minors &amp; courses
+          Declared and proposed majors, minors &amp; Professional Preparation — editable planning space, distinct from your official APR on the right.
         </p>
       </div>
 
