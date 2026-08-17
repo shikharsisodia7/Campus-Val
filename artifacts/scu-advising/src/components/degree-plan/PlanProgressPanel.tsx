@@ -17,9 +17,17 @@ export function PlanProgressPanel() {
   const bulkImport = useBulkImportReportCourses();
 
   const { data: summary } = useGetDashboardSummary();
-  const { data: reportEnvelope } = useGetProgressReport({
-    query: { queryKey: getGetProgressReportQueryKey() }
+  const {
+    data: reportEnvelope,
+    isLoading: isReportLoading,
+    error: reportError,
+  } = useGetProgressReport({
+    query: { queryKey: getGetProgressReportQueryKey(), retry: false }
   });
+  // GET /progress-report 404s (not a 200 envelope) when no report has been
+  // uploaded yet — that's the expected "none uploaded" signal here, not a
+  // failure to surface as an error.
+  const reportNotUploaded = (reportError as any)?.status === 404;
 
   const apIb = creditedCourses(loadStoredExams());
   const completed = (profile?.completedCourseCodes ?? [])
@@ -225,23 +233,30 @@ export function PlanProgressPanel() {
           Progress Report
         </div>
 
-        {reportEnvelope === undefined && (
+        {isReportLoading && (
           <p className="text-[10px] text-muted-foreground">Loading...</p>
         )}
 
-        {reportEnvelope && !reportEnvelope.available && (
+        {!isReportLoading && reportEnvelope && !reportEnvelope.available && (
           <p className="text-[10px] text-muted-foreground" data-testid="report-uploads-unavailable">
             File uploads aren't configured in this environment.
           </p>
         )}
 
-        {reportEnvelope?.available && !reportEnvelope.report && (
-          <p className="text-[10px] text-muted-foreground" data-testid="report-none-uploaded">
-            No progress report uploaded yet.{" "}
-            <Link href="/progress-report" className="underline text-primary">
-              Upload one
-            </Link>
-            {" "}to see mismatch notices.
+        {!isReportLoading &&
+          ((reportEnvelope?.available && !reportEnvelope.report) || reportNotUploaded) && (
+            <p className="text-[10px] text-muted-foreground" data-testid="report-none-uploaded">
+              No progress report uploaded yet.{" "}
+              <Link href="/progress-report" className="underline text-primary">
+                Upload one
+              </Link>
+              {" "}to see mismatch notices.
+            </p>
+          )}
+
+        {!isReportLoading && reportError && !reportNotUploaded && (
+          <p className="text-[10px] text-muted-foreground" data-testid="report-load-error">
+            Couldn't load your progress report right now. Try refreshing the page.
           </p>
         )}
 
