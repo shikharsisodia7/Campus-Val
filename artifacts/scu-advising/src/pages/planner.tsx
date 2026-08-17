@@ -1,5 +1,5 @@
 import { WORKDAY_STUDENT_URL } from "@/lib/workday";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   useCheckPlan,
   useGetProfile,
@@ -8,6 +8,7 @@ import {
   useGetPlan,
   getGetPlanQueryKey,
   PlanItem,
+  Term,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -31,6 +32,7 @@ import { Link } from "wouter";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
 import { useScheduleWorkspace } from "@/components/schedule-planner/useScheduleWorkspace";
 import { TermAndScheduleHeader } from "@/components/schedule-planner/TermAndScheduleHeader";
+import { AcademicYearOverview } from "@/components/schedule-planner/AcademicYearOverview";
 import { CalendarGrid } from "@/components/schedule-planner/CalendarGrid";
 import { ConflictsPanel } from "@/components/schedule-planner/ConflictsPanel";
 import { SidebarPanels } from "@/components/schedule-planner/SidebarPanels";
@@ -50,6 +52,12 @@ export default function Planner() {
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(
     null,
   );
+  const focusedQuarterRef = useRef<HTMLDivElement | null>(null);
+  const handleFocusQuarter = (term: Term, year: number) => {
+    workspace.setActiveTerm(term);
+    workspace.setActiveYear(year);
+    focusedQuarterRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const isTentativeSchedule =
     workspace.availability?.terms.find(
       (t) => t.term === workspace.activeTerm && t.year === workspace.activeYear,
@@ -159,13 +167,31 @@ export default function Planner() {
     <AppShell>
       <PageHeader
         title="Quarter Plan"
-        subtitle="Pick exact sections for one quarter. Use your Degree Plan intentions as a guide, select sections on the calendar, then hand off to Workday to register. CampusVal does not register you — this is planning support only."
+        subtitle="Loosely plan Fall, Winter, and Spring together, then pick exact sections one quarter at a time. Use your Degree Plan intentions as a guide, select sections on the calendar, then hand off to Workday to register. CampusVal does not register you — this is planning support only."
       />
       <PageContent>
-        {/* TermAndScheduleHeader: term/year selection from availability API, fall/winter/spring only */}
+        {/* Year-level overview: Fall/Winter/Spring at a glance, driven by
+            Degree Plan intentions; clicking a quarter focuses the detailed
+            weekly calendar below via the same workspace state. */}
+        <div className="mb-4">
+          <AcademicYearOverview
+            activePlan={activePlan}
+            focusedTerm={workspace.activeTerm}
+            focusedYear={workspace.activeYear}
+            onFocusQuarter={handleFocusQuarter}
+            availability={workspace.availability}
+          />
+        </div>
+
+        <div ref={focusedQuarterRef} />
+
+        {/* TermAndScheduleHeader: schedule (what-if) selection for the
+            focused quarter — quarter itself is chosen via the overview
+            above, fall/winter/spring only. */}
         <TermAndScheduleHeader
           workspace={workspace}
           allowedTerms={QUARTER_PLAN_TERMS}
+          showQuarterSelect={false}
         />
 
         <div

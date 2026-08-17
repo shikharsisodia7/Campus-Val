@@ -802,3 +802,106 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
     expect(mockUpdateMutate).not.toHaveBeenCalled();
   });
 });
+
+describe("CourseCard — Degree Plan course detail dialog has no section picker", () => {
+  function renderDetailDialog(courseDetail: {
+    code: string;
+    title: string;
+    units: number;
+    coreAreas: string[];
+    description: string;
+    prereqLogic: string;
+  }) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 60_000 } },
+    });
+    queryClient.setQueryData(["/api/courses", courseDetail.code], courseDetail);
+
+    const item = makePlanItem(90, courseDetail.code, CURRENT_TERM, CURRENT_YEAR);
+    const plan: AcademicPlanDetail = {
+      id: 1,
+      name: "My Plan",
+      planType: PlanType.degree,
+      items: [item],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <DegreePlanProvider
+          value={{
+            activePlan: plan,
+            activePlanId: 1,
+            setActivePlanId: () => {},
+            profile: undefined,
+            requirements: undefined,
+            scheduleAvailability: makeAvailability([
+              {
+                year: CURRENT_YEAR,
+                term: CURRENT_TERM,
+                status: "published",
+                offered: [courseDetail.code],
+              },
+            ]),
+            catalog: undefined,
+          }}
+        >
+          <DndContext>
+            <CourseCard item={item} availableYears={[CURRENT_YEAR]} conflicts={[]} />
+          </DndContext>
+        </DegreePlanProvider>
+      </QueryClientProvider>,
+    );
+
+    // Open the course detail dialog by clicking the tile.
+    fireEvent.click(screen.getByText(courseDetail.code));
+  }
+
+  it("shows description, prerequisites, and the planning-support disclaimer — never exact section/instructor/time selection", async () => {
+    renderDetailDialog({
+      code: "CSEN 10",
+      title: "Introduction to Programming",
+      units: 4,
+      coreAreas: [],
+      description: "An intro to programming.",
+      prereqLogic: "None",
+    });
+
+    await screen.findByTestId("course-detail-description");
+    expect(screen.getByTestId("course-detail-description").textContent).toBe(
+      "An intro to programming.",
+    );
+    expect(screen.getByTestId("course-detail-prerequisites").textContent).toContain(
+      "None",
+    );
+    expect(screen.getByTestId("course-detail-disclaimer").textContent).toContain(
+      "Verify requirements in the official SCU Bulletin/Course Catalog and in Workday before registration.",
+    );
+
+    // The removed section-selection UI must never render in Degree Plan.
+    expect(screen.queryByTestId("term-sections-panel")).toBeNull();
+    expect(screen.queryByTestId("term-sections-empty")).toBeNull();
+    expect(screen.queryByText(/sections$/i)).toBeNull();
+    expect(screen.queryByText(/Instructor TBA/i)).toBeNull();
+    expect(screen.queryByText(/§\d/)).toBeNull();
+  });
+
+  it("does not fetch course sections when the Degree Plan detail dialog opens", async () => {
+    renderDetailDialog({
+      code: "MATH 11",
+      title: "Calculus I",
+      units: 4,
+      coreAreas: [],
+      description: "Limits and derivatives.",
+      prereqLogic: "None",
+    });
+
+    await screen.findByTestId("course-detail-description");
+
+    // useListCourseSections would call fetch; the global fetch mock rejects
+    // every call, so any section fetch would surface as an unhandled
+    // rejection / loading state. Sections must never be requested here.
+    expect(global.fetch as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
+  });
+});

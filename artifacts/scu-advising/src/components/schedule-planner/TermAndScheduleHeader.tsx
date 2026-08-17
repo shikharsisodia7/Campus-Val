@@ -30,10 +30,17 @@ import { useScheduleWorkspace } from "./useScheduleWorkspace";
 export function TermAndScheduleHeader({
   workspace,
   allowedTerms,
+  showQuarterSelect = true,
 }: {
   workspace: ReturnType<typeof useScheduleWorkspace>;
   /** If provided, only show terms whose `term` field is in this set. */
   allowedTerms?: Set<string>;
+  /**
+   * Hide the inline Quarter dropdown when a parent already renders a
+   * dedicated quarter-focus control (the multi-quarter Academic Year
+   * Overview) — avoids two controls that both change the same state.
+   */
+  showQuarterSelect?: boolean;
 }) {
   const { toast } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
@@ -142,36 +149,38 @@ export function TermAndScheduleHeader({
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Quarter
-            </label>
-            <Select
-              value={
-                workspace.activeTerm
-                  ? `${workspace.activeTerm}|${workspace.activeYear}`
-                  : ""
-              }
-              onValueChange={(val) => {
-                const [t, y] = val.split("|");
-                workspace.setActiveTerm(t as Term);
-                workspace.setActiveYear(Number(y));
-              }}
-            >
-              <SelectTrigger className="w-[180px] bg-card">
-                <SelectValue placeholder="Select term" />
-              </SelectTrigger>
-              <SelectContent>
-                {workspace.availability?.terms
-                  .filter((t) => !allowedTerms || allowedTerms.has(t.term))
-                  .map((t) => (
-                    <SelectItem key={`${t.term}|${t.year}`} value={`${t.term}|${t.year}`}>
-                      {capitalize(t.term)} {t.year}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {showQuarterSelect && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Quarter
+              </label>
+              <Select
+                value={
+                  workspace.activeTerm
+                    ? `${workspace.activeTerm}|${workspace.activeYear}`
+                    : ""
+                }
+                onValueChange={(val) => {
+                  const [t, y] = val.split("|");
+                  workspace.setActiveTerm(t as Term);
+                  workspace.setActiveYear(Number(y));
+                }}
+              >
+                <SelectTrigger className="w-[180px] bg-card">
+                  <SelectValue placeholder="Select term" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workspace.availability?.terms
+                    .filter((t) => !allowedTerms || allowedTerms.has(t.term))
+                    .map((t) => (
+                      <SelectItem key={`${t.term}|${t.year}`} value={`${t.term}|${t.year}`}>
+                        {capitalize(t.term)} {t.year}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

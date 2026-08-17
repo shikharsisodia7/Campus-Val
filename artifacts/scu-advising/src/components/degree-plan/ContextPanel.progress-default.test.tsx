@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 /**
- * Right panel must default to Academic Progress (not Plan Controls).
+ * The right panel must ALWAYS be the Academic Progress Report reference —
+ * never a Progress/Plan toggle. Plan switching and majors/minors/
+ * professional-prep editing live behind a separate "Plan Controls" sheet,
+ * not sharing the APR column.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@workspace/api-client-react", async () => {
@@ -47,41 +50,69 @@ const plan = {
   updatedAt: new Date().toISOString(),
 };
 
-describe("ContextPanel Academic Progress default", () => {
+function renderPanel() {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <DegreePlanProvider
+        value={{
+          activePlan: plan as any,
+          activePlanId: 1,
+          setActivePlanId: vi.fn(),
+          profile: { major: "CSE", college: "School of Engineering" } as any,
+          requirements: [],
+          scheduleAvailability: undefined,
+          catalog: [],
+          aprCompletedCodes: new Set(),
+        }}
+      >
+        <ContextPanel plans={[plan as any]} />
+      </DegreePlanProvider>
+    </QueryClientProvider>,
+  );
+}
+
+describe("ContextPanel — APR is the permanent right-hand reference", () => {
   afterEach(() => cleanup());
 
-  it("defaults to the Progress tab and titles the panel Academic Progress", () => {
-    const client = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    render(
-      <QueryClientProvider client={client}>
-        <DegreePlanProvider
-          value={{
-            activePlan: plan as any,
-            activePlanId: 1,
-            setActivePlanId: vi.fn(),
-            profile: { major: "CSE", college: "School of Engineering" } as any,
-            requirements: [],
-            scheduleAvailability: undefined,
-            catalog: [],
-            aprCompletedCodes: new Set(),
-          }}
-        >
-          <ContextPanel plans={[plan as any]} />
-        </DegreePlanProvider>
-      </QueryClientProvider>,
-    );
+  it("always shows the Academic Progress Report — no Progress/Plan toggle", () => {
+    renderPanel();
 
     expect(
-      screen.getByRole("heading", { name: "Academic Progress" }),
+      screen.getByRole("heading", { name: "Academic Progress Report" }),
     ).toBeTruthy();
+    expect(screen.getByText("Official Reference")).toBeTruthy();
     expect(
-      screen.getByTestId("tab-academic-progress").getAttribute("data-state"),
-    ).toBe("active");
-    expect(
-      screen.getByTestId("tab-plan-controls").getAttribute("data-state"),
-    ).toBe("inactive");
+      screen.getByText(/CampusVal does not modify the report/),
+    ).toBeTruthy();
+
+    // The old Progress/Plan tab toggle must be gone entirely.
+    expect(screen.queryByTestId("tab-academic-progress")).toBeNull();
+    expect(screen.queryByTestId("tab-plan-controls")).toBeNull();
+    expect(screen.queryByRole("tablist")).toBeNull();
+
+    // Progress content renders directly, with no tab gating it.
     expect(screen.getByTestId("plan-progress-panel")).toBeTruthy();
+  });
+
+  it("moves plan switching and program editing behind a separate Plan Controls sheet", () => {
+    const { container } = renderPanel();
+
+    // Not visible until opened.
+    expect(screen.queryByText("Select Plan")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("button-open-plan-controls"));
+
+    expect(screen.getByText("Select Plan")).toBeTruthy();
+    expect(screen.getByTestId("plan-programs-section")).toBeTruthy();
+
+    // The APR heading is still in the document behind the sheet overlay —
+    // it was never replaced by Plan Controls content (Radix correctly
+    // marks it aria-hidden while the modal sheet is open).
+    expect(container.querySelector("h2")?.textContent).toBe(
+      "Academic Progress Report",
+    );
   });
 });

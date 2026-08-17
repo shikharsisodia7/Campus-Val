@@ -7,10 +7,6 @@ import {
   PlanItemType,
   useReplacePlanPlaceholder,
   useGetCourse,
-  useListCourseSections,
-  getListCourseSectionsQueryKey,
-  type Term,
-  type ScheduleAvailabilityTermStatus,
 } from "@workspace/api-client-react";
 import {
   useOptimisticDeletePlanItem,
@@ -65,16 +61,10 @@ import {
 
 function CourseDetailDialog({
   code,
-  term,
-  year,
-  termStatus,
   open,
   onOpenChange,
 }: {
   code: string;
-  term?: string;
-  year?: number;
-  termStatus?: ScheduleAvailabilityTermStatus;
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -105,20 +95,17 @@ function CourseDetailDialog({
                 </Badge>
               ))}
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p
+              className="text-sm text-muted-foreground"
+              data-testid="course-detail-description"
+            >
               {courseDetails?.description || "Description not available."}
             </p>
 
-            {term && year !== undefined && (
-              <TermSectionsPanel
-                code={code}
-                term={term}
-                year={year}
-                status={termStatus}
-              />
-            )}
-
-            <div className="p-3 bg-muted/20 rounded-md border border-border text-sm">
+            <div
+              className="p-3 bg-muted/20 rounded-md border border-border text-sm"
+              data-testid="course-detail-prerequisites"
+            >
               <div className="font-semibold mb-1">Prerequisites</div>
               <div>
                 {courseDetails?.prereqLogic ||
@@ -126,11 +113,15 @@ function CourseDetailDialog({
               </div>
             </div>
 
-            <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-blue-50 text-blue-800 p-2 rounded border border-blue-100">
+            <div
+              className="text-xs text-muted-foreground flex items-center gap-1.5 bg-blue-50 text-blue-800 p-2 rounded border border-blue-100"
+              data-testid="course-detail-disclaimer"
+            >
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>
-                Prerequisite advisories are informational. Always verify with
-                your advisor.
+                Course and prerequisite information is for planning support.
+                Verify requirements in the official SCU Bulletin/Course
+                Catalog and in Workday before registration.
               </span>
             </div>
           </div>
@@ -153,7 +144,7 @@ export function CourseCard({
   notInOfficialSchedule?: boolean;
   conflicts?: CourseConflictDetail[];
 }) {
-  const { activePlanId, catalog, profile, requirements, scheduleAvailability } =
+  const { activePlanId, catalog, profile, requirements } =
     useDegreePlanContext();
   const deletePlanItem = useOptimisticDeletePlanItem();
   const queryClient = useQueryClient();
@@ -440,13 +431,6 @@ export function CourseCard({
       {!isPlaceholder && item.courseCode && (
         <CourseDetailDialog
           code={item.courseCode}
-          term={item.term}
-          year={item.academicYear}
-          termStatus={
-            scheduleAvailability?.terms.find(
-              (t) => t.year === item.academicYear && t.term === item.term,
-            )?.status
-          }
           open={isDetailOpen}
           onOpenChange={setIsDetailOpen}
         />
@@ -729,121 +713,4 @@ function format12(t: string): string {
   const ampm = h >= 12 ? "PM" : "AM";
   h = h % 12 || 12;
   return `${h}:${m[2]} ${ampm}`;
-}
-
-function TermSectionsPanel({
-  code,
-  term,
-  year,
-  status,
-}: {
-  code: string;
-  term: string;
-  year: number;
-  status: ScheduleAvailabilityTermStatus | undefined;
-}) {
-  const hasSchedule = status === "published" || status === "tentative";
-  const params = { term: term as Term, year };
-  const { data: sections = [], isLoading } = useListCourseSections(
-    code,
-    params,
-    {
-      query: {
-        enabled: hasSchedule,
-        queryKey: getListCourseSectionsQueryKey(code, params),
-      },
-    },
-  );
-
-  const heading = (
-    <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1.5">
-      <CalendarClock className="h-3 w-3" />
-      <span className="capitalize">
-        {term} {year} sections
-      </span>
-    </div>
-  );
-
-  if (!hasSchedule) {
-    return (
-      <div className="space-y-2" data-testid="term-sections-panel">
-        {heading}
-        <div className="rounded-md border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
-          SCU hasn't published a schedule for{" "}
-          <span className="capitalize">
-            {term} {year}
-          </span>{" "}
-          yet, so section days and times aren't known.
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2" data-testid="term-sections-panel">
-      <div className="flex items-center gap-2 flex-wrap">
-        {heading}
-        {status === "tentative" && (
-          <Badge
-            variant="outline"
-            className="text-[9px] px-1.5 py-0 h-5 border-amber-300 bg-amber-50 text-amber-800"
-          >
-            Tentative — sections & instructors TBA
-          </Badge>
-        )}
-      </div>
-      {isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading sections…</div>
-      ) : sections.length === 0 ? (
-        <div
-          className="rounded-md border border-amber-200 bg-amber-50 p-3 flex gap-2 text-sm text-amber-900"
-          data-testid="term-sections-empty"
-        >
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
-          <span>
-            Not in SCU's {status === "tentative" ? "tentative" : "official"}{" "}
-            <span className="capitalize">
-              {term} {year}
-            </span>{" "}
-            schedule. It may be offered in another quarter — check Workday
-            Student.
-          </span>
-        </div>
-      ) : (
-        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-          {sections.map((s) => (
-            <div
-              key={s.id}
-              className="rounded-md border border-border p-2.5 bg-card text-sm"
-              data-testid={`plan-section-${s.id}`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-mono font-bold text-xs">
-                  {s.tentative ? "Section TBA" : `§${s.sectionNumber}`}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {s.meetingDays.length > 0
-                    ? s.meetingDays.join("")
-                    : "Days TBA"}
-                  {s.startTime && s.endTime
-                    ? ` · ${format12(s.startTime)}–${format12(s.endTime)}`
-                    : " · Time TBA"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2 mt-1 text-xs text-muted-foreground">
-                <span>
-                  {s.tentative
-                    ? "Instructor TBA"
-                    : s.instructor || "Instructor TBA"}
-                </span>
-                {s.location && !s.tentative && (
-                  <span className="truncate">{s.location}</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }

@@ -659,10 +659,17 @@ describe("degree requirements: plan-scoped scenario programs", () => {
       ).expect(200);
       const group = result.body.groups.find((candidate: any) => candidate.id === "minor-math-min");
       expect(group).toMatchObject({
-        title: "Minor Requirements — Mathematics",
+        // Not yet officially declared (only present as a plan-scoped
+        // scenario minor) — must be labeled proposed, never declared.
+        title: "Minor Requirements — Mathematics (proposed)",
         sourceUrl: expect.stringMatching(/^https:\/\/www\.scu\.edu\//),
         academicYear: "2026-27 Undergraduate Bulletin",
       });
+      expect(
+        group.notes.some((n: string) =>
+          n.includes("Planning only — official declaration must be completed through SCU"),
+        ),
+      ).toBe(true);
       expect(group.items).toContainEqual(expect.objectContaining({
         label: "Linear algebra or differential equations — choose 1",
         courses: ["MATH 52", "MATH 53"],

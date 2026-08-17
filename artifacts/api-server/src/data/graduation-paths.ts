@@ -3,6 +3,29 @@ import type { Term } from "./courses";
 export type PathType = "three_year" | "four_year";
 export type College = "SOE" | "LSB" | "CAS";
 
+/**
+ * How much trust a four-year sequence deserves:
+ * - "prescribed": reconciled course-by-course against an official SCU
+ *   four-year plan and eligible for the "Load Engineering Four-Year Plan"
+ *   preload action.
+ * - "recommended": an official SCU source exists (linked in `provenance`)
+ *   but CampusVal's generated sequence hasn't been reconciled against it
+ *   line-by-line yet — shown for reference, never preloadable.
+ * - "example": no major-specific official source; a generic recipe
+ *   template, shown as an illustration only.
+ * Only ever set on four-year plans — the aggressive three-year compression
+ * is always illustrative and never eligible for preload.
+ */
+export type SequenceTrust = "prescribed" | "recommended" | "example";
+
+export interface GraduationPathProvenance {
+  sourceUrl?: string;
+  sourceLabel?: string;
+  catalogYear?: string;
+  lastVerified?: string; // ISO date CampusVal last checked this against the source
+  verificationNote: string;
+}
+
 export interface GraduationPathQuarterEntry {
   year: number;
   term: Term;
@@ -22,6 +45,8 @@ export interface GraduationPathEntry {
   requiresOverload: boolean;
   quarters: GraduationPathQuarterEntry[];
   risks: string[];
+  sequenceTrust: SequenceTrust;
+  provenance: GraduationPathProvenance;
 }
 
 // ---------------------------------------------------------------------------
@@ -523,8 +548,8 @@ function mathSequenceFor(track: MajorRecipe["mathTrack"]): string[] {
 // Estimate units: most courses are 4-5 units; assume 4u as the default.
 // Engineering math/physics/CSEN use 4u; ENGR 1 = 1u; capstone (ENGR 110) = 2u.
 function estimateUnits(c: string): number {
-  if (c === "ENGR 1" || c === "ENGR 2" || c === "ENGR 10") return 1;
-  if (c === "ENGR 110") return 2;
+  if (c === "ENGR 1" || c === "ENGR 1L" || c === "ENGR 2" || c === "ENGR 10") return 1;
+  if (c === "ENGR 110" || c === "CSEN 194" || c === "CSEN 195" || c === "CSEN 196") return 2;
   if (c === "BUSN 70" || c === "BUSN 170" || c === "BUSN 179" || c === "MGMT 162") return 5;
   if (c === "MATH 11" || c === "MATH 12" || c === "MATH 13" || c === "MATH 14" || c === "MATH 22" || c === "MATH 53") return 4;
   if (
@@ -554,6 +579,61 @@ function makeQuarter(
     plannedUnits,
     ...(notes ? { notes } : {}),
   };
+}
+
+// Official SCU School of Engineering four-year plan sources found for the
+// other SOE majors (found 2026-08-16). These are real, currently-published
+// documents — but unlike CSE above, CampusVal's generated quarters for
+// these majors have NOT been reconciled course-by-course against them, so
+// they stay "recommended" (reference link only), not "prescribed"
+// (preloadable). Reconciling each is future work.
+const SOE_RECOMMENDED_PROVENANCE: Record<string, GraduationPathProvenance> = {
+  ECEN: {
+    sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/2023-24-Four-Year-Plan-ECEN.pdf",
+    sourceLabel: "SCU School of Engineering — Electrical & Computer Engineering 4-Year Plan",
+    catalogYear: "2023-24",
+    lastVerified: "2026-08-16",
+    verificationNote:
+      "Official plan found and linked, but CampusVal's generated quarters below have not yet been reconciled against it course-by-course. Not eligible for preload until verified.",
+  },
+  MECH: {
+    sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/2023-24-Four-Year-Plan-MECH.pdf",
+    sourceLabel: "SCU School of Engineering — Mechanical Engineering 4-Year Plan",
+    catalogYear: "2023-24",
+    lastVerified: "2026-08-16",
+    verificationNote:
+      "Official plan found and linked, but CampusVal's generated quarters below have not yet been reconciled against it course-by-course. Not eligible for preload until verified.",
+  },
+  CENG: {
+    sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/civil-engineering/CESE_4yearPlan_MATH11_2026.pdf",
+    sourceLabel: "SCU School of Engineering — Civil, Environmental & Sustainable Engineering 4-Year Planning Guide (MATH 11 track)",
+    catalogYear: "2026",
+    lastVerified: "2026-08-16",
+    verificationNote:
+      "Official plan found and linked (a MATH 9 track also exists), but CampusVal's generated quarters below have not yet been reconciled against it course-by-course. Not eligible for preload until verified.",
+  },
+  BIOE: {
+    sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/bioengineering/BIOE-4-Year-Plan_Biomolecular-track_2027-1.pdf",
+    sourceLabel: "SCU School of Engineering — Bioengineering 4-Year Plan (Biomolecular track)",
+    catalogYear: "2027",
+    lastVerified: "2026-08-16",
+    verificationNote:
+      "Official plan found and linked (Medical Device and Pre-Med tracks also exist), but CampusVal's generated quarters below have not yet been reconciled against it course-by-course. Not eligible for preload until verified.",
+  },
+};
+
+const GENERIC_NO_SOURCE_PROVENANCE: GraduationPathProvenance = {
+  verificationNote:
+    "Generated from a generic degree-structure template (Core Curriculum placement + major course lists), not sourced from a major-specific official SCU four-year plan. Treat as an illustration only — build your real plan in the Degree Plan workspace and confirm sequencing with your advisor.",
+};
+
+function sequenceTrustFor(recipe: MajorRecipe): {
+  sequenceTrust: SequenceTrust;
+  provenance: GraduationPathProvenance;
+} {
+  const soeProvenance = SOE_RECOMMENDED_PROVENANCE[recipe.major];
+  if (soeProvenance) return { sequenceTrust: "recommended", provenance: soeProvenance };
+  return { sequenceTrust: "example", provenance: GENERIC_NO_SOURCE_PROVENANCE };
 }
 
 function generateFourYear(recipe: MajorRecipe): GraduationPathEntry {
@@ -651,6 +731,8 @@ function generateFourYear(recipe: MajorRecipe): GraduationPathEntry {
         ? "Business majors share the LSB Common Curriculum (BUSN 70, ECON 1-3, MGMT 71/72, ACTG 11/12, OMIS 40/41, BUSN 85) before specializing."
         : "Arts & Sciences majors take a 3-quarter foreign language sequence and choose specific Core options each quarter.";
 
+  const { sequenceTrust, provenance } = sequenceTrustFor(recipe);
+
   return {
     type: "four_year",
     major: recipe.major,
@@ -660,6 +742,8 @@ function generateFourYear(recipe: MajorRecipe): GraduationPathEntry {
       `Recommended default. Within standard cap (20 units freshman/soph, 22 units junior/senior). ${collegeNote} Core slots labeled "Core: ..." indicate areas where you choose from a list of approved courses; consult the bulletin and your advisor for the latest approved list.`,
     averageUnitsPerQuarter: Math.round(avg * 10) / 10,
     requiresOverload: avg > 18,
+    sequenceTrust,
+    provenance,
     quarters,
     risks: [
       "This plan is generated from a recipe — confirm the exact major requirements with your faculty advisor and the SCU 2025-26 bulletin.",
@@ -701,6 +785,10 @@ function generateThreeYear(recipe: MajorRecipe): GraduationPathEntry {
       "AGGRESSIVE. Requires GPA ≥ 3.0 + priority registration + dean approval to overload past the standard 20/22 unit caps. AP/transfer credit is essentially required to make this feasible.",
     averageUnitsPerQuarter: Math.round(avg * 10) / 10,
     requiresOverload: true,
+    // The aggressive 3-year compression is always illustrative — never
+    // eligible for the prescribed-preload action, regardless of major.
+    sequenceTrust: "example",
+    provenance: EXAMPLE_ONLY_PROVENANCE,
     quarters,
     risks: [
       "Multiple quarters at 20+ units of demanding coursework.",
@@ -721,39 +809,72 @@ function generateThreeYear(recipe: MajorRecipe): GraduationPathEntry {
 // already in production, so we don't regenerate them).
 // ---------------------------------------------------------------------------
 
+const CSE_PROVENANCE: GraduationPathProvenance = {
+  sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/CSECoursePlan-Standard.pdf",
+  sourceLabel: "SCU School of Engineering — Sample 4-Year Course Plan for Computer Science & Engineering",
+  catalogYear: "2023-24",
+  lastVerified: "2026-08-16",
+  verificationNote:
+    "Reconciled course-by-course against the official PDF (last modified 1/16/2024). Two rows list an any-order elective choice across a multi-quarter span (Year 2's CSEN 20/ECEN 21/CSEN 79, and Year 3's CSEN 146/177/179) — this plan places each as noted below; confirm the exact term with your advisor.",
+};
+
 const FOUR_YEAR_CSE: GraduationPathEntry = {
   type: "four_year",
   major: "CSE",
   title: "Computer Science & Engineering — Standard 4-Year Path",
   summary:
-    "Standard 12-quarter (4-year) plan, ~14.5 units/quarter average. Comfortable workload, leaves room for an internship summer or a minor.",
+    "Standard 12-quarter (4-year) plan following SCU's published sample sequence for Computer Science & Engineering.",
   feasibilityNote:
-    "Recommended default. Within standard cap (20 units freshman/soph, 22 units junior/senior). No overload needed.",
-  averageUnitsPerQuarter: 14.5,
+    "Matches SCU's published sample sequence. Confirm University Core area choices and elective ordering with your advisor before registering.",
+  averageUnitsPerQuarter: 15.7,
   requiresOverload: false,
+  sequenceTrust: "prescribed",
+  provenance: CSE_PROVENANCE,
   risks: [
-    "If you fail/repeat CSEN 11 or 12 you'll need a summer or 5th year.",
-    "Senior design (ENGR 110) is fall-only — can't slip past it.",
+    "This plan follows SCU's published sample sequence, but \"University Core\" and elective slots require you to pick an approved course each time — verify current options in the SCU Bulletin.",
+    "Senior Design (CSEN 194/195/196) runs across all three quarters of senior year — falling behind on any one course delays graduation.",
+    "CSEN 20 / ECEN 21 / CSEN 79 and CSEN 146 / CSEN 177 / CSEN 179 are each an any-order set per SCU's plan; this schedule picks one placement, but your actual term may differ.",
   ],
   quarters: [
-    { year: 1, term: "fall", label: "Y1 Fall", courses: ["ENGR 1", "MATH 11", "ENGL 1A", "TESP 1"], plannedUnits: 13 },
-    { year: 1, term: "winter", label: "Y1 Winter", courses: ["MATH 12", "CSEN 10", "ENGL 1B", "TESP 2"], plannedUnits: 16 },
-    { year: 1, term: "spring", label: "Y1 Spring", courses: ["MATH 13", "CSEN 11", "PHYS 31", "HIST 11A"], plannedUnits: 17 },
-    { year: 2, term: "fall", label: "Y2 Fall", courses: ["MATH 14", "CSEN 12", "PHYS 32", "COMM 12"], plannedUnits: 17 },
-    { year: 2, term: "winter", label: "Y2 Winter", courses: ["MATH 22", "CSEN 19", "PHYS 33", "TESP 3"], plannedUnits: 17 },
-    { year: 2, term: "spring", label: "Y2 Spring", courses: ["MATH 53", "CSEN 20", "ECON 1"], plannedUnits: 14 },
-    { year: 3, term: "fall", label: "Y3 Fall", courses: ["CSEN 21", "ENGL 2"], plannedUnits: 8, notes: "Light load — internship search quarter." },
-    { year: 3, term: "winter", label: "Y3 Winter", courses: ["PHIL 9", "COMM 12"], plannedUnits: 8 },
-    { year: 3, term: "spring", label: "Y3 Spring", courses: ["HIST 11B", "PSYC 1"], plannedUnits: 9 },
-    { year: 4, term: "fall", label: "Y4 Fall", courses: ["ENGR 110"], plannedUnits: 2 },
-    { year: 4, term: "winter", label: "Y4 Winter", courses: [], plannedUnits: 0, notes: "Reserved for technical electives + senior design continuation." },
-    { year: 4, term: "spring", label: "Y4 Spring", courses: [], plannedUnits: 0, notes: "Reserved for technical electives + senior design continuation." },
+    { year: 1, term: "fall", label: "Y1 Fall", courses: ["Core: Critical Thinking & Writing 1", "MATH 11", "CHEM 11", "CSEN 10", "ENGR 1"], plannedUnits: 17 },
+    { year: 1, term: "winter", label: "Y1 Winter", courses: ["Core: Critical Thinking & Writing 2", "MATH 12", "PHYS 31", "CSEN 11", "ENGR 1L"], plannedUnits: 17 },
+    { year: 1, term: "spring", label: "Y1 Spring", courses: ["CSEN 19", "MATH 13", "PHYS 32", "CSEN 12"], plannedUnits: 16 },
+    { year: 2, term: "fall", label: "Y2 Fall", courses: ["Core: Cultures & Ideas 1", "MATH 14", "PHYS 33"], plannedUnits: 12 },
+    { year: 2, term: "winter", label: "Y2 Winter", courses: ["Core: Cultures & Ideas 2", "AMTH 106", "AMTH 108"], plannedUnits: 12 },
+    {
+      year: 2,
+      term: "spring",
+      label: "Y2 Spring",
+      courses: ["Core: University Core (RTC 1 recommended, e.g. ENGR 16)", "MATH 53", "ECEN 50", "CSEN 20 or ECEN 21 or CSEN 79"],
+      plannedUnits: 16,
+      notes: "CSEN 20 / ECEN 21 / CSEN 79 can be taken any quarter in Year 2, not necessarily Spring — SCU's plan lists it as a merged, any-order requirement.",
+    },
+    {
+      year: 3,
+      term: "fall",
+      label: "Y3 Fall",
+      courses: ["Core: University Core (Ethics recommended, e.g. ENGR 19)", "CSEN 171", "Computer Engineering Elective", "CSEN 146"],
+      plannedUnits: 16,
+      notes: "CSEN 146 / CSEN 177 / CSEN 179 can be taken in any order across Year 3 — this plan places CSEN 146 in Fall.",
+    },
+    { year: 3, term: "winter", label: "Y3 Winter", courses: ["Core: University Core", "ECEN 153", "Computer Engineering Elective", "CSEN 177"], plannedUnits: 16 },
+    { year: 3, term: "spring", label: "Y3 Spring", courses: ["Core: University Core", "ENGL 181", "Computer Engineering Elective", "CSEN 179"], plannedUnits: 16 },
+    { year: 4, term: "fall", label: "Y4 Fall", courses: ["Core: University Core", "Educational Enrichment Elective", "CSEN 174", "CSEN 194"], plannedUnits: 14 },
+    { year: 4, term: "winter", label: "Y4 Winter", courses: ["Core: University Core", "Educational Enrichment Elective", "CSEN 175", "CSEN 195"], plannedUnits: 14 },
+    { year: 4, term: "spring", label: "Y4 Spring", courses: ["Educational Enrichment Elective", "Educational Enrichment Elective", "CSEN 122", "CSEN 196"], plannedUnits: 14 },
   ],
+};
+
+const EXAMPLE_ONLY_PROVENANCE: GraduationPathProvenance = {
+  verificationNote:
+    "Illustrative compression only — never eligible for preload. Not sourced from an official SCU document.",
 };
 
 const THREE_YEAR_CSE: GraduationPathEntry = {
   type: "three_year",
   major: "CSE",
+  sequenceTrust: "example",
+  provenance: EXAMPLE_ONLY_PROVENANCE,
   title: "Computer Science & Engineering — Aggressive 3-Year Path",
   summary:
     "Compressed 9-quarter plan averaging ~19.5 units/quarter. Requires overload approval in 4+ quarters and a clean prerequisite run.",
@@ -824,6 +945,10 @@ export function getGraduationPath(
           "No quarter-by-quarter schedule is available for this major. Use the major requirements list plus your completed coursework to plan with your advisor.",
         averageUnitsPerQuarter: 0,
         requiresOverload: false,
+        sequenceTrust: "example",
+        provenance: {
+          verificationNote: "No plan — nothing to preload for this major yet.",
+        },
         quarters: [],
         risks: [],
       };

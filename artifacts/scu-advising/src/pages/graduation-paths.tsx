@@ -1,9 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
-import { useGetProfile } from "@workspace/api-client-react";
+import {
+  useGetProfile,
+  useListPlans,
+  useAddPlanItem,
+  getGetPlanQueryKey,
+  type Term,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertTriangle,
   Route,
@@ -12,11 +27,32 @@ import {
   ShieldCheck,
   CheckCircle2,
   BookOpen,
+  ExternalLink,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { termLabel, getCurrentSCUTerm } from "@/lib/api";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
 
 type PathType = "four_year" | "three_year";
+type SequenceTrust = "prescribed" | "recommended" | "example";
+
+interface PathProvenance {
+  sourceUrl?: string;
+  sourceLabel?: string;
+  catalogYear?: string;
+  lastVerified?: string;
+  verificationNote: string;
+}
+
+// Placeholder slots the generator emits — never real, addable course codes.
+const NON_COURSE_SLOT = /^(Core:|Educational Enrichment Elective$|Computer Engineering Elective$)/i;
+// "CSEN 20 or ECEN 21 or CSEN 79" style any-order choice rows — not a single addable code.
+const CHOICE_SLOT = / or /i;
+
+function isRealCourseCode(entry: string): boolean {
+  return !NON_COURSE_SLOT.test(entry) && !CHOICE_SLOT.test(entry);
+}
 
 interface MajorOption {
   code: string;
@@ -43,7 +79,21 @@ interface PathData {
   requiresOverload: boolean;
   quarters: PathQuarter[];
   risks: string[];
+  sequenceTrust: SequenceTrust;
+  provenance: PathProvenance;
 }
+
+const TRUST_LABEL: Record<SequenceTrust, string> = {
+  prescribed: "Prescribed — SCU Official Plan",
+  recommended: "Recommended — Source Linked, Not Yet Verified",
+  example: "Example Path — Illustrative Only",
+};
+
+const TRUST_BADGE_CLASS: Record<SequenceTrust, string> = {
+  prescribed: "border-emerald-300 bg-emerald-50 text-emerald-800",
+  recommended: "border-amber-300 bg-amber-50 text-amber-800",
+  example: "border-border bg-muted/40 text-muted-foreground",
+};
 
 interface RequirementCourse {
   code: string;
@@ -114,6 +164,66 @@ export default function GraduationPaths() {
   const [data, setData] = useState<PathData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [requirements, setRequirements] = useState<RequirementsData | null>(null);
+
+  // Engineering four-year preload — only ever offered for a "prescribed"
+  // sequence (see graduation-paths.ts). Adds real courses to the student's
+  // actual Degree Plan; open Core/elective slots are never auto-added.
+  const { data: plansList } = useListPlans();
+  const degreePlan =
+    plansList?.plans.find((p) => p.planType === "degree") ??
+    plansList?.plans[0] ??
+    null;
+  const addPlanItem = useAddPlanItem();
+  const queryClient = useQueryClient();
+  const [preloadOpen, setPreloadOpen] = useState(false);
+  const [preloadResult, setPreloadResult] = useState<{
+    added: number;
+    skipped: number;
+    failed: number;
+  } | null>(null);
+  const [isPreloading, setIsPreloading] = useState(false);
+
+  const preloadPlan = useMemo(() => {
+    if (!data || data.sequenceTrust !== "prescribed" || data.type !== "four_year") return null;
+    const startYear = profile?.startYear;
+    if (!startYear) return null;
+    const items = data.quarters.flatMap((q) =>
+      q.courses.filter(isRealCourseCode).map((courseCode) => ({
+        courseCode,
+        academicYear: startYear + (q.year - 1),
+        term: q.term as Term,
+      })),
+    );
+    return { items, startYear };
+  }, [data, profile?.startYear]);
+
+  async function handleConfirmPreload() {
+    if (!preloadPlan || !degreePlan) return;
+    setIsPreloading(true);
+    let added = 0;
+    let skipped = 0;
+    let failed = 0;
+    for (const item of preloadPlan.items) {
+      try {
+        await addPlanItem.mutateAsync({
+          id: degreePlan.id,
+          data: {
+            itemType: "course",
+            courseCode: item.courseCode,
+            academicYear: item.academicYear,
+            term: item.term,
+          },
+        });
+        added += 1;
+      } catch (err: any) {
+        if (err?.data?.duplicate) skipped += 1;
+        else failed += 1;
+      }
+    }
+    await queryClient.invalidateQueries({ queryKey: getGetPlanQueryKey(degreePlan.id) });
+    setIsPreloading(false);
+    setPreloadResult({ added, skipped, failed });
+  }
 
   useEffect(() => {
     setIsLoading(true);
@@ -256,8 +366,12 @@ export default function GraduationPaths() {
                   <h2 className="font-serif text-2xl font-bold text-foreground flex items-center gap-2">
                     <Route className="h-5 w-5 text-primary" />
                     {data.title}
-                    <Badge variant="outline" className="ml-1 text-[10px] uppercase tracking-wider">
-                      Planning scenario
+                    <Badge
+                      variant="outline"
+                      className={`ml-1 text-[10px] uppercase tracking-wider ${TRUST_BADGE_CLASS[data.sequenceTrust]}`}
+                      data-testid="sequence-trust-badge"
+                    >
+                      {TRUST_LABEL[data.sequenceTrust]}
                     </Badge>
                   </h2>
                   <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
@@ -286,6 +400,25 @@ export default function GraduationPaths() {
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-700" />
                 <div>{data.feasibilityNote}</div>
               </div>
+              <div className="mt-3 rounded-md border border-border bg-muted/20 p-3 text-xs text-foreground/90">
+                <div className="font-semibold mb-1">{data.provenance.sourceUrl ? "Source" : "Provenance"}</div>
+                {data.provenance.sourceUrl ? (
+                  <a
+                    href={data.provenance.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                    data-testid="provenance-source-link"
+                  >
+                    {data.provenance.sourceLabel ?? data.provenance.sourceUrl}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : null}
+                {data.provenance.catalogYear && (
+                  <span className="ml-2 text-muted-foreground">Catalog year: {data.provenance.catalogYear}</span>
+                )}
+                <div className="text-muted-foreground mt-1">{data.provenance.verificationNote}</div>
+              </div>
               <PathPersonalization data={data} completedSet={completedSet} />
               <div className="mt-3 text-[11px] text-muted-foreground">
                 "Core: …" entries are requirement slots (fill them with any
@@ -293,6 +426,31 @@ export default function GraduationPaths() {
                 This scenario is a planning aid, not advisor approval — confirm
                 your plan against your Workday degree audit.
               </div>
+              {preloadPlan && degreePlan && (
+                <div className="mt-4 flex items-center justify-between gap-3 flex-wrap rounded-md border border-emerald-200 bg-emerald-50/60 p-3">
+                  <div className="text-xs text-emerald-900">
+                    This sequence is verified against SCU's published plan. You can add its real
+                    courses to your Degree Plan — open Core/elective slots are skipped and must be
+                    filled in yourself.
+                  </div>
+                  <Button
+                    size="sm"
+                    data-testid="button-load-engineering-plan"
+                    onClick={() => {
+                      setPreloadResult(null);
+                      setPreloadOpen(true);
+                    }}
+                  >
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    Load Engineering Four-Year Plan
+                  </Button>
+                </div>
+              )}
+              {preloadPlan && !degreePlan && (
+                <div className="mt-4 text-xs text-muted-foreground">
+                  Set up your Degree Plan first to load this sequence into it.
+                </div>
+              )}
             </Card>
 
             <Card className="p-6">
@@ -437,6 +595,68 @@ export default function GraduationPaths() {
           </>
         )}
       </PageContent>
+
+      <Dialog open={preloadOpen} onOpenChange={(o) => !isPreloading && setPreloadOpen(o)}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Load Engineering Four-Year Plan</DialogTitle>
+            <DialogDescription>
+              {data?.title}
+            </DialogDescription>
+          </DialogHeader>
+          {preloadResult ? (
+            <div className="space-y-3 py-2 text-sm">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle2 className="h-4 w-4" />
+                Added {preloadResult.added} course{preloadResult.added === 1 ? "" : "s"} to your
+                Degree Plan.
+              </div>
+              {preloadResult.skipped > 0 && (
+                <div className="text-muted-foreground">
+                  Skipped {preloadResult.skipped} already in your plan (not duplicated).
+                </div>
+              )}
+              {preloadResult.failed > 0 && (
+                <div className="text-amber-800">
+                  {preloadResult.failed} course{preloadResult.failed === 1 ? "" : "s"} could not be
+                  added — check your Degree Plan and add them manually if needed.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3 py-2 text-sm text-foreground/90">
+              <p>
+                This adds {preloadPlan?.items.length ?? 0} real courses from the sequence above to
+                your Degree Plan, starting from your on-file entry year ({preloadPlan?.startYear}).
+              </p>
+              <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
+                <li>Open "Core: …", elective, and any-order choice slots are never auto-added — fill those in yourself.</li>
+                <li>Courses already in your plan are left as-is, never duplicated or overwritten.</li>
+                <li>Your existing plan items are otherwise untouched.</li>
+              </ul>
+            </div>
+          )}
+          <DialogFooter>
+            {preloadResult ? (
+              <Button onClick={() => setPreloadOpen(false)}>Done</Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setPreloadOpen(false)} disabled={isPreloading}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmPreload}
+                  disabled={isPreloading}
+                  data-testid="button-confirm-preload"
+                >
+                  {isPreloading && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                  Add to My Degree Plan
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

@@ -15,6 +15,29 @@ const ALLOWED_DOMAIN = "scu.edu";
 const emailCache = new Map<string, { email: string | null; ts: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+/**
+ * Server-side allowlist for external prototype reviewers (e.g. Jake, Tom
+ * Hines, Yale contacts) who need access but don't have an @scu.edu address.
+ * Configured via GUEST_REVIEWER_EMAILS, a comma-separated list. Never
+ * exposed to the frontend — this module only runs server-side.
+ */
+function parseReviewerAllowlist(raw: string | undefined): Set<string> {
+  if (!raw) return new Set();
+  return new Set(
+    raw
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter((e) => e.length > 0),
+  );
+}
+
+export function isApprovedCampusValUser(email: string): boolean {
+  const normalized = email.trim().toLowerCase();
+  if (normalized.endsWith(`@${ALLOWED_DOMAIN}`)) return true;
+  const allowlist = parseReviewerAllowlist(process.env.GUEST_REVIEWER_EMAILS);
+  return allowlist.has(normalized);
+}
+
 async function getPrimaryEmail(userId: string): Promise<string | null> {
   const cached = emailCache.get(userId);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.email;
@@ -55,9 +78,10 @@ export async function requireAuth(
         "We couldn't read your email address from your account. Sign out and sign back in.",
     });
   }
-  if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
+  if (!isApprovedCampusValUser(email)) {
     return res.status(403).json({
-      error: `CampusVal is restricted to Santa Clara University students. Your account (${email}) is not an @${ALLOWED_DOMAIN} address.`,
+      error:
+        "This CampusVal prototype is currently limited to SCU users and invited reviewers.",
     });
   }
 

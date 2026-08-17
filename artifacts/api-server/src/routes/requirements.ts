@@ -99,7 +99,10 @@ export function buildRequirementsResponse(
   // Build a requirement group for a declared major from the recipe system.
   // Majors without verified recipes get an honest empty group (no invented
   // requirements), pointing students at the Bulletin.
-  const buildMajorGroup = (majorName: string, idSuffix: string) => {
+  const buildMajorGroup = (majorName: string, idSuffix: string, isScenarioOnly: boolean) => {
+    const scenarioNote = isScenarioOnly
+      ? ["Planning only — official declaration must be completed through SCU. CampusVal does not declare majors."]
+      : [];
     const majorReqs = getMajorRequirements(
       majorName,
       profile.completedCourseCodes ?? [],
@@ -113,13 +116,14 @@ export function buildRequirementsResponse(
     if (!majorReqs) {
       return {
         id: `major-${idSuffix}`,
-        title: `Major Requirements — ${majorName}`,
+        title: `Major Requirements — ${majorName}${isScenarioOnly ? " (proposed)" : ""}`,
         kind: "major" as const,
         sourceUrl: majorSourceUrl,
         sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
         academicYear: universityCore.academicYear,
         lastVerified: universityCore.lastVerified,
         notes: [
+          ...scenarioNote,
           `Course-by-course requirements for ${majorName} aren't loaded in CampusVal yet. Check the SCU Bulletin and your department advisor.`,
         ],
         items: [],
@@ -130,13 +134,13 @@ export function buildRequirementsResponse(
     }
     return {
       id: `major-${idSuffix}`,
-      title: `Major Requirements — ${majorReqs.title}`,
+      title: `Major Requirements — ${majorReqs.title}${isScenarioOnly ? " (proposed)" : ""}`,
       kind: "major" as const,
       sourceUrl: majorSourceUrl,
       sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
       academicYear: universityCore.academicYear,
       lastVerified: universityCore.lastVerified,
-      notes: majorReqs.notes,
+      notes: [...scenarioNote, ...majorReqs.notes],
       items: majorReqs.groups.flatMap((g) =>
         g.courses.map((c) => ({
           id: `major-${idSuffix}-${c.code.replace(/\s+/g, "-").toLowerCase()}`,
@@ -156,6 +160,11 @@ export function buildRequirementsResponse(
     };
   };
 
+  const profileDeclaredMajors = new Set(
+    [profile.major, profile.secondMajor, ...(profile.additionalMajors ?? [])]
+      .filter((m): m is string => !!m)
+      .map(normalize),
+  );
   const declaredMajors = [
     profile.major,
     profile.secondMajor,
@@ -163,11 +172,20 @@ export function buildRequirementsResponse(
     ...scenarioMajors,
   ].filter((m, idx, arr): m is string => !!m && arr.indexOf(m) === idx);
   const majorGroups = declaredMajors.map((m, idx) =>
-    buildMajorGroup(m, idx === 0 ? "primary" : `extra-${idx}`),
+    buildMajorGroup(
+      m,
+      idx === 0 ? "primary" : `extra-${idx}`,
+      !profileDeclaredMajors.has(normalize(m)),
+    ),
   );
 
   // Minor recipes use the same centralized requirement pipeline as majors,
   // including the server-side placeholder eligibility check.
+  const profileDeclaredMinors = new Set(
+    [profile.minor, ...(profile.additionalMinors ?? [])]
+      .filter((m): m is string => !!m)
+      .map(normalize),
+  );
   const declaredMinors = [
     profile.minor,
     ...(profile.additionalMinors ?? []),
@@ -176,17 +194,22 @@ export function buildRequirementsResponse(
     (m, idx, arr): m is string => !!m && arr.indexOf(m) === idx,
   );
   const minorGroups = declaredMinors.map((minorName, idx) => {
+    const isScenarioOnly = !profileDeclaredMinors.has(normalize(minorName));
+    const scenarioNote = isScenarioOnly
+      ? ["Planning only — official declaration must be completed through SCU. CampusVal does not declare minors."]
+      : [];
     const recipe = getMinorRequirements(minorName);
     if (!recipe) {
       return {
         id: `minor-${idx}`,
-        title: `Minor Requirements — ${minorName}`,
+        title: `Minor Requirements — ${minorName}${isScenarioOnly ? " (proposed)" : ""}`,
         kind: "minor" as const,
         sourceUrl: SOURCES.casBulletin,
         sourceLabel: "SCU Undergraduate Bulletin (minor department chapter)",
         academicYear: universityCore.academicYear,
         lastVerified: universityCore.lastVerified,
         notes: [
+          ...scenarioNote,
           `Requirements not yet verified for the ${minorName} minor. CampusVal will not invent eligible courses; verify the official SCU Bulletin and your department.`,
         ],
         items: [],
@@ -228,13 +251,13 @@ export function buildRequirementsResponse(
     const autoItems = items.filter((item) => item.autoTracked);
     return {
       id: `minor-${recipe.code.toLowerCase()}`,
-      title: `Minor Requirements — ${recipe.title}`,
+      title: `Minor Requirements — ${recipe.title}${isScenarioOnly ? " (proposed)" : ""}`,
       kind: "minor" as const,
       sourceUrl: recipe.sourceUrl,
       sourceLabel: recipe.sourceLabel,
       academicYear: recipe.catalogYear,
       lastVerified: recipe.lastVerified,
-      notes: recipe.notes,
+      notes: [...scenarioNote, ...recipe.notes],
       items,
       autoTrackedCount: autoItems.length,
       autoCompletedCount: autoItems.filter((item) => item.complete).length,
