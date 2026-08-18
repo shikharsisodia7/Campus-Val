@@ -28,6 +28,23 @@ describe("DegreePlanWorkspace laptop layout classes", () => {
   });
 });
 
+describe("DegreePlanWorkspace mobile sheet close controls", () => {
+  const source = readFileSync(
+    resolve(__dirname, "./DegreePlanWorkspace.tsx"),
+    "utf8",
+  );
+
+  it("does not render a duplicate manual close button that can collide with sheet content", () => {
+    // SheetContent already renders a built-in close (X) button at top-4
+    // right-4 (see components/ui/sheet.tsx). A second, manually-positioned
+    // "Close" button here previously sat at top-3 left-3 inside the right
+    // (Academic Progress) sheet, directly overlapping ContextPanel's own
+    // "Academic Progress Report" heading at 1024px and other tablet widths.
+    expect(source).not.toMatch(/Close palette/);
+    expect(source).not.toMatch(/>\s*Close\s*</);
+  });
+});
+
 describe("planner laptop layout classes", () => {
   const source = readFileSync(
     resolve(__dirname, "../../pages/planner.tsx"),
