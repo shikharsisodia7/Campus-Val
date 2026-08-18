@@ -289,12 +289,19 @@ export function DegreePlanWorkspace({
           </SheetTrigger>
           <SheetContent
             side="right"
-            className="w-[min(20rem,90vw)] p-0"
+            className="flex w-[min(20rem,90vw)] flex-col p-0"
             onEscapeKeyDown={() => setRightOpen(false)}
             onPointerDownOutside={() => setRightOpen(false)}
           >
             <SheetTitle className="sr-only">Academic Progress</SheetTitle>
-            <ContextPanel plans={plansList?.plans ?? []} />
+            {/* pt-9 keeps ContextPanel's own header (which has its own
+                right-aligned "Plan Controls" button) clear of the Sheet's
+                built-in close (X) button at top-4 right-4 — without this,
+                Plan Controls sits on top of and intercepts clicks meant
+                for the close button. */}
+            <div className="min-h-0 flex-1 pt-9">
+              <ContextPanel plans={plansList?.plans ?? []} />
+            </div>
           </SheetContent>
         </Sheet>
       </div>
