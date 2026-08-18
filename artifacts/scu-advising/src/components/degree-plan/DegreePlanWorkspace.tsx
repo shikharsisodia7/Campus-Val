@@ -273,13 +273,6 @@ export function DegreePlanWorkspace({
             onPointerDownOutside={() => setLeftOpen(false)}
           >
             <SheetTitle className="sr-only">Course Palette</SheetTitle>
-            <button
-              type="button"
-              className="absolute right-3 top-3 z-10 rounded-sm bg-background/90 px-2 py-1 text-xs font-medium text-muted-foreground shadow-sm hover:text-foreground"
-              onClick={() => setLeftOpen(false)}
-            >
-              Close palette
-            </button>
             <Palette />
           </SheetContent>
         </Sheet>
@@ -301,13 +294,6 @@ export function DegreePlanWorkspace({
             onPointerDownOutside={() => setRightOpen(false)}
           >
             <SheetTitle className="sr-only">Academic Progress</SheetTitle>
-            <button
-              type="button"
-              className="absolute left-3 top-3 z-10 rounded-sm bg-background/90 px-2 py-1 text-xs font-medium text-muted-foreground shadow-sm hover:text-foreground"
-              onClick={() => setRightOpen(false)}
-            >
-              Close
-            </button>
             <ContextPanel plans={plansList?.plans ?? []} />
           </SheetContent>
         </Sheet>
