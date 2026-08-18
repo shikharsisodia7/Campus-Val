@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { render, screen, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DndContext } from "@dnd-kit/core";
@@ -122,6 +124,22 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+});
+
+describe("TermColumn header layout at narrow widths", () => {
+  it("keeps the term name and units badge each as one unbroken line", () => {
+    // At 390px (3 columns ~101px each), "winter"/"spring" + a units badge
+    // don't fit on one row. Without whitespace-nowrap, the badge text itself
+    // (e.g. "0 units") wraps mid-phrase ("0" / "UNITS" on separate lines),
+    // producing uneven, cramped-looking cards vs. "fall". With nowrap on
+    // both pieces plus flex-wrap on the row, the whole badge instead drops
+    // cleanly to its own line when needed — confirmed live via Playwright
+    // at 390px real viewport width.
+    const source = readFileSync(resolve(__dirname, "./TermColumn.tsx"), "utf8");
+    expect(source).toMatch(/capitalize whitespace-nowrap/);
+    expect(source).toMatch(/whitespace-nowrap text-\[10px\]/);
+    expect(source).toMatch(/flex flex-wrap items-center justify-between/);
+  });
 });
 
 describe("TermColumn conflict warning wiring", () => {

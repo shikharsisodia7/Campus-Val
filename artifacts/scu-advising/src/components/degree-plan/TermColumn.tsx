@@ -80,9 +80,9 @@ export function TermColumn({
       ref={setNodeRef}
       className={`flex min-h-[125px] min-w-0 flex-col gap-1.5 rounded-lg border p-2 shadow-sm transition-colors xl:min-h-[130px] xl:p-2.5 ${isOver ? "border-primary bg-primary/5" : "border-border/50 bg-card"}`}
     >
-      <div className="flex items-center justify-between border-b border-border/40 pb-1">
-        <h4 className="text-sm font-medium capitalize">{term}</h4>
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-border/40 pb-1">
+        <h4 className="text-sm font-medium capitalize whitespace-nowrap">{term}</h4>
+        <div className="whitespace-nowrap text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
           {realUnits} {realUnits === 1 ? "unit" : "units"}
           {placeholders > 0 && (
             <span className="lowercase normal-case font-normal ml-1">
