@@ -43,6 +43,15 @@ describe("DegreePlanWorkspace mobile sheet close controls", () => {
     expect(source).not.toMatch(/Close palette/);
     expect(source).not.toMatch(/>\s*Close\s*</);
   });
+
+  it("gives the Academic Progress sheet's content top clearance from the built-in close button", () => {
+    // ContextPanel renders its own right-aligned "Plan Controls" button in
+    // its header. Without top clearance inside the sheet, that button sits
+    // directly under the Sheet's built-in close (X) button and intercepts
+    // clicks meant for it — confirmed live via a real pointer-interception
+    // error during Playwright QA at 1024px.
+    expect(source).toMatch(/pt-9[\s\S]{0,40}<ContextPanel/);
+  });
 });
 
 describe("planner laptop layout classes", () => {
