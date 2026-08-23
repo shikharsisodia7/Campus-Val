@@ -4,6 +4,8 @@ import {
   DndContext,
   DragOverlay,
   closestCorners,
+  pointerWithin,
+  type CollisionDetection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -21,6 +23,23 @@ import { Plus } from "lucide-react";
 import { useOptimisticUpdatePlanItem } from "./usePlanItemMutations";
 import { useUpdatePlan } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+
+/**
+ * Whatever the pointer is actually inside wins; fall back to closestCorners
+ * only when the pointer is over empty space.
+ *
+ * With plain closestCorners, dropping a course into "Completed Before Current
+ * Plan" was impossible: that strip is ~80px tall while a term column runs the
+ * full height of the board, and closestCorners measures the DRAGGED CARD's
+ * corners rather than the cursor. A tall card hovering over the completed
+ * strip still scored closer to the term column behind/below it, so the drop
+ * silently landed back in a term — the professor reported exactly this.
+ * Measuring the pointer instead makes the drop land where the user aimed.
+ */
+const collisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  return pointerCollisions.length > 0 ? pointerCollisions : closestCorners(args);
+};
 
 export function Board({ plans }: { plans: any[] }) {
   const {
@@ -250,7 +269,7 @@ export function Board({ plans }: { plans: any[] }) {
       <div className="flex-1 space-y-4 overflow-y-auto p-3 xl:p-4 2xl:space-y-5 2xl:p-5">
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={collisionDetection}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
