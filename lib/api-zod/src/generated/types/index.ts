@@ -31,6 +31,7 @@ export * from "./courseSearchResult";
 export * from "./courseSearchResultCoursesItem";
 export * from "./courseSearchState";
 export * from "./courseSection";
+export * from "./courseSectionComponentType";
 export * from "./courseSectionMeetingDaysItem";
 export * from "./createOpenaiConversationBody";
 export * from "./dashboardSummary";

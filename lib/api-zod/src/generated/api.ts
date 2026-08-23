@@ -575,6 +575,18 @@ export const ListCourseSectionsResponseItem = zod.object({
     .describe(
       "True for tentative-schedule terms (Winter\/Spring 2027) where section numbers and instructors are not yet finalized.",
     ),
+  componentType: zod
+    .enum(["lecture", "lab", "recitation", "unknown"])
+    .optional()
+    .describe(
+      'Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin\'s laboratory\/recitation text. Always treat it as a planning aid; \"unknown\" means CampusVal could not tell.',
+    ),
+  componentInferred: zod
+    .boolean()
+    .optional()
+    .describe(
+      "Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official.",
+    ),
 });
 export const ListCourseSectionsResponse = zod.array(
   ListCourseSectionsResponseItem,
@@ -643,6 +655,18 @@ export const SyncWorkdaySectionsResponse = zod.object({
           .optional()
           .describe(
             "True for tentative-schedule terms (Winter\/Spring 2027) where section numbers and instructors are not yet finalized.",
+          ),
+        componentType: zod
+          .enum(["lecture", "lab", "recitation", "unknown"])
+          .optional()
+          .describe(
+            'Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin\'s laboratory\/recitation text. Always treat it as a planning aid; \"unknown\" means CampusVal could not tell.',
+          ),
+        componentInferred: zod
+          .boolean()
+          .optional()
+          .describe(
+            "Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official.",
           ),
       }),
     )
@@ -2090,6 +2114,15 @@ export const GetScheduleResponse = zod.object({
       startTime: zod.string(),
       endTime: zod.string(),
       location: zod.string().nullish(),
+      componentType: zod
+        .union([
+          zod.enum(["lecture", "lab", "recitation", "unknown"]),
+          zod.null(),
+        ])
+        .optional()
+        .describe(
+          "Which component of the course this scheduled section is (lecture \/ lab \/ recitation), derived from the meeting snapshot on the event. Null for commitments and for sections CampusVal cannot classify.",
+        ),
     }),
   ),
   createdAt: zod.string(),
@@ -2146,6 +2179,15 @@ export const UpdateScheduleResponse = zod.object({
       startTime: zod.string(),
       endTime: zod.string(),
       location: zod.string().nullish(),
+      componentType: zod
+        .union([
+          zod.enum(["lecture", "lab", "recitation", "unknown"]),
+          zod.null(),
+        ])
+        .optional()
+        .describe(
+          "Which component of the course this scheduled section is (lecture \/ lab \/ recitation), derived from the meeting snapshot on the event. Null for commitments and for sections CampusVal cannot classify.",
+        ),
     }),
   ),
   createdAt: zod.string(),
@@ -2300,6 +2342,12 @@ export const UpdateScheduleEventResponse = zod.object({
   startTime: zod.string(),
   endTime: zod.string(),
   location: zod.string().nullish(),
+  componentType: zod
+    .union([zod.enum(["lecture", "lab", "recitation", "unknown"]), zod.null()])
+    .optional()
+    .describe(
+      "Which component of the course this scheduled section is (lecture \/ lab \/ recitation), derived from the meeting snapshot on the event. Null for commitments and for sections CampusVal cannot classify.",
+    ),
 });
 
 /**

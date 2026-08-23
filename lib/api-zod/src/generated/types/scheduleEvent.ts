@@ -36,4 +36,6 @@ export interface ScheduleEvent {
   endTime: string;
   /** @nullable */
   location?: string | null;
+  /** Which component of the course this scheduled section is (lecture / lab / recitation), derived from the meeting snapshot on the event. Null for commitments and for sections CampusVal cannot classify. */
+  componentType?: "lecture" | "lab" | "recitation" | "unknown" | null;
 }

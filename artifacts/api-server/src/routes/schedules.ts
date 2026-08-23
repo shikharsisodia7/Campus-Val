@@ -18,6 +18,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { COURSES, findCourse } from "../data/courses";
 import { offeredSectionsFor } from "../data/offered-sections";
 import { searchCourses } from "../lib/course-search";
+import { classifySection } from "../lib/course-components";
 
 const router: IRouter = Router();
 
@@ -61,6 +62,18 @@ function eventDto(row: ScheduleEventRow) {
     startTime: row.startTime,
     endTime: row.endTime,
     location: row.location ?? null,
+    // Derived at read time from the meeting snapshot already stored on the
+    // row, so multi-component scheduling needs no migration and every
+    // schedule saved before this feature keeps working unchanged.
+    componentType:
+      row.kind === "section" && row.courseCode
+        ? classifySection({
+            courseCode: row.courseCode,
+            meetingDays: (row.meetingDays ?? []) as string[],
+            startTime: row.startTime,
+            endTime: row.endTime,
+          }).componentType
+        : null,
   };
 }
 

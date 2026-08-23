@@ -6,6 +6,11 @@ import {
   offeredSectionsFor,
   isTentativeTerm,
 } from "../data/offered-sections";
+import {
+  classifySection,
+  requiredComponentsFor,
+  type ComponentType,
+} from "../lib/course-components";
 
 const router: IRouter = Router();
 
@@ -96,6 +101,13 @@ router.get("/courses/:code/sections", async (req, res) => {
     waitlist: number;
     seatsKnown: boolean;
     tentative: boolean;
+    /**
+     * Lecture / lab / recitation, inferred from the published meeting
+     * pattern (SCU publishes no component column). `componentInferred`
+     * stays true so the UI never presents this as a Registrar field.
+     */
+    componentType: ComponentType;
+    componentInferred: boolean;
   };
 
   const out: OutSection[] = official.map((s) => {
@@ -103,6 +115,17 @@ router.get("/courses/:code/sections", async (req, res) => {
     const seatsTotal = live?.seatsTotal ?? s.seatsTotal;
     const seatsOpen = live?.seatsOpen ?? s.seatsOpen;
     const waitlist = live?.waitlist ?? s.waitlist;
+    const meetingDays = (
+      live?.meetingDays?.length ? live.meetingDays : s.meetingDays
+    ) as string[];
+    const startTime = s.startTime || live?.startTime || "";
+    const endTime = s.endTime || live?.endTime || "";
+    const component = classifySection({
+      courseCode: s.courseCode,
+      meetingDays,
+      startTime,
+      endTime,
+    });
     return {
       id: `${s.courseCode}-${s.sectionNumber}-${s.term}-${s.year}`,
       courseCode: s.courseCode,
@@ -119,6 +142,8 @@ router.get("/courses/:code/sections", async (req, res) => {
       waitlist,
       seatsKnown: seatsTotal > 0 || waitlist > 0,
       tentative: isTentativeTerm(s.term, s.year),
+      componentType: component.componentType,
+      componentInferred: component.inferred,
     };
   });
 
@@ -145,6 +170,13 @@ router.get("/courses/:code/sections", async (req, res) => {
       waitlist: w.waitlist,
       seatsKnown: w.seatsTotal > 0 || w.waitlist > 0,
       tentative: isTentativeTerm(w.term, w.year),
+      componentType: classifySection({
+        courseCode: w.courseCode,
+        meetingDays: w.meetingDays as string[],
+        startTime: w.startTime,
+        endTime: w.endTime,
+      }).componentType,
+      componentInferred: true,
     });
   }
 
@@ -168,6 +200,9 @@ router.get("/courses/:code", (req, res) => {
     prereqGroups: course.prereqGroups,
     corequisites: course.corequisites,
     notes: course.notes ?? null,
+    // Separately-scheduled components this course has, per the bulletin
+    // text. Drives the "you still need a lab" hint in Quarter Plan.
+    requiredComponents: requiredComponentsFor(course.code),
   });
 });
 
