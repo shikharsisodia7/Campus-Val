@@ -310,7 +310,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
     if (!activePlanId || activePlan?.planType === "degree") return;
     if (
       confirm(
-        "Make this your official Degree Plan? Your current Degree Plan will be saved as a tentative backup.",
+        "Make this your Degree Plan? Your current Degree Plan will be saved as a tentative backup. This is planning only — it does not change anything with the university.",
       )
     ) {
       promotePlan.mutate(
@@ -424,8 +424,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
                       className={`w-full justify-start ${activePlanId === degreePlan.id ? "bg-primary hover:bg-primary/90" : ""}`}
                       onClick={() => setActivePlanId(degreePlan.id)}
                     >
-                      <ShieldCheck className="h-4 w-4 mr-2" /> Official Degree
-                      Plan
+                      <ShieldCheck className="h-4 w-4 mr-2" /> Degree Plan
                     </Button>
                   )}
                   {tentativePlans.map((tp) => (
@@ -465,7 +464,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
                       className="h-8 text-xs border-amber-300 text-amber-800 hover:bg-amber-100"
                       onClick={handlePromote}
                     >
-                      <Rocket className="h-3 w-3 mr-1" /> Use as Official
+                      <Rocket className="h-3 w-3 mr-1" /> Promote to Degree Plan
                     </Button>
                     <Button
                       variant="outline"
@@ -854,7 +853,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
             <DialogTitle>New Tentative Degree Plan</DialogTitle>
             <DialogDescription>
               Create a sandbox plan to explore options without changing your
-              official Degree Plan.
+              Degree Plan.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
