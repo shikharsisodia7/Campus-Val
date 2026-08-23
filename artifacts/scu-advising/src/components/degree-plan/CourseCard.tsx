@@ -47,6 +47,7 @@ import { Input } from "@/components/ui/input";
 import {
   Trash2,
   GripVertical,
+  GraduationCap,
   MoveRight,
   BookOpen,
   AlertCircle,
@@ -187,23 +188,6 @@ export function CourseCard({
   const isCompletedItem =
     (item.bucket ?? "planned") === "completed" || item.term === "completed";
 
-  const handleMove = (e: React.MouseEvent, year: number, term: string) => {
-    e.stopPropagation();
-    if (!activePlanId) return;
-    updatePlanItem.mutate({
-      id: activePlanId,
-      itemId: item.id,
-      data: {
-        academicYear: year,
-        term: term as any,
-        // Moving a completed item into a real term makes it planned again.
-        ...(isCompletedItem
-          ? { bucket: "planned" as const, completionSource: null }
-          : {}),
-      },
-    });
-  };
-
   const handleMarkCompleted = (e: Event | React.MouseEvent, source: string) => {
     if ("stopPropagation" in e) e.stopPropagation();
     if (!activePlanId) return;
@@ -337,76 +321,46 @@ export function CourseCard({
         </div>
 
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoveRight className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-48 max-h-[300px] overflow-y-auto"
-            >
-              <DropdownMenuLabel>Move to...</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {/* Completed before plan — only for course items */}
-              {!isPlaceholder && (
-                <DropdownMenuItem
-                  onClick={(e) => handleMove(e as any, 0, "completed")}
-                  disabled={isInCompletedArea}
-                  data-testid={`move-to-completed-area-${item.id}`}
+          {/* Moving a course between terms is drag-and-drop only — the
+              professor asked for the move menu to go, and dnd-kit's
+              KeyboardSensor (wired in Board.tsx) keeps dragging reachable
+              from the keyboard. What stays here is the one thing a drag
+              cannot express: WHY a course counts as already completed, which
+              is real provenance rather than a position on the board. */}
+          {!isPlaceholder && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Mark ${item.courseCode ?? "course"} completed before this plan`}
+                  data-testid={`completion-source-trigger-${item.id}`}
                 >
-                  ✓ Completed before plan
-                </DropdownMenuItem>
-              )}
-              {!isPlaceholder && <DropdownMenuSeparator />}
-              {availableYears.map((y) => (
-                <div key={y}>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                    {y}
-                  </div>
-                  {terms.map((t) => (
-                    <DropdownMenuItem
-                      key={`${y}-${t}`}
-                      onClick={(e) => handleMove(e as any, y, t)}
-                      disabled={
-                        !isCompletedItem &&
-                        item.academicYear === y &&
-                        item.term === t
-                      }
-                    >
-                      <span className="capitalize">{t}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-              ))}
-              {!isPlaceholder && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-xs">
-                    Completed before current plan
-                  </DropdownMenuLabel>
-                  {COMPLETION_SOURCE_OPTIONS.map((opt) => (
-                    <DropdownMenuItem
-                      key={opt.value}
-                      data-testid={`mark-completed-${item.id}-${opt.value}`}
-                      disabled={
-                        isCompletedItem && item.completionSource === opt.value
-                      }
-                      onClick={(e) => handleMarkCompleted(e as any, opt.value)}
-                    >
-                      {opt.label}
-                    </DropdownMenuItem>
-                  ))}
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                  <GraduationCap className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="text-xs">
+                  Completed before current plan
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {COMPLETION_SOURCE_OPTIONS.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.value}
+                    data-testid={`mark-completed-${item.id}-${opt.value}`}
+                    disabled={
+                      isCompletedItem && item.completionSource === opt.value
+                    }
+                    onClick={(e) => handleMarkCompleted(e as any, opt.value)}
+                  >
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           <Button
             variant="ghost"
