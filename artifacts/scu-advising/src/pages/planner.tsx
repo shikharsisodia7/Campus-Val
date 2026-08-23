@@ -153,9 +153,13 @@ export default function Planner() {
       const days = s.meetingDays.join("") || "TBA";
       const time =
         s.startTime && s.endTime ? `${s.startTime}–${s.endTime}` : "Time TBA";
+      const component =
+        s.componentType && s.componentType !== "unknown"
+          ? ` (${s.componentType})`
+          : "";
       return isTentativeSchedule
-        ? `${s.courseCode} — Tentative offering  ${days} ${time}`
-        : `${s.courseCode}-${s.sectionNumber}  ${days} ${time}`;
+        ? `${s.courseCode} — Tentative offering${component}  ${days} ${time}`
+        : `${s.courseCode}-${s.sectionNumber}${component}  ${days} ${time}`;
     });
     navigator.clipboard.writeText(lines.join("\n"));
     toast({ title: "Section list copied to clipboard" });
@@ -166,14 +170,30 @@ export default function Planner() {
   return (
     <AppShell>
       <PageHeader
-        title="Quarter Plan"
-        subtitle="Loosely plan Fall, Winter, and Spring together, then pick exact sections one quarter at a time. Use your Degree Plan intentions as a guide, select sections on the calendar, then hand off to Workday to register. CampusVal does not register you — this is planning support only."
+        compact
+        title="Quarter Schedule Planner"
+        subtitle="Plan your Fall, Winter, and Spring schedules — exact sections from Workday's posted schedule for the next quarter, and the Registrar's tentative schedules for later ones."
       />
       <PageContent>
-        {/* Year-level overview: Fall/Winter/Spring at a glance, driven by
-            Degree Plan intentions; clicking a quarter focuses the detailed
-            weekly calendar below via the same workspace state. */}
-        <div className="mb-4">
+        {/* The professor's own explanation of this page, kept compact. */}
+        <p
+          className="mb-2 text-xs leading-relaxed text-muted-foreground"
+          data-testid="quarter-plan-intro"
+        >
+          Your Degree Plan courses are listed for each quarter below. If you
+          decide to change which classes you plan to take, go back and edit the
+          Degree Plan so it reflects those changes. Find course sections and add
+          them to your plan, and be sure to schedule both lecture and lab — or
+          any other required component — for courses that require them. At the
+          bottom there is a handoff to Workday to complete your registration.{" "}
+          <strong className="font-semibold text-foreground">
+            CampusVal does not register you for classes; this is planning
+            support.
+          </strong>
+        </p>
+
+        {/* Compact Fall/Winter/Spring focus strip with read-only carryover. */}
+        <div className="mb-3">
           <AcademicYearOverview
             activePlan={activePlan}
             focusedTerm={workspace.activeTerm}
@@ -194,17 +214,22 @@ export default function Planner() {
           showQuarterSelect={false}
         />
 
+        {/* Three columns at laptop width and up:
+              Find Courses | weekly calendar | Academic Progress Report.
+            The professor asked for Find Courses to be immediately visible
+            after choosing a quarter, and for the APR to sit in a dedicated
+            right-hand column starting near the top — conceptually the same
+            place it occupies on Degree Plan. */}
         <div
-          className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] xl:gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]"
+          className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)_minmax(260px,300px)] 2xl:grid-cols-[minmax(330px,380px)_minmax(0,1fr)_minmax(280px,320px)]"
           data-testid="quarter-plan-layout"
         >
-          {/* Center: Calendar + Conflicts + Degree Intentions — dominant workspace */}
+          {/* Left: section search — the main action on this page. */}
           <div
-            className="flex min-w-0 flex-col gap-4"
-            data-testid="quarter-plan-calendar-column"
+            className="order-2 flex min-w-0 flex-col gap-3 xl:order-1"
+            data-testid="quarter-plan-search-column"
           >
-            {/* Degree Plan Intentions Panel */}
-            <DegreePlanIntentionsPanel
+            <PlannedThisQuarterChips
               items={degreeItems}
               selectedCourseCodes={selectedCourseCodes}
               activeTerm={workspace.activeTerm}
@@ -212,7 +237,26 @@ export default function Planner() {
               isLoadingAvailability={workspace.isLoadingAvailability}
               onFindSections={(code) => setIntentionCourse(code)}
             />
+            {workspace.activeScheduleId ? (
+              <div className="min-h-[24rem] xl:h-[calc(100vh-22rem)]">
+                <SidebarPanels
+                  workspace={workspace}
+                  initialCourse={intentionCourse}
+                  onInitialCourseConsumed={() => setIntentionCourse(null)}
+                />
+              </div>
+            ) : (
+              <div className="flex flex-1 items-center justify-center rounded-xl border bg-card p-6 text-center text-sm opacity-50 shadow-sm">
+                Create a schedule above to search for sections.
+              </div>
+            )}
+          </div>
 
+          {/* Center: Calendar + Conflicts + Handoff — dominant workspace */}
+          <div
+            className="order-3 flex min-w-0 flex-col gap-4 xl:order-2"
+            data-testid="quarter-plan-calendar-column"
+          >
             {/* Calendar or empty state */}
             {workspace.activeScheduleId ? (
               <>
@@ -248,6 +292,12 @@ export default function Planner() {
               sections={selectedSections}
               onCopy={onCopyHandoff}
               isTentativeSchedule={isTentativeSchedule}
+              quarterLabel={
+                workspace.activeTerm && workspace.activeYear
+                  ? `${workspace.activeTerm.charAt(0).toUpperCase()}${workspace.activeTerm.slice(1)} ${workspace.activeYear}`
+                  : null
+              }
+              scheduleName={workspace.activeSchedule?.name ?? null}
             />
 
             {/* Load Check Collapsible */}
@@ -370,23 +420,14 @@ export default function Planner() {
             </Card>
           </div>
 
-          {/* Right: compact section search + official progress reference. */}
+          {/* Right: the Workday Academic Progress Report reference column.
+              Starts at the top of the workspace, mirroring Degree Plan, and
+              carries nothing else — no CampusVal progress analytics above it. */}
           <div
-            className="flex min-w-0 flex-col gap-3"
-            data-testid="quarter-plan-sidebar-column"
+            className="order-1 flex min-w-0 flex-col gap-3 xl:order-3"
+            data-testid="quarter-plan-apr-column"
           >
-            {workspace.activeScheduleId ? (
-              <SidebarPanels
-                workspace={workspace}
-                initialCourse={intentionCourse}
-                onInitialCourseConsumed={() => setIntentionCourse(null)}
-              />
-            ) : (
-              <div className="flex flex-1 items-center justify-center rounded-xl border bg-card p-6 text-center text-sm opacity-50 pointer-events-none shadow-sm">
-                Please create a schedule to access section search tools.
-              </div>
-            )}
-            <div className="max-h-[28rem] overflow-y-auto 2xl:max-h-[34rem]">
+            <div className="overflow-y-auto xl:h-[calc(100vh-18rem)]">
               <AcademicProgress className="p-3" />
             </div>
           </div>
@@ -403,7 +444,18 @@ export default function Planner() {
   );
 }
 
-function DegreePlanIntentionsPanel({
+/**
+ * Compact reminder of what the Degree Plan says for the FOCUSED quarter,
+ * rendered as a one-line chip row above Find Courses.
+ *
+ * This replaces the large intentions card that used to sit at the top of the
+ * workspace. The professor asked for that space back, and for the carryover
+ * itself to be read-only — so these chips never move a course between
+ * quarters. They only jump the search to that course, or show that a section
+ * has already been chosen. Changing WHICH quarter a course belongs to happens
+ * in the Degree Plan.
+ */
+function PlannedThisQuarterChips({
   items,
   selectedCourseCodes,
   activeTerm,
@@ -420,131 +472,67 @@ function DegreePlanIntentionsPanel({
 }) {
   if (isLoadingAvailability || (!activeTerm && !activeYear)) return null;
 
-  const courses = items.filter(
-    (i) => i.itemType === "course" && !!i.courseCode,
-  );
-  const placeholders = items.filter(
-    (i) => i.itemType === "requirement_placeholder",
-  );
-
+  const courses = items.filter((i) => i.itemType === "course" && !!i.courseCode);
   const quarterLabel =
     activeTerm && activeYear
       ? `${activeTerm.charAt(0).toUpperCase()}${activeTerm.slice(1)} ${activeYear}`
       : "this quarter";
 
   return (
-    <Card className="p-4" data-testid="intentions-panel">
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <LinkIcon className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-semibold text-foreground truncate">
-            From your Degree Plan — {quarterLabel}
-          </span>
-        </div>
-        <Link href="/degree-plan">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs shrink-0"
-            data-testid="link-go-to-degree-plan"
-          >
-            Edit Degree Plan
-          </Button>
-        </Link>
+    <div
+      className="rounded-md border border-border/60 bg-muted/20 px-2.5 py-2"
+      data-testid="planned-this-quarter"
+    >
+      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <LinkIcon className="h-3 w-3" />
+        Degree Plan — {quarterLabel}
       </div>
 
-      {items.length === 0 ? (
-        <div className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border rounded-md">
-          No courses are planned for {quarterLabel} in your Degree Plan.{" "}
+      {courses.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground">
+          Nothing planned for {quarterLabel}.{" "}
           <Link
             href="/degree-plan"
             className="underline text-primary"
             data-testid="link-degree-plan-empty"
           >
-            Add courses to your Degree Plan
-          </Link>{" "}
-          to see them here.
-        </div>
+            Add courses in the Degree Plan
+          </Link>
+          .
+        </p>
       ) : (
-        <div className="space-y-2">
+        <div className="flex flex-wrap gap-1.5">
           {courses.map((item) => {
             const code = item.courseCode!;
             const isSelected = selectedCourseCodes.has(code.toUpperCase());
-            return (
-              <div
+            return isSelected ? (
+              <Badge
                 key={item.id}
-                className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-md border ${
-                  isSelected
-                    ? "border-emerald-300 bg-emerald-50/40"
-                    : "border-border bg-muted/20"
-                }`}
-                data-testid={`intention-course-${item.id}`}
+                variant="secondary"
+                className="border-emerald-200 bg-emerald-100 text-[10px] font-mono text-emerald-800"
+                data-testid={`intention-scheduled-${item.id}`}
+                title={`${code} already has a section on this schedule`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  {isSelected ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  ) : (
-                    <div className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/30" />
-                  )}
-                  <div className="min-w-0 overflow-hidden">
-                    <span className="font-mono text-sm font-bold text-primary">
-                      {code}
-                    </span>
-                    {item.courseTitle && (
-                      <span className="ml-2 text-xs text-muted-foreground truncate inline-block max-w-full">
-                        {item.courseTitle}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="shrink-0">
-                  {isSelected ? (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200"
-                    >
-                      Section added
-                    </Badge>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => onFindSections(code)}
-                      data-testid={`button-find-sections-${item.id}`}
-                    >
-                      Find sections
-                    </Button>
-                  )}
-                </div>
-              </div>
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                {code}
+              </Badge>
+            ) : (
+              <Button
+                key={item.id}
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 font-mono text-[10px]"
+                onClick={() => onFindSections(code)}
+                data-testid={`button-find-sections-${item.id}`}
+                title={`Find ${code} sections in ${quarterLabel}`}
+              >
+                {code}
+              </Button>
             );
           })}
-
-          {placeholders.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border/50 bg-muted/10 opacity-70"
-              data-testid={`intention-placeholder-${item.id}`}
-            >
-              <div className="h-4 w-4 shrink-0 rounded-full border-2 border-dashed border-muted-foreground/30" />
-              <div className="text-xs text-muted-foreground italic">
-                <span className="font-medium not-italic text-foreground/70">
-                  {item.requirementLabel ||
-                    item.requirementCategory ||
-                    "Requirement placeholder"}
-                </span>{" "}
-                — decide a course in the{" "}
-                <Link href="/degree-plan" className="underline text-primary/80">
-                  Degree Plan
-                </Link>{" "}
-                first
-              </div>
-            </div>
-          ))}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -608,10 +596,14 @@ function WorkdayHandoffCard({
   sections,
   onCopy,
   isTentativeSchedule,
+  quarterLabel,
+  scheduleName,
 }: {
   sections: ScheduleEvent[];
   onCopy: () => void;
   isTentativeSchedule: boolean;
+  quarterLabel?: string | null;
+  scheduleName?: string | null;
 }) {
   return (
     <Card className="p-4" data-testid="workday-handoff-card">
@@ -622,12 +614,25 @@ function WorkdayHandoffCard({
         </span>
       </div>
 
+      {quarterLabel && (
+        <p
+          className="mb-2 text-xs font-medium text-foreground"
+          data-testid="handoff-scope"
+        >
+          {quarterLabel}
+          {scheduleName ? ` · ${scheduleName}` : ""}
+        </p>
+      )}
+
       <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
         <strong className="text-foreground">
           CampusVal cannot register you for classes.
         </strong>{" "}
-        This plan is not enrollment. When you're ready, copy your section list
-        and open Workday Student to register manually.
+        This plan is not enrollment, and CampusVal cannot confirm seats, holds,
+        restrictions, or your registration eligibility.{" "}
+        {isTentativeSchedule
+          ? "This quarter's schedule is still tentative, so treat this as planning rather than something you can register for today."
+          : "When you're ready, copy your section list and open Workday Student to register manually."}
       </p>
 
       {sections.length === 0 ? (
@@ -651,6 +656,9 @@ function WorkdayHandoffCard({
                 {isTentativeSchedule
                   ? `${s.courseCode} — Tentative offering`
                   : `${s.courseCode}-${s.sectionNumber}`}
+                {s.componentType && s.componentType !== "unknown"
+                  ? ` (${s.componentType})`
+                  : ""}
                 {"  "}
                 {days} {time}
               </div>
