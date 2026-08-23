@@ -1,12 +1,17 @@
 // @vitest-environment jsdom
 /**
- * The right panel must ALWAYS be the Academic Progress Report reference —
- * never a Progress/Plan toggle. Plan switching and majors/minors/
- * professional-prep editing live behind a separate "Plan Controls" sheet,
- * not sharing the APR column.
+ * The Degree Plan right-hand column must be the Workday Academic Progress
+ * Report and NOTHING else.
+ *
+ * The professor's correction: that column exists so a student can compare
+ * their editable CampusVal plan against the university record. Plan Controls,
+ * major/minor editing, Professional Preparation editing, and CampusVal's own
+ * progress widgets all belong on the planning side instead — they are
+ * asserted here to be absent from this column, and asserted present in
+ * DegreePlanToolbar.planning-side.test.tsx.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { cleanup, render, screen, fireEvent } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@workspace/api-client-react", async () => {
@@ -25,18 +30,12 @@ vi.mock("@workspace/api-client-react", async () => {
   };
 });
 
-vi.mock("./PlanProgressPanel", () => ({
-  PlanProgressPanel: () => (
-    <div data-testid="plan-progress-panel">progress body</div>
-  ),
-}));
-
 import { ContextPanel } from "./ContextPanel";
 import { DegreePlanProvider } from "./DegreePlanContext";
 
 const plan = {
   id: 1,
-  name: "Official Degree Plan",
+  name: "My Degree Plan",
   planType: "degree" as const,
   sourcePlanId: null,
   metadata: {},
@@ -68,51 +67,66 @@ function renderPanel() {
           aprCompletedCodes: new Set(),
         }}
       >
-        <ContextPanel plans={[plan as any]} />
+        <ContextPanel />
       </DegreePlanProvider>
     </QueryClientProvider>,
   );
 }
 
-describe("ContextPanel — APR is the permanent right-hand reference", () => {
+describe("ContextPanel — the right column is the APR and nothing else", () => {
   afterEach(() => cleanup());
 
-  it("always shows the Academic Progress Report — no Progress/Plan toggle", () => {
+  it("titles the column as the Workday university record reference", () => {
     renderPanel();
 
     expect(
-      screen.getByRole("heading", { name: "Academic Progress Report" }),
+      screen.getByRole("heading", {
+        name: "Workday Academic Progress Report",
+      }),
     ).toBeTruthy();
-    expect(screen.getByText("Official Reference")).toBeTruthy();
-    expect(
-      screen.getByText(/CampusVal does not modify the report/),
-    ).toBeTruthy();
+    expect(screen.getByText("University Record Reference")).toBeTruthy();
+  });
 
-    // The old Progress/Plan tab toggle must be gone entirely.
+  it("tells the student to verify in Workday and never calls itself official CampusVal data", () => {
+    renderPanel();
+
+    expect(
+      screen.getByText(/CampusVal never\s+modifies it/),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/Verify your academic and registration information/),
+    ).toBeTruthy();
+  });
+
+  it("does not put Plan Controls in the APR column", () => {
+    renderPanel();
+
+    expect(screen.queryByTestId("button-open-plan-controls")).toBeNull();
+    expect(screen.queryByTestId("sheet-plan-controls")).toBeNull();
+    expect(screen.queryByText("Select Plan")).toBeNull();
+  });
+
+  it("does not put CampusVal progress widgets or plan analytics in the APR column", () => {
+    renderPanel();
+
+    expect(screen.queryByTestId("plan-progress-panel")).toBeNull();
+    expect(screen.queryByTestId("plan-programs-section")).toBeNull();
+    expect(
+      screen.queryByText(/CampusVal planning support/),
+    ).toBeNull();
+  });
+
+  it("keeps the old Progress/Plan tab toggle gone", () => {
+    renderPanel();
+
     expect(screen.queryByTestId("tab-academic-progress")).toBeNull();
     expect(screen.queryByTestId("tab-plan-controls")).toBeNull();
     expect(screen.queryByRole("tablist")).toBeNull();
-
-    // Progress content renders directly, with no tab gating it.
-    expect(screen.getByTestId("plan-progress-panel")).toBeTruthy();
   });
 
-  it("moves plan switching and program editing behind a separate Plan Controls sheet", () => {
-    const { container } = renderPanel();
+  it("still offers the secure upload path when no report is uploaded", () => {
+    renderPanel();
 
-    // Not visible until opened.
-    expect(screen.queryByText("Select Plan")).toBeNull();
-
-    fireEvent.click(screen.getByTestId("button-open-plan-controls"));
-
-    expect(screen.getByText("Select Plan")).toBeTruthy();
-    expect(screen.getByTestId("plan-programs-section")).toBeTruthy();
-
-    // The APR heading is still in the document behind the sheet overlay —
-    // it was never replaced by Plan Controls content (Radix correctly
-    // marks it aria-hidden while the modal sheet is open).
-    expect(container.querySelector("h2")?.textContent).toBe(
-      "Academic Progress Report",
-    );
+    expect(screen.getByTestId("apr-uploads-unavailable")).toBeTruthy();
   });
 });

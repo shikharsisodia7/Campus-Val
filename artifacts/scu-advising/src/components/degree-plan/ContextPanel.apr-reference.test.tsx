@@ -44,7 +44,7 @@ import { DegreePlanProvider } from "./DegreePlanContext";
 
 const plan = {
   id: 1,
-  name: "Official Degree Plan",
+  name: "My Degree Plan",
   planType: "degree" as const,
   sourcePlanId: null,
   metadata: {},
@@ -70,7 +70,7 @@ function renderPanel() {
           aprCompletedCodes: new Set(),
         }}
       >
-        <ContextPanel plans={[plan as any]} />
+        <ContextPanel />
       </DegreePlanProvider>
     </QueryClientProvider>,
   );
@@ -128,17 +128,25 @@ describe("ContextPanel — APR official-reference states", () => {
     renderPanel();
     expect(
       screen.getByText(
-        "This report reflects official university records. CampusVal does not modify the report. Always verify your official academic record directly in Workday.",
+        /This is the university-generated record\. CampusVal never\s+modifies it\./,
       ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/Verify your academic and registration information/),
     ).toBeTruthy();
   });
 
-  it("keeps parsed/derived planning data visually and textually distinct from the official report", () => {
+  it("keeps CampusVal's own planning widgets out of the university-record column", () => {
+    // The professor asked for this column to be the APR and nothing else, so
+    // derived planning data is no longer shown here at all rather than merely
+    // being labelled as distinct from the report.
     mockReportQuery = { data: { available: true, report: null }, isLoading: false, error: null };
     renderPanel();
     expect(
-      screen.getByText("CampusVal planning support (not the official record)"),
-    ).toBeTruthy();
+      screen.queryByText("CampusVal planning support (not the official record)"),
+    ).toBeNull();
+    expect(screen.queryByTestId("plan-progress-panel")).toBeNull();
+    expect(screen.getByTestId("apr-column-header")).toBeTruthy();
   });
 
   it("shows a loading state while the report request is in flight, not the 'no report' state", () => {

@@ -456,7 +456,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
                   </div>
                   <div className="text-xs text-amber-700/80 mb-3">
                     This is a draft. Promote it when you are ready to make it
-                    your official plan.
+                    your Degree Plan.
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Button

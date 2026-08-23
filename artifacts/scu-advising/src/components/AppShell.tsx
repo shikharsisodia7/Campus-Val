@@ -415,10 +415,17 @@ export function PageHeader({
   title,
   subtitle,
   right,
+  compact = false,
 }: {
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
+  /**
+   * Planning surfaces (Degree Plan, Tentative Degree Plan, Quarter Plan) use
+   * a thin header so the board, section search and APR get the vertical
+   * space instead — the professor repeatedly flagged wasted room up top.
+   */
+  compact?: boolean;
 }) {
   return (
     <div className="relative overflow-hidden border-b border-border bg-card">
@@ -434,14 +441,24 @@ export function PageHeader({
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative mx-auto flex max-w-[1600px] items-start justify-between gap-6 px-4 py-5 sm:px-6 lg:px-8"
+        className={`relative mx-auto flex max-w-[1600px] items-start justify-between gap-6 px-4 sm:px-6 lg:px-8 ${
+          compact ? "py-2.5" : "py-5"
+        }`}
       >
-        <div>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-foreground">
+        <div className="min-w-0">
+          <h1
+            className={`font-serif font-bold tracking-tight text-foreground ${
+              compact ? "text-xl" : "text-3xl"
+            }`}
+          >
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-1.5 max-w-3xl text-sm text-muted-foreground">
+            <p
+              className={`max-w-3xl text-muted-foreground ${
+                compact ? "mt-0.5 text-xs" : "mt-1.5 text-sm"
+              }`}
+            >
               {subtitle}
             </p>
           )}
