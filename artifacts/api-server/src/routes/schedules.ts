@@ -183,13 +183,22 @@ router.get("/schedules", requireAuth, async (req, res) => {
     const y = Number(yearRaw);
     if (Number.isInteger(y)) conds.push(eq(quarterSchedulesTable.year, y));
   }
+  // A correlated subquery was rendered here WITHOUT table qualification —
+  // `where "schedule_id" = "id"` — so both names bound to schedule_events
+  // itself and every schedule reported 0 events. That made a duplicated
+  // schedule look empty in the switcher. A join qualifies the columns.
   const rows = await db
     .select({
       schedule: quarterSchedulesTable,
-      eventCount: sql<number>`(select count(*) from ${scheduleEventsTable} where ${scheduleEventsTable.scheduleId} = ${quarterSchedulesTable.id})`,
+      eventCount: sql<number>`count(${scheduleEventsTable.id})`,
     })
     .from(quarterSchedulesTable)
+    .leftJoin(
+      scheduleEventsTable,
+      eq(scheduleEventsTable.scheduleId, quarterSchedulesTable.id),
+    )
     .where(and(...conds))
+    .groupBy(quarterSchedulesTable.id)
     .orderBy(asc(quarterSchedulesTable.id));
   res.json({
     schedules: rows.map((r) => scheduleDto(r.schedule, Number(r.eventCount))),

@@ -267,3 +267,62 @@ describe("multi-component schedules survive a reload and duplication", () => {
     ).toBe(LAB_B);
   });
 });
+
+describe("saved-schedule list reports a real event count", () => {
+  /**
+   * REGRESSION: the list endpoint's correlated subquery was rendered without
+   * table qualification — `where "schedule_id" = "id"` — so both names bound
+   * to schedule_events itself and every schedule reported 0 events. A student
+   * who duplicated a schedule saw the copy listed as empty.
+   */
+  it("counts the sections actually on each schedule", async () => {
+    const id = await newSchedule("Counted");
+    await addSection(id, LECTURE_A).expect(201);
+    await addSection(id, LAB_A).expect(201);
+
+    const res = await as(
+      request(app).get(`/api/schedules?term=${TERM}&year=${YEAR}`),
+    ).expect(200);
+    const row = res.body.schedules.find((s: any) => s.id === id);
+    expect(row.eventCount).toBe(2);
+  });
+
+  it("reports zero only when a schedule really is empty", async () => {
+    const id = await newSchedule("Genuinely empty");
+    const res = await as(
+      request(app).get(`/api/schedules?term=${TERM}&year=${YEAR}`),
+    ).expect(200);
+    expect(res.body.schedules.find((s: any) => s.id === id).eventCount).toBe(0);
+  });
+
+  it("gives a duplicated schedule the same count as its source", async () => {
+    const id = await newSchedule("Source");
+    await addSection(id, LECTURE_A).expect(201);
+    await addSection(id, LAB_A).expect(201);
+    const dup = await as(request(app).post(`/api/schedules/${id}/duplicate`))
+      .send({ name: "Copy" })
+      .expect(201);
+
+    const res = await as(
+      request(app).get(`/api/schedules?term=${TERM}&year=${YEAR}`),
+    ).expect(200);
+    const source = res.body.schedules.find((s: any) => s.id === id);
+    const copy = res.body.schedules.find((s: any) => s.id === dup.body.id);
+    expect(copy.eventCount).toBe(source.eventCount);
+    expect(copy.eventCount).toBe(2);
+  });
+
+  it("does not multiply counts across sibling schedules", async () => {
+    const a = await newSchedule("Sibling A");
+    const b = await newSchedule("Sibling B");
+    await addSection(a, LECTURE_A).expect(201);
+    await addSection(b, LECTURE_A).expect(201);
+    await addSection(b, LAB_A).expect(201);
+
+    const res = await as(
+      request(app).get(`/api/schedules?term=${TERM}&year=${YEAR}`),
+    ).expect(200);
+    expect(res.body.schedules.find((s: any) => s.id === a).eventCount).toBe(1);
+    expect(res.body.schedules.find((s: any) => s.id === b).eventCount).toBe(2);
+  });
+});
