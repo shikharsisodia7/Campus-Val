@@ -1025,6 +1025,18 @@ export interface ProfessorList {
   emptyReason?: string | null;
 }
 
+/**
+ * completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither.
+ */
+export type RequirementItemStatus =
+  (typeof RequirementItemStatus)[keyof typeof RequirementItemStatus];
+
+export const RequirementItemStatus = {
+  completed: "completed",
+  planned: "planned",
+  open: "open",
+} as const;
+
 export interface RequirementItem {
   id: string;
   label: string;
@@ -1039,6 +1051,12 @@ export interface RequirementItem {
   needsVerification: boolean;
   /** Completed course codes that satisfy this item. */
   satisfiedBy: string[];
+  /** Planned-but-not-yet-completed course codes that would satisfy this item. Present so the UI can show "Planned in Schedule" — a planned course is never reported as completed. */
+  plannedBy?: string[];
+  /** Courses matched to this requirement through the catalog's derived Core-area tagging rather than an explicit SCU course list. SCU's bulletin scrape did not capture per-course Core designations, so these matches always set needsVerification and the student must confirm them. */
+  crossSatisfiedBy?: string[];
+  /** completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither. */
+  status?: RequirementItemStatus;
   complete: boolean;
 }
 
@@ -1529,6 +1547,10 @@ export type GetDegreeRequirementsParams = {
    * JSON-encoded plan-scoped student planning goals. These are not official SCU graduation requirements.
    */
   professionalGoals?: string;
+  /**
+   * Comma-separated course codes the student has PLANNED in the active Degree Plan or Tentative Degree Plan. A planned major course that carries a Core designation marks that Core requirement "planned" (never "completed"), so the student is not pushed toward adding a duplicate course. Plan-scoped: a tentative scenario never affects the Degree Plan's requirement view.
+   */
+  plannedCourses?: string;
 };
 
 export type ListRequirementCompletionsParams = {

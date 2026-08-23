@@ -330,13 +330,22 @@ export function Palette() {
                       </p>
                     )}
                     {group.items.map((req) => {
-                      const completed = req.complete;
-                      const planned = isPlanned(req.id, req.courses);
+                      // The server resolves cross-satisfaction: a planned major
+                      // course carrying a Core designation marks that Core
+                      // requirement "planned" (never "completed"). Fall back to
+                      // the local plan for placeholders the server can't see.
+                      const serverStatus = req.status;
+                      const completed =
+                        serverStatus === "completed" || req.complete;
+                      const planned =
+                        serverStatus === "planned" ||
+                        isPlanned(req.id, req.courses);
                       const status = completed
                         ? "completed"
                         : planned
                           ? "planned"
                           : "unmet";
+                      const crossSatisfiedBy = req.crossSatisfiedBy ?? [];
 
                       return (
                         <div
@@ -412,10 +421,29 @@ export function Palette() {
                             </div>
                           )}
                           {status === "planned" && (
-                            <div className="mt-1 text-[10px] text-blue-700">
+                            <div
+                              className="mt-1 text-[10px] text-blue-700"
+                              data-testid={`req-planned-${req.id}`}
+                            >
                               Planned in schedule
                             </div>
                           )}
+
+                          {/* Say which planned course is covering this
+                              requirement, and be honest that a match made from
+                              the catalog's derived Core tagging needs checking
+                              rather than presenting it as an SCU designation. */}
+                          {crossSatisfiedBy.length > 0 &&
+                            status !== "unmet" && (
+                              <div
+                                className="mt-1 text-[10px] text-muted-foreground"
+                                data-testid={`req-cross-satisfied-${req.id}`}
+                              >
+                                Covered by {crossSatisfiedBy.join(", ")} —
+                                confirm this Core designation in Workday or the
+                                Bulletin.
+                              </div>
+                            )}
                         </div>
                       );
                     })}

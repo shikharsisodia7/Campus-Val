@@ -19,4 +19,8 @@ export type GetDegreeRequirementsParams = {
    * JSON-encoded plan-scoped student planning goals. These are not official SCU graduation requirements.
    */
   professionalGoals?: string;
+  /**
+   * Comma-separated course codes the student has PLANNED in the active Degree Plan or Tentative Degree Plan. A planned major course that carries a Core designation marks that Core requirement "planned" (never "completed"), so the student is not pushed toward adding a duplicate course. Plan-scoped: a tentative scenario never affects the Degree Plan's requirement view.
+   */
+  plannedCourses?: string;
 };

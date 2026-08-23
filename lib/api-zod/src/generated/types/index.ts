@@ -128,6 +128,7 @@ export * from "./requirementCompletion";
 export * from "./requirementGroup";
 export * from "./requirementGroupKind";
 export * from "./requirementItem";
+export * from "./requirementItemStatus";
 export * from "./resetRequirementCompletionsParams";
 export * from "./runEvaluationBody";
 export * from "./scheduleAvailability";

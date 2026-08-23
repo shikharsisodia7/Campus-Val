@@ -129,12 +129,27 @@ export function DegreePlanWorkspace({
   const professionalGoalsQuery = activePlan?.programs?.professionalGoals?.length
     ? JSON.stringify(activePlan.programs.professionalGoals)
     : undefined;
+  // Courses planned in THIS plan, so a major course that carries a Core
+  // designation marks the matching Core requirement as planned instead of
+  // leaving it open and pushing the student toward a duplicate course.
+  // Plan-scoped by construction: a tentative scenario sends its own items.
+  const plannedCoursesQuery =
+    Array.from(
+      new Set(
+        (activePlan?.items ?? [])
+          .filter((i) => i.itemType === "course" && !!i.courseCode)
+          .map((i) => i.courseCode!.toUpperCase()),
+      ),
+    ).join(",") || undefined;
   const { data: reqsData } = useGetDegreeRequirements(
     {
       ...(scenarioMajorQuery ? { scenarioMajors: scenarioMajorQuery } : {}),
       ...(scenarioMinorQuery ? { scenarioMinors: scenarioMinorQuery } : {}),
       ...(professionalGoalsQuery
         ? { professionalGoals: professionalGoalsQuery }
+        : {}),
+      ...(plannedCoursesQuery
+        ? { plannedCourses: plannedCoursesQuery }
         : {}),
     },
     {
@@ -144,6 +159,7 @@ export function DegreePlanWorkspace({
           scenarioMajorQuery,
           scenarioMinorQuery,
           professionalGoalsQuery,
+          plannedCoursesQuery,
         ],
       },
     },

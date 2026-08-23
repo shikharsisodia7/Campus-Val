@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { RequirementItemStatus } from "./requirementItemStatus";
 
 export interface RequirementItem {
   id: string;
@@ -20,5 +21,11 @@ export interface RequirementItem {
   needsVerification: boolean;
   /** Completed course codes that satisfy this item. */
   satisfiedBy: string[];
+  /** Planned-but-not-yet-completed course codes that would satisfy this item. Present so the UI can show "Planned in Schedule" — a planned course is never reported as completed. */
+  plannedBy?: string[];
+  /** Courses matched to this requirement through the catalog's derived Core-area tagging rather than an explicit SCU course list. SCU's bulletin scrape did not capture per-course Core designations, so these matches always set needsVerification and the student must confirm them. */
+  crossSatisfiedBy?: string[];
+  /** completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither. */
+  status?: RequirementItemStatus;
   complete: boolean;
 }
