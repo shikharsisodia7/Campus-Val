@@ -100,6 +100,8 @@ export interface ScheduleEvent {
   endTime: string;
   /** @nullable */
   location?: string | null;
+  /** Which component of the course this scheduled section is (lecture / lab / recitation), derived from the meeting snapshot on the event. Null for commitments and for sections CampusVal cannot classify. */
+  componentType?: "lecture" | "lab" | "recitation" | "unknown" | null;
 }
 
 export interface QuarterScheduleDetail {
@@ -1023,6 +1025,18 @@ export interface ProfessorList {
   emptyReason?: string | null;
 }
 
+/**
+ * completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither.
+ */
+export type RequirementItemStatus =
+  (typeof RequirementItemStatus)[keyof typeof RequirementItemStatus];
+
+export const RequirementItemStatus = {
+  completed: "completed",
+  planned: "planned",
+  open: "open",
+} as const;
+
 export interface RequirementItem {
   id: string;
   label: string;
@@ -1037,6 +1051,12 @@ export interface RequirementItem {
   needsVerification: boolean;
   /** Completed course codes that satisfy this item. */
   satisfiedBy: string[];
+  /** Planned-but-not-yet-completed course codes that would satisfy this item. Present so the UI can show "Planned in Schedule" — a planned course is never reported as completed. */
+  plannedBy?: string[];
+  /** Courses matched to this requirement through the catalog's derived Core-area tagging rather than an explicit SCU course list. SCU's bulletin scrape did not capture per-course Core designations, so these matches always set needsVerification and the student must confirm them. */
+  crossSatisfiedBy?: string[];
+  /** completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither. */
+  status?: RequirementItemStatus;
   complete: boolean;
 }
 
@@ -1152,6 +1172,19 @@ export const CourseSectionMeetingDaysItem = {
   U: "U",
 } as const;
 
+/**
+ * Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin's laboratory/recitation text. Always treat it as a planning aid; "unknown" means CampusVal could not tell.
+ */
+export type CourseSectionComponentType =
+  (typeof CourseSectionComponentType)[keyof typeof CourseSectionComponentType];
+
+export const CourseSectionComponentType = {
+  lecture: "lecture",
+  lab: "lab",
+  recitation: "recitation",
+  unknown: "unknown",
+} as const;
+
 export interface CourseSection {
   /** e.g. "COEN-12-01-fall-2025" */
   id: string;
@@ -1173,6 +1206,10 @@ export interface CourseSection {
   seatsKnown?: boolean;
   /** True for tentative-schedule terms (Winter/Spring 2027) where section numbers and instructors are not yet finalized. */
   tentative?: boolean;
+  /** Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin's laboratory/recitation text. Always treat it as a planning aid; "unknown" means CampusVal could not tell. */
+  componentType?: CourseSectionComponentType;
+  /** Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official. */
+  componentInferred?: boolean;
 }
 
 export type ArticulationEntrySourceUnitSystem =
@@ -1510,6 +1547,10 @@ export type GetDegreeRequirementsParams = {
    * JSON-encoded plan-scoped student planning goals. These are not official SCU graduation requirements.
    */
   professionalGoals?: string;
+  /**
+   * Comma-separated course codes the student has PLANNED in the active Degree Plan or Tentative Degree Plan. A planned major course that carries a Core designation marks that Core requirement "planned" (never "completed"), so the student is not pushed toward adding a duplicate course. Plan-scoped: a tentative scenario never affects the Degree Plan's requirement view.
+   */
+  plannedCourses?: string;
 };
 
 export type ListRequirementCompletionsParams = {

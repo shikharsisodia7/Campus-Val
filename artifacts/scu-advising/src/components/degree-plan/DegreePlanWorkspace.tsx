@@ -14,6 +14,7 @@ import { DegreePlanProvider } from "./DegreePlanContext";
 import { Palette } from "./Palette";
 import { Board } from "./Board";
 import { ContextPanel } from "./ContextPanel";
+import { DegreePlanToolbar } from "./DegreePlanToolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -90,7 +91,7 @@ export function DegreePlanWorkspace({
     setActivePlanId(planId);
     if (mode === "tentative") {
       // Only remember an id that's actually a tentative plan — selecting the
-      // Degree Plan (e.g. via "Official Degree Plan", or the post-delete
+      // Degree Plan (e.g. via the Degree Plan entry, or the post-delete
       // fallback) must not poison the remembered-tentative-plan key.
       const isTentative =
         planId !== null &&
@@ -128,12 +129,27 @@ export function DegreePlanWorkspace({
   const professionalGoalsQuery = activePlan?.programs?.professionalGoals?.length
     ? JSON.stringify(activePlan.programs.professionalGoals)
     : undefined;
+  // Courses planned in THIS plan, so a major course that carries a Core
+  // designation marks the matching Core requirement as planned instead of
+  // leaving it open and pushing the student toward a duplicate course.
+  // Plan-scoped by construction: a tentative scenario sends its own items.
+  const plannedCoursesQuery =
+    Array.from(
+      new Set(
+        (activePlan?.items ?? [])
+          .filter((i) => i.itemType === "course" && !!i.courseCode)
+          .map((i) => i.courseCode!.toUpperCase()),
+      ),
+    ).join(",") || undefined;
   const { data: reqsData } = useGetDegreeRequirements(
     {
       ...(scenarioMajorQuery ? { scenarioMajors: scenarioMajorQuery } : {}),
       ...(scenarioMinorQuery ? { scenarioMinors: scenarioMinorQuery } : {}),
       ...(professionalGoalsQuery
         ? { professionalGoals: professionalGoalsQuery }
+        : {}),
+      ...(plannedCoursesQuery
+        ? { plannedCourses: plannedCoursesQuery }
         : {}),
     },
     {
@@ -143,6 +159,7 @@ export function DegreePlanWorkspace({
           scenarioMajorQuery,
           scenarioMinorQuery,
           professionalGoalsQuery,
+          plannedCoursesQuery,
         ],
       },
     },
@@ -202,7 +219,7 @@ export function DegreePlanWorkspace({
           <p className="max-w-md text-sm text-muted-foreground">
             Tentative Degree Plans are safe, independent scenarios — great for
             trying out a second major, different sequencing, or a study-abroad
-            term. Promoting one replaces your official plan after confirmation.
+            term. Promoting one replaces your Degree Plan after confirmation.
           </p>
         </div>
         <div className="flex gap-3 flex-wrap justify-center">
@@ -284,7 +301,7 @@ export function DegreePlanWorkspace({
         <Sheet open={rightOpen} onOpenChange={setRightOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="sm">
-              <Settings2 className="mr-2 h-4 w-4" /> Academic Progress
+              <Settings2 className="mr-2 h-4 w-4" /> Progress Report
             </Button>
           </SheetTrigger>
           <SheetContent
@@ -294,20 +311,21 @@ export function DegreePlanWorkspace({
             onPointerDownOutside={() => setRightOpen(false)}
           >
             <SheetTitle className="sr-only">Academic Progress</SheetTitle>
-            {/* pt-9 keeps ContextPanel's own header (which has its own
-                right-aligned "Plan Controls" button) clear of the Sheet's
-                built-in close (X) button at top-4 right-4 — without this,
-                Plan Controls sits on top of and intercepts clicks meant
-                for the close button. */}
+            {/* pt-9 keeps ContextPanel's own heading clear of the Sheet's
+                built-in close (X) button at top-4 right-4. Plan Controls no
+                longer lives in this column, but the heading still needs the
+                offset so the close button stays clickable. */}
             <div className="min-h-0 flex-1 pt-9">
-              <ContextPanel plans={plansList?.plans ?? []} />
+              <ContextPanel />
             </div>
           </SheetContent>
         </Sheet>
       </div>
 
+      <DegreePlanToolbar plans={plansList?.plans ?? []} mode={mode} />
+
       <div
-        className="flex h-[calc(100vh-18rem)] flex-col items-stretch gap-3 xl:grid xl:h-[calc(100vh-13rem)] xl:grid-cols-[minmax(210px,240px)_minmax(0,1fr)_minmax(250px,280px)] 2xl:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(280px,300px)]"
+        className="flex h-[calc(100vh-19rem)] flex-col items-stretch gap-3 xl:grid xl:h-[calc(100vh-14rem)] xl:grid-cols-[minmax(210px,240px)_minmax(0,1fr)_minmax(250px,280px)] 2xl:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(280px,300px)]"
         data-testid="degree-plan-layout"
       >
         <div
@@ -326,7 +344,7 @@ export function DegreePlanWorkspace({
           className="hidden h-full min-w-0 overflow-hidden xl:block"
           data-testid="degree-plan-progress-column"
         >
-          <ContextPanel plans={plansList?.plans ?? []} />
+          <ContextPanel />
         </div>
       </div>
     </DegreePlanProvider>

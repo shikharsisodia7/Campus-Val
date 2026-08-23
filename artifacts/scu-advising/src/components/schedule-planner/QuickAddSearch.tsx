@@ -9,6 +9,37 @@ import { useScheduleWorkspace } from "./useScheduleWorkspace";
 import { format12 } from "./utils";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * Course components. SCU publishes no component column, so `componentType`
+ * arrives from the API derived from the published meeting pattern and the
+ * bulletin's laboratory/recitation text — it is a planning aid, never a
+ * Registrar field, and the UI says so.
+ */
+const COMPONENT_LABEL: Record<string, string> = {
+  lecture: "Lecture",
+  lab: "Lab",
+  recitation: "Recitation",
+  unknown: "Section",
+};
+
+const COMPONENT_ORDER = ["lecture", "lab", "recitation", "unknown"];
+
+function groupByComponent<T extends { componentType?: string | null }>(
+  sections: T[],
+): Array<{ component: string; sections: T[] }> {
+  const buckets = new Map<string, T[]>();
+  for (const section of sections) {
+    const key = section.componentType ?? "unknown";
+    const list = buckets.get(key);
+    if (list) list.push(section);
+    else buckets.set(key, [section]);
+  }
+  return COMPONENT_ORDER.filter((c) => buckets.has(c)).map((component) => ({
+    component,
+    sections: buckets.get(component)!,
+  }));
+}
+
 export function QuickAddSearch({
   workspace,
   initialCourse,
@@ -62,13 +93,41 @@ export function QuickAddSearch({
   const addMut = useAddScheduleEvent();
   const updateMut = useUpdateScheduleEvent();
 
-  const existingEventId = workspace.activeSchedule?.events.find(
-    (e) => e.kind === "section" && e.courseCode === selectedCourse
-  )?.id;
+  // Sections this course already has on the active schedule, keyed by which
+  // COMPONENT they are. A course such as CHEM 11 legitimately needs a lecture
+  // AND a lab at the same time, so a lab must never replace a lecture — only
+  // another section of the same component replaces one.
+  const eventsForCourse =
+    workspace.activeSchedule?.events.filter(
+      (e) =>
+        e.kind === "section" &&
+        e.courseCode?.toUpperCase() === selectedCourse?.toUpperCase(),
+    ) ?? [];
 
-  const handleAddOrSwap = (sectionNumber: string) => {
+  const existingEventForComponent = (component: string | null | undefined) =>
+    eventsForCourse.find((e) => (e.componentType ?? "unknown") === (component ?? "unknown"));
+
+  // Which components this course offers, from the grouped section list. A
+  // section is only classified "lab" when SCU's bulletin says the course has
+  // one, so this is a consistent view of what still needs scheduling.
+  const offeredComponents = Array.from(
+    new Set((sections ?? []).map((s) => s.componentType ?? "unknown")),
+  );
+  const scheduledComponents = new Set(
+    eventsForCourse.map((e) => e.componentType ?? "unknown"),
+  );
+  const missingComponents = offeredComponents.filter(
+    (c) => c !== "unknown" && !scheduledComponents.has(c),
+  );
+  const isMultiComponentCourse =
+    offeredComponents.filter((c) => c !== "unknown").length > 1;
+
+  const handleAddOrSwap = (sectionNumber: string, component: string | null | undefined) => {
     if (!workspace.activeScheduleId || !selectedCourse) return;
-    
+
+    const existing = existingEventForComponent(component);
+    const existingEventId = existing?.id;
+
     if (existingEventId) {
       updateMut.mutate(
         {
@@ -79,7 +138,11 @@ export function QuickAddSearch({
         {
           onSuccess: () => {
             workspace.invalidateSchedules();
-            toast({ title: "Section swapped" });
+            toast({
+              title: `${COMPONENT_LABEL[component ?? "unknown"]} section swapped`,
+              description:
+                "Your other scheduled components for this course were left in place.",
+            });
           },
           onError: () => toast({ title: "Failed to swap section", variant: "destructive" }),
         }
@@ -148,7 +211,37 @@ export function QuickAddSearch({
             </Button>
             <div>
               <h4 className="font-bold text-lg">{selectedCourse}</h4>
-              <p className="text-sm text-muted-foreground mb-4">Select a section to add to your schedule.</p>
+              <p className="text-sm text-muted-foreground">
+                {isMultiComponentCourse
+                  ? "This course is scheduled in more than one part. Add a section for each part."
+                  : "Select a section to add to your schedule."}
+              </p>
+
+              {isMultiComponentCourse && (
+                <div
+                  className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900"
+                  data-testid="multi-component-notice"
+                >
+                  {missingComponents.length > 0 ? (
+                    <p data-testid="missing-components">
+                      <strong>Still to schedule:</strong>{" "}
+                      {missingComponents
+                        .map((c) => COMPONENT_LABEL[c] ?? c)
+                        .join(" + ")}
+                      . Adding one part does not complete this course.
+                    </p>
+                  ) : (
+                    <p data-testid="all-components-scheduled">
+                      <strong>All parts scheduled.</strong> You have a section
+                      for each part of this course.
+                    </p>
+                  )}
+                  <p className="mt-1.5 opacity-90">
+                    CampusVal does not know which lab pairs with which lecture —
+                    linked component must be verified in Workday.
+                  </p>
+                </div>
+              )}
             </div>
 
             {isFetchingSections ? (
@@ -160,11 +253,24 @@ export function QuickAddSearch({
                 No sections scheduled for this quarter.
               </div>
             ) : (
-              <div className="space-y-3">
-                {sections.map((sec) => {
+              <div className="space-y-5">
+                {groupByComponent(sections).map(({ component, sections: group }) => (
+                  <div key={component} data-testid={`section-group-${component}`}>
+                    <div className="mb-2 flex items-baseline gap-2">
+                      <h5 className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                        {COMPONENT_LABEL[component] ?? component} sections
+                      </h5>
+                      <span className="text-[10px] text-muted-foreground">
+                        {group.length}
+                        {component !== "unknown" && " · grouping inferred, verify in Workday"}
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                {group.map((sec) => {
                   const isOnSchedule = workspace.activeSchedule?.events.some(
                     (e) => e.kind === "section" && e.courseCode === selectedCourse && e.sectionNumber === sec.sectionNumber
                   );
+                  const replaces = existingEventForComponent(sec.componentType);
 
                   return (
                   <div key={sec.id} className={`border rounded-md p-3 transition-colors bg-card ${isOnSchedule ? "border-emerald-500 bg-emerald-50/30" : "hover:border-primary/50"}`}>
@@ -210,22 +316,28 @@ export function QuickAddSearch({
                         size="sm" 
                         variant="secondary" 
                         className="w-full h-8 text-xs font-medium bg-primary/5 hover:bg-primary/10 text-primary"
-                        onClick={() => handleAddOrSwap(sec.sectionNumber)}
+                        onClick={() => handleAddOrSwap(sec.sectionNumber, sec.componentType)}
                         disabled={addMut.isPending || updateMut.isPending}
+                        data-testid={`add-section-${sec.sectionNumber}`}
                       >
-                        {existingEventId ? (
+                        {replaces ? (
                           <>
-                            <ArrowLeftRight className="h-3.5 w-3.5 mr-1" /> Swap Section
+                            <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
+                            Replace this {(COMPONENT_LABEL[sec.componentType ?? "unknown"] ?? "section").toLowerCase()}
                           </>
                         ) : (
                           <>
-                            <Plus className="h-3.5 w-3.5 mr-1" /> Add Section
+                            <Plus className="h-3.5 w-3.5 mr-1" />
+                            Add {(COMPONENT_LABEL[sec.componentType ?? "unknown"] ?? "section").toLowerCase()}
                           </>
                         )}
                       </Button>
                     )}
                   </div>
                 )})}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

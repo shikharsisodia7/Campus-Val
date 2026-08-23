@@ -18,6 +18,7 @@ import { requireAuth } from "../middlewares/requireAuth";
 import { COURSES, findCourse } from "../data/courses";
 import { offeredSectionsFor } from "../data/offered-sections";
 import { searchCourses } from "../lib/course-search";
+import { classifySection } from "../lib/course-components";
 
 const router: IRouter = Router();
 
@@ -61,6 +62,18 @@ function eventDto(row: ScheduleEventRow) {
     startTime: row.startTime,
     endTime: row.endTime,
     location: row.location ?? null,
+    // Derived at read time from the meeting snapshot already stored on the
+    // row, so multi-component scheduling needs no migration and every
+    // schedule saved before this feature keeps working unchanged.
+    componentType:
+      row.kind === "section" && row.courseCode
+        ? classifySection({
+            courseCode: row.courseCode,
+            meetingDays: (row.meetingDays ?? []) as string[],
+            startTime: row.startTime,
+            endTime: row.endTime,
+          }).componentType
+        : null,
   };
 }
 
@@ -170,13 +183,22 @@ router.get("/schedules", requireAuth, async (req, res) => {
     const y = Number(yearRaw);
     if (Number.isInteger(y)) conds.push(eq(quarterSchedulesTable.year, y));
   }
+  // A correlated subquery was rendered here WITHOUT table qualification —
+  // `where "schedule_id" = "id"` — so both names bound to schedule_events
+  // itself and every schedule reported 0 events. That made a duplicated
+  // schedule look empty in the switcher. A join qualifies the columns.
   const rows = await db
     .select({
       schedule: quarterSchedulesTable,
-      eventCount: sql<number>`(select count(*) from ${scheduleEventsTable} where ${scheduleEventsTable.scheduleId} = ${quarterSchedulesTable.id})`,
+      eventCount: sql<number>`count(${scheduleEventsTable.id})`,
     })
     .from(quarterSchedulesTable)
+    .leftJoin(
+      scheduleEventsTable,
+      eq(scheduleEventsTable.scheduleId, quarterSchedulesTable.id),
+    )
     .where(and(...conds))
+    .groupBy(quarterSchedulesTable.id)
     .orderBy(asc(quarterSchedulesTable.id));
   res.json({
     schedules: rows.map((r) => scheduleDto(r.schedule, Number(r.eventCount))),

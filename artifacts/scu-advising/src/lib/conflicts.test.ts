@@ -293,3 +293,69 @@ describe("provenNoSectionFits", () => {
     expect(provenNoSectionFits([a1], [])).toBe(false);
   });
 });
+
+/**
+ * The professor's lecture+lab requirement: "Conflict detection must consider
+ * every selected component." Both a course's lecture and its lab are ordinary
+ * timed events, so they must each be checked against everything else on the
+ * schedule — including against each other.
+ */
+describe("multi-component conflict detection", () => {
+  const lecture = {
+    id: "chem11-lecture",
+    label: "CHEM 11 Lecture 1",
+    meetingDays: ["M", "W", "F"],
+    startTime: "08:00",
+    endTime: "09:05",
+  };
+  const lab = {
+    id: "chem11-lab",
+    label: "CHEM 11 Lab 13",
+    meetingDays: ["M"],
+    startTime: "14:15",
+    endTime: "17:05",
+  };
+
+  it("reports no conflict for a real CHEM 11 lecture and lab pair", () => {
+    expect(findEventConflicts([lecture, lab])).toHaveLength(0);
+  });
+
+  it("detects a course that overlaps only the lab, not the lecture", () => {
+    const clashesWithLabOnly = {
+      id: "other",
+      label: "MATH 12",
+      meetingDays: ["M"],
+      startTime: "15:00",
+      endTime: "16:05",
+    };
+    const conflicts = findEventConflicts([lecture, lab, clashesWithLabOnly]);
+    expect(conflicts).toHaveLength(1);
+    const labels = [conflicts[0]!.a.label, conflicts[0]!.b.label];
+    expect(labels).toContain("CHEM 11 Lab 13");
+    expect(labels).not.toContain("CHEM 11 Lecture 1");
+  });
+
+  it("detects a course that overlaps only the lecture, not the lab", () => {
+    const clashesWithLectureOnly = {
+      id: "other",
+      label: "PHYS 31",
+      meetingDays: ["W"],
+      startTime: "08:30",
+      endTime: "09:35",
+    };
+    const conflicts = findEventConflicts([lecture, lab, clashesWithLectureOnly]);
+    expect(conflicts).toHaveLength(1);
+    const labels = [conflicts[0]!.a.label, conflicts[0]!.b.label];
+    expect(labels).toContain("CHEM 11 Lecture 1");
+  });
+
+  it("detects a lab that overlaps its own lecture", () => {
+    const overlappingLab = { ...lab, startTime: "08:30", endTime: "11:20" };
+    expect(findEventConflicts([lecture, overlappingLab])).not.toHaveLength(0);
+  });
+
+  it("ignores a tentative component whose meeting time is still TBA", () => {
+    const tbaLab = { ...lab, meetingDays: [], startTime: "", endTime: "" };
+    expect(findEventConflicts([lecture, tbaLab])).toHaveLength(0);
+  });
+});

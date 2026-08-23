@@ -47,7 +47,7 @@ import { DegreePlanProvider } from "./DegreePlanContext";
 
 const plan = {
   id: 1,
-  name: "Official Degree Plan",
+  name: "My Degree Plan",
   planType: "degree" as const,
   sourcePlanId: null,
   metadata: {},
@@ -111,7 +111,7 @@ describe("ContextPanel — real QueryClient, App.tsx's actual retry/refetch defa
             aprCompletedCodes: new Set(),
           }}
         >
-          <ContextPanel plans={[plan as any]} />
+          <ContextPanel />
         </DegreePlanProvider>
       </QueryClientProvider>,
     );
@@ -139,7 +139,7 @@ describe("ContextPanel — real QueryClient, App.tsx's actual retry/refetch defa
             aprCompletedCodes: new Set(),
           }}
         >
-          <ContextPanel plans={[plan as any]} />
+          <ContextPanel />
         </DegreePlanProvider>
       </QueryClientProvider>,
     );

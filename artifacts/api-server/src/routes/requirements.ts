@@ -10,6 +10,30 @@ import {
 } from "../data/degree-requirements";
 import { getMajorRequirements, getMinorRequirements, type College } from "../data/graduation-paths";
 import { findCourse } from "../data/courses";
+import {
+  resolveCrossSatisfaction,
+  type RequirementStatus,
+} from "../lib/core-cross-satisfaction";
+
+/**
+ * Every requirement item — Core, major, minor or Professional Preparation —
+ * reports the same shape, so the response is one uniform contract and a
+ * planned course reads the same way wherever it appears.
+ */
+interface ResolvedRequirementItem {
+  id: string;
+  label: string;
+  description: string;
+  courses: string[];
+  phase: "Foundations" | "Explorations" | "Integrations" | null;
+  autoTracked: boolean;
+  needsVerification: boolean;
+  satisfiedBy: string[];
+  plannedBy: string[];
+  crossSatisfiedBy: string[];
+  status: RequirementStatus;
+  complete: boolean;
+}
 
 const router: IRouter = Router();
 
@@ -35,10 +59,20 @@ function normalize(code: string): string {
 function resolveGroup(
   group: RequirementGroupDef,
   completed: Set<string>,
+  planned: Set<string> = new Set(),
 ) {
   const items = group.items.map((item) => {
-    const satisfiedBy = item.courses.filter((c) => completed.has(normalize(c)));
-    const autoTracked = item.courses.length > 0;
+    const cross = resolveCrossSatisfaction(
+      item.id,
+      item.courses,
+      completed,
+      planned,
+    );
+    // A requirement is auto-tracked when SCU names its courses, OR when a
+    // course the student has completed/planned carries the matching Core
+    // designation — that is what makes a major course count for Core.
+    const autoTracked =
+      item.courses.length > 0 || cross.crossSatisfiedBy.length > 0;
     return {
       id: item.id,
       label: item.label,
@@ -46,9 +80,15 @@ function resolveGroup(
       courses: item.courses,
       phase: item.phase ?? null,
       autoTracked,
-      needsVerification: item.needsVerification,
-      satisfiedBy,
-      complete: autoTracked && satisfiedBy.length > 0,
+      // Keep the requirement's own verification flag, but also raise it when
+      // the only evidence is the catalog's derived Core-area tagging.
+      needsVerification: item.needsVerification || cross.needsVerification,
+      satisfiedBy: cross.satisfiedBy,
+      // Planned courses are NEVER reported as completed.
+      plannedBy: cross.plannedBy,
+      crossSatisfiedBy: cross.crossSatisfiedBy,
+      status: cross.status,
+      complete: cross.status === "completed",
     };
   });
   const autoItems = items.filter((i) => i.autoTracked);
@@ -81,10 +121,22 @@ export function buildRequirementsResponse(
   scenarioMajors: string[] = [],
   scenarioMinors: string[] = [],
   professionalGoals: ProfessionalPlanningGoal[] = [],
+  /**
+   * Course codes the student has PLANNED (from the active Degree Plan or
+   * Tentative Degree Plan). Used so a major course that carries a Core
+   * designation marks the Core requirement as planned rather than leaving it
+   * open and pushing the student toward a duplicate course. Plan-scoped, so
+   * a tentative scenario never affects the Degree Plan's requirement view.
+   */
+  plannedCourses: string[] = [],
 ) {
   const collegeCode: College = COLLEGE_CODE[profile.college] ?? "CAS";
   const completed = new Set(
     (profile.completedCourseCodes ?? []).map(normalize),
+  );
+  // Planned courses that are already completed are just completed.
+  const planned = new Set(
+    plannedCourses.map(normalize).filter((c) => !completed.has(c)),
   );
 
   const { universityCore, college } = buildRequirementGroups(collegeCode);
@@ -126,7 +178,7 @@ export function buildRequirementsResponse(
           ...scenarioNote,
           `Course-by-course requirements for ${majorName} aren't loaded in CampusVal yet. Check the SCU Bulletin and your department advisor.`,
         ],
-        items: [],
+        items: [] as ResolvedRequirementItem[],
         autoTrackedCount: 0,
         autoCompletedCount: 0,
         manualCount: 0,
@@ -142,17 +194,27 @@ export function buildRequirementsResponse(
       lastVerified: universityCore.lastVerified,
       notes: [...scenarioNote, ...majorReqs.notes],
       items: majorReqs.groups.flatMap((g) =>
-        g.courses.map((c) => ({
-          id: `major-${idSuffix}-${c.code.replace(/\s+/g, "-").toLowerCase()}`,
-          label: `${c.code} — ${c.title}`,
-          description: `${g.label} · ${c.units} unit${c.units === 1 ? "" : "s"}`,
-          courses: [c.code],
-          phase: null,
-          autoTracked: true,
-          needsVerification: false,
-          satisfiedBy: c.completed ? [c.code] : [],
-          complete: c.completed,
-        })),
+        g.courses.map((c) => {
+          const isPlanned = !c.completed && planned.has(normalize(c.code));
+          return {
+            id: `major-${idSuffix}-${c.code.replace(/\s+/g, "-").toLowerCase()}`,
+            label: `${c.code} — ${c.title}`,
+            description: `${g.label} · ${c.units} unit${c.units === 1 ? "" : "s"}`,
+            courses: [c.code],
+            phase: null,
+            autoTracked: true,
+            needsVerification: false,
+            satisfiedBy: c.completed ? [c.code] : [],
+            plannedBy: isPlanned ? [c.code] : [],
+            crossSatisfiedBy: [] as string[],
+            status: (c.completed
+              ? "completed"
+              : isPlanned
+                ? "planned"
+                : "open") as RequirementStatus,
+            complete: c.completed,
+          };
+        }),
       ),
       autoTrackedCount: majorReqs.totalListed,
       autoCompletedCount: majorReqs.completedCount,
@@ -212,7 +274,7 @@ export function buildRequirementsResponse(
           ...scenarioNote,
           `Requirements not yet verified for the ${minorName} minor. CampusVal will not invent eligible courses; verify the official SCU Bulletin and your department.`,
         ],
-        items: [],
+        items: [] as ResolvedRequirementItem[],
         autoTrackedCount: 0,
         autoCompletedCount: 0,
         manualCount: 0,
@@ -222,6 +284,12 @@ export function buildRequirementsResponse(
       const minimum = group.minimumCourses ?? (group.courses.length || 1);
       if (group.minimumCourses !== undefined || group.courses.length === 0) {
         const satisfiedBy = group.courses.filter((course) => completed.has(normalize(course)));
+        const plannedHere = group.courses.filter(
+          (course) =>
+            !completed.has(normalize(course)) && planned.has(normalize(course)),
+        );
+        const isComplete =
+          group.courses.length > 0 && satisfiedBy.length >= minimum;
         return [{
           id: `minor-${recipe.code}-${groupIndex + 1}`,
           label: group.minimumUnits
@@ -233,20 +301,38 @@ export function buildRequirementsResponse(
           autoTracked: group.courses.length > 0,
           needsVerification: group.needsVerification ?? false,
           satisfiedBy,
-          complete: group.courses.length > 0 && satisfiedBy.length >= minimum,
+          plannedBy: plannedHere,
+          crossSatisfiedBy: [] as string[],
+          status: (isComplete
+            ? "completed"
+            : plannedHere.length > 0
+              ? "planned"
+              : "open") as RequirementStatus,
+          complete: isComplete,
         }];
       }
-      return group.courses.map((course) => ({
-        id: `minor-${recipe.code}-${groupIndex + 1}-${course.replace(/\s+/g, "-").toLowerCase()}`,
-        label: course,
-        description: group.label,
-        courses: [course],
-        phase: null,
-        autoTracked: true,
-        needsVerification: group.needsVerification ?? false,
-        satisfiedBy: completed.has(normalize(course)) ? [course] : [],
-        complete: completed.has(normalize(course)),
-      }));
+      return group.courses.map((course) => {
+        const isCompleted = completed.has(normalize(course));
+        const isPlanned = !isCompleted && planned.has(normalize(course));
+        return {
+          id: `minor-${recipe.code}-${groupIndex + 1}-${course.replace(/\s+/g, "-").toLowerCase()}`,
+          label: course,
+          description: group.label,
+          courses: [course],
+          phase: null,
+          autoTracked: true,
+          needsVerification: group.needsVerification ?? false,
+          satisfiedBy: isCompleted ? [course] : [],
+          plannedBy: isPlanned ? [course] : [],
+          crossSatisfiedBy: [] as string[],
+          status: (isCompleted
+            ? "completed"
+            : isPlanned
+              ? "planned"
+              : "open") as RequirementStatus,
+          complete: isCompleted,
+        };
+      });
     });
     const autoItems = items.filter((item) => item.autoTracked);
     return {
@@ -265,26 +351,40 @@ export function buildRequirementsResponse(
     };
   });
   const professionalPreparation = professionalGoals.map((goal) => {
-    const courseItems = goal.courseCodes.map((courseCode) => ({
-      id: `professional-${goal.id}-${courseCode.replace(/\s+/g, "-").toLowerCase()}`,
-      label: `${courseCode} — student-selected planning course`,
-      description: `Student planning goal: ${goal.name}. Not an official SCU graduation requirement.`,
-      courses: [courseCode],
-      phase: null,
-      autoTracked: true,
-      needsVerification: false,
-      satisfiedBy: completed.has(normalize(courseCode)) ? [courseCode] : [],
-      complete: completed.has(normalize(courseCode)),
-    }));
+    const courseItems = goal.courseCodes.map((courseCode) => {
+      const isCompleted = completed.has(normalize(courseCode));
+      const isPlanned = !isCompleted && planned.has(normalize(courseCode));
+      return {
+        id: `professional-${goal.id}-${courseCode.replace(/\s+/g, "-").toLowerCase()}`,
+        label: `${courseCode} — student-selected planning course`,
+        description: `Student planning goal: ${goal.name}. Not an official SCU graduation requirement.`,
+        courses: [courseCode],
+        phase: null,
+        autoTracked: true,
+        needsVerification: false,
+        satisfiedBy: isCompleted ? [courseCode] : [],
+        plannedBy: isPlanned ? [courseCode] : [],
+        crossSatisfiedBy: [] as string[],
+        status: (isCompleted
+          ? "completed"
+          : isPlanned
+            ? "planned"
+            : "open") as RequirementStatus,
+        complete: isCompleted,
+      };
+    });
     const placeholderItems = goal.placeholders.map((label, index) => ({
       id: `professional-${goal.id}-placeholder-${index + 1}`,
       label,
       description: `Manual planning placeholder for ${goal.name}. Not an official SCU graduation requirement.`,
-      courses: [],
+      courses: [] as string[],
       phase: null,
       autoTracked: false,
       needsVerification: true,
-      satisfiedBy: [],
+      satisfiedBy: [] as string[],
+      plannedBy: [] as string[],
+      crossSatisfiedBy: [] as string[],
+      status: "open" as RequirementStatus,
       complete: false,
     }));
     const items = [...courseItems, ...placeholderItems];
@@ -316,14 +416,17 @@ export function buildRequirementsResponse(
       sourceUrl: SOURCES.degreeRequirements,
       sourceLabel: "SCU Bulletin Ch. 8: Degree Requirements",
     },
-    // Palette order: Major(s) first, then University Core, then Minor(s),
-    // then professional planning-only goals, then college/school requirements.
+    // Requirement order the professor asked for: the fundamentals a student
+    // must graduate with come first, and the optional extras come last, so
+    // second majors / minors / professional goals never sit above the primary
+    // major, University Core, or the college's own requirements.
     groups: [
-      ...majorGroups,
-      resolveGroup(universityCore, completed),
+      ...majorGroups.slice(0, 1),
+      resolveGroup(universityCore, completed, planned),
+      resolveGroup(college, completed, planned),
+      ...majorGroups.slice(1),
       ...minorGroups,
       ...professionalPreparation,
-      resolveGroup(college, completed),
     ],
   };
 }
@@ -381,6 +484,7 @@ router.get("/requirements", requireAuth, async (req, res) => {
       parseScenarioList(req.query.scenarioMajors),
       parseScenarioList(req.query.scenarioMinors),
       parseProfessionalGoals(req.query.professionalGoals),
+      parseScenarioList(req.query.plannedCourses),
     ),
   );
 });

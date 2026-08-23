@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { CourseSectionComponentType } from "./courseSectionComponentType";
 import type { CourseSectionMeetingDaysItem } from "./courseSectionMeetingDaysItem";
 import type { Term } from "./term";
 
@@ -29,4 +30,8 @@ export interface CourseSection {
   seatsKnown?: boolean;
   /** True for tentative-schedule terms (Winter/Spring 2027) where section numbers and instructors are not yet finalized. */
   tentative?: boolean;
+  /** Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin's laboratory/recitation text. Always treat it as a planning aid; "unknown" means CampusVal could not tell. */
+  componentType?: CourseSectionComponentType;
+  /** Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official. */
+  componentInferred?: boolean;
 }
