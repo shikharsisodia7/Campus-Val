@@ -1,3 +1,4 @@
+import { anchorYearFor, calendarYearFor } from "@/lib/academic-year";
 import { useQueries } from "@tanstack/react-query";
 import {
   getListCourseSectionsQueryOptions,
@@ -19,7 +20,14 @@ export type QuarterFitStatus =
   | "checking"; // section data still loading
 
 export interface QuarterFitSuggestion {
+  /**
+   * ACADEMIC-YEAR ANCHOR, so this can be handed straight to a plan-item move.
+   * Availability terms are calendar-keyed; passing that year through would
+   * file a Winter/Spring move under the wrong academic year.
+   */
   year: number;
+  /** Calendar year, for display only (Winter 2027, not Winter 2026). */
+  displayYear: number;
   term: string;
   scheduleStatus: "published" | "tentative";
   status: QuarterFitStatus;
@@ -48,8 +56,11 @@ export function useQuarterFitSuggestions(
 ): QuarterFitSuggestion[] {
   const code = norm(courseCode);
 
+  // Availability terms are calendar-year keyed; the caller passes the item's
+  // academic-year anchor, so compare like with like.
+  const currentCalendarYear = calendarYearFor(currentTerm, currentYear);
   const candidates = (scheduleAvailability?.terms ?? [])
-    .filter((t) => !(t.year === currentYear && t.term === currentTerm))
+    .filter((t) => !(t.year === currentCalendarYear && t.term === currentTerm))
     .map((t) => {
       const offered = (t.offeredCourseCodes ?? []).map(norm).includes(code);
       const plannedCodes = offered
@@ -60,7 +71,7 @@ export function useQuarterFitSuggestions(
                   (i) =>
                     i.itemType === "course" &&
                     !!i.courseCode &&
-                    i.academicYear === t.year &&
+                    i.academicYear === anchorYearFor(t.term, t.year) &&
                     i.term === t.term &&
                     norm(i.courseCode) !== code,
                 )
@@ -89,7 +100,8 @@ export function useQuarterFitSuggestions(
   let cursor = 0;
   return candidates.map(({ t, offered, codes }) => {
     const base = {
-      year: t.year,
+      year: anchorYearFor(t.term, t.year),
+      displayYear: t.year,
       term: t.term as string,
       scheduleStatus: t.status,
       plannedCount: codes.length > 0 ? codes.length - 1 : 0,

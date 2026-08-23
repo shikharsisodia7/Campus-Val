@@ -32,10 +32,14 @@ vi.mock("./usePlanItemMutations", () => ({
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const CURRENT_YEAR = 2026;
+// Plan items are stored under the academic-year ANCHOR; SCU schedule data is
+// keyed by CALENDAR year. Fall is the one term where the two coincide, which
+// is exactly why mixing them only ever broke Winter and Spring.
+const CURRENT_YEAR = 2026; // anchor AND calendar year, because it is Fall
 const CURRENT_TERM = "fall";
-const TARGET_YEAR = 2026;
 const TARGET_TERM = "winter";
+const TARGET_YEAR = 2026; // academic-year anchor — used for plan items
+const TARGET_CALENDAR_YEAR = 2027; // what the Registrar calls this quarter
 
 function section(
   code: string,
@@ -205,28 +209,28 @@ describe("CourseCard — quarter suggestions per-quarter statuses in conflict po
       sectionsByCode: {
         // winter 2026: conflict-free section — "fits", empty quarter
         "CHEM 11": [
-          { term: "winter", year: CURRENT_YEAR, sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR)] },
+          { term: "winter", year: CURRENT_YEAR + 1, sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR + 1)] },
           // spring 2026: only MWF section
-          { term: "spring", year: CURRENT_YEAR, sections: [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05", "spring", CURRENT_YEAR)] },
+          { term: "spring", year: CURRENT_YEAR + 1, sections: [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05", "spring", CURRENT_YEAR + 1)] },
           // summer 2026: TBA times → "unverified"
-          { term: "summer", year: CURRENT_YEAR, sections: [{ ...section("CHEM 11", "01", [], "", "", "summer", CURRENT_YEAR), meetingDays: [], startTime: null as any, endTime: null as any }] },
+          { term: "summer", year: CURRENT_YEAR + 1, sections: [{ ...section("CHEM 11", "01", [], "", "", "summer", CURRENT_YEAR + 1), meetingDays: [], startTime: null as any, endTime: null as any }] },
         ],
         // spring 2026: PHYS 10 clashes with the only CHEM 11 section → "no-fit"
         "PHYS 10": [
-          { term: "spring", year: CURRENT_YEAR, sections: [section("PHYS 10", "01", ["M", "W", "F"], "08:00", "09:05", "spring", CURRENT_YEAR)] },
+          { term: "spring", year: CURRENT_YEAR + 1, sections: [section("PHYS 10", "01", ["M", "W", "F"], "08:00", "09:05", "spring", CURRENT_YEAR + 1)] },
         ],
       },
       scheduleAvailability: makeAvailability([
         // current quarter
         { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
         // winter: fits
-        { year: CURRENT_YEAR, term: "winter", status: "published", offered: ["CHEM 11"] },
+        { year: CURRENT_YEAR + 1, term: "winter", status: "published", offered: ["CHEM 11"] },
         // spring: no-fit
-        { year: CURRENT_YEAR, term: "spring", status: "published", offered: ["CHEM 11", "PHYS 10"] },
+        { year: CURRENT_YEAR + 1, term: "spring", status: "published", offered: ["CHEM 11", "PHYS 10"] },
         // summer: unverified (TBA)
-        { year: CURRENT_YEAR, term: "summer", status: "published", offered: ["CHEM 11"] },
-        // winter 2027: not offered
-        { year: CURRENT_YEAR + 1, term: "winter", status: "published", offered: ["MATH 11"] },
+        { year: CURRENT_YEAR + 1, term: "summer", status: "published", offered: ["CHEM 11"] },
+        // the NEXT academic year's winter (calendar CURRENT_YEAR+2): not offered
+        { year: CURRENT_YEAR + 2, term: "winter", status: "published", offered: ["MATH 11"] },
       ]),
     });
 
@@ -285,14 +289,14 @@ describe("CourseCard — quarter suggestions per-quarter statuses in conflict po
       sectionsByCode: {
         // winter: fits when opened
         "CHEM 11": [
-          { term: "winter", year: CURRENT_YEAR, sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR)] },
+          { term: "winter", year: CURRENT_YEAR + 1, sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR + 1)] },
         ],
       },
       scheduleAvailability: makeAvailability([
         // current quarter (published)
         { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
         // winter: the only other term with a schedule
-        { year: CURRENT_YEAR, term: "winter", status: "published", offered: ["CHEM 11"] },
+        { year: CURRENT_YEAR + 1, term: "winter", status: "published", offered: ["CHEM 11"] },
         // spring 2027 has NO entry in scheduleAvailability → should not appear
       ]),
     });
@@ -337,15 +341,15 @@ describe("CourseCard — quarter suggestions per-quarter statuses in conflict po
         "CHEM 11": [
           {
             term: "winter",
-            year: CURRENT_YEAR,
-            sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR)],
+            year: CURRENT_YEAR + 1,
+            sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR + 1)],
           },
         ],
       },
       scheduleAvailability: makeAvailability([
         { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
         // winter is tentative — this is what we're testing
-        { year: CURRENT_YEAR, term: "winter", status: "tentative", offered: ["CHEM 11"] },
+        { year: CURRENT_YEAR + 1, term: "winter", status: "tentative", offered: ["CHEM 11"] },
       ]),
     });
 
@@ -390,7 +394,7 @@ describe("CourseCard — quarter suggestions per-quarter statuses in conflict po
       sectionsByCode: {},
       scheduleAvailability: makeAvailability([
         { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
-        { year: CURRENT_YEAR, term: "winter", status: "published", offered: ["CHEM 11"] },
+        { year: CURRENT_YEAR + 1, term: "winter", status: "published", offered: ["CHEM 11"] },
       ]),
     });
 
@@ -436,22 +440,22 @@ describe("CourseCard — quarter suggestions per-quarter statuses in conflict po
         "CHEM 11": [
           {
             term: TARGET_TERM,
-            year: TARGET_YEAR,
-            sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", TARGET_TERM, TARGET_YEAR)],
+            year: TARGET_CALENDAR_YEAR,
+            sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", TARGET_TERM, TARGET_CALENDAR_YEAR)],
           },
         ],
         "PHYS 10": [
           {
             term: TARGET_TERM,
-            year: TARGET_YEAR,
+            year: TARGET_CALENDAR_YEAR,
             // Different days → no conflict with CHEM 11.
-            sections: [section("PHYS 10", "01", ["M", "W", "F"], "14:00", "15:05", TARGET_TERM, TARGET_YEAR)],
+            sections: [section("PHYS 10", "01", ["M", "W", "F"], "14:00", "15:05", TARGET_TERM, TARGET_CALENDAR_YEAR)],
           },
         ],
       },
       scheduleAvailability: makeAvailability([
         { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
-        { year: TARGET_YEAR, term: TARGET_TERM, status: "published", offered: ["CHEM 11", "PHYS 10"] },
+        { year: TARGET_CALENDAR_YEAR, term: TARGET_TERM, status: "published", offered: ["CHEM 11", "PHYS 10"] },
       ]),
     });
 
@@ -496,8 +500,8 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
         "CHEM 11": [
           {
             term: TARGET_TERM,
-            year: TARGET_YEAR,
-            sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", TARGET_TERM, TARGET_YEAR)],
+            year: TARGET_CALENDAR_YEAR,
+            sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", TARGET_TERM, TARGET_CALENDAR_YEAR)],
           },
         ],
       },
@@ -509,7 +513,7 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
           offered: ["CHEM 11", "MATH 11"],
         },
         {
-          year: TARGET_YEAR,
+          year: TARGET_CALENDAR_YEAR,
           term: TARGET_TERM,
           status: "published",
           offered: ["CHEM 11"],
@@ -590,19 +594,19 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
     // Seed sections into the cache once; re-render will reuse them.
     // winter 2026: CHEM 11 only has a MWF 8-9 section.
     queryClient.setQueryData(
-      getListCourseSectionsQueryKey("CHEM 11", { term: "winter" as Term, year: CURRENT_YEAR }),
-      [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05", "winter", CURRENT_YEAR)],
+      getListCourseSectionsQueryKey("CHEM 11", { term: "winter" as Term, year: CURRENT_YEAR + 1 }),
+      [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05", "winter", CURRENT_YEAR + 1)],
     );
     // winter 2026: PHYS 10 also MWF 8-9 — identical slot blocks every CHEM 11 section.
     queryClient.setQueryData(
-      getListCourseSectionsQueryKey("PHYS 10", { term: "winter" as Term, year: CURRENT_YEAR }),
-      [section("PHYS 10", "01", ["M", "W", "F"], "08:00", "09:05", "winter", CURRENT_YEAR)],
+      getListCourseSectionsQueryKey("PHYS 10", { term: "winter" as Term, year: CURRENT_YEAR + 1 }),
+      [section("PHYS 10", "01", ["M", "W", "F"], "08:00", "09:05", "winter", CURRENT_YEAR + 1)],
     );
 
     const scheduleAvailability = makeAvailability([
       { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
-      { year: CURRENT_YEAR, term: "winter",      status: "published", offered: ["CHEM 11", "PHYS 10"] },
-      { year: CURRENT_YEAR, term: "spring",      status: "published", offered: ["CHEM 11", "PHYS 10"] },
+      { year: CURRENT_YEAR + 1, term: "winter",      status: "published", offered: ["CHEM 11", "PHYS 10"] },
+      { year: CURRENT_YEAR + 1, term: "spring",      status: "published", offered: ["CHEM 11", "PHYS 10"] },
     ]);
 
     const makeTree = (planItems: PlanItem[]) => {
@@ -690,12 +694,12 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
       sectionsByCode: {
         // Cache warm: winter 2026 has a conflict-free TR section → "fits".
         "CHEM 11": [
-          { term: "winter", year: CURRENT_YEAR, sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR)] },
+          { term: "winter", year: CURRENT_YEAR + 1, sections: [section("CHEM 11", "01", ["T", "R"], "10:00", "11:05", "winter", CURRENT_YEAR + 1)] },
         ],
       },
       scheduleAvailability: makeAvailability([
         { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["CHEM 11", "MATH 11"] },
-        { year: CURRENT_YEAR, term: "winter",     status: "published", offered: ["CHEM 11"] },
+        { year: CURRENT_YEAR + 1, term: "winter",     status: "published", offered: ["CHEM 11"] },
       ]),
     });
 
@@ -757,17 +761,17 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
         "CHEM 11": [
           {
             term: TARGET_TERM,
-            year: TARGET_YEAR,
+            year: TARGET_CALENDAR_YEAR,
             // CHEM 11 only has MWF sections in the target quarter.
-            sections: [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05", TARGET_TERM, TARGET_YEAR)],
+            sections: [section("CHEM 11", "01", ["M", "W", "F"], "08:00", "09:05", TARGET_TERM, TARGET_CALENDAR_YEAR)],
           },
         ],
         "PHYS 10": [
           {
             term: TARGET_TERM,
-            year: TARGET_YEAR,
+            year: TARGET_CALENDAR_YEAR,
             // PHYS 10 also MWF at the same time — blocks every CHEM 11 section.
-            sections: [section("PHYS 10", "01", ["M", "W", "F"], "08:00", "09:05", TARGET_TERM, TARGET_YEAR)],
+            sections: [section("PHYS 10", "01", ["M", "W", "F"], "08:00", "09:05", TARGET_TERM, TARGET_CALENDAR_YEAR)],
           },
         ],
       },
@@ -779,7 +783,7 @@ describe("CourseCard — 'Move here' button in conflict popover", () => {
           offered: ["CHEM 11", "MATH 11"],
         },
         {
-          year: TARGET_YEAR,
+          year: TARGET_CALENDAR_YEAR,
           term: TARGET_TERM,
           status: "published",
           offered: ["CHEM 11", "PHYS 10"],

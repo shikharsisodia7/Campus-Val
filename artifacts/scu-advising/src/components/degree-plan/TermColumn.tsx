@@ -6,6 +6,7 @@ import {
 import { PlanItem } from "@workspace/api-client-react";
 import { CourseCard } from "./CourseCard";
 import { termOfferingLabel } from "@/lib/course-offering";
+import { calendarYearFor } from "@/lib/academic-year";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { useTermCourseConflicts } from "./useTermCourseConflicts";
 
@@ -36,9 +37,13 @@ export function TermColumn({
   // Completed-area items are in the past — skip all schedule/conflict logic for them.
   const isCompletedTerm = term === "completed";
 
+  // `year` here is the academic-year ANCHOR the item is stored under, while
+  // schedule availability is keyed by CALENDAR year. Without the conversion
+  // only Fall ever matched, leaving Winter and Spring permanently unlabelled.
+  const calendarYear = calendarYearFor(term, year);
   const availabilityTerm = !isCompletedTerm
     ? scheduleAvailability?.terms.find(
-        (t) => t.year === year && t.term === term,
+        (t) => t.year === calendarYear && t.term === term,
       )
     : undefined;
   const status = availabilityTerm?.status; // 'published' | 'tentative' | undefined
@@ -67,7 +72,7 @@ export function TermColumn({
   // never left unlabelled next to a tentative Winter. See lib/course-offering.
   const { label: statusLabel, evidence: termEvidence } = isCompletedTerm
     ? { label: "", evidence: "unknown" as const }
-    : termOfferingLabel(term, year, scheduleAvailability);
+    : termOfferingLabel(term, calendarYear, scheduleAvailability);
   const statusColor =
     termEvidence === "published"
       ? "bg-emerald-100 text-emerald-800"

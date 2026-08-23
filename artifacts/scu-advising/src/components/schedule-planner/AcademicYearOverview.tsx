@@ -90,9 +90,16 @@ export function AcademicYearOverview({
     year: quarterYearFor(term, anchor),
   }));
 
-  const itemsFor = (term: Term, year: number) =>
+  // Plan items are stored under the academic-year ANCHOR, so every term of
+  // this academic year is matched against `anchor` — not against the term's
+  // calendar year. Looking these up by calendar year is what made Winter and
+  // Spring show the NEXT year's courses.
+  const itemsFor = (term: Term) =>
     (activePlan?.items ?? []).filter(
-      (i) => i.term === term && i.academicYear === year,
+      (i) =>
+        i.term === term &&
+        i.academicYear === anchor &&
+        (i.bucket ?? "planned") !== "completed",
     );
 
   return (
@@ -121,7 +128,7 @@ export function AcademicYearOverview({
         <div className="flex flex-wrap items-center gap-1.5">
           {quarters.map(({ term, year }) => {
             const isFocused = focusedTerm === term && focusedYear === year;
-            const count = itemsFor(term, year).length;
+            const count = itemsFor(term).length;
             return (
               <Button
                 key={`${term}-${year}`}
@@ -161,7 +168,7 @@ export function AcademicYearOverview({
         data-testid="degree-plan-carryover"
       >
         {quarters.map(({ term, year }) => {
-          const items = itemsFor(term, year);
+          const items = itemsFor(term);
           const courses = items.filter((i) => i.itemType === "course");
           const placeholders = items.filter(
             (i) => i.itemType === "requirement_placeholder",

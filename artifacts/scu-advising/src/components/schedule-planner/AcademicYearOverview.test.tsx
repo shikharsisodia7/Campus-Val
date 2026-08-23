@@ -112,10 +112,12 @@ describe("academic-year convention", () => {
 });
 
 describe("Fall/Winter/Spring Degree Plan carryover", () => {
+  // Plan items are stored under the academic-year ANCHOR: every term of the
+  // 2026-27 year is saved as 2026, so Winter 2026 IS calendar Winter 2027.
   const items = [
     makeItem(1, "CHEM 11", "fall", 2026),
-    makeItem(2, "MATH 12", "winter", 2027),
-    makeItem(3, "PHYS 33", "spring", 2027),
+    makeItem(2, "MATH 12", "winter", 2026),
+    makeItem(3, "PHYS 33", "spring", 2026),
   ];
 
   it("shows the Fall course under Fall", () => {
@@ -166,6 +168,18 @@ describe("Fall/Winter/Spring Degree Plan carryover", () => {
     );
   });
 
+  it("REGRESSION: Winter shows THIS academic year, not the next one", () => {
+    // The bug: Quarter Plan looked up Winter by calendar year (2027), which is
+    // the anchor of the NEXT academic year — so Winter showed year-2 courses.
+    renderOverview([
+      makeItem(2, "MATH 12", "winter", 2026),
+      makeItem(8, "AMTH 106", "winter", 2027),
+    ]);
+    const winter = screen.getByTestId("carryover-winter").textContent ?? "";
+    expect(winter).toContain("MATH 12");
+    expect(winter).not.toContain("AMTH 106");
+  });
+
   it("counts requirement placeholders without pretending they are courses", () => {
     const placeholder = {
       ...makeItem(4, "", "fall", 2026),
@@ -183,7 +197,7 @@ describe("Fall/Winter/Spring Degree Plan carryover", () => {
 describe("carryover is read-only", () => {
   const items = [
     makeItem(1, "CHEM 11", "fall", 2026),
-    makeItem(2, "MATH 12", "winter", 2027),
+    makeItem(2, "MATH 12", "winter", 2026),
   ];
 
   it("offers no move-to-another-quarter control for a planned course", () => {

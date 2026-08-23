@@ -31,6 +31,7 @@ import {
 import { Link } from "wouter";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
 import { useScheduleWorkspace } from "@/components/schedule-planner/useScheduleWorkspace";
+import { anchorYearFor } from "@/lib/academic-year";
 import { TermAndScheduleHeader } from "@/components/schedule-planner/TermAndScheduleHeader";
 import { AcademicYearOverview } from "@/components/schedule-planner/AcademicYearOverview";
 import { CalendarGrid } from "@/components/schedule-planner/CalendarGrid";
@@ -92,10 +93,14 @@ export default function Planner() {
   const degreeItems: PlanItem[] = useMemo(() => {
     if (!activePlan || !workspace.activeTerm || !workspace.activeYear)
       return [];
+    // workspace.activeYear is a CALENDAR year (it comes from schedule
+    // availability); plan items are stored under the academic-year anchor.
+    const anchor = anchorYearFor(workspace.activeTerm, workspace.activeYear);
     return activePlan.items.filter(
       (i) =>
         i.term === workspace.activeTerm &&
-        i.academicYear === workspace.activeYear,
+        i.academicYear === anchor &&
+        (i.bucket ?? "planned") !== "completed",
     );
   }, [activePlan, workspace.activeTerm, workspace.activeYear]);
 

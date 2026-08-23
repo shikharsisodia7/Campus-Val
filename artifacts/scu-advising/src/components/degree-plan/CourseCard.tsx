@@ -628,7 +628,7 @@ function QuarterSuggestions({
           >
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="font-semibold capitalize">
-                {s.term} {s.year}
+                {s.term} {s.displayYear}
                 {s.scheduleStatus === "tentative" && (
                   <span className="font-normal"> (tentative)</span>
                 )}
