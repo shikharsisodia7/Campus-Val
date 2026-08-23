@@ -548,31 +548,50 @@ router.post("/plans/:id/promote", requireAuth, async (req, res) => {
       .status(400)
       .json({ error: "This plan is already your Degree Plan." });
   }
-  // Demote the current degree plan to a clearly-named tentative backup.
-  const current = await db
-    .select()
-    .from(academicPlansTable)
-    .where(
-      and(
-        eq(academicPlansTable.userId, userId),
-        eq(academicPlansTable.planType, "degree"),
-      ),
-    );
+  // Demote the current Degree Plan to a clearly-named tentative backup and
+  // promote the chosen scenario IN ONE TRANSACTION.
+  //
+  // Doing this in two steps leaves a window where the user owns no plan of
+  // type "degree". GET /plans calls ensureDegreePlan(), so any concurrent
+  // request landing in that window — and the frontend refetches often —
+  // creates a spurious empty "Degree Plan". The user then has two, and
+  // `find(p => p.planType === "degree")` can pick the empty one, making the
+  // plan they just promoted look like it vanished.
   const stamp = new Date().toISOString().slice(0, 10);
-  for (const c of current) {
-    await db
+  const promoted = await db.transaction(async (tx) => {
+    const current = await tx
+      .select()
+      .from(academicPlansTable)
+      .where(
+        and(
+          eq(academicPlansTable.userId, userId),
+          eq(academicPlansTable.planType, "degree"),
+        ),
+      );
+    for (const c of current) {
+      await tx
+        .update(academicPlansTable)
+        .set({
+          planType: "tentative",
+          name: `${c.name} (previous, ${stamp})`.slice(0, 80),
+        })
+        .where(eq(academicPlansTable.id, c.id));
+    }
+    // The promoted plan carried a scenario name like "… (Tentative)", which
+    // reads wrong once it IS the Degree Plan. Drop that suffix.
+    const promotedName = plan.name
+      .replace(/\s*\((?:Tentative|Draft)\)\s*$/i, "")
+      .trim();
+    const [row] = await tx
       .update(academicPlansTable)
       .set({
-        planType: "tentative",
-        name: `${c.name} (previous, ${stamp})`.slice(0, 80),
+        planType: "degree",
+        name: (promotedName || "Degree Plan").slice(0, 80),
       })
-      .where(eq(academicPlansTable.id, c.id));
-  }
-  const [promoted] = await db
-    .update(academicPlansTable)
-    .set({ planType: "degree" })
-    .where(eq(academicPlansTable.id, plan.id))
-    .returning();
+      .where(eq(academicPlansTable.id, plan.id))
+      .returning();
+    return row;
+  });
   const items = await itemsOf(plan.id);
   res.json(planDto(promoted!, items.length));
 });

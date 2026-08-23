@@ -97,6 +97,17 @@ describe("DegreePlanToolbar — plan controls sit on the planning side", () => {
     ).toBeTruthy();
   });
 
+  it("keeps the retired 'Official' wording out of Plan Controls entirely", () => {
+    // Caught in live QA: the plan switcher still read "Official Degree Plan"
+    // and the promote button "Use as Official". Both were split across source
+    // lines, so a phrase search missed them — assert on the rendered text.
+    renderToolbar();
+    fireEvent.click(screen.getByTestId("button-open-plan-controls"));
+    const sheet = screen.getByTestId("sheet-plan-controls");
+    expect(sheet.textContent).not.toMatch(/Official/);
+    expect(sheet.textContent).toMatch(/Promote to Degree Plan|Degree Plan/);
+  });
+
   it("labels the plan without the retired 'Official Degree Plan' wording", () => {
     renderToolbar();
 
