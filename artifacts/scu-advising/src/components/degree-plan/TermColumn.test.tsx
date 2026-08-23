@@ -196,7 +196,10 @@ describe("TermColumn conflict warning wiring", () => {
 
     expect(screen.queryByTestId("time-conflict-note-301")).toBeNull();
     expect(screen.queryByTestId("time-conflict-note-302")).toBeNull();
-    expect(screen.getByText("Official schedule not published yet")).toBeTruthy();
+    // Centralized labelling (lib/course-offering): with no SCU schedule for
+    // this season at all, the term says so plainly rather than being left
+    // unlabelled next to a tentative one.
+    expect(screen.getByText("No SCU schedule for this quarter")).toBeTruthy();
   });
 
   it("clears the conflict warning immediately when the conflicting course is removed from the plan (tasks #40/#41)", async () => {
@@ -301,6 +304,9 @@ describe("TermColumn not-in-official-schedule flag wiring", () => {
 
     expect(screen.queryByTestId("not-offered-note-601")).toBeNull();
     expect(screen.queryByTestId("not-offered-note-602")).toBeNull();
-    expect(screen.getByText("Official schedule not published yet")).toBeTruthy();
+    // Centralized labelling (lib/course-offering): with no SCU schedule for
+    // this season at all, the term says so plainly rather than being left
+    // unlabelled next to a tentative one.
+    expect(screen.getByText("No SCU schedule for this quarter")).toBeTruthy();
   });
 });

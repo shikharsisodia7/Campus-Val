@@ -5,6 +5,7 @@ import {
 } from "@dnd-kit/sortable";
 import { PlanItem } from "@workspace/api-client-react";
 import { CourseCard } from "./CourseCard";
+import { termOfferingLabel } from "@/lib/course-offering";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { useTermCourseConflicts } from "./useTermCourseConflicts";
 
@@ -62,18 +63,19 @@ export function TermColumn({
     hasSchedule,
   );
 
-  const statusLabel =
-    status === "published"
-      ? "Published schedule"
-      : status === "tentative"
-        ? "Tentative schedule"
-        : "Official schedule not published yet";
+  // One centralized source for how a term is described, so a future Fall is
+  // never left unlabelled next to a tentative Winter. See lib/course-offering.
+  const { label: statusLabel, evidence: termEvidence } = isCompletedTerm
+    ? { label: "", evidence: "unknown" as const }
+    : termOfferingLabel(term, year, scheduleAvailability);
   const statusColor =
-    status === "published"
+    termEvidence === "published"
       ? "bg-emerald-100 text-emerald-800"
-      : status === "tentative"
+      : termEvidence === "tentative"
         ? "bg-amber-100 text-amber-800"
-        : "bg-muted/50 text-muted-foreground";
+        : termEvidence === "projected"
+          ? "bg-sky-100 text-sky-800"
+          : "bg-muted/50 text-muted-foreground";
 
   return (
     <div
