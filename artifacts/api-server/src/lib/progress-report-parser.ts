@@ -150,14 +150,15 @@ export interface ParsedCompletedCourse {
  * Try to detect a program/major line from plain text.
  * Looks for lines containing common program keywords near the text "major" or "program".
  */
+const PROGRAM_KEYWORD_RE = /\b(major|program|degree)\b/i;
+
 function extractProgram(text: string): string | undefined {
   const lines = text.split(/\r?\n/);
   for (const line of lines) {
-    const lower = line.toLowerCase();
     if (
-      (lower.includes("major") || lower.includes("program") || lower.includes("degree")) &&
+      PROGRAM_KEYWORD_RE.test(line) &&
       line.trim().length > 0 &&
-      line.trim().length < 100
+      line.trim().length < 160
     ) {
       // Return the trimmed line if it looks like a header line (not a sentence)
       const trimmed = line.trim();
