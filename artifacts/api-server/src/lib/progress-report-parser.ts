@@ -322,36 +322,19 @@ const SCU_CODE_PATTERN = /\b([A-Z]{2,5})\s?(\d{1,3}[A-Z]{0,2})\b/g;
 
 /**
  * Parse a PDF file buffer into plain text and extract course data.
- * Uses pdf-parse for text extraction.
+ *
+ * Uses `unpdf`, which (unlike `pdf-parse`) bundles cleanly with esbuild, so
+ * it ships inside dist/**. `pdf-parse` required a runtime node_modules
+ * lookup that Vercel's file tracer drops the pnpm symlink for — that's what
+ * produced "PDF parser not available in this environment" in production.
  */
 export async function parsePdfBuffer(buf: Buffer): Promise<ParsedProgressReport> {
   let text = "";
   try {
-    // Dynamic import to avoid issues if module not present in test env
-    const pdfParse = await import("pdf-parse").catch(() => null);
-    if (!pdfParse) {
-      return {
-        completedCourses: [],
-        possibleCourses: [],
-        notes: ["PDF parser not available in this environment."],
-      };
-    }
-    const mod = pdfParse as any;
-    if (typeof mod.PDFParse === "function") {
-      // pdf-parse v2 API: class-based
-      const parser = new mod.PDFParse({ data: new Uint8Array(buf) });
-      try {
-        const result = await parser.getText();
-        text = result?.text ?? "";
-      } finally {
-        try { await parser.destroy?.(); } catch { /* ignore */ }
-      }
-    } else {
-      // pdf-parse v1 API: callable default export
-      const fn = mod.default ?? mod;
-      const result = await fn(buf);
-      text = result.text ?? "";
-    }
+    const { getDocumentProxy, extractText } = await import("unpdf");
+    const pdf = await getDocumentProxy(new Uint8Array(buf));
+    const result = await extractText(pdf, { mergePages: true });
+    text = result.text ?? "";
   } catch {
     return {
       completedCourses: [],
