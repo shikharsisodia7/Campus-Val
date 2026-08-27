@@ -4,8 +4,8 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const SCU_ONLY_NOTE = (
   <div className="mb-4 px-3 py-2 rounded-md bg-[#8C1515]/10 border border-[#8C1515]/30 text-[13px] text-[#8C1515] text-center">
-    CampusVal is restricted to <span className="font-mono">@scu.edu</span>{" "}
-    accounts. Other emails will be rejected.
+    CampusVal is currently available to <span className="font-mono">@scu.edu</span>{" "}
+    accounts and invited external reviewers. Other emails will be rejected.
   </div>
 );
 
