@@ -402,6 +402,19 @@ describe("progress-report-parser fixture: committed xlsx — multi-term Workday 
     const codes = result.completedCourses.map((c) => c.code);
     expect(codes.length).toBe(new Set(codes).size);
   });
+
+  it("detects a long Program line rather than a course title containing 'Programming'", async () => {
+    const buf = await minimalXlsx([
+      [
+        "Program: Computer Science and Engineering with Electrical Engineering Double Major   Expected Grad: Spring 2028",
+      ],
+      [`${CA!.code}`, "Introduction to Object-Oriented Programming", 4, "A"],
+    ]);
+    const result = await parseXlsxBuffer(buf);
+
+    expect(result.program).toMatch(/^Program: Computer Science/);
+    expect(result.program).not.toMatch(/Programming$/);
+  });
 });
 
 // =============================================================================
