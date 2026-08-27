@@ -63,6 +63,7 @@ skills-lock.json
 # Private / never publish (prompts, screenshots, agent state)
 attached_assets/
 .agents/
+/demo-output/
 /courses-drawer.png
 /actg.html
 /mgmt.html
