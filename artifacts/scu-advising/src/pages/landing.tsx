@@ -119,7 +119,7 @@ function Hero() {
         className="mt-4 text-xs text-muted-foreground"
       >
         Requires an <span className="font-mono text-[#8C1515]">@scu.edu</span>{" "}
-        account.
+        account, or an invited external reviewer account.
       </motion.p>
     </section>
   );
