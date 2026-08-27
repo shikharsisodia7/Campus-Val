@@ -76,6 +76,40 @@ function minimalPdf(text: string): Buffer {
   return Buffer.from(pdf, "latin1");
 }
 
+/** Build a minimal valid multi-page PDF, one short ASCII text string per page. */
+function multiPagePdf(pageTexts: string[]): Buffer {
+  const pageCount = pageTexts.length;
+  const kids = pageTexts.map((_, i) => `${3 + i} 0 R`).join(" ");
+  const fontObjNum = 3 + pageCount * 2;
+  const objs: string[] = [
+    "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
+    `2 0 obj << /Type /Pages /Kids [${kids}] /Count ${pageCount} >> endobj`,
+  ];
+  pageTexts.forEach((text, i) => {
+    const pageObjNum = 3 + i;
+    const contentObjNum = 3 + pageCount + i;
+    objs.push(
+      `${pageObjNum} 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${contentObjNum} 0 R /Resources << /Font << /F1 ${fontObjNum} 0 R >> >> >> endobj`,
+    );
+  });
+  pageTexts.forEach((text, i) => {
+    const contentObjNum = 3 + pageCount + i;
+    const content = `BT /F1 12 Tf 50 700 Td (${text}) Tj ET`;
+    objs.push(`${contentObjNum} 0 obj << /Length ${content.length} >> stream\n${content}\nendstream endobj`);
+  });
+  objs.push(`${fontObjNum} 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj`);
+
+  let pdf = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  for (const o of objs) { offsets.push(pdf.length); pdf += o + "\n"; }
+  const xref = pdf.length;
+  const total = objs.length + 1;
+  pdf += `xref\n0 ${total}\n0000000000 65535 f \n` +
+    offsets.map((o) => String(o).padStart(10, "0") + " 00000 n \n").join("");
+  pdf += `trailer << /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(pdf, "latin1");
+}
+
 async function minimalXlsx(rows: (string | number | null)[][]): Promise<Buffer> {
   const XLSX = await import("xlsx");
   const XLSXmod = (XLSX as any).default ?? XLSX;
@@ -374,6 +408,37 @@ describe("progress-report-parser fixture: committed xlsx — multi-term Workday 
 // 4. STRUCTURAL / ERROR STATE TESTS
 //    Synthetic inputs for status codes, corrupt files, and unsupported types.
 // =============================================================================
+
+describe("progress-report-parser fixture: PDF text extraction (unpdf)", () => {
+  it("extracts course codes from a single-page synthetic PDF", async () => {
+    const buf = minimalPdf(`FALL 2022-2023 ${CA!.code} Test Course 4.00 A`);
+    const result = await parsePdfBuffer(buf);
+
+    const codes = result.completedCourses.map((c) => c.code);
+    expect(codes).toContain(CA!.code);
+  });
+
+  it("extracts course codes from every page of a multi-page synthetic PDF", async () => {
+    const buf = multiPagePdf([
+      `FALL 2022-2023`,
+      `${CA!.code} Accounting 4.00 A`,
+      `${CB!.code} Managerial 4.00 B`,
+    ]);
+    const result = await parsePdfBuffer(buf);
+
+    const codes = result.completedCourses.map((c) => c.code);
+    expect(codes).toContain(CA!.code);
+    expect(codes).toContain(CB!.code);
+  });
+
+  it("returns an honest note for a corrupt PDF buffer, never a false success", async () => {
+    const corrupt = Buffer.from("%PDF-1.4 this is deliberately corrupt and not a real PDF body");
+    const result = await parsePdfBuffer(corrupt);
+
+    expect(result.completedCourses).toHaveLength(0);
+    expect(result.notes.join(" ")).toMatch(/extraction failed|scanned or encrypted/i);
+  });
+});
 
 describe("progress-report-parser fixture: error states and unsupported formats", () => {
   it("returns status=failed for a corrupt PDF buffer, with an honest note and no courses", async () => {
