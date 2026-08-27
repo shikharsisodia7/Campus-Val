@@ -2573,6 +2573,42 @@ export const GetProgressReportResponse = zod
                   .describe(
                     "Student ID extracted from the document when confidently present.",
                   ),
+                groups: zod
+                  .array(
+                    zod.object({
+                      name: zod.string(),
+                      requirements: zod.array(
+                        zod.object({
+                          name: zod.string(),
+                          status: zod.enum([
+                            "completed",
+                            "in_progress",
+                            "remaining",
+                            "needs_review",
+                          ]),
+                          courses: zod.array(
+                            zod.object({
+                              code: zod.string(),
+                              title: zod.string(),
+                              units: zod.number().nullable(),
+                              grade: zod.string().nullable(),
+                              inCatalog: zod.boolean(),
+                            }),
+                          ),
+                        }),
+                      ),
+                    }),
+                  )
+                  .optional()
+                  .describe(
+                    "Requirement-group hierarchy derived from the document's own structure (e.g. \"<Program> Requirements\"); absent when the document doesn't support it or predates this field.",
+                  ),
+                parserVersion: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read).",
+                  ),
                 notes: zod.array(zod.string()),
               }),
               zod.null(),
@@ -2671,6 +2707,42 @@ export const RegisterProgressReportResponse = zod
                   .nullish()
                   .describe(
                     "Student ID extracted from the document when confidently present.",
+                  ),
+                groups: zod
+                  .array(
+                    zod.object({
+                      name: zod.string(),
+                      requirements: zod.array(
+                        zod.object({
+                          name: zod.string(),
+                          status: zod.enum([
+                            "completed",
+                            "in_progress",
+                            "remaining",
+                            "needs_review",
+                          ]),
+                          courses: zod.array(
+                            zod.object({
+                              code: zod.string(),
+                              title: zod.string(),
+                              units: zod.number().nullable(),
+                              grade: zod.string().nullable(),
+                              inCatalog: zod.boolean(),
+                            }),
+                          ),
+                        }),
+                      ),
+                    }),
+                  )
+                  .optional()
+                  .describe(
+                    "Requirement-group hierarchy derived from the document's own structure (e.g. \"<Program> Requirements\"); absent when the document doesn't support it or predates this field.",
+                  ),
+                parserVersion: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read).",
                   ),
                 notes: zod.array(zod.string()),
               }),

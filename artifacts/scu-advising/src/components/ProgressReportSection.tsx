@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Upload, Trash2, AlertTriangle } from "lucide-react";
+import { RequirementGroupList } from "@/components/progress-report/RequirementGroupList";
 
 const MAX_SIZE = 10 * 1024 * 1024;
 
@@ -157,27 +158,34 @@ export function ProgressReportSection() {
             </div>
           )}
 
-          {report.parsed && report.parsed.completedCourses.length > 0 && (
-            <div>
-              <div className="text-[11px] text-muted-foreground mb-1">
-                Courses identified on the report (
-                {report.parsed.completedCourses.length}):
-              </div>
-              <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto pr-1">
-                {report.parsed.completedCourses.map((c) => (
-                  <Badge
-                    key={c.code}
-                    variant="outline"
-                    className="font-mono text-[10px]"
-                    title={[c.title, c.units != null ? `${c.units} units` : null]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  >
-                    {c.code}
-                  </Badge>
-                ))}
-              </div>
+          {report.parsed?.groups && report.parsed.groups.length > 0 ? (
+            <div data-testid="apr-requirement-groups">
+              <RequirementGroupList groups={report.parsed.groups} defaultOpen="none" />
             </div>
+          ) : (
+            report.parsed &&
+            report.parsed.completedCourses.length > 0 && (
+              <div>
+                <div className="text-[11px] text-muted-foreground mb-1">
+                  Courses identified on the report (
+                  {report.parsed.completedCourses.length}):
+                </div>
+                <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto pr-1">
+                  {report.parsed.completedCourses.map((c) => (
+                    <Badge
+                      key={c.code}
+                      variant="outline"
+                      className="font-mono text-[10px]"
+                      title={[c.title, c.units != null ? `${c.units} units` : null]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    >
+                      {c.code}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )
           )}
 
           {report.parsed && report.parsed.possibleCourses.length > 0 && (

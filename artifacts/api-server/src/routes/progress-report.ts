@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, progressReportsTable, studentProfilesTable, type ProgressReportRow } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { getPrivateObjectStorage, isPrivateStorageConfigured, ObjectNotFoundError } from "../lib/storage";
-import { parseProgressReport } from "../lib/progress-report-parser";
+import { parseProgressReport, APR_PARSER_VERSION } from "../lib/progress-report-parser";
 
 const router: IRouter = Router();
 
@@ -55,6 +55,39 @@ async function getUserReport(userId: string): Promise<ProgressReportRow | null> 
 }
 
 /**
+ * A stored report parsed by an older parser version (e.g. before the
+ * hierarchical-groups structure existed) is transparently reparsed from the
+ * still-stored original file on next read, so existing users aren't stuck
+ * with stale flat output. Best-effort: on any failure, the stale row is
+ * returned as-is rather than surfacing an error for what is just a read.
+ */
+async function reparseIfStale(row: ProgressReportRow): Promise<ProgressReportRow> {
+  if (row.parseStatus !== "parsed") return row;
+  const parsedVersion = (row.parsed as { parserVersion?: string } | null)?.parserVersion;
+  if (parsedVersion === APR_PARSER_VERSION) return row;
+
+  try {
+    const storage = await getPrivateObjectStorage();
+    const { stream } = await storage.downloadObject(row.objectPath);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    const fileBuf = Buffer.concat(chunks);
+    const { result, status } = await parseProgressReport(fileBuf, row.contentType, row.fileName);
+
+    const rows = await db
+      .update(progressReportsTable)
+      .set({ parsed: result as any, parseStatus: status, updatedAt: new Date() })
+      .where(eq(progressReportsTable.userId, row.userId))
+      .returning();
+    return rows[0] ?? row;
+  } catch {
+    return row;
+  }
+}
+
+/**
  * GET /progress-report
  * Returns the user's progress report, or 404 if none.
  * Returns { available: false } if object storage is not configured.
@@ -71,7 +104,7 @@ router.get("/progress-report", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "No progress report found." });
     return;
   }
-  res.json(reportEnvelope(report));
+  res.json(reportEnvelope(await reparseIfStale(report)));
 });
 
 /**

@@ -8,6 +8,7 @@ import {
 } from "@workspace/api-client-react";
 import { ExternalLink, FileWarning, Info } from "lucide-react";
 import { Link } from "wouter";
+import { RequirementGroupList } from "../progress-report/RequirementGroupList";
 
 /**
  * The right-hand column of Degree Plan / Tentative Degree Plan.
@@ -18,6 +19,11 @@ import { Link } from "wouter";
  * whole purpose is letting the student compare their editable CampusVal plan
  * against what Workday currently shows, so it starts at the top of the column
  * and uses the full height available.
+ *
+ * The one addition to that rule is the parsed APR's own requirement
+ * hierarchy (collapsed by default) — it's still Workday's own structure and
+ * wording, not a CampusVal-computed analytic, so it stays inside "nothing
+ * else but the APR reference."
  *
  * Plan switching and majors/minors/Professional-Preparation editing live in
  * DegreePlanToolbar on the planning side.
@@ -137,6 +143,11 @@ export function ContextPanel() {
             )}
           </div>
 
+          {report?.parsed?.groups && report.parsed.groups.length > 0 && (
+            <div data-testid="apr-requirement-groups">
+              <RequirementGroupList groups={report.parsed.groups} defaultOpen="none" />
+            </div>
+          )}
         </div>
       </ScrollArea>
 

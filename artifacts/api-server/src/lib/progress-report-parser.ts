@@ -206,11 +206,165 @@ export async function parseXlsxBuffer(buf: Buffer): Promise<ParsedProgressReport
   return buildParsedReport(text, "No course codes were detected in the spreadsheet.");
 }
 
+/**
+ * Parser/schema version for the structured hierarchy (`groups`). Bumped
+ * whenever the shape of `groups` changes in a way that would make an
+ * already-stored parse stale. The route layer reparses on read when a
+ * stored report's version doesn't match this.
+ */
+export const APR_PARSER_VERSION = "hierarchical-v1";
+
+/** A single course row nested under a requirement. */
+export interface ParsedRequirementCourse {
+  code: string;
+  title: string;
+  units: number | null;
+  grade: string | null;
+  /** false when the code doesn't match the SCU catalog — title/units are then the raw extracted text, never invented. */
+  inCatalog: boolean;
+}
+
+/**
+ * One requirement row within a group (e.g. "University Requirement: Must
+ * have a minimum 2.000 Cumulative GPA", or a named major/minor requirement).
+ * Real SCU Workday APRs use "Satisfied" / "In Progress" as row statuses —
+ * never invent a status this file didn't state.
+ */
+export interface ParsedRequirement {
+  name: string;
+  status: "completed" | "in_progress" | "remaining" | "needs_review";
+  courses: ParsedRequirementCourse[];
+}
+
+/**
+ * A top-level requirement group. Real Workday APRs group by the student's
+ * actual declared program name (e.g. "Finance Major Requirements",
+ * "Economics (BS) Major Requirements") rather than a fixed Core/College/
+ * Major/Minor taxonomy, so group names are whatever the document says —
+ * never hardcoded categories.
+ */
+export interface ParsedRequirementGroup {
+  name: string;
+  requirements: ParsedRequirement[];
+}
+
+/** A line that is itself a group heading: "<Program Name> Requirements". */
+const GROUP_HEADING_RE = /\bRequirements$/;
+/** Status vocabulary as it actually appears on Workday APRs — never invented. */
+const STATUS_WORD_RE = /\b(Satisfied|In Progress|Not Satisfied|Not Started)\b/i;
+const NOT_SATISFIED_RE = /\bNot Satisfied\b/i;
+const NOT_STARTED_RE = /\bNot Started\b/i;
+const IN_PROGRESS_WORD_RE = /\bIn Progress\b/i;
+const SATISFIED_WORD_RE = /(?:^|\s)Satisfied(?:\s|$)/i;
+const REQUIREMENT_PREFIX_RE = /^(University|College|School|Major|Minor|Program)\s+Requirement:/i;
+
+function classifyRequirementStatus(line: string): ParsedRequirement["status"] {
+  if (NOT_SATISFIED_RE.test(line) || NOT_STARTED_RE.test(line)) return "remaining";
+  if (IN_PROGRESS_WORD_RE.test(line)) return "in_progress";
+  if (SATISFIED_WORD_RE.test(line)) return "completed";
+  return "needs_review";
+}
+
+/**
+ * Structural, section-aware pass that mirrors the real Workday APR layout:
+ * group headings ("<Program> Requirements"), requirement rows carrying a
+ * status word, and course rows nested under the requirement that precedes
+ * them until the next requirement or group boundary. Courses that appear
+ * before any requirement row in a group land under an honest "Other courses
+ * in this section" bucket rather than being silently dropped.
+ */
+export function extractRequirementGroups(text: string): ParsedRequirementGroup[] {
+  const groups: ParsedRequirementGroup[] = [];
+  let currentGroup: ParsedRequirementGroup | null = null;
+  let currentRequirement: ParsedRequirement | null = null;
+
+  const codeRe = new RegExp(SCU_CODE_PATTERN.source);
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.length > 200) continue;
+
+    const hasStatusWord = STATUS_WORD_RE.test(line);
+    const codeMatch = codeRe.exec(line);
+    codeRe.lastIndex = 0;
+    const startsWithCode = codeMatch !== null && codeMatch.index <= 2;
+
+    // Group heading: short line ending in "Requirements", not itself a
+    // requirement/course row (no status word, doesn't start with a code).
+    if (
+      GROUP_HEADING_RE.test(line) &&
+      line.length < 80 &&
+      !hasStatusWord &&
+      !startsWithCode
+    ) {
+      currentGroup = { name: line, requirements: [] };
+      groups.push(currentGroup);
+      currentRequirement = null;
+      continue;
+    }
+
+    if (!currentGroup) continue; // Nothing before the first real group heading.
+
+    // Requirement row: carries a status word, or an explicit "X Requirement:" prefix.
+    if ((hasStatusWord && !startsWithCode) || REQUIREMENT_PREFIX_RE.test(line)) {
+      const name = line.replace(STATUS_WORD_RE, "").trim().replace(/\s{2,}/g, " ");
+      currentRequirement = {
+        name: name || line,
+        status: classifyRequirementStatus(line),
+        courses: [],
+      };
+      currentGroup.requirements.push(currentRequirement);
+      continue;
+    }
+
+    // Course row: a catalog-code-like token near the start of the line.
+    if (startsWithCode && codeMatch) {
+      const normalized = normalizeCode(codeMatch[0]);
+      const catalogCourse = catalogMap.get(normalized);
+      const rest = line.slice(codeMatch.index + codeMatch[0].length).trim();
+      // Grade is the LAST token, never the first standalone match — a title
+      // like "Geometry I" contains a Roman numeral that isn't a grade.
+      const restTokens = rest.replace(/\(In Progress\)/i, "").trim().split(/\s+/);
+      const lastToken = restTokens[restTokens.length - 1] ?? "";
+      const grade = KNOWN_GRADE_TOKEN.test(lastToken) ? lastToken : null;
+
+      const course: ParsedRequirementCourse = catalogCourse
+        ? {
+            code: catalogCourse.code,
+            title: catalogCourse.title,
+            units: catalogCourse.units,
+            grade,
+            inCatalog: true,
+          }
+        : {
+            code: normalized,
+            title: rest.replace(/\(In Progress\)/i, "").trim() || normalized,
+            units: null,
+            grade,
+            inCatalog: false,
+          };
+
+      if (!currentRequirement) {
+        currentRequirement = {
+          name: "Other courses in this section",
+          status: "needs_review",
+          courses: [],
+        };
+        currentGroup.requirements.push(currentRequirement);
+      }
+      currentRequirement.courses.push(course);
+    }
+  }
+
+  return groups;
+}
+
 /** Shared assembly of a ParsedProgressReport from extracted text. */
 function buildParsedReport(text: string, emptyNote: string): ParsedProgressReport {
   const { catalogMatches, nonCompletedMatches, unknownTokens } = extractCodesFromText(text);
   const program = extractProgram(text);
   const reportStudentId = extractStudentId(text);
+  const groups = extractRequirementGroups(text);
 
   const notes: string[] = [];
   if (catalogMatches.length === 0 && unknownTokens.length === 0 && nonCompletedMatches.length === 0) {
@@ -231,6 +385,8 @@ function buildParsedReport(text: string, emptyNote: string): ParsedProgressRepor
     possibleCourses: unknownTokens,
     ...(program ? { program } : {}),
     ...(reportStudentId ? { reportStudentId } : {}),
+    ...(groups.length > 0 ? { groups } : {}),
+    parserVersion: APR_PARSER_VERSION,
     notes,
   };
 }
@@ -251,6 +407,10 @@ export interface ParsedProgressReport {
   program?: string;
   /** Student identifier extracted from the document, when confidently present. */
   reportStudentId?: string;
+  /** Requirement-group hierarchy, when the document's structure supports it. */
+  groups?: ParsedRequirementGroup[];
+  /** Present once a report has been parsed by the hierarchical parser; absent on older stored reports. */
+  parserVersion?: string;
   notes: string[];
 }
 
