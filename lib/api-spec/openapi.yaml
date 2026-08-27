@@ -1786,6 +1786,36 @@ components:
         reportStudentId:
           type: ["string", "null"]
           description: Student ID extracted from the document when confidently present.
+        groups:
+          type: array
+          description: Requirement-group hierarchy derived from the document's own structure (e.g. "<Program> Requirements"); absent when the document doesn't support it or predates this field.
+          items:
+            type: object
+            required: [name, requirements]
+            properties:
+              name: { type: string }
+              requirements:
+                type: array
+                items:
+                  type: object
+                  required: [name, status, courses]
+                  properties:
+                    name: { type: string }
+                    status: { type: string, enum: [completed, in_progress, remaining, needs_review] }
+                    courses:
+                      type: array
+                      items:
+                        type: object
+                        required: [code, title, units, grade, inCatalog]
+                        properties:
+                          code: { type: string }
+                          title: { type: string }
+                          units: { type: ["number", "null"] }
+                          grade: { type: ["string", "null"] }
+                          inCatalog: { type: boolean }
+        parserVersion:
+          type: string
+          description: Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read).
         notes:
           type: array
           items: { type: string }

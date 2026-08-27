@@ -28,6 +28,8 @@ import {
   parseProgressReport,
   extractCodesFromText,
   extractStudentId,
+  extractRequirementGroups,
+  APR_PARSER_VERSION,
 } from "./progress-report-parser";
 import { COURSES } from "../data/courses";
 
@@ -304,6 +306,96 @@ describe("progress-report-parser fixture: golden text — space-collapsed extrac
       expect(c.title).toBe(entry!.title);
       expect(c.units).toBe(entry!.units);
     }
+  });
+});
+
+// =============================================================================
+// 2b. GOLDEN TEXT FIXTURE: hierarchical requirement-group structure
+//    Source: src/__fixtures__/progress-report/workday-apr-hierarchical.txt
+//    Structure verified against a real (privately inspected, never committed)
+//    SCU Workday "View My Academic Progress" export: groups are named after
+//    the student's own declared program ("<Program> Requirements"), not a
+//    fixed Core/College/Major/Minor taxonomy; rows carry a literal
+//    "Satisfied" / "In Progress" / "Not Satisfied" / "Not Started" status;
+//    courses nest under the requirement row that precedes them.
+// =============================================================================
+
+describe("progress-report-parser fixture: golden text — hierarchical requirement groups", () => {
+  const csci10 = catalogMap.get("CSCI 10")!;
+  const csci60 = catalogMap.get("CSCI 60")!;
+  const csen12 = catalogMap.get("CSEN 12")!;
+  const math11 = catalogMap.get("MATH 11")!;
+  const math12 = catalogMap.get("MATH 12")!;
+
+  it("groups requirements under the document's own program names, not hardcoded categories", () => {
+    const text = loadTextFixture("workday-apr-hierarchical.txt");
+    const groups = extractRequirementGroups(text);
+
+    const names = groups.map((g) => g.name);
+    expect(names).toEqual([
+      "Computer Science and Engineering Major Requirements",
+      "Mathematics Minor Requirements",
+    ]);
+  });
+
+  it("classifies requirement status from the document's own vocabulary", () => {
+    const text = loadTextFixture("workday-apr-hierarchical.txt");
+    const [majorGroup, minorGroup] = extractRequirementGroups(text);
+
+    const byStatus = (status: string) =>
+      majorGroup!.requirements.filter((r) => r.status === status).map((r) => r.name);
+
+    expect(byStatus("completed").some((n) => n.includes("minimum 2.000 Cumulative GPA"))).toBe(true);
+    expect(byStatus("in_progress").some((n) => n.includes("Must complete 180 units"))).toBe(true);
+    expect(byStatus("completed").some((n) => n.includes("Lower Division Core Courses"))).toBe(true);
+    expect(byStatus("remaining").some((n) => n.includes("Upper Division Elective"))).toBe(true);
+
+    // "Not Started" maps to "remaining" — never invented as its own bucket.
+    expect(minorGroup!.requirements.some((r) => r.status === "remaining")).toBe(true);
+  });
+
+  it("never classifies 'Not Satisfied' as completed (must not match on the word 'Satisfied' alone)", () => {
+    const text = loadTextFixture("workday-apr-hierarchical.txt");
+    const [majorGroup] = extractRequirementGroups(text);
+
+    const elective = majorGroup!.requirements.find((r) => r.name.includes("Upper Division Elective"));
+    expect(elective).toBeDefined();
+    expect(elective!.status).not.toBe("completed");
+    expect(elective!.status).toBe("remaining");
+  });
+
+  it("nests courses under the requirement row that precedes them, using catalog data for known courses", () => {
+    const text = loadTextFixture("workday-apr-hierarchical.txt");
+    const [majorGroup] = extractRequirementGroups(text);
+
+    const unitsReq = majorGroup!.requirements.find((r) => r.name.includes("Must complete 180 units"));
+    expect(unitsReq!.courses.map((c) => c.code)).toEqual(["CSCI 10", "CSCI 60", "CSEN 12"]);
+    for (const c of unitsReq!.courses) expect(c.inCatalog).toBe(true);
+    expect(unitsReq!.courses[0]).toMatchObject({ title: csci10.title, units: csci10.units, grade: "A" });
+    expect(unitsReq!.courses[1]).toMatchObject({ title: csci60.title, units: csci60.units, grade: "A" });
+    // In-progress course with no grade yet: grade must be null, never guessed.
+    expect(unitsReq!.courses[2]).toMatchObject({ title: csen12.title, units: csen12.units, grade: null });
+
+    const coreReq = majorGroup!.requirements.find((r) => r.name.includes("Lower Division Core Courses"));
+    expect(coreReq!.courses.map((c) => c.code)).toEqual(["MATH 11", "MATH 12"]);
+    expect(coreReq!.courses[0]).toMatchObject({ title: math11.title, units: math11.units, grade: "B+" });
+    expect(coreReq!.courses[1]).toMatchObject({ title: math12.title, units: math12.units, grade: "B" });
+  });
+
+  it("buildParsedReport (via parseXlsxBuffer-equivalent text path) attaches groups and a parserVersion", async () => {
+    const text = loadTextFixture("workday-apr-hierarchical.txt");
+    const buf = await minimalXlsx(text.split("\n").map((l) => [l]));
+    const result = await parseXlsxBuffer(buf);
+
+    expect(result.parserVersion).toBe(APR_PARSER_VERSION);
+    expect(result.groups).toBeDefined();
+    expect(result.groups!.length).toBe(2);
+  });
+
+  it("a report with no 'X Requirements' heading produces no groups (flat fallback stays honest)", () => {
+    const text = `${CA!.code} Accounting 4.00 A`;
+    const groups = extractRequirementGroups(text);
+    expect(groups).toEqual([]);
   });
 });
 

@@ -173,6 +173,50 @@ describe("ContextPanel — APR official-reference states", () => {
     expect(screen.getByText("No Academic Progress Report uploaded.")).toBeTruthy();
   });
 
+  it("renders the parsed requirement hierarchy, collapsed by default, when the report has groups", () => {
+    mockReportQuery = {
+      data: {
+        available: true,
+        report: {
+          id: 1,
+          fileName: "Fall2026-APR.pdf",
+          fileSize: 1024,
+          contentType: "application/pdf",
+          objectPath: "/objects/x",
+          uploadedAt: "2026-08-01T00:00:00.000Z",
+          parsed: {
+            completedCourses: [],
+            possibleCourses: [],
+            notes: [],
+            parserVersion: "hierarchical-v1",
+            groups: [
+              {
+                name: "Computer Science and Engineering Major Requirements",
+                requirements: [
+                  { name: "University Requirement: Must have a minimum 2.000 Cumulative GPA", status: "completed", courses: [] },
+                ],
+              },
+            ],
+          },
+          parseStatus: "parsed",
+          createdAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-08-01T00:00:00.000Z",
+        },
+      },
+      isLoading: false,
+      error: null,
+    };
+    renderPanel();
+
+    expect(screen.getByTestId("apr-requirement-groups")).toBeTruthy();
+    expect(screen.getByText("Computer Science and Engineering Major Requirements")).toBeTruthy();
+    // Compact sidebar placement starts collapsed.
+    const trigger = screen
+      .getByText("Computer Science and Engineering Major Requirements")
+      .closest("button");
+    expect(trigger!.getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("shows a distinct error state for a real load failure (not a 404), never claiming 'no report uploaded' incorrectly", () => {
     mockReportQuery = {
       data: undefined,

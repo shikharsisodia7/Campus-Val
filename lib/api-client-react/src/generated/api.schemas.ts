@@ -326,6 +326,37 @@ export type ParsedProgressReportPossibleCoursesItem = {
   raw: string;
 };
 
+export type ParsedProgressReportGroupsItemRequirementsItemStatus =
+  (typeof ParsedProgressReportGroupsItemRequirementsItemStatus)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemStatus];
+
+export const ParsedProgressReportGroupsItemRequirementsItemStatus = {
+  completed: "completed",
+  in_progress: "in_progress",
+  remaining: "remaining",
+  needs_review: "needs_review",
+} as const;
+
+export type ParsedProgressReportGroupsItemRequirementsItemCoursesItem = {
+  code: string;
+  title: string;
+  /** @nullable */
+  units: number | null;
+  /** @nullable */
+  grade: string | null;
+  inCatalog: boolean;
+};
+
+export type ParsedProgressReportGroupsItemRequirementsItem = {
+  name: string;
+  status: ParsedProgressReportGroupsItemRequirementsItemStatus;
+  courses: ParsedProgressReportGroupsItemRequirementsItemCoursesItem[];
+};
+
+export type ParsedProgressReportGroupsItem = {
+  name: string;
+  requirements: ParsedProgressReportGroupsItemRequirementsItem[];
+};
+
 export interface ParsedProgressReport {
   completedCourses: ParsedProgressReportCompletedCoursesItem[];
   /** Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework. */
@@ -342,6 +373,10 @@ export interface ParsedProgressReport {
    * @nullable
    */
   reportStudentId?: string | null;
+  /** Requirement-group hierarchy derived from the document's own structure (e.g. "<Program> Requirements"); absent when the document doesn't support it or predates this field. */
+  groups?: ParsedProgressReportGroupsItem[];
+  /** Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read). */
+  parserVersion?: string;
   notes: string[];
 }
 

@@ -29,6 +29,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { ProgressReport } from "@workspace/api-client-react";
 import { formatBytes } from "./UploadZone";
+import { RequirementGroupList } from "./RequirementGroupList";
 
 interface ReportCardProps {
   report: ProgressReport;
@@ -259,32 +260,42 @@ function ParsedView({ parsed }: { parsed: NonNullable<ProgressReport["parsed"]> 
         </div>
       )}
 
-      {/* Completed courses */}
-      <Card className="p-5" data-testid="card-completed-courses">
-        <h3 className="font-serif text-lg font-semibold mb-3">
-          Recognized completed courses ({parsed.completedCourses.length})
-        </h3>
-        {parsed.completedCourses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No completed courses detected.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {parsed.completedCourses.map((course, i) => (
-              <div
-                key={i}
-                data-testid={`badge-course-${i}`}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1.5"
-              >
-                <span className="font-mono text-xs font-bold text-primary">{course.code}</span>
-                <Separator orientation="vertical" className="h-3.5" />
-                <span className="text-xs text-foreground">{course.title}</span>
-                <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                  {course.units}u
-                </Badge>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+      {/* Requirement hierarchy — the primary APR experience when the document supports it */}
+      {parsed.groups && parsed.groups.length > 0 ? (
+        <Card className="p-5" data-testid="card-requirement-groups">
+          <h3 className="font-serif text-lg font-semibold mb-1">Academic requirements</h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Grouped and named the way your Workday report presents them.
+          </p>
+          <RequirementGroupList groups={parsed.groups} defaultOpen="all" />
+        </Card>
+      ) : (
+        <Card className="p-5" data-testid="card-completed-courses">
+          <h3 className="font-serif text-lg font-semibold mb-3">
+            Recognized completed courses ({parsed.completedCourses.length})
+          </h3>
+          {parsed.completedCourses.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No completed courses detected.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {parsed.completedCourses.map((course, i) => (
+                <div
+                  key={i}
+                  data-testid={`badge-course-${i}`}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1.5"
+                >
+                  <span className="font-mono text-xs font-bold text-primary">{course.code}</span>
+                  <Separator orientation="vertical" className="h-3.5" />
+                  <span className="text-xs text-foreground">{course.title}</span>
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                    {course.units}u
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Needs review section */}
       {(parsed.possibleCourses.length > 0 || parsed.notes.length > 0) && (

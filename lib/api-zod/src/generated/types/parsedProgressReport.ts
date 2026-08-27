@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ParsedProgressReportCompletedCoursesItem } from "./parsedProgressReportCompletedCoursesItem";
+import type { ParsedProgressReportGroupsItem } from "./parsedProgressReportGroupsItem";
 import type { ParsedProgressReportNonCompletedCoursesItem } from "./parsedProgressReportNonCompletedCoursesItem";
 import type { ParsedProgressReportPossibleCoursesItem } from "./parsedProgressReportPossibleCoursesItem";
 
@@ -25,5 +26,9 @@ export interface ParsedProgressReport {
    * @nullable
    */
   reportStudentId?: string | null;
+  /** Requirement-group hierarchy derived from the document's own structure (e.g. "<Program> Requirements"); absent when the document doesn't support it or predates this field. */
+  groups?: ParsedProgressReportGroupsItem[];
+  /** Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read). */
+  parserVersion?: string;
   notes: string[];
 }
