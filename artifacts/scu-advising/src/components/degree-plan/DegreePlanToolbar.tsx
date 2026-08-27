@@ -43,7 +43,7 @@ export function DegreePlanToolbar({
       className="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-card px-2.5 py-1.5 shadow-sm"
       data-testid="degree-plan-toolbar"
     >
-      <div className="min-w-0 flex-1">
+      <div className="min-w-28 flex-1">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {mode === "tentative" ? "Tentative Degree Plan" : "Degree Plan"}
         </span>
