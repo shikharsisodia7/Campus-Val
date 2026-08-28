@@ -8,7 +8,7 @@ export default function DegreePlanPage() {
       <PageHeader
         compact
         title="Degree Plan"
-        subtitle="Drag courses and requirements into terms. Pick exact sections later in Quarter Plan."
+        subtitle="Select courses and requirements and add them to a term, then drag to move them as your plan changes. Pick exact sections later in Quarter Plan."
       />
       <div className="w-full max-w-none flex-1 px-3 py-2 md:px-4 lg:px-6">
         <DegreePlanWorkspace />

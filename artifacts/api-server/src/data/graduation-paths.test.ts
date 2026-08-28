@@ -7,7 +7,7 @@
  * carry provenance, never silently presented as equally authoritative.
  */
 import { describe, it, expect } from "vitest";
-import { getAvailableMajors, getGraduationPath } from "./graduation-paths";
+import { getAvailableMajors, getGraduationPath, getFourYearIndex } from "./graduation-paths";
 
 describe("graduation path sequence trust", () => {
   it("marks CSE's four-year plan as prescribed, with a real SCU source", () => {
@@ -57,5 +57,38 @@ describe("graduation path sequence trust", () => {
       const path = getGraduationPath("four_year", m.code);
       expect(path.provenance.verificationNote, `${m.code} missing verificationNote`).toBeTruthy();
     }
+  });
+});
+
+describe("getFourYearIndex — 'Load Four-Year Plan' dropdown source list", () => {
+  it("includes CSE as prescribed (loadable)", () => {
+    const index = getFourYearIndex();
+    const cse = index.find((m) => m.code === "CSE");
+    expect(cse).toBeDefined();
+    expect(cse!.sequenceTrust).toBe("prescribed");
+  });
+
+  it("includes the other SOE majors as recommended (reference-only), never prescribed", () => {
+    const index = getFourYearIndex();
+    for (const code of ["ECEN", "MECH", "CENG", "BIOE"]) {
+      const entry = index.find((m) => m.code === code);
+      expect(entry, `${code} should be in the index`).toBeDefined();
+      expect(entry!.sequenceTrust).toBe("recommended");
+    }
+  });
+
+  it("never includes an 'example' (generated-template) major — that is not a published departmental plan", () => {
+    const index = getFourYearIndex();
+    for (const major of ["ACTG", "PSYC", "ECON"]) {
+      expect(index.find((m) => m.code === major)).toBeUndefined();
+    }
+    expect(index.every((m) => m.sequenceTrust !== "example")).toBe(true);
+  });
+
+  it("returns exactly the known real-plan majors, nothing more", () => {
+    const index = getFourYearIndex();
+    expect(index.map((m) => m.code).sort()).toEqual(
+      ["BIOE", "CENG", "CSE", "ECEN", "MECH"].sort(),
+    );
   });
 });

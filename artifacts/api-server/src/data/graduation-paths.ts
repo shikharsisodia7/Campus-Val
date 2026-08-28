@@ -918,6 +918,26 @@ export function getAvailableMajors(): {
   }));
 }
 
+/**
+ * Majors with a real (non-"example") four-year plan: either preloadable
+ * ("prescribed", reconciled course-by-course) or reference-only
+ * ("recommended", an official SCU plan exists but isn't reconciled yet).
+ * Never includes "example" (generated-template) majors — those aren't a
+ * published departmental plan and must not be offered as one.
+ */
+export function getFourYearIndex(): {
+  code: string;
+  title: string;
+  sequenceTrust: SequenceTrust;
+}[] {
+  return getAvailableMajors()
+    .map((m) => {
+      const path = getGraduationPath("four_year", m.code);
+      return { code: m.code, title: m.title, sequenceTrust: path.sequenceTrust };
+    })
+    .filter((m) => m.sequenceTrust !== "example");
+}
+
 export function getGraduationPath(
   type: PathType,
   major = "CSE",
