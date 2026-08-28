@@ -70,9 +70,16 @@ export function DegreePlanToolbar({
       </div>
 
       {/* MIDDLE: affects the Degree Plan board itself */}
-      <div className="flex min-w-44 flex-1 items-center justify-center gap-2">
+      {/* min-w-72 (not min-w-44): at in-between widths like 768px, where all
+          three sections fit on one row without wrapping, flex-1 splits the
+          row's slack evenly regardless of each section's actual content — a
+          smaller floor here let the name span (needing its own real floor
+          below) get squeezed down to 1-2 visible characters before the
+          "Load Four-Year Plan" button. 72 covers name + button + gap so the
+          squeeze never happens; narrower viewports still wrap normally. */}
+      <div className="flex min-w-72 flex-1 items-center justify-center gap-2">
         <span
-          className="min-w-0 truncate text-sm font-semibold leading-tight"
+          className="min-w-20 truncate text-sm font-semibold leading-tight"
           data-testid="toolbar-plan-name"
         >
           {activePlan?.name ?? "—"}
