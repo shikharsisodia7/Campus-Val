@@ -154,17 +154,21 @@ const PROGRAM_KEYWORD_RE = /\b(major|program|degree)\b/i;
 
 function extractProgram(text: string): string | undefined {
   const lines = text.split(/\r?\n/);
-  for (const line of lines) {
-    if (
-      PROGRAM_KEYWORD_RE.test(line) &&
-      line.trim().length > 0 &&
-      line.trim().length < 160
-    ) {
-      // Return the trimmed line if it looks like a header line (not a sentence)
-      const trimmed = line.trim();
-      if (!/[.!?]$/.test(trimmed)) {
-        return trimmed;
-      }
+  for (const rawLine of lines) {
+    if (!PROGRAM_KEYWORD_RE.test(rawLine)) continue;
+    // Collapse xlsx-CSV cell separators (commas/tabs left by empty cells)
+    // into single spaces so a spreadsheet-sourced program line reads like
+    // prose instead of leaking raw delimiters, e.g. "Program:,Computer
+    // Science and Engineering,,Expected Grad:,Spring 2026,,," from
+    // sheet_to_csv. No-op for PDF-extracted text, which has no such commas.
+    const trimmed = rawLine
+      .replace(/[,\t]+/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    if (trimmed.length === 0 || trimmed.length >= 160) continue;
+    // Return the trimmed line if it looks like a header line (not a sentence)
+    if (!/[.!?]$/.test(trimmed)) {
+      return trimmed;
     }
   }
   return undefined;
