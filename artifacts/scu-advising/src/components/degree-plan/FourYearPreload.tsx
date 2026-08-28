@@ -15,19 +15,30 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { CalendarRange, ExternalLink, Loader2 } from "lucide-react";
+import { CalendarRange, ChevronDown, ExternalLink, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 
 /**
- * Compact "Load Four-Year Plan" entry point for Degree Plan.
+ * "Load Four-Year Plan" entry point for Degree Plan.
  *
  * Most SCU majors have no prescribed quarter-by-quarter sequence. Engineering
- * is the main case where a published sample plan is lockstep enough to load.
- * The server already classifies every sequence as prescribed / recommended /
- * example with provenance (see api-server/src/data/graduation-paths.ts); this
- * component only ever offers a one-click preload for a "prescribed" sequence
- * and otherwise says plainly what it has, linking to the source.
+ * is the main case where a published sample plan exists at all. The server
+ * already classifies every sequence as prescribed / recommended / example
+ * with provenance (see api-server/src/data/graduation-paths.ts) and exposes
+ * only the non-"example" (real, sourced) majors via /four_year_index. This
+ * component lists exactly those majors in a dropdown — never a fabricated
+ * plan for a major that doesn't publish one — and only ever offers a
+ * one-click preload for a "prescribed" sequence; "recommended" majors show
+ * their official source link instead.
  *
  * Loading never destroys existing work: courses already in the plan come back
  * as duplicates from the API and are counted as skipped.
@@ -80,6 +91,12 @@ const TRUST_COPY: Record<
   },
 };
 
+interface FourYearIndexEntry {
+  code: string;
+  title: string;
+  sequenceTrust: PathData["sequenceTrust"];
+}
+
 export function FourYearPreload({
   degreePlan,
 }: {
@@ -90,6 +107,8 @@ export function FourYearPreload({
   const queryClient = useQueryClient();
   const addPlanItem = useAddPlanItem();
 
+  const [index, setIndex] = useState<FourYearIndexEntry[] | null>(null);
+  const [selectedMajor, setSelectedMajor] = useState<string | null>(null);
   const [data, setData] = useState<PathData | null>(null);
   const [open, setOpen] = useState(false);
   const [isPreloading, setIsPreloading] = useState(false);
@@ -99,11 +118,27 @@ export function FourYearPreload({
     failed: number;
   } | null>(null);
 
-  const major = profile?.major;
+  // The dropdown lists only majors with a real, sourced four-year plan
+  // (never the generated-template ones).
+  useEffect(() => {
+    const url = `${import.meta.env.BASE_URL}api/graduation-paths/four_year_index`;
+    let cancelled = false;
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!cancelled) setIndex(j?.majors ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setIndex([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
-    if (!major) return;
-    const params = new URLSearchParams({ major });
+    if (!selectedMajor) return;
+    const params = new URLSearchParams({ major: selectedMajor });
     const url = `${import.meta.env.BASE_URL}api/graduation-paths/four_year?${params.toString()}`;
     let cancelled = false;
     fetch(url)
@@ -117,7 +152,7 @@ export function FourYearPreload({
     return () => {
       cancelled = true;
     };
-  }, [major]);
+  }, [selectedMajor]);
 
   // Only a genuinely prescribed sequence may be loaded in one click.
   const loadable = useMemo(() => {
@@ -167,27 +202,69 @@ export function FourYearPreload({
     setResult({ added, skipped, failed });
   }
 
-  if (!data) return null;
+if (!index || index.length === 0) return null;
 
-  const trust = TRUST_COPY[data.sequenceTrust];
+  const trust = data ? TRUST_COPY[data.sequenceTrust] : null;
+  const ownMajorInIndex = index.find((m) => m.code === profile?.major);
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-8 text-xs"
-        onClick={() => {
-          setResult(null);
-          setOpen(true);
-        }}
-        data-testid="button-load-four-year-plan"
-      >
-        <CalendarRange className="mr-1.5 h-3.5 w-3.5" />
-        Load Four-Year Plan
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            data-testid="button-load-four-year-plan"
+          >
+            <CalendarRange className="mr-1.5 h-3.5 w-3.5" />
+            Load Four-Year Plan
+            <ChevronDown className="ml-1.5 h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center" className="w-72">
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+            Majors with a department-defined four-year plan:
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {index.map((m) => (
+            <DropdownMenuItem
+              key={m.code}
+              data-testid={`four-year-menu-item-${m.code}`}
+              onSelect={() => {
+                setResult(null);
+                setSelectedMajor(m.code);
+                setOpen(true);
+              }}
+              className="flex items-center justify-between gap-2"
+            >
+              <span>
+                {m.title}
+                {m.code === ownMajorInIndex?.code && (
+                  <span className="ml-1 text-[10px] text-muted-foreground">(your major)</span>
+                )}
+              </span>
+              <Badge
+                variant="outline"
+                className={`text-[9px] ${TRUST_COPY[m.sequenceTrust].tone}`}
+              >
+                {m.sequenceTrust === "prescribed" ? "Loadable" : "Reference"}
+              </Badge>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <p className="px-2 py-1.5 text-[11px] text-muted-foreground">
+            Most majors don't publish a fixed four-year plan and expect
+            students to build one in consultation with an advisor.
+          </p>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      <Dialog open={open} onOpenChange={(o) => !isPreloading && setOpen(o)}>
+      <Dialog
+        open={open && !!data}
+        onOpenChange={(o) => !isPreloading && setOpen(o)}
+      >
+        {data && trust && (
         <DialogContent data-testid="dialog-four-year-preload">
           <DialogHeader>
             <DialogTitle>{data.title}</DialogTitle>
@@ -264,7 +341,7 @@ export function FourYearPreload({
               <p className="text-muted-foreground" data-testid="four-year-not-loadable">
                 CampusVal will not load this sequence for you. You can{" "}
                 <Link
-                  href={`/graduation-paths?major=${encodeURIComponent(major ?? "")}`}
+                  href={`/graduation-paths?major=${encodeURIComponent(selectedMajor ?? "")}`}
                   className="text-primary underline"
                 >
                   review it in full
@@ -308,6 +385,7 @@ export function FourYearPreload({
             )}
           </DialogFooter>
         </DialogContent>
+        )}
       </Dialog>
     </>
   );

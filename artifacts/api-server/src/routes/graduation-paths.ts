@@ -4,6 +4,7 @@ import {
   getAvailableMajors,
   getAvailableMinors,
   getMajorRequirements,
+  getFourYearIndex,
   type PathType,
 } from "../data/graduation-paths";
 import { findCourse } from "../data/courses";
@@ -26,6 +27,15 @@ function mergeCompleted(req: { query: Record<string, unknown> }): string[] {
 
 router.get("/graduation-paths/majors", (_req, res) => {
   res.json({ majors: getAvailableMajors() });
+});
+
+/**
+ * Majors with a real departmental four-year plan (prescribed or
+ * recommended) for the "Load Four-Year Plan" picker — never the
+ * generated-template majors, which aren't a published plan.
+ */
+router.get("/graduation-paths/four_year_index", (_req, res) => {
+  res.json({ majors: getFourYearIndex() });
 });
 
 router.get("/graduation-paths/minors", (_req, res) => {

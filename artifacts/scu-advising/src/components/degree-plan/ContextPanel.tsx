@@ -121,24 +121,24 @@ export function ContextPanel() {
                   {report.fileName} · uploaded{" "}
                   {new Date(report.uploadedAt).toLocaleDateString()}
                 </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                    <a
-                      href={fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      data-testid="button-view-original-report"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                      View Original Report
-                    </a>
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                    <Link href="/progress-report" data-testid="button-replace-report">
-                      Replace Report
-                    </Link>
-                  </Button>
-                </div>
+                {/* Replace/Upload lives in the executive control bar above,
+                    directly over this column — keep this panel focused on
+                    the report's own content rather than duplicating it. */}
+                <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                  <a
+                    href={fileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    data-testid="button-view-original-report"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                    View Original Report
+                  </a>
+                </Button>
+                <p className="text-[10px] text-muted-foreground/80">
+                  Re-upload your Workday APR after grades or program changes
+                  so CampusVal reflects the latest university record.
+                </p>
               </div>
             )}
           </div>

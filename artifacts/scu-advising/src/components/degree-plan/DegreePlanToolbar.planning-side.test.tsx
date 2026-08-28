@@ -11,6 +11,8 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+let mockReportQuery: { data: any } = { data: { available: false, report: null } };
+
 vi.mock("@workspace/api-client-react", async () => {
   const actual = await vi.importActual<any>("@workspace/api-client-react");
   return {
@@ -23,7 +25,7 @@ vi.mock("@workspace/api-client-react", async () => {
     useAddPlanItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
     useListGraduationMajors: () => ({ data: { majors: [] } }),
     useListGraduationMinors: () => ({ data: { minors: [] } }),
-    useGetProgressReport: () => ({ data: { available: false, report: null } }),
+    useGetProgressReport: () => mockReportQuery,
     useGetDegreeRequirements: () => ({ data: { groups: [] } }),
     useGetProfile: () => ({
       data: { major: "CSE", startYear: 2026, college: "School of Engineering" },
@@ -71,7 +73,10 @@ function renderToolbar(mode: "degree" | "tentative" = "degree") {
 }
 
 describe("DegreePlanToolbar — plan controls sit on the planning side", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    mockReportQuery = { data: { available: false, report: null } };
+  });
 
   it("renders a Plan Controls trigger outside the APR column", () => {
     renderToolbar();
@@ -117,9 +122,49 @@ describe("DegreePlanToolbar — plan controls sit on the planning side", () => {
     expect(screen.queryByText(/Official Degree Plan/)).toBeNull();
   });
 
-  it("names the surface Tentative Degree Plan in tentative mode", () => {
+  it("does not repeat the plan-type label inside the executive bar — the page heading above it already says it", () => {
+    // Newest professor feedback: repeating "Degree Plan" / "Tentative Degree
+    // Plan" inside the toolbar when the page heading already says it is
+    // redundant. Only the plan's own (possibly custom) name belongs here.
     renderToolbar("tentative");
-    expect(screen.getByText("Tentative Degree Plan")).toBeTruthy();
+    const toolbar = screen.getByTestId("degree-plan-toolbar");
+    expect(toolbar.textContent).not.toMatch(/Tentative Degree Plan/);
+    expect(toolbar.textContent).not.toMatch(/^Degree Plan$/m);
+    expect(screen.getByTestId("toolbar-plan-name").textContent).toBe("My Degree Plan");
+  });
+
+  it("opens Plan Controls from the LEFT, reinforcing it affects Planning Requirements", () => {
+    renderToolbar();
+    fireEvent.click(screen.getByTestId("button-open-plan-controls"));
+    const sheet = screen.getByTestId("sheet-plan-controls");
+    expect(sheet.getAttribute("data-state")).toBe("open");
+    // Radix Dialog content carries the side as a data attribute driven by the
+    // `side="left"` prop — assert the actual rendered attribute, not intent.
+    expect(sheet.className).toMatch(/left-0/);
+  });
+
+  it("gives Plan Controls a concise descriptor tying it to the APR gap it fills", () => {
+    renderToolbar();
+    expect(
+      screen.getByText(/majors, minors, or professional preparation not yet in your APR/i),
+    ).toBeTruthy();
+  });
+
+  it("shows 'Upload Workday APR' on the right when no report exists yet", () => {
+    renderToolbar();
+    const link = screen.getByTestId("button-upload-apr-toolbar");
+    expect(link.textContent).toMatch(/Upload Workday APR/);
+    expect(link.getAttribute("href")).toBe("/progress-report");
+  });
+
+  it("shows 'Replace Workday APR' once a report already exists", () => {
+    mockReportQuery = {
+      data: { available: true, report: { id: 1, fileName: "apr.pdf" } },
+    };
+    renderToolbar();
+    expect(screen.getByTestId("button-upload-apr-toolbar").textContent).toMatch(
+      /Replace Workday APR/,
+    );
   });
 
   it("keeps the toolbar to a single compact row", () => {

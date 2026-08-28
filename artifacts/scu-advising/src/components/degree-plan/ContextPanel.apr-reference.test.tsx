@@ -120,7 +120,10 @@ describe("ContextPanel — APR official-reference states", () => {
     // Must hit the existing authenticated file endpoint, never a public/raw URL.
     expect(viewLink.getAttribute("href")).toContain("/api/progress-report/file");
 
-    expect(screen.getByTestId("button-replace-report")).toBeTruthy();
+    // Replace/Upload now lives in the executive control bar above this
+    // column (DegreePlanToolbar), not duplicated here — this panel stays
+    // focused on the report's own content.
+    expect(screen.queryByTestId("button-replace-report")).toBeNull();
   });
 
   it("always shows the Workday verification disclaimer, regardless of report state", () => {
