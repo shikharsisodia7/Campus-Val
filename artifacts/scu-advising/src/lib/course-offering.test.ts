@@ -117,10 +117,15 @@ describe("tentative Registrar schedule", () => {
 });
 
 describe("future terms with no SCU schedule are projected, consistently", () => {
-  it("labels a future Fall as projected rather than leaving it unmarked", () => {
+  it("labels a future Fall 'Tentative schedule' (never 'Projected') — the professor asked this word be removed", () => {
     const { label, evidence } = termOfferingLabel("fall", 2028, availability);
+    // Internally still distinguished as "projected" evidence (same-season
+    // benchmark, not a real Registrar tentative schedule) so callers can
+    // color/tooltip it differently, but the user-facing label must read the
+    // same "Tentative schedule" wording used for a real tentative term.
     expect(evidence).toBe("projected");
-    expect(label).toMatch(/Projected/);
+    expect(label).toBe("Tentative schedule");
+    expect(label).not.toMatch(/Projected/);
   });
 
   it("labels future Winter and Spring the same way as future Fall", () => {
@@ -144,10 +149,12 @@ describe("future terms with no SCU schedule are projected, consistently", () => 
     expect(r.evidence).toBe("projected");
   });
 
-  it("never presents a projection as a fact", () => {
+  it("never presents a same-season benchmark as an official/published fact", () => {
     const r = courseOffering("CHEM 11", "fall", 2028, availability);
-    expect(r.detail).toMatch(/[Pp]roject/);
+    expect(r.detail).toMatch(/tentative|treat this as/i);
     expect(r.detail).not.toMatch(/official/i);
+    // Explicitly says SCU has NOT published a 2028 schedule — never claims one exists.
+    expect(r.detail).toMatch(/has not published a Fall 2028 schedule/i);
   });
 
   it("does not invent sections, instructors or times in a projection", () => {
