@@ -439,6 +439,17 @@ describe("progress-report-parser fixture: committed xlsx — multi-term Workday 
     }
   });
 
+  it("xlsx-detected program has no leftover CSV comma/tab delimiters from sheet_to_csv", async () => {
+    const buf = loadXlsxFixture("workday-apr-anonymized.xlsx");
+    const result = await parseXlsxBuffer(buf);
+
+    expect(result.program).toBeDefined();
+    expect(result.program).not.toMatch(/,/);
+    expect(result.program).not.toMatch(/\t/);
+    expect(result.program).toMatch(/^Program: Computer Science and Engineering/);
+    expect(result.program).toMatch(/Expected Grad: Spring 2026$/);
+  });
+
   it("xlsx completedCourses title and units come from the catalog, not the spreadsheet cells", async () => {
     const buf = loadXlsxFixture("workday-apr-anonymized.xlsx");
     const result = await parseXlsxBuffer(buf);
