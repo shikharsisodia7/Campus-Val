@@ -216,7 +216,7 @@ export async function parseXlsxBuffer(buf: Buffer): Promise<ParsedProgressReport
  * already-stored parse stale. The route layer reparses on read when a
  * stored report's version doesn't match this.
  */
-export const APR_PARSER_VERSION = "hierarchical-v1";
+export const APR_PARSER_VERSION = "hierarchical-v2";
 
 /** A single course row nested under a requirement. */
 export interface ParsedRequirementCourse {
