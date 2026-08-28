@@ -38,7 +38,7 @@ import { CalendarGrid } from "@/components/schedule-planner/CalendarGrid";
 import { ConflictsPanel } from "@/components/schedule-planner/ConflictsPanel";
 import { SidebarPanels } from "@/components/schedule-planner/SidebarPanels";
 import { CourseDetailsDialog } from "@/components/schedule-planner/CourseDetailsDialog";
-import { AcademicProgress } from "@/components/AcademicProgress";
+import { WorkdayAprPanel } from "@/components/progress-report/WorkdayAprPanel";
 import { ScheduleEvent } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -425,16 +425,15 @@ export default function Planner() {
             </Card>
           </div>
 
-          {/* Right: the Workday Academic Progress Report reference column.
-              Starts at the top of the workspace, mirroring Degree Plan, and
-              carries nothing else — no CampusVal progress analytics above it. */}
+          {/* Right: the same shared Workday Academic Progress Report
+              reference column used on Degree Plan and Tentative Degree
+              Plan — "this window should look just like the same window
+              each time." Carries nothing else. */}
           <div
-            className="order-1 flex min-w-0 flex-col gap-3 xl:order-3"
+            className="order-1 flex min-w-0 flex-col gap-3 xl:order-3 xl:h-[calc(100vh-18rem)]"
             data-testid="quarter-plan-apr-column"
           >
-            <div className="overflow-y-auto xl:h-[calc(100vh-18rem)]">
-              <AcademicProgress className="p-3" />
-            </div>
+            <WorkdayAprPanel />
           </div>
         </div>
       </PageContent>

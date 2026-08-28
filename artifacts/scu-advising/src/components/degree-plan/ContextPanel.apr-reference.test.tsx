@@ -129,13 +129,15 @@ describe("ContextPanel — APR official-reference states", () => {
   it("always shows the Workday verification disclaimer, regardless of report state", () => {
     mockReportQuery = { data: { available: true, report: null }, isLoading: false, error: null };
     renderPanel();
+    // Newest professor feedback: state plainly that this is a Workday
+    // record, modified through Workday (not CampusVal), and the student's
+    // comparison point — without calling CampusVal an advising system or
+    // the parser itself the university record.
     expect(
-      screen.getByText(
-        /This is the university-generated record\. CampusVal never\s+modifies it\./,
-      ),
+      screen.getByText(/This is a university record from Workday/),
     ).toBeTruthy();
     expect(
-      screen.getByText(/Verify your academic and registration information/),
+      screen.getByText(/modified through Workday, not CampusVal/),
     ).toBeTruthy();
   });
 

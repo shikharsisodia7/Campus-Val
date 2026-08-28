@@ -91,10 +91,10 @@ describe("ContextPanel — the right column is the APR and nothing else", () => 
     renderPanel();
 
     expect(
-      screen.getByText(/CampusVal never\s+modifies it/),
+      screen.getByText(/modified through Workday, not CampusVal/),
     ).toBeTruthy();
     expect(
-      screen.getByText(/Verify your academic and registration information/),
+      screen.getByText(/comparison point against your CampusVal plans/),
     ).toBeTruthy();
   });
 
