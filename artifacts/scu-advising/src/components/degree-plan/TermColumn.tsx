@@ -5,7 +5,7 @@ import {
 } from "@dnd-kit/sortable";
 import { PlanItem } from "@workspace/api-client-react";
 import { CourseCard } from "./CourseCard";
-import { termOfferingLabel } from "@/lib/course-offering";
+import { termOfferingLabel, PROJECTED_TERM_EXPLANATION } from "@/lib/course-offering";
 import { calendarYearFor } from "@/lib/academic-year";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { useTermCourseConflicts } from "./useTermCourseConflicts";
@@ -101,6 +101,8 @@ export function TermColumn({
 
       <div
         className={`text-[9px] px-1.5 py-0.5 rounded-sm w-fit ${statusColor}`}
+        title={termEvidence === "projected" ? PROJECTED_TERM_EXPLANATION : undefined}
+        data-testid="term-status-badge"
       >
         {statusLabel}
       </div>

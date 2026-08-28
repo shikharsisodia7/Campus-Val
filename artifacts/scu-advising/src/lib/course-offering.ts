@@ -43,6 +43,10 @@ export interface OfferingResult {
   detail: string;
 }
 
+/** Longer explanation for a "projected" term label — shown as a tooltip, not inline, to avoid clutter. */
+export const PROJECTED_TERM_EXPLANATION =
+  "Based on the most recent SCU schedule for this quarter; future offerings may change.";
+
 export function normalizeCourseCode(code: string): string {
   return code.toUpperCase().replace(/\s+/g, " ").trim();
 }
@@ -74,10 +78,14 @@ export function termOfferingLabel(
     return { label: "Tentative schedule", evidence: "tentative" };
   }
   // No SCU schedule for this exact term. If we hold a verified schedule for
-  // the same season in another year, we can project from it — clearly marked.
+  // the same season in another year, we can benchmark from it. The professor
+  // asked this NOT be called "Projected" — it's still shown as "Tentative
+  // schedule" (same word as a real Registrar tentative schedule), just with
+  // a distinct color and a longer tooltip (PROJECTED_TERM_EXPLANATION) so a
+  // student can tell the two apart without a confusing third label.
   const sameSeason = availability?.terms.some((t) => t.term === term);
   if (sameSeason) {
-    return { label: "Projected — no SCU schedule yet", evidence: "projected" };
+    return { label: "Tentative schedule", evidence: "projected" };
   }
   return { label: "No SCU schedule for this quarter", evidence: "unknown" };
 }
@@ -160,8 +168,8 @@ export function courseOffering(
       evidence: "projected",
       termLabel,
       detail: everOffered
-        ? `SCU has not published a ${season} ${year} schedule yet. Projected from the verified ${season} schedule CampusVal holds, ${code} is normally offered in ${season} — treat this as tentative and confirm when the schedule is published.`
-        : `SCU has not published a ${season} ${year} schedule yet, and ${code} does not appear in the verified ${season} schedule CampusVal holds. Treat this as a projection, not a fact.`,
+        ? `SCU has not published a ${season} ${year} schedule yet. Based on the most recent verified ${season} schedule CampusVal holds, ${code} is normally offered in ${season} — treat this as tentative and confirm when the schedule is published.`
+        : `${code} was not offered in the most recent verified ${season} schedule CampusVal holds for benchmarking ${season} ${year}. Future offerings may change — verify in Workday.`,
     };
   }
 
