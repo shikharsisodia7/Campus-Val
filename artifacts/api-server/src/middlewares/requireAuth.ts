@@ -31,11 +31,16 @@ function parseReviewerAllowlist(raw: string | undefined): Set<string> {
   );
 }
 
-export function isApprovedCampusValUser(email: string): boolean {
-  const normalized = email.trim().toLowerCase();
-  if (normalized.endsWith(`@${ALLOWED_DOMAIN}`)) return true;
-  const allowlist = parseReviewerAllowlist(process.env.GUEST_REVIEWER_EMAILS);
-  return allowlist.has(normalized);
+/**
+ * As of 2026-09-01, access is intentionally open to any signed-in email —
+ * a deliberate product decision (not a bug) to drop the @scu.edu +
+ * allowlist gate ahead of broader outside testing. `parseReviewerAllowlist`/
+ * GUEST_REVIEWER_EMAILS are left in place, unused, so the gate can be
+ * restored later with a one-line revert of this function if CampusVal needs
+ * to go back to SCU-proprietary access.
+ */
+export function isApprovedCampusValUser(_email: string): boolean {
+  return true;
 }
 
 /** "scu" for an @scu.edu account, "external_reviewer" for an allowlisted guest. */

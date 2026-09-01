@@ -117,13 +117,13 @@ const LANDING_PRERENDER = `
     </p>
     <div style="margin-top:2rem;display:flex;align-items:center;justify-content:center;gap:0.75rem">
       <a href="/sign-up" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 1.5rem;background:#8C1515;color:#fff;border-radius:0.5rem;text-decoration:none;font-size:1rem;font-weight:500">
-        Sign up with SCU email &#8594;
+        Sign up &#8594;
       </a>
       <a href="/sign-in" style="display:inline-flex;align-items:center;padding:0.75rem 1.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;text-decoration:none;color:#1a1a1a;font-size:1rem">
         Sign in
       </a>
     </div>
-    <p style="margin-top:1rem;font-size:0.75rem;color:#6b6b6b">Requires an <code style="color:#8C1515">@scu.edu</code> account.</p>
+    <p style="margin-top:1rem;font-size:0.75rem;color:#6b6b6b">Open to anyone with an email account.</p>
   </section>
   <section style="max-width:64rem;margin:0 auto;padding:0 1.5rem 6rem">
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">

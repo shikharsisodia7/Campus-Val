@@ -1,9 +1,9 @@
 /**
- * Unit tests for the CampusVal auth gate: SCU students authenticate
- * normally, invited external reviewers (Jake, Tom Hines, Yale contacts,
- * etc.) get in via a server-side allowlist, and everyone else is denied.
- * Clerk itself is mocked — these tests exercise only requireAuth's own
- * decision logic.
+ * Unit tests for the CampusVal auth gate. As of 2026-09-01 the gate is
+ * intentionally open to any signed-in email (see requireAuth.ts) — this
+ * exercises requireAuth's own decision logic: still 401 signed-out, still
+ * requires a readable email, otherwise any authenticated email passes.
+ * Clerk itself is mocked.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import express from "express";
@@ -59,8 +59,8 @@ describe("requireAuth — SCU and guest access", () => {
     expect(res.body).toEqual({ userId: "user_scu", userEmail: "student@scu.edu" });
   });
 
-  it("allows an allowlisted external reviewer", async () => {
-    process.env.GUEST_REVIEWER_EMAILS = "jake@example.com,tom.hines@example.org";
+  it("allows any other signed-in email (access is intentionally open, not just @scu.edu)", async () => {
+    process.env.GUEST_REVIEWER_EMAILS = "";
     mockAuth = {
       userId: "user_jake",
       sessionClaims: { email: "jake@example.com" },
@@ -70,39 +70,19 @@ describe("requireAuth — SCU and guest access", () => {
     expect(res.body.userEmail).toBe("jake@example.com");
   });
 
-  it("normalizes case and whitespace when matching the allowlist", async () => {
-    process.env.GUEST_REVIEWER_EMAILS = "  Jake@Example.com , TOM.HINES@example.org ";
+  it("normalizes email case for req.userEmail regardless of allowlist state", async () => {
+    delete process.env.GUEST_REVIEWER_EMAILS;
     mockAuth = {
       userId: "user_jake_2",
       sessionClaims: { email: "JAKE@EXAMPLE.COM" },
     };
     const res = await request(buildApp()).get("/protected");
     expect(res.status).toBe(200);
-  });
-
-  it("denies an unapproved external email with 403", async () => {
-    process.env.GUEST_REVIEWER_EMAILS = "jake@example.com";
-    mockAuth = {
-      userId: "user_random",
-      sessionClaims: { email: "someone@gmail.com" },
-    };
-    const res = await request(buildApp()).get("/protected");
-    expect(res.status).toBe(403);
-    expect(res.body.error).toMatch(/SCU users and invited reviewers/);
-  });
-
-  it("denies an unapproved external email when the allowlist is unset", async () => {
-    delete process.env.GUEST_REVIEWER_EMAILS;
-    mockAuth = {
-      userId: "user_random",
-      sessionClaims: { email: "someone@gmail.com" },
-    };
-    const res = await request(buildApp()).get("/protected");
-    expect(res.status).toBe(403);
+    expect(res.body.userEmail).toBe("jake@example.com");
   });
 
   it("falls back to a Clerk API lookup when claims lack an email", async () => {
-    process.env.GUEST_REVIEWER_EMAILS = "jake@example.com";
+    delete process.env.GUEST_REVIEWER_EMAILS;
     mockAuth = { userId: "user_jake_3" };
     mockGetUser.mockResolvedValue({
       primaryEmailAddressId: "eid_1",
@@ -115,11 +95,8 @@ describe("requireAuth — SCU and guest access", () => {
 });
 
 describe("isApprovedCampusValUser", () => {
-  it("never leaks the allowlist contents in a way tests can't control server-side", () => {
-    process.env.GUEST_REVIEWER_EMAILS = "a@example.com,B@Example.com";
+  it("approves any email — access is intentionally open as of 2026-09-01", () => {
     expect(isApprovedCampusValUser("student@scu.edu")).toBe(true);
-    expect(isApprovedCampusValUser("a@example.com")).toBe(true);
-    expect(isApprovedCampusValUser("b@example.com")).toBe(true);
-    expect(isApprovedCampusValUser("c@example.com")).toBe(false);
+    expect(isApprovedCampusValUser("anyone@example.com")).toBe(true);
   });
 });
