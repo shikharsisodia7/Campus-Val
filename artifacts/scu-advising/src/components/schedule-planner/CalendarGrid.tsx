@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle, Info } from "lucide-react";
 import { DAYS, toTimedEvent, format12, termColor, capitalize } from "./utils";
-import { findEventConflicts, timeToMinutes } from "@/lib/conflicts";
+import { findEventConflicts, timeToMinutes, layoutDayEvents } from "@/lib/conflicts";
 
 const HOUR_START = 8; // 8 AM
 const HOUR_END = 22; // 10 PM
@@ -122,9 +122,19 @@ export function CalendarGrid({
                 />
               ))}
 
-              {events
-                .filter((s) => s.meetingDays.includes(d.key))
-                .map((s) => {
+              {(() => {
+                const dayEvents = events.filter((s) => s.meetingDays.includes(d.key));
+                const slotById = new Map(
+                  layoutDayEvents(
+                    dayEvents.map((s) => ({
+                      id: s.id,
+                      startTime: s.startTime,
+                      endTime: s.endTime,
+                    })),
+                  ).map((slot) => [slot.id, slot]),
+                );
+
+                return dayEvents.map((s) => {
                   const startMin = timeToMinutes(s.startTime) - HOUR_START * 60;
                   const endMin = timeToMinutes(s.endTime) - HOUR_START * 60;
                   if (isNaN(startMin) || isNaN(endMin)) return null;
@@ -140,16 +150,28 @@ export function CalendarGrid({
                   const isConflict = conflictIds.has(s.id);
                   const isTentative = s.kind === "section" && isTentativeSchedule;
 
+                  // Side-by-side collision layout: an overlapping pair each get
+                  // their own column instead of one card fully covering the
+                  // other (the conflict ring/color still flags the clash).
+                  const slot = slotById.get(s.id) ?? { column: 0, columnCount: 1 };
+                  const widthPct = 100 / slot.columnCount;
+                  const leftPct = slot.column * widthPct;
+
                   return (
                     <div
                       key={`${s.id}-${d.key}`}
                       onClick={() => onEventClick?.(s)}
-                      className={`absolute left-0.5 right-0.5 rounded p-1.5 text-[10px] sm:text-xs leading-tight overflow-hidden border shadow-sm transition-transform hover:scale-[1.02] hover:z-10 cursor-pointer ${
+                      className={`absolute rounded p-1.5 text-[10px] sm:text-xs leading-tight overflow-hidden border shadow-sm transition-transform hover:scale-[1.02] hover:z-10 cursor-pointer ${
                         isConflict
                           ? "bg-red-100 border-red-500 text-red-900 ring-2 ring-red-400"
                           : `${color?.bg} ${color?.border} ${color?.text}`
                       } ${s.kind === "commitment" ? "border-dashed" : ""}`}
-                      style={{ top, height }}
+                      style={{
+                        top,
+                        height,
+                        left: `calc(${leftPct}% + 2px)`,
+                        width: `calc(${widthPct}% - 4px)`,
+                      }}
                     >
                       <div className="font-semibold truncate flex items-center gap-1">
                         <span className="truncate">
@@ -177,7 +199,8 @@ export function CalendarGrid({
                       )}
                     </div>
                   );
-                })}
+                });
+              })()}
             </div>
           ))}
         </div>

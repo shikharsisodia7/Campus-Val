@@ -1,7 +1,9 @@
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { DegreePlanWorkspace } from "@/components/degree-plan/DegreePlanWorkspace";
+import { useTrackUsage } from "@/hooks/use-track-usage";
 
 export default function DegreePlanPage() {
+  useTrackUsage("degree_plan");
   return (
     <AppShell>
       {/* Compact by design: the board and the Workday report need the height. */}

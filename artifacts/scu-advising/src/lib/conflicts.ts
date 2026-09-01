@@ -236,6 +236,77 @@ export function sectionOverlapDetails(
   return out;
 }
 
+export interface DayLayoutItem {
+  id: number | string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface DayLayoutSlot {
+  id: number | string;
+  column: number;
+  columnCount: number;
+}
+
+/**
+ * Day-view collision layout (same idea as Google Calendar's day view):
+ * overlapping events split into side-by-side columns instead of stacking on
+ * top of each other, so a conflict never fully hides one event behind
+ * another. Items with unparseable/zero-duration times get their own
+ * single-width slot rather than being dropped or guessed into a cluster.
+ */
+export function layoutDayEvents(items: DayLayoutItem[]): DayLayoutSlot[] {
+  type Interval = DayLayoutItem & { start: number; end: number };
+  const out: DayLayoutSlot[] = [];
+  const valid: Interval[] = [];
+  for (const item of items) {
+    const start = timeToMinutes(item.startTime);
+    const end = timeToMinutes(item.endTime);
+    if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
+      out.push({ id: item.id, column: 0, columnCount: 1 });
+      continue;
+    }
+    valid.push({ ...item, start, end });
+  }
+  valid.sort((a, b) => a.start - b.start || a.end - b.end);
+
+  let cluster: Interval[] = [];
+  let clusterEnd = -Infinity;
+
+  const flushCluster = () => {
+    if (cluster.length === 0) return;
+    // Greedily reuse the leftmost column whose previous event has already ended.
+    const columnEnds: number[] = [];
+    for (const item of cluster) {
+      let col = columnEnds.findIndex((end) => end <= item.start);
+      if (col === -1) {
+        col = columnEnds.length;
+        columnEnds.push(item.end);
+      } else {
+        columnEnds[col] = item.end;
+      }
+      out.push({ id: item.id, column: col, columnCount: -1 }); // columnCount backfilled below
+    }
+    const columnCount = columnEnds.length;
+    for (let i = out.length - cluster.length; i < out.length; i++) {
+      out[i]!.columnCount = columnCount;
+    }
+    cluster = [];
+  };
+
+  for (const item of valid) {
+    if (cluster.length > 0 && item.start >= clusterEnd) {
+      flushCluster();
+      clusterEnd = -Infinity;
+    }
+    cluster.push(item);
+    clusterEnd = Math.max(clusterEnd, item.end);
+  }
+  flushCluster();
+
+  return out;
+}
+
 export function minutesToLabel(min: number): string {
   const h24 = Math.floor(min / 60);
   const m = min % 60;

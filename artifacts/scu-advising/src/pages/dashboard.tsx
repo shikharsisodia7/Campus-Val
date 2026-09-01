@@ -21,8 +21,10 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { termLabel } from "@/lib/api";
+import { useTrackUsage } from "@/hooks/use-track-usage";
 
 export default function Dashboard() {
+  useTrackUsage("dashboard");
   const [, setLocation] = useLocation();
   const { data: profile, isLoading: profileLoading, isError: profileError } =
     useGetProfile({

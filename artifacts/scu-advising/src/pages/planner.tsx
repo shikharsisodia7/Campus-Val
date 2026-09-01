@@ -41,6 +41,7 @@ import { CourseDetailsDialog } from "@/components/schedule-planner/CourseDetails
 import { WorkdayAprPanel } from "@/components/progress-report/WorkdayAprPanel";
 import { ScheduleEvent } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTrackUsage } from "@/hooks/use-track-usage";
 
 // Quarter Plan supports fall/winter/spring only (the three academic quarters).
 // Summer is excluded from the term selector; the availability endpoint remains
@@ -48,6 +49,7 @@ import { useToast } from "@/hooks/use-toast";
 const QUARTER_PLAN_TERMS = new Set(["fall", "winter", "spring"]);
 
 export default function Planner() {
+  useTrackUsage("quarter_plan");
   const { toast } = useToast();
   const workspace = useScheduleWorkspace();
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(

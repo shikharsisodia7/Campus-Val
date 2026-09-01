@@ -187,9 +187,10 @@ export function AcademicYearOverview({
                   {courses.map((c) => c.courseCode).join(", ")}
                   {placeholders.length > 0 && (
                     <span className="text-muted-foreground">
-                      {courses.length > 0 ? ", " : ""}
-                      {placeholders.length} requirement
-                      {placeholders.length === 1 ? "" : "s"}
+                      {courses.length > 0 ? "; " : ""}
+                      {placeholders
+                        .map((p) => p.requirementLabel || p.requirementCategory || "Requirement")
+                        .join(", ")}
                     </span>
                   )}
                 </span>

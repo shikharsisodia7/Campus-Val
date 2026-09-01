@@ -21,10 +21,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { UploadZone, type SelectedFile } from "@/components/progress-report/UploadZone";
 import { ReportCard } from "@/components/progress-report/ReportCard";
+import { useTrackUsage } from "@/hooks/use-track-usage";
 
 type UploadPhase = "idle" | "requesting-url" | "uploading" | "registering";
 
 export default function ProgressReportPage() {
+  useTrackUsage("apr_upload");
   const qc = useQueryClient();
   const { toast } = useToast();
 
