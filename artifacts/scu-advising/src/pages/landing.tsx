@@ -102,7 +102,7 @@ function Hero() {
             size="lg"
             className="bg-[#8C1515] hover:bg-[#7a1212] gap-2"
           >
-            Sign up with SCU email <ArrowRight className="h-4 w-4" />
+            Sign up <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
         <Link href="/sign-in">
@@ -118,8 +118,7 @@ function Hero() {
         transition={{ delay: 0.4 }}
         className="mt-4 text-xs text-muted-foreground"
       >
-        Requires an <span className="font-mono text-[#8C1515]">@scu.edu</span>{" "}
-        account, or an invited external reviewer account.
+        An independent prototype, not an official SCU system.
       </motion.p>
     </section>
   );
