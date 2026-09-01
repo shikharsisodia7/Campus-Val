@@ -38,6 +38,13 @@ export function isApprovedCampusValUser(email: string): boolean {
   return allowlist.has(normalized);
 }
 
+/** "scu" for an @scu.edu account, "external_reviewer" for an allowlisted guest. */
+export function campusValUserType(email: string): "scu" | "external_reviewer" {
+  return email.trim().toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`)
+    ? "scu"
+    : "external_reviewer";
+}
+
 async function getPrimaryEmail(userId: string): Promise<string | null> {
   const cached = emailCache.get(userId);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.email;

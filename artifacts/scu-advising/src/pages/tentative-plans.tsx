@@ -1,5 +1,6 @@
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { DegreePlanWorkspace } from "@/components/degree-plan/DegreePlanWorkspace";
+import { useTrackUsage } from "@/hooks/use-track-usage";
 
 /**
  * Tentative Degree Plan — the same planning workspace as Degree Plan, but
@@ -9,6 +10,7 @@ import { DegreePlanWorkspace } from "@/components/degree-plan/DegreePlanWorkspac
  * Academic Progress Report at all.
  */
 export default function TentativePlansPage() {
+  useTrackUsage("tentative_degree_plan");
   return (
     <AppShell>
       <PageHeader

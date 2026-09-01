@@ -13,6 +13,7 @@ import { Link } from "wouter";
 import { PlanControlsPanel } from "./PlanControlsPanel";
 import { FourYearPreload } from "./FourYearPreload";
 import { useDegreePlanContext } from "./DegreePlanContext";
+import { useTrackUsage } from "@/hooks/use-track-usage";
 
 /**
  * "Executive control bar" above the planning board: each control sits on the
@@ -39,6 +40,7 @@ export function DegreePlanToolbar({
 }) {
   const { activePlan } = useDegreePlanContext();
   const [controlsOpen, setControlsOpen] = useState(false);
+  useTrackUsage("plan_controls", controlsOpen);
   const { data: reportEnvelope } = useGetProgressReport();
   const hasReport = !!reportEnvelope?.report;
 
