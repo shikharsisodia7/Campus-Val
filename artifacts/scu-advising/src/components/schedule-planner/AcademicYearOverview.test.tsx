@@ -180,7 +180,7 @@ describe("Fall/Winter/Spring Degree Plan carryover", () => {
     expect(winter).not.toContain("AMTH 106");
   });
 
-  it("counts requirement placeholders without pretending they are courses", () => {
+  it("shows the requirement's descriptive label, not just a count, without pretending it is a course", () => {
     const placeholder = {
       ...makeItem(4, "", "fall", 2026),
       itemType: "requirement_placeholder",
@@ -188,9 +188,37 @@ describe("Fall/Winter/Spring Degree Plan carryover", () => {
       requirementLabel: "Core: Civic Engagement",
     } as unknown as PlanItem;
     renderOverview([placeholder]);
+    const text = screen.getByTestId("carryover-fall").textContent ?? "";
+    expect(text).toContain("Core: Civic Engagement");
+    expect(text).not.toContain("1 requirement");
+  });
+
+  it("falls back to requirementCategory, then a generic label, when no descriptive label is set", () => {
+    const withCategory = {
+      ...makeItem(5, "", "fall", 2026),
+      itemType: "requirement_placeholder",
+      courseCode: null,
+      requirementLabel: null,
+      requirementCategory: "Upper-Division Public Health Science",
+    } as unknown as PlanItem;
+    renderOverview([withCategory]);
     expect(screen.getByTestId("carryover-fall").textContent).toContain(
-      "1 requirement",
+      "Upper-Division Public Health Science",
     );
+  });
+
+  it("shows both a concrete course and a generic requirement together in the same quarter", () => {
+    const course = makeItem(6, "CHEM 11", "fall", 2026);
+    const placeholder = {
+      ...makeItem(7, "", "fall", 2026),
+      itemType: "requirement_placeholder",
+      courseCode: null,
+      requirementLabel: "Core Elective",
+    } as unknown as PlanItem;
+    renderOverview([course, placeholder]);
+    const text = screen.getByTestId("carryover-fall").textContent ?? "";
+    expect(text).toContain("CHEM 11");
+    expect(text).toContain("Core Elective");
   });
 });
 

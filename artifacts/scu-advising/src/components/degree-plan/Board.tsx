@@ -19,10 +19,11 @@ import { TermColumn } from "./TermColumn";
 import { CompletedArea, COMPLETED_DROPZONE_ID } from "./CompletedArea";
 import { CourseCard } from "./CourseCard";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useOptimisticUpdatePlanItem } from "./usePlanItemMutations";
 import { useUpdatePlan } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * Whatever the pointer is actually inside wins; fall back to closestCorners
@@ -52,6 +53,7 @@ export function Board({ plans }: { plans: any[] }) {
   const updatePlanItem = useOptimisticUpdatePlanItem();
   const updatePlan = useUpdatePlan();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
@@ -59,6 +61,7 @@ export function Board({ plans }: { plans: any[] }) {
   // Calculate which years to show (exclude completed-area items with term="completed" or bucket="completed")
   const yearsWithItems = new Set<number>();
   const summerVisibleByYear = new Set<number>();
+  const summerItemCountByYear = new Map<number, number>();
 
   const plannedItems = (activePlan?.items ?? []).filter((i) => {
     if (i.term === "completed") return false; // task's completed area
@@ -75,6 +78,10 @@ export function Board({ plans }: { plans: any[] }) {
     yearsWithItems.add(item.academicYear);
     if (item.term === "summer") {
       summerVisibleByYear.add(item.academicYear);
+      summerItemCountByYear.set(
+        item.academicYear,
+        (summerItemCountByYear.get(item.academicYear) ?? 0) + 1,
+      );
     }
   });
 
@@ -262,6 +269,21 @@ export function Board({ plans }: { plans: any[] }) {
     saveLayout(addedYears, summers);
   };
 
+  const handleRemoveSummer = (year: number) => {
+    const itemCount = summerItemCountByYear.get(year) ?? 0;
+    if (itemCount > 0) {
+      toast({
+        title: "Summer isn't empty",
+        description: `Summer ${year} contains ${itemCount} planned item${itemCount === 1 ? "" : "s"}. Move or remove them before hiding Summer.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const summers = addedSummers.filter((y) => y !== year);
+    setAddedSummers(summers);
+    saveLayout(addedYears, summers);
+  };
+
   if (!activePlan) return null;
 
   return (
@@ -308,14 +330,25 @@ export function Board({ plans }: { plans: any[] }) {
                   <h3 className="font-serif text-lg font-bold tracking-tight text-foreground/90 xl:text-xl">
                     {year}–{year + 1}
                   </h3>
-                  {!hasSummer && (
+                  {!hasSummer ? (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleAddSummer(year)}
                       className="h-7 text-muted-foreground"
+                      data-testid={`add-summer-${year}`}
                     >
                       <Plus className="mr-1 h-3 w-3" /> Add summer
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveSummer(year)}
+                      className="h-7 text-muted-foreground"
+                      data-testid={`remove-summer-${year}`}
+                    >
+                      <X className="mr-1 h-3 w-3" /> Remove summer
                     </Button>
                   )}
                 </div>

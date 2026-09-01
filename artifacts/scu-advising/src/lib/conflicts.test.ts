@@ -8,6 +8,7 @@ import {
   sectionOverlapDetails,
   timeToMinutes,
   minutesToLabel,
+  layoutDayEvents,
   type TimedEvent,
   type SectionTimeLike,
 } from "./conflicts";
@@ -357,5 +358,52 @@ describe("multi-component conflict detection", () => {
   it("ignores a tentative component whose meeting time is still TBA", () => {
     const tbaLab = { ...lab, meetingDays: [], startTime: "", endTime: "" };
     expect(findEventConflicts([lecture, tbaLab])).toHaveLength(0);
+  });
+});
+
+describe("layoutDayEvents", () => {
+  it("gives non-overlapping events their own full-width column", () => {
+    const slots = layoutDayEvents([
+      { id: 1, startTime: "08:00", endTime: "09:00" },
+      { id: 2, startTime: "10:00", endTime: "11:00" },
+    ]);
+    expect(slots).toEqual(
+      expect.arrayContaining([
+        { id: 1, column: 0, columnCount: 1 },
+        { id: 2, column: 0, columnCount: 1 },
+      ]),
+    );
+  });
+
+  it("splits two overlapping events into two side-by-side columns instead of hiding one", () => {
+    const slots = layoutDayEvents([
+      { id: "A", startTime: "10:00", endTime: "10:50" },
+      { id: "B", startTime: "10:30", endTime: "11:20" },
+    ]);
+    const byId = new Map(slots.map((s) => [s.id, s]));
+    expect(byId.get("A")!.columnCount).toBe(2);
+    expect(byId.get("B")!.columnCount).toBe(2);
+    expect(byId.get("A")!.column).not.toBe(byId.get("B")!.column);
+  });
+
+  it("reuses a freed column for a later event that no longer overlaps", () => {
+    const slots = layoutDayEvents([
+      { id: 1, startTime: "09:00", endTime: "10:00" },
+      { id: 2, startTime: "09:30", endTime: "10:30" },
+      { id: 3, startTime: "10:15", endTime: "11:00" },
+    ]);
+    const byId = new Map(slots.map((s) => [s.id, s]));
+    expect(byId.get(1)!.columnCount).toBe(2);
+    expect(byId.get(3)!.column).toBe(byId.get(1)!.column);
+  });
+
+  it("gives an event with unparseable/TBA times its own slot instead of dropping it", () => {
+    const slots = layoutDayEvents([
+      { id: 1, startTime: "", endTime: "" },
+      { id: 2, startTime: "09:00", endTime: "10:00" },
+    ]);
+    const byId = new Map(slots.map((s) => [s.id, s]));
+    expect(byId.get(1)).toEqual({ id: 1, column: 0, columnCount: 1 });
+    expect(byId.get(2)).toEqual({ id: 2, column: 0, columnCount: 1 });
   });
 });
