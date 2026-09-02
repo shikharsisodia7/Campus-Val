@@ -123,7 +123,8 @@ const LANDING_PRERENDER = `
         Sign in
       </a>
     </div>
-    <p style="margin-top:1rem;font-size:0.75rem;color:#6b6b6b">Open to anyone with an email account.</p>
+    <p style="margin-top:1rem;font-size:0.75rem;color:#6b6b6b">Available to SCU users and invited external reviewers.</p>
+    <p style="margin-top:0.25rem;font-size:0.75rem;color:#6b6b6b">Invited reviewer and new to CampusVal? <a href="/sign-up" style="color:#8C1515">Create your account first</a>.</p>
   </section>
   <section style="max-width:64rem;margin:0 auto;padding:0 1.5rem 6rem">
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">

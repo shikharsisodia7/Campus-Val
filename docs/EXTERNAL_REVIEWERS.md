@@ -1,16 +1,6 @@
 # CampusVal — External Reviewer Access
 
-**As of 2026-09-01, sign-in is intentionally open to any email** — the
-`@scu.edu` + `GUEST_REVIEWER_EMAILS` allowlist gate described below is left
-in place in code but bypassed (`isApprovedCampusValUser` in
-`artifacts/api-server/src/middlewares/requireAuth.ts` always returns `true`).
-This means any outside reviewer, including Dr. Thom Hines
-(`thines@pdx.edu`), can already sign up/sign in directly with no allowlist
-step required. The rest of this doc describes the allowlist mechanism, kept
-for when/if CampusVal needs to go back to SCU-proprietary access — restoring
-it is a one-line revert of `isApprovedCampusValUser`.
-
-CampusVal was originally restricted to `@scu.edu` accounts, with an allowlist
+CampusVal is restricted to `@scu.edu` accounts, with an allowlist
 mechanism to invite outside reviewers (e.g. a professor at another
 university, or students elsewhere) without an SCU email. See
 `artifacts/api-server/src/middlewares/requireAuth.ts`
