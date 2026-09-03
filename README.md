@@ -9,6 +9,23 @@ stale leftover from early development and is not used)
 
 ---
 
+## In plain terms
+
+If you're not a developer, here's the short version: CampusVal is a planning tool
+for SCU students. It helps a student figure out which courses to take, and in which
+quarter, so they stay on track to graduate — checking their choices against real
+degree requirements and the Registrar's published or tentative schedules along the
+way. It never registers anyone for a class, never touches Workday login credentials,
+and never invents information it isn't sure of — anything uncertain is labeled as
+such instead of guessed.
+
+- **Try it:** https://campus-val.vercel.app
+- **Need access?** Sign-in is normally limited to `@scu.edu` accounts, but invited
+  reviewers can be added individually — see [Access](#access) below.
+- **Curious how it's built?** Everything from here down is for developers.
+
+---
+
 ## What CampusVal is
 
 Four surfaces, each with a distinct job:
