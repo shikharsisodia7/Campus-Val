@@ -24,6 +24,7 @@ import { useOptimisticUpdatePlanItem } from "./usePlanItemMutations";
 import { useUpdatePlan } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { academicYearLabel } from "@/lib/academic-year";
 
 /**
  * Whatever the pointer is actually inside wins; fall back to closestCorners
@@ -284,6 +285,39 @@ export function Board({ plans }: { plans: any[] }) {
     saveLayout(addedYears, summers);
   };
 
+  /**
+   * Only years the student explicitly added (`addedYears`) can be removed —
+   * never the structural/current year that anchors the board when there are
+   * no items yet. Even an added year is blocked from removal while it holds
+   * any planned item (course, requirement placeholder, or summer item);
+   * `plannedItems` already covers all of those, including summer, since
+   * summer items are just items with term === "summer".
+   */
+  const handleRemoveYear = (year: number) => {
+    if (!addedYears.includes(year)) return;
+    const itemCount = plannedItems.filter(
+      (i) => i.academicYear === year,
+    ).length;
+    if (itemCount > 0) {
+      toast({
+        title: "Academic year isn't empty",
+        description: `${academicYearLabel(year)} contains ${itemCount} planned item${itemCount === 1 ? "" : "s"}. Move or remove them before deleting this academic year.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (
+      !confirm(`Remove ${academicYearLabel(year)} from this plan? It's empty, so nothing will be lost.`)
+    ) {
+      return;
+    }
+    const years = addedYears.filter((y) => y !== year);
+    const summers = addedSummers.filter((y) => y !== year);
+    setAddedYears(years);
+    setAddedSummers(summers);
+    saveLayout(years, summers);
+  };
+
   if (!activePlan) return null;
 
   return (
@@ -330,27 +364,41 @@ export function Board({ plans }: { plans: any[] }) {
                   <h3 className="font-serif text-lg font-bold tracking-tight text-foreground/90 xl:text-xl">
                     {year}–{year + 1}
                   </h3>
-                  {!hasSummer ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleAddSummer(year)}
-                      className="h-7 text-muted-foreground"
-                      data-testid={`add-summer-${year}`}
-                    >
-                      <Plus className="mr-1 h-3 w-3" /> Add summer
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveSummer(year)}
-                      className="h-7 text-muted-foreground"
-                      data-testid={`remove-summer-${year}`}
-                    >
-                      <X className="mr-1 h-3 w-3" /> Remove summer
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {addedYears.includes(year) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveYear(year)}
+                        className="h-7 text-muted-foreground"
+                        data-testid={`remove-year-${year}`}
+                        title="Remove this academic year"
+                      >
+                        <X className="mr-1 h-3 w-3" /> Remove year
+                      </Button>
+                    )}
+                    {!hasSummer ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAddSummer(year)}
+                        className="h-7 text-muted-foreground"
+                        data-testid={`add-summer-${year}`}
+                      >
+                        <Plus className="mr-1 h-3 w-3" /> Add summer
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveSummer(year)}
+                        className="h-7 text-muted-foreground"
+                        data-testid={`remove-summer-${year}`}
+                      >
+                        <X className="mr-1 h-3 w-3" /> Remove summer
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div
