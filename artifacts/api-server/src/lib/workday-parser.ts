@@ -15,6 +15,8 @@
  *   Instructor:    "Smith, John" | "John Smith" | "Smith, John (Primary)"
  */
 
+import { normalizeTime, parseDays } from "./schedule-text";
+
 export interface ParsedSection {
   courseCode: string;
   sectionNumber: string;
@@ -47,38 +49,7 @@ const SEATS_OF_RE = /\b(\d{1,3})\s+of\s+(\d{1,3})\b/i;
 const WAITLIST_RE = /waitlist[^\d]*(\d{1,3})/i;
 const INSTRUCTOR_LASTFIRST_RE = /\b([A-Z][a-zA-Z\-']+),\s*([A-Z][a-zA-Z\-'.]+)/;
 
-function normalizeTime(raw: string): string {
-  const m = raw.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?$/);
-  if (!m) return raw.trim();
-  let h = parseInt(m[1]!, 10);
-  const min = m[2]!;
-  const mer = m[3]?.toUpperCase();
-  if (mer === "PM" && h < 12) h += 12;
-  if (mer === "AM" && h === 12) h = 0;
-  return `${h.toString().padStart(2, "0")}:${min}`;
-}
 
-function parseDays(
-  raw: string,
-): ("M" | "T" | "W" | "R" | "F" | "S" | "U")[] {
-  // Normalize multi-char day tokens first so "Th"->R, "Tu"->T, "Sa"->S, "Su"->U
-  const norm = raw
-    .replace(/Th/gi, "R")
-    .replace(/Tu/gi, "T")
-    .replace(/Sa/gi, "S")
-    .replace(/Su/gi, "U")
-    .toUpperCase();
-  const valid = new Set(["M", "T", "W", "R", "F", "S", "U"]);
-  const out: ("M" | "T" | "W" | "R" | "F" | "S" | "U")[] = [];
-  const seen = new Set<string>();
-  for (const ch of norm) {
-    if (valid.has(ch) && !seen.has(ch)) {
-      seen.add(ch);
-      out.push(ch as "M" | "T" | "W" | "R" | "F" | "S" | "U");
-    }
-  }
-  return out;
-}
 
 function extractInstructor(line: string): string {
   // Try "Last, First" first

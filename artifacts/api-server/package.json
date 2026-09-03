@@ -9,7 +9,8 @@
     "build:all": "pnpm --filter @workspace/scu-advising run build && pnpm run build",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p scripts/tsconfig.json --noEmit",
+    "import-registrar-tentatives": "tsx scripts/import-registrar-tentatives.ts",
     "test": "vitest run"
   },
   "dependencies": {
