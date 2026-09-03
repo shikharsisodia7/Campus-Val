@@ -1,0 +1,11 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "rootDir": "..",
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": [".", "../src/lib/schedule-text.ts"]
+}
