@@ -139,7 +139,7 @@ vercel deploy --prod      # production deployment
 
 **Vercel auto-promotes a brand-new project's very first deployment to production**, regardless of whether you passed `--prod`. This is platform default behavior, not something `vercel deploy` alone does afterward — every deployment after the first behaves as expected (preview unless `--prod`).
 
-The project's GitHub repository is connected, with the production branch set to the repo's default branch (`replit-main` as of this writing — confirm in Vercel's Git settings if it's ever changed). Pushes to that branch auto-deploy to production; other branches/PRs get preview deployments automatically.
+The project's GitHub repository is connected, with the production branch set to the repo's default branch (`main` as of this writing — confirm in Vercel's Git settings if it's ever changed). Pushes to that branch auto-deploy to production; other branches/PRs get preview deployments automatically.
 
 ## Tests & typecheck
 

@@ -40,7 +40,7 @@ uploaded APR, invisible to everyone else).
    ```bash
    vercel deploy --prod
    ```
-   (or push any commit to `replit-main`, which redeploys automatically).
+   (or push any commit to `main`, which redeploys automatically).
 6. **Test one approved external user.** Have that reviewer sign up/sign in at
    https://campus-val.vercel.app with their real email, or verify with a
    synthetic stand-in first (see "Local testing" below) if you want to check
