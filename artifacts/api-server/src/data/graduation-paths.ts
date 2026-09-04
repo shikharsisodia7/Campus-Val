@@ -77,6 +77,20 @@ interface MajorRecipe {
   // When true, the 3-quarter foreign-language sequence is NOT required.
   // Defaults to true for SOE/LSB and B.S. CAS majors (calc-stem/calc-life).
   noLanguage?: boolean;
+  // Official SCU concentrations/tracks/emphases within this major that
+  // affect requirements (Part 9.4). Metadata only — deliberately no
+  // per-concentration course list, since that would need the same
+  // Bulletin-page-by-page verification discipline as a full major, done
+  // here only for the major's own lowerDiv/upperDiv. Point students at the
+  // sourceUrl for the exact concentration requirements. See
+  // docs/SCU_PROGRAM_CATALOG.md.
+  concentrations?: MajorConcentration[];
+}
+
+interface MajorConcentration {
+  title: string;
+  sourceUrl: string;
+  notes?: string;
 }
 
 const MAJOR_RECIPES: Record<string, MajorRecipe> = {
@@ -121,6 +135,11 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     lowerDiv: ["BIOE 10", "BIOE 21", "BIOE 22", "BIOL 1A", "CHEM 11"],
     upperDiv: ["BIOE 110", "BIOE 120", "BIOE 130", "BIOE 154", "BIOE 156"],
     capstone: "ENGR 110",
+    concentrations: [
+      { title: "Biomolecular track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/bioengineering.html" },
+      { title: "Medical-device track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/bioengineering.html" },
+      { title: "Pre-med track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/bioengineering.html" },
+    ],
   },
   // CSE has hand-tuned plans below; keep recipe so /majors lists it
   CSE: {
@@ -207,6 +226,10 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     lowerDiv: ["ECON 41", "ECON 42"],
     upperDiv: ["ECON 113", "ECON 115", "ECON 117", "ECON 118", "FNCE 121", "MGMT 160", "MKTG 181", "OMIS 108"],
     capstone: "MGMT 162",
+    concentrations: [
+      { title: "Concentration in Data Analysis for Economics", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/economics.html" },
+      { title: "Mathematical Economics Concentration", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/economics.html" },
+    ],
   },
 
   // -------- College of Arts & Sciences: STEM --------
@@ -241,6 +264,13 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "calc-stem",
     lowerDiv: ["MATH 11", "MATH 12", "MATH 13", "MATH 14", "MATH 22", "MATH 53"],
     upperDiv: ["MATH 100", "MATH 101", "MATH 111", "MATH 122", "MATH 153"],
+    concentrations: [
+      { title: "Applied Mathematics Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
+      { title: "Data Science Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
+      { title: "Financial Mathematics Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
+      { title: "Mathematical Economics Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
+      { title: "Mathematics Education Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
+    ],
   },
   AMTH: {
     major: "AMTH",
@@ -257,6 +287,12 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "calc-stem",
     lowerDiv: ["CSCI 10", "CSCI 60", "CSCI 61", "CSCI 62", "MATH 11", "MATH 12", "MATH 13"],
     upperDiv: ["CSCI 161", "CSCI 163", "CSCI 169", "CSCI 183"],
+    concentrations: [
+      { title: "Algorithms and Complexity Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
+      { title: "Data Science Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
+      { title: "Security Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
+      { title: "Software Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
+    ],
   },
   PSYC: {
     major: "PSYC",
@@ -281,6 +317,10 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "stats",
     lowerDiv: ["PHSC 1", "BIOL 1A", "BIOL 1B", "CHEM 11", "CHEM 12", "PSYC 1"],
     upperDiv: ["PHSC 101", "PHSC 102", "PHSC 110", "PHSC 120", "PHSC 130"],
+    concentrations: [
+      { title: "Health Science Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/public-health-sciences.html" },
+      { title: "Health and Society Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/public-health-sciences.html" },
+    ],
   },
   ENVS: {
     major: "ENVS",
@@ -379,6 +419,14 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "stats",
     lowerDiv: ["COMM 12", "COMM 20", "COMM 30"],
     upperDiv: ["COMM 100", "COMM 105", "COMM 110", "COMM 130", "COMM 132", "COMM 140"],
+    concentrations: [
+      { title: "Global Media, Culture, and Technology", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html" },
+      { title: "Organizational, Professional & Business Communication", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html" },
+      { title: "Communication, Diversity, and Culture", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html" },
+      { title: "Digital Filmmaking", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html" },
+      { title: "Journalism", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html" },
+      { title: "Strategic Communication", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html" },
+    ],
   },
   ENGL: {
     major: "ENGL",
@@ -403,6 +451,11 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "stats",
     lowerDiv: ["POLI 1", "POLI 2", "POLI 3", "POLI 51"],
     upperDiv: ["POLI 110", "POLI 120", "POLI 138", "POLI 150", "POLI 199"],
+    concentrations: [
+      { title: "Pre-Law Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/political-science.html" },
+      { title: "Public Sector Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/political-science.html" },
+      { title: "International Relations Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/political-science.html" },
+    ],
   },
   ECON_CAS: {
     major: "ECON_CAS",
@@ -411,6 +464,10 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "calc-business",
     lowerDiv: ["ECON 1", "ECON 2", "ECON 3", "ECON 41", "ECON 42"],
     upperDiv: ["ECON 113", "ECON 115", "ECON 117", "ECON 118", "ECON 137"],
+    concentrations: [
+      { title: "Concentration in Data Analysis for Economics", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/economics.html" },
+      { title: "Mathematical Economics Concentration", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/economics.html" },
+    ],
   },
   SOCI: {
     major: "SOCI",
@@ -427,6 +484,11 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "any",
     lowerDiv: ["ANTH 3", "ANTH 6", "ANTH 49", "ANTH 50"],
     upperDiv: ["ANTH 110", "ANTH 137", "ANTH 145", "ANTH 161", "ANTH 199"],
+    concentrations: [
+      { title: "Applied Anthropology", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/anthropology.html" },
+      { title: "Archaeology", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/anthropology.html" },
+      { title: "Biological Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/anthropology.html" },
+    ],
   },
   PHIL: {
     major: "PHIL",
@@ -435,6 +497,13 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "any",
     lowerDiv: ["PHIL 14", "PHIL 15", "PHIL 16", "PHIL 17", "PHIL 19"],
     upperDiv: ["PHIL 109", "PHIL 119", "PHIL 137", "PHIL 145", "PHIL 199"],
+    concentrations: [
+      { title: "Pre-Law and Justice", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/philosophy.html" },
+      { title: "Ethics and Values", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/philosophy.html" },
+      { title: "Science and Analysis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/philosophy.html" },
+      { title: "History of Philosophy", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/philosophy.html" },
+      { title: "International & Comparative Philosophy", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/philosophy.html" },
+    ],
   },
   RSOC: {
     major: "RSOC",
@@ -459,6 +528,11 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "any",
     lowerDiv: ["WGST 50", "WGST 51", "WGST 60"],
     upperDiv: ["WGST 110", "WGST 137", "WGST 145", "WGST 175", "WGST 199"],
+    concentrations: [
+      { title: "Cultural Politics of Representation", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/gender-and-sexuality-studies.html" },
+      { title: "Power, Rights, and Society", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/gender-and-sexuality-studies.html" },
+      { title: "Sexualities, Body Politics, and Social Structures", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/gender-and-sexuality-studies.html" },
+    ],
   },
   CHST: {
     major: "CHST",
@@ -475,6 +549,11 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "any",
     lowerDiv: ["CLAS 1", "CLAS 2", "CLAS 3", "CLAS 11", "CLAS 12"],
     upperDiv: ["CLAS 110", "CLAS 137", "CLAS 145", "CLAS 175", "CLAS 199"],
+    concentrations: [
+      { title: "Classical Languages and Literatures Track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/classics-and-ancient-studies.html" },
+      { title: "Classical Studies Track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/classics-and-ancient-studies.html" },
+      { title: "Ancient Studies Track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/classics-and-ancient-studies.html" },
+    ],
   },
 
   // -------- CAS: Arts --------
@@ -485,6 +564,9 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "any",
     lowerDiv: ["ARTH 11", "ARTH 12", "ARTH 21", "ARTH 22"],
     upperDiv: ["ARTH 110", "ARTH 137", "ARTH 145", "ARTH 175", "ARTH 199"],
+    concentrations: [
+      { title: "Arts Management Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/art-and-art-history.html" },
+    ],
   },
   ARTS: {
     major: "ARTS",
@@ -493,6 +575,10 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "any",
     lowerDiv: ["ARTS 30", "ARTS 31", "ARTS 50", "ARTS 75"],
     upperDiv: ["ARTS 110", "ARTS 137", "ARTS 145", "ARTS 175", "ARTS 196"],
+    concentrations: [
+      { title: "Graphic Design Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/art-and-art-history.html" },
+      { title: "Animation and Illustration Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/art-and-art-history.html" },
+    ],
   },
   MUSC: {
     major: "MUSC",
@@ -509,6 +595,10 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     mathTrack: "any",
     lowerDiv: ["THTR 8", "THTR 30", "THTR 50", "THTR 60"],
     upperDiv: ["THTR 110", "THTR 137", "THTR 145", "THTR 175", "THTR 199"],
+    concentrations: [
+      { title: "Emphasis in Theatre", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/theatre-and-dance.html" },
+      { title: "Emphasis in Dance", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/theatre-and-dance.html" },
+    ],
   },
   DANC: {
     major: "DANC",
@@ -1141,6 +1231,8 @@ export interface MajorRequirements {
     label: string;
     courses: MajorRequirementCourse[];
   }[];
+  /** Official SCU concentrations/tracks/emphases within this major, if any (Part 9.4). */
+  concentrations: MajorConcentration[];
 }
 
 export function getMajorRequirements(
@@ -1256,6 +1348,7 @@ export function getMajorRequirements(
     totalListed: all.length,
     completedCount: all.filter((c) => c.completed).length,
     groups,
+    concentrations: recipe.concentrations ?? [],
   };
 }
 

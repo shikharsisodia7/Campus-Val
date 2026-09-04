@@ -89,16 +89,52 @@ having actually read and confirmed it against the Bulletin page would be
 fabrication. A follow-up pass should visit each of the 21 source URLs
 above and fill in the real approved-course groups.
 
-## Concentrations — known incomplete
+## Concentrations added this pass (46 entries across 15 majors)
 
-The bulletin audit found 33 real concentrations/tracks/emphases across
-majors like Bioengineering (Biomolecular / Medical Device / Pre-Med),
-Anthropology, Communication, Mathematics, Computer Science, Philosophy,
-Political Science, and Public Health — **none of which are modeled in
-code yet.** `graduation-paths.ts` has no `concentrations` field on
-`MajorRecipe` at all; adding this needs both a data-model change and UI in
-the program picker, which is a substantial follow-up pass, not a
-same-session addition.
+`MajorRecipe` now has an optional `concentrations: MajorConcentration[]`
+field (`{ title, sourceUrl }`) — metadata only, deliberately no
+per-concentration course list (that would need the same page-by-page
+Bulletin verification already applied to each major's own lowerDiv/upperDiv,
+not attempted here). Populated for the 15 majors the audit confirmed have
+real official concentrations/tracks/emphases:
+
+| Major | Concentrations |
+|---|---|
+| Anthropology (`ANTH`) | Applied Anthropology, Archaeology, Biological Emphasis |
+| Art History (`ARTH`) | Arts Management Emphasis |
+| Studio Art (`ARTS`) | Graphic Design Emphasis, Animation and Illustration Emphasis |
+| Classics and Ancient Studies (`CLAS`) | Classical Languages and Literatures Track, Classical Studies Track, Ancient Studies Track |
+| Communication (`COMM`) | Global Media/Culture/Technology, Org/Professional/Business Communication, Communication/Diversity/Culture, Digital Filmmaking, Journalism, Strategic Communication |
+| Economics — CAS (`ECON_CAS`) | Data Analysis for Economics, Mathematical Economics |
+| Economics — Business (`ECON`) | Data Analysis for Economics, Mathematical Economics |
+| Women's & Gender Studies (`WGST`) | Cultural Politics of Representation, Power/Rights/Society, Sexualities/Body Politics/Social Structures |
+| Mathematics (`MATH`) | Applied Mathematics, Data Science, Financial Mathematics, Mathematical Economics, Mathematics Education (emphases) |
+| Computer Science — CAS (`CSCI`) | Algorithms and Complexity, Data Science, Security, Software (emphases) |
+| Philosophy (`PHIL`) | Pre-Law and Justice, Ethics and Values, Science and Analysis, History of Philosophy, International & Comparative Philosophy |
+| Political Science (`POLI`) | Pre-Law, Public Sector, International Relations (emphases) |
+| Public Health Science (`PHSC`) | Health Science, Health and Society (emphases) |
+| Theatre (`THTR`) | Emphasis in Theatre, Emphasis in Dance |
+| Bioengineering (`BIOE`) | Biomolecular track, Medical-device track, Pre-med track |
+
+Surfaced in the Planning Requirements sidebar as a note on the major's
+requirement group ("This major has official concentrations/tracks: …"),
+pointing at the real source URL for exact requirements.
+
+Deliberately excluded (per the original audit, not oversight): Marketing's
+three "emphases" (the Bulletin states these are informal/non-transcript,
+unlike Bioengineering's real tracks), Sociology's unnamed concentrations
+(the Bulletin defers naming them to the department website, so nothing
+concrete to represent), the Chinese and Sinophone Studies minor's Track
+A/Track B (placement-based/procedural, not a curricular concentration),
+and General Engineering's BioInnovation and Design track (nested inside a
+*minor*, not a major).
+
+Note: the earlier audit's own summary line said "33 total" but its own
+itemized per-major list — reproduced faithfully above — sums to 46 once
+Economics (CAS) and Economics (Business) are each counted separately (they
+share concentration names but are two different majors). Reporting the
+actual per-major counts here rather than repeating an inconsistent summary
+figure from the source research.
 
 ## Program coverage (honest count)
 
@@ -108,7 +144,16 @@ same-session addition.
   21 added). The 21 new ones need their exact approved-course lists filled
   in (see above) — the minor itself is real and selectable, but its
   requirement detail is honestly marked unverified rather than complete.
-- Concentrations/tracks: 0 of 33 bulletin-confirmed ones modeled.
+- Concentrations/tracks: 46 bulletin-confirmed real concentrations
+  represented as metadata (name + official source), across 15 majors. Four
+  items found during the original audit were deliberately excluded as
+  explained above (informal Marketing emphases, unnamed Sociology
+  concentrations, procedural Chinese minor tracks, a track nested in a
+  minor) — those aren't a gap, they're a documented decision not to
+  represent something the Bulletin itself doesn't name as a real
+  concentration.
 
-**This is not 100% coverage.** Majors and minors are now name-complete
-against this audit; concentrations remain a real, documented gap.
+**Majors, minors, and concentrations are now name-complete against this
+audit.** What remains for full production-grade completeness: the 21 new
+minors' exact approved-course lists, and the 4 flagged major discrepancies
+pending your review.

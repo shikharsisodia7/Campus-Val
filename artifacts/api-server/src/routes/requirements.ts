@@ -184,6 +184,14 @@ export function buildRequirementsResponse(
         manualCount: 0,
       };
     }
+    const concentrationNote =
+      majorReqs.concentrations.length > 0
+        ? [
+            `This major has official concentrations/tracks: ${majorReqs.concentrations
+              .map((c) => c.title)
+              .join(", ")}. Requirement course lists aren't loaded for concentrations yet — see the official source for exact requirements.`,
+          ]
+        : [];
     return {
       id: `major-${idSuffix}`,
       title: `Major Requirements — ${majorReqs.title}${isScenarioOnly ? " (proposed)" : ""}`,
@@ -192,7 +200,7 @@ export function buildRequirementsResponse(
       sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
       academicYear: universityCore.academicYear,
       lastVerified: universityCore.lastVerified,
-      notes: [...scenarioNote, ...majorReqs.notes],
+      notes: [...scenarioNote, ...majorReqs.notes, ...concentrationNote],
       items: majorReqs.groups.flatMap((g) =>
         g.courses.map((c) => {
           const isPlanned = !c.completed && planned.has(normalize(c.code));
