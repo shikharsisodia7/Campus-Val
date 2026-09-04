@@ -105,10 +105,14 @@ export function AdvisorSharingPanel() {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <label
+          htmlFor="advisor-email-input"
+          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+        >
           Share with an advisor
         </label>
         <Input
+          id="advisor-email-input"
           type="email"
           placeholder="advisor@scu.edu"
           value={email}

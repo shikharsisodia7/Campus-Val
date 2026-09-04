@@ -400,7 +400,11 @@ function AccountMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-auto gap-2 px-2 py-1.5">
+        <Button
+          variant="ghost"
+          className="h-auto gap-2 px-2 py-1.5"
+          aria-label={`Account menu for ${displayName}`}
+        >
           <div className="hidden text-right xl:block">
             <div className="max-w-32 truncate text-xs font-medium">
               {displayName}

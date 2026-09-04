@@ -5,8 +5,8 @@
  * "do NOT fabricate user-facing section numbers"). The calendar must never
  * render it as if it were one.
  */
-import { describe, it, expect, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import type { ScheduleEvent } from "@workspace/api-client-react";
 
 import { CalendarGrid } from "./CalendarGrid";
@@ -56,5 +56,29 @@ describe("CalendarGrid tentative-section labeling", () => {
     expect(screen.queryAllByText(/-1\b/).length).toBe(0);
     expect(screen.getAllByText("MATH 11").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Tentative").length).toBeGreaterThan(0);
+  });
+});
+
+describe("CalendarGrid accessibility", () => {
+  it("exposes each event as a keyboard-reachable, labeled control — not a mouse-only div", () => {
+    const onEventClick = vi.fn();
+    render(
+      <CalendarGrid
+        events={[makeSection()]}
+        isTentativeSchedule={false}
+        onEventClick={onEventClick}
+      />,
+    );
+
+    const eventEls = screen.getAllByRole("button", { name: /MATH 11-1/i });
+    expect(eventEls.length).toBeGreaterThan(0);
+    const eventEl = eventEls[0]!;
+    expect(eventEl.getAttribute("tabindex")).toBe("0");
+
+    fireEvent.keyDown(eventEl, { key: "Enter" });
+    expect(onEventClick).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(eventEl, { key: " " });
+    expect(onEventClick).toHaveBeenCalledTimes(2);
   });
 });

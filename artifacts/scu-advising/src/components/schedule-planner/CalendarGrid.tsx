@@ -160,11 +160,26 @@ export function CalendarGrid({
                   const widthPct = 100 / slot.columnCount;
                   const leftPct = slot.column * widthPct;
 
+                  const eventLabel =
+                    (s.kind === "section"
+                      ? `${s.courseCode}${isTentative ? " tentative offering" : s.sectionNumber ? `-${s.sectionNumber}` : ""}`
+                      : s.name) +
+                    `, ${d.label} ${format12(s.startTime)}–${format12(s.endTime)}${isConflict ? ", time conflict" : ""}`;
+
                   return (
                     <div
                       key={`${s.id}-${d.key}`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={eventLabel}
                       onClick={() => onEventClick?.(s)}
-                      className={`absolute rounded p-1.5 text-[10px] sm:text-xs leading-tight overflow-hidden border shadow-sm transition-transform hover:scale-[1.02] hover:z-10 cursor-pointer ${
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onEventClick?.(s);
+                        }
+                      }}
+                      className={`absolute rounded p-1.5 text-[10px] sm:text-xs leading-tight overflow-hidden border shadow-sm transition-transform hover:scale-[1.02] hover:z-10 cursor-pointer focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         isConflict
                           ? "bg-red-100 border-red-500 text-red-900 ring-2 ring-red-400"
                           : `${color?.bg} ${color?.border} ${color?.text}`
