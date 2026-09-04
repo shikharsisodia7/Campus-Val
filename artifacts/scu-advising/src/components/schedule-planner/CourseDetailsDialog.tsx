@@ -7,10 +7,11 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, MapPin, Users, BookOpen, Trash2 } from "lucide-react";
+import { Loader2, Calendar, MapPin, Users, BookOpen, Trash2, ExternalLink } from "lucide-react";
 import { format12 } from "./utils";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { SCU_BULLETIN_URL } from "@/data/advising-resources";
 
 export function CourseDetailsDialog({
   event,
@@ -152,9 +153,32 @@ export function CourseDetailsDialog({
                       {course.prereqLogic || "Prerequisite information unavailable"}
                     </p>
                   </div>
+
+                  {course.corequisites.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">Corequisites</h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {course.corequisites.map((c) => (
+                          <Badge key={c} variant="outline" className="font-mono">
+                            {c}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <p className="text-xs leading-relaxed text-muted-foreground">
                     Course and prerequisite information is for planning. Always verify requirements in the official SCU Bulletin/Course Catalog and consult your advisor when needed.
                   </p>
+                  <a
+                    href={SCU_BULLETIN_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Verify in the official SCU Bulletin / Course Catalog
+                  </a>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center">Course details unavailable.</p>
