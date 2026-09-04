@@ -242,6 +242,7 @@ export default function Planner() {
               activeTerm={workspace.activeTerm}
               activeYear={workspace.activeYear}
               isLoadingAvailability={workspace.isLoadingAvailability}
+              hasActiveSchedule={!!workspace.activeScheduleId}
               onFindSections={(code) => setIntentionCourse(code)}
             />
             {workspace.activeScheduleId ? (
@@ -467,6 +468,7 @@ function PlannedThisQuarterChips({
   activeTerm,
   activeYear,
   isLoadingAvailability,
+  hasActiveSchedule,
   onFindSections,
 }: {
   items: PlanItem[];
@@ -474,6 +476,7 @@ function PlannedThisQuarterChips({
   activeTerm: string | null;
   activeYear: number | null;
   isLoadingAvailability: boolean;
+  hasActiveSchedule: boolean;
   onFindSections: (courseCode: string) => void;
 }) {
   if (isLoadingAvailability || (!activeTerm && !activeYear)) return null;
@@ -527,10 +530,15 @@ function PlannedThisQuarterChips({
                 key={item.id}
                 variant="outline"
                 size="sm"
-                className="h-6 px-2 font-mono text-[10px]"
-                onClick={() => onFindSections(code)}
+                className="h-6 px-2 font-mono text-[10px] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!hasActiveSchedule}
+                onClick={() => hasActiveSchedule && onFindSections(code)}
                 data-testid={`button-find-sections-${item.id}`}
-                title={`Find ${code} sections in ${quarterLabel}`}
+                title={
+                  hasActiveSchedule
+                    ? `Find ${code} sections in ${quarterLabel}`
+                    : `Create a schedule for ${quarterLabel} above before searching for sections`
+                }
               >
                 {code}
               </Button>

@@ -16,6 +16,7 @@ import {
 import { Link } from "wouter";
 import { CalendarDays, Pencil } from "lucide-react";
 import { capitalize } from "./utils";
+import { calendarYearFor, anchorYearFor } from "@/lib/academic-year";
 
 const QUARTER_TERMS: Term[] = [
   "fall" as Term,
@@ -23,11 +24,11 @@ const QUARTER_TERMS: Term[] = [
   "spring" as Term,
 ];
 
-/** { fall: anchor, winter: anchor+1, spring: anchor+1 } — the repo's real
- * academic-year convention (confirmed against OFFERED_TERMS: Fall 2026,
- * Winter 2027, Spring 2027 all belong to the "2026-27" academic year). */
+/** { fall: anchor, winter: anchor+1, spring: anchor+1 } — thin re-export of
+ * the shared academic-year helper (lib/academic-year.ts) so this component
+ * never reimplements the anchor<->calendar-year conversion divergently. */
 export function quarterYearFor(term: Term, anchor: number): number {
-  return term === "fall" ? anchor : anchor + 1;
+  return calendarYearFor(term, anchor);
 }
 
 function academicYearAnchors(
@@ -35,7 +36,7 @@ function academicYearAnchors(
 ): number[] {
   const anchors = new Set<number>();
   for (const t of availability?.terms ?? []) {
-    anchors.add(t.term === "fall" ? t.year : t.year - 1);
+    anchors.add(anchorYearFor(t.term, t.year));
   }
   return Array.from(anchors).sort((a, b) => a - b);
 }

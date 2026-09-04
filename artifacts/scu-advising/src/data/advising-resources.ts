@@ -12,6 +12,9 @@
  * official SCU pre-health advising page — it never fabricates advice.
  */
 
+/** Official SCU Undergraduate Bulletin / Course Catalog — the authoritative source for course descriptions, prerequisites, and program requirements. */
+export const SCU_BULLETIN_URL = "https://www.scu.edu/bulletin/";
+
 export interface OfficialResource {
   id: string;
   title: string;

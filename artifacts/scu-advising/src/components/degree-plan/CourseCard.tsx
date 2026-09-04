@@ -39,6 +39,13 @@ import {
 import { minutesToLabel } from "@/lib/conflicts";
 import type { CourseConflictDetail } from "./useTermCourseConflicts";
 import {
+  isOfferingWarning,
+  isProvisional,
+  PROJECTED_TERM_EXPLANATION,
+  type OfferingResult,
+} from "@/lib/course-offering";
+import { SCU_BULLETIN_URL } from "@/data/advising-resources";
+import {
   useQuarterFitSuggestions,
   type QuarterFitSuggestion,
 } from "./useQuarterFitSuggestions";
@@ -114,6 +121,26 @@ function CourseDetailDialog({
               </div>
             </div>
 
+            {courseDetails?.corequisites && courseDetails.corequisites.length > 0 && (
+              <div
+                className="p-3 bg-muted/20 rounded-md border border-border text-sm"
+                data-testid="course-detail-corequisites"
+              >
+                <div className="font-semibold mb-1">Corequisites</div>
+                <div>{courseDetails.corequisites.join(", ")}</div>
+              </div>
+            )}
+
+            <a
+              href={SCU_BULLETIN_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-primary underline underline-offset-2"
+              data-testid="course-detail-official-source"
+            >
+              View in the official SCU Bulletin / Course Catalog
+            </a>
+
             <div
               className="text-xs text-muted-foreground flex items-center gap-1.5 bg-blue-50 text-blue-800 p-2 rounded border border-blue-100"
               data-testid="course-detail-disclaimer"
@@ -136,13 +163,13 @@ export function CourseCard({
   item,
   isOverlay,
   availableYears,
-  notInOfficialSchedule,
+  offering,
   conflicts,
 }: {
   item: PlanItem;
   isOverlay?: boolean;
   availableYears: number[];
-  notInOfficialSchedule?: boolean;
+  offering?: OfferingResult;
   conflicts?: CourseConflictDetail[];
 }) {
   const { activePlanId, catalog, profile, requirements } =
@@ -293,13 +320,18 @@ export function CourseCard({
                   </span>
                 </div>
               )}
-              {notInOfficialSchedule && (
+              {offering && isOfferingWarning(offering) && (
                 <div
-                  className="flex items-center gap-1 mt-1.5 text-[10px] text-amber-700"
+                  className={`flex items-center gap-1 mt-1.5 text-[10px] ${
+                    offering.evidence === "published"
+                      ? "text-red-700"
+                      : "text-amber-700"
+                  }`}
                   data-testid={`not-offered-note-${item.id}`}
+                  title={isProvisional(offering) ? PROJECTED_TERM_EXPLANATION : undefined}
                 >
                   <AlertCircle className="h-3 w-3 shrink-0" />
-                  <span>Not in official schedule this quarter</span>
+                  <span>{offering.detail}</span>
                 </div>
               )}
               {conflicts && conflicts.length > 0 && (

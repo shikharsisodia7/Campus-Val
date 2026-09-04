@@ -5,7 +5,12 @@ import {
 } from "@dnd-kit/sortable";
 import { PlanItem } from "@workspace/api-client-react";
 import { CourseCard } from "./CourseCard";
-import { termOfferingLabel, PROJECTED_TERM_EXPLANATION } from "@/lib/course-offering";
+import {
+  termOfferingLabel,
+  courseOffering,
+  isOfferingWarning,
+  PROJECTED_TERM_EXPLANATION,
+} from "@/lib/course-offering";
 import { calendarYearFor } from "@/lib/academic-year";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { useTermCourseConflicts } from "./useTermCourseConflicts";
@@ -47,15 +52,6 @@ export function TermColumn({
       )
     : undefined;
   const status = availabilityTerm?.status; // 'published' | 'tentative' | undefined
-  // Only terms with an official schedule (published or tentative) can honestly
-  // flag a course as absent from it. Unknown terms stay unknown.
-  const offeredCodes = availabilityTerm?.offeredCourseCodes
-    ? new Set(
-        availabilityTerm.offeredCourseCodes.map((c) =>
-          c.toUpperCase().replace(/\s+/g, " ").trim(),
-        ),
-      )
-    : null;
   const hasSchedule =
     !isCompletedTerm && (status === "published" || status === "tentative");
   const courseCodes = items
@@ -66,6 +62,22 @@ export function TermColumn({
     term,
     year,
     hasSchedule,
+  );
+
+  // Per-course offering evidence, run through the SAME tiered resolver the
+  // term-label above uses (published -> tentative -> same-season benchmark
+  // -> unknown), so a future benchmarked quarter also flags a course that
+  // wasn't historically offered in that season, not just terms with a real
+  // published/tentative schedule. See lib/course-offering.
+  const offeringByItemId = new Map(
+    isCompletedTerm
+      ? []
+      : items
+          .filter((i) => i.itemType === "course" && !!i.courseCode)
+          .map((i) => [
+            i.id,
+            courseOffering(i.courseCode!, term, calendarYear, scheduleAvailability),
+          ] as const),
   );
 
   // One centralized source for how a term is described, so a future Fall is
@@ -117,14 +129,7 @@ export function TermColumn({
               key={item.id}
               item={item}
               availableYears={availableYears}
-              notInOfficialSchedule={
-                offeredCodes !== null &&
-                item.itemType === "course" &&
-                !!item.courseCode &&
-                !offeredCodes.has(
-                  item.courseCode.toUpperCase().replace(/\s+/g, " ").trim(),
-                )
-              }
+              offering={offeringByItemId.get(item.id)}
               conflicts={
                 item.itemType === "course" && item.courseCode
                   ? timeConflicts.get(
