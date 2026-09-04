@@ -272,8 +272,38 @@ describe("TermColumn not-in-official-schedule flag wiring", () => {
     });
 
     const note = await screen.findByTestId("not-offered-note-402");
-    expect(note.textContent).toContain("Not in official schedule this quarter");
+    expect(note.textContent).toContain("MATH 11");
+    expect(note.textContent).toContain("not in SCU's published Fall 2026 schedule");
     expect(screen.queryByTestId("not-offered-note-401")).toBeNull();
+  });
+
+  it("flags a course via the same-season benchmark tier when the exact term has no schedule at all", async () => {
+    // Fall 2026 itself has no published/tentative schedule, but a prior Fall
+    // (2025) does — this is tier 3 of the resolver (same-season benchmark),
+    // which the term-status badge already covered but the PER-COURSE warning
+    // previously never fired for. MATH 11 was never offered in that verified
+    // Fall, so it should now warn even though there is no exact-term schedule.
+    const items = [planItem(901, "CHEM 11"), planItem(902, "MATH 11")];
+    renderBoard({
+      items,
+      sectionsByCode: {},
+      scheduleAvailability: {
+        terms: [
+          {
+            year: YEAR - 1,
+            term: TERM as Term,
+            status: "published",
+            offeredCourseCodes: ["CHEM 11"],
+          } as any,
+        ],
+        note: "test",
+      },
+    });
+
+    const note = await screen.findByTestId("not-offered-note-902");
+    expect(note.textContent).toContain("MATH 11");
+    expect(note.textContent).toContain("Future offerings may change");
+    expect(screen.queryByTestId("not-offered-note-901")).toBeNull();
   });
 
   it("shows no flag when every planned course is in offeredCourseCodes", () => {

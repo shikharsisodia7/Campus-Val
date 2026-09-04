@@ -8,10 +8,11 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { SlidersHorizontal, Upload } from "lucide-react";
+import { SlidersHorizontal, Upload, Share2 } from "lucide-react";
 import { Link } from "wouter";
 import { PlanControlsPanel } from "./PlanControlsPanel";
 import { FourYearPreload } from "./FourYearPreload";
+import { AdvisorSharingPanel } from "./AdvisorSharingPanel";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { useTrackUsage } from "@/hooks/use-track-usage";
 
@@ -40,6 +41,7 @@ export function DegreePlanToolbar({
 }) {
   const { activePlan } = useDegreePlanContext();
   const [controlsOpen, setControlsOpen] = useState(false);
+  const [sharingOpen, setSharingOpen] = useState(false);
   useTrackUsage("plan_controls", controlsOpen);
   const { data: reportEnvelope } = useGetProgressReport();
   const hasReport = !!reportEnvelope?.report;
@@ -69,6 +71,16 @@ export function DegreePlanToolbar({
         <span className="hidden truncate text-[11px] text-muted-foreground lg:inline">
           Add majors, minors, or professional preparation not yet in your APR.
         </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 shrink-0 text-xs"
+          onClick={() => setSharingOpen(true)}
+          data-testid="button-open-advisor-sharing"
+        >
+          <Share2 className="mr-1.5 h-3.5 w-3.5" />
+          Share
+        </Button>
       </div>
 
       {/* MIDDLE: affects the Degree Plan board itself */}
@@ -116,6 +128,25 @@ export function DegreePlanToolbar({
           </SheetHeader>
           <div className="flex-1 overflow-hidden">
             <PlanControlsPanel plans={plans} />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={sharingOpen} onOpenChange={setSharingOpen}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col p-0 sm:max-w-md"
+          data-testid="sheet-advisor-sharing"
+        >
+          <SheetHeader className="border-b border-border/60 px-4 pb-2 pt-4">
+            <SheetTitle>Share with an advisor</SheetTitle>
+            <SheetDescription>
+              Give a specific advisor read-only access to your plan. You
+              control exactly who can see it and can revoke access any time.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto">
+            <AdvisorSharingPanel />
           </div>
         </SheetContent>
       </Sheet>

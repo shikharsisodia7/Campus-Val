@@ -27,3 +27,4 @@ export * from "./schedules";
 export * from "./requirement-completions";
 export * from "./progress-reports";
 export * from "./usage-events";
+export * from "./plan-shares";

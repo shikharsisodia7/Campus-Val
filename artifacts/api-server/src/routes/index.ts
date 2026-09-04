@@ -22,6 +22,8 @@ import schedulesRouter from "./schedules";
 import storageRouter from "./storage";
 import progressReportRouter from "./progress-report";
 import usageRouter from "./usage";
+import planSharesRouter from "./plan-shares";
+import roleRouter from "./role";
 
 const router: IRouter = Router();
 
@@ -48,5 +50,7 @@ router.use(schedulesRouter);
 router.use(storageRouter);
 router.use(progressReportRouter);
 router.use(usageRouter);
+router.use(planSharesRouter);
+router.use(roleRouter);
 
 export default router;

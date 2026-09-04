@@ -26,8 +26,10 @@ import {
   ChevronDown,
   X,
   FileUp,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useUser, useClerk } from "@clerk/react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -95,6 +97,7 @@ const FEATURE_GROUPS: { label: string; items: NavItem[] }[] = [
       { path: "/resources", label: "SCU Resources", icon: Library },
       { path: "/advice", label: "Advice Board", icon: Lightbulb },
       { path: "/advisor", label: "Planning Support", icon: MessageSquareText },
+      { path: "/shared-with-me", label: "Shared with Me (Advisors)", icon: UserCheck },
       { path: "/voice", label: "Voice Planning Support", icon: Mic },
       { path: "/policies", label: "SCU Policies", icon: Library },
       { path: "/evaluation", label: "AI Evaluation", icon: Gauge },
@@ -110,6 +113,12 @@ function isActive(location: string, path: string) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Reduces initial cognitive load for the controlled testing cohort: only
+  // Dashboard/Degree Plan/Quarter Plan/Tentative Degree Plan are prominent
+  // by default. Nothing is deleted - secondary features stay one click away
+  // behind a de-emphasized "More tools" disclosure, and admins always see
+  // the full nav (Part 15/16 of the controlled-rollout spec).
+  const isAdmin = useIsAdmin();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -143,7 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 active={isActive(location, item.path)}
               />
             ))}
-            <AdditionalFeatures location={location} />
+            <AdditionalFeatures location={location} isAdmin={isAdmin} />
           </nav>
 
           <div className="ml-auto hidden lg:block">
@@ -191,21 +200,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   />
                 ))}
                 <div className="my-3 border-t border-border" />
-                {FEATURE_GROUPS.map((group) => (
-                  <div key={group.label} className="mb-4">
-                    <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {group.label}
-                    </div>
-                    {group.items.map((item) => (
-                      <MobileLink
-                        key={item.path}
-                        item={item}
-                        active={isActive(location, item.path)}
-                        onNavigate={() => setMobileOpen(false)}
-                      />
-                    ))}
-                  </div>
-                ))}
+                {isAdmin ? (
+                  <FeatureGroupsList location={location} onNavigate={() => setMobileOpen(false)} />
+                ) : (
+                  <details className="group" data-testid="mobile-more-tools">
+                    <summary className="cursor-pointer select-none px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      More tools
+                    </summary>
+                    <FeatureGroupsList location={location} onNavigate={() => setMobileOpen(false)} />
+                  </details>
+                )}
               </nav>
               <div className="border-t border-border p-3">
                 <AccountMenu mobile onNavigate={() => setMobileOpen(false)} />
@@ -270,7 +274,7 @@ function MobileLink({
   );
 }
 
-function AdditionalFeatures({ location }: { location: string }) {
+function AdditionalFeatures({ location, isAdmin }: { location: string; isAdmin: boolean }) {
   const active = FEATURE_GROUPS.some((group) =>
     group.items.some((item) => isActive(location, item.path)),
   );
@@ -281,11 +285,12 @@ function AdditionalFeatures({ location }: { location: string }) {
           variant="ghost"
           data-testid="nav-additional-features"
           className={cn(
-            "shrink-0 gap-1 px-2 text-[13px] xl:gap-1.5 xl:px-2.5 xl:text-sm",
+            "shrink-0 gap-1 px-2 xl:gap-1.5 xl:px-2.5",
+            isAdmin ? "text-[13px] xl:text-sm" : "text-[11px] text-muted-foreground/70 xl:text-xs",
             active && "bg-primary/10 text-primary",
           )}
         >
-          Additional Features <ChevronDown className="h-3.5 w-3.5" />
+          {isAdmin ? "Additional Features" : "More tools"} <ChevronDown className="h-3.5 w-3.5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
@@ -312,6 +317,34 @@ function AdditionalFeatures({ location }: { location: string }) {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function FeatureGroupsList({
+  location,
+  onNavigate,
+}: {
+  location: string;
+  onNavigate: () => void;
+}) {
+  return (
+    <>
+      {FEATURE_GROUPS.map((group) => (
+        <div key={group.label} className="mb-4">
+          <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {group.label}
+          </div>
+          {group.items.map((item) => (
+            <MobileLink
+              key={item.path}
+              item={item}
+              active={isActive(location, item.path)}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </div>
+      ))}
+    </>
   );
 }
 

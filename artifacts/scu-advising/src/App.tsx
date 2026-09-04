@@ -35,6 +35,7 @@ const SyncWorkdayPage = lazy(() => import("@/pages/sync-workday"));
 const SchedulePage = lazy(() => import("@/pages/schedule"));
 const Policies = lazy(() => import("@/pages/policies"));
 const Advisor = lazy(() => import("@/pages/advisor"));
+const SharedWithMe = lazy(() => import("@/pages/shared-with-me"));
 const VoiceAdvisor = lazy(() => import("@/pages/voice"));
 const GraduationPaths = lazy(() => import("@/pages/graduation-paths"));
 const Evaluation = lazy(() => import("@/pages/evaluation"));
@@ -249,6 +250,11 @@ function AppRoutes() {
         <Route path="/advisor">
           <Protected>
             <Advisor />
+          </Protected>
+        </Route>
+        <Route path="/shared-with-me">
+          <Protected>
+            <SharedWithMe />
           </Protected>
         </Route>
         <Route path="/voice">

@@ -25,6 +25,7 @@ import { useUpdatePlan } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { academicYearLabel } from "@/lib/academic-year";
+import { PlanGuidanceBanner } from "./PlanGuidanceBanner";
 
 /**
  * Whatever the pointer is actually inside wins; fall back to closestCorners
@@ -329,6 +330,10 @@ export function Board({ plans }: { plans: any[] }) {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
+          <PlanGuidanceBanner
+            plannedItems={plannedItems}
+            scheduleAvailability={scheduleAvailability}
+          />
           <CompletedArea items={completedItems} availableYears={displayYears} />
           {aprCompletedCodes.size > 0 &&
             (() => {

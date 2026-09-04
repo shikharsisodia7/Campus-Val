@@ -226,7 +226,7 @@ function planDto(row: AcademicPlanRow, itemCount: number) {
   };
 }
 
-function itemDto(row: PlanItemRow) {
+export function itemDto(row: PlanItemRow) {
   return {
     id: row.id,
     planId: row.planId,
@@ -286,7 +286,7 @@ async function ownedPlan(
   return rows[0] ?? null;
 }
 
-async function itemsOf(planId: number): Promise<PlanItemRow[]> {
+export async function itemsOf(planId: number): Promise<PlanItemRow[]> {
   return db
     .select()
     .from(planItemsTable)

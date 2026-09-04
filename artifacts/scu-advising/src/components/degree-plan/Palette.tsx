@@ -25,19 +25,12 @@ import {
   Plus,
   CheckCircle2,
   CircleDashed,
-  GraduationCap,
-  Landmark,
-  BookOpenCheck,
 } from "lucide-react";
 import { PlanItemType, RequirementItem } from "@workspace/api-client-react";
-
-const GROUP_ICONS = {
-  university_core: GraduationCap,
-  college: Landmark,
-  major: BookOpenCheck,
-  minor: BookOpenCheck,
-  professional_prep: GraduationCap,
-};
+import {
+  requirementCategoryKindFor,
+  REQUIREMENT_CATEGORY_STYLE,
+} from "@/lib/requirement-category";
 
 const COMPLETED_DESTINATION = "0:completed";
 export function Palette() {
@@ -297,9 +290,9 @@ export function Palette() {
           <Accordion type="multiple" className="px-1.5 pb-3">
             {/* Official degree requirements — titles come from the API (major/second major/minor). */}
             {requirements?.map((group) => {
-              const Icon =
-                GROUP_ICONS[group.kind as keyof typeof GROUP_ICONS] ||
-                GraduationCap;
+              const categoryKind = requirementCategoryKindFor(group.title);
+              const categoryStyle = REQUIREMENT_CATEGORY_STYLE[categoryKind];
+              const Icon = categoryStyle.icon;
               return (
                 <AccordionItem
                   key={group.id}
@@ -307,11 +300,23 @@ export function Palette() {
                   className="border-b-0"
                   data-testid={`palette-group-${group.kind}`}
                   data-group-kind={group.kind}
+                  data-category-kind={categoryKind}
                 >
                   <AccordionTrigger className="group rounded-md px-1.5 py-2 text-left text-xs font-semibold hover:bg-muted/30 hover:no-underline data-[state=open]:bg-muted/30">
                     <div className="flex items-start gap-1.5 text-left">
-                      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                      <span className="leading-snug">{group.title}</span>
+                      <Icon
+                        className={`mt-0.5 h-3.5 w-3.5 shrink-0 transition-colors ${categoryStyle.badgeClass.split(" ")[1]}`}
+                      />
+                      <span className="leading-snug">
+                        {group.title}
+                        {categoryStyle.isSupplemental && (
+                          <span
+                            className={`ml-1.5 rounded border px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide ${categoryStyle.badgeClass}`}
+                          >
+                            {categoryStyle.label}
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-2 px-1.5 pb-2 pt-0.5">
