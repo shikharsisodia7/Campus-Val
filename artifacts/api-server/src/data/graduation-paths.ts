@@ -1318,6 +1318,25 @@ const MINORS: MinorOption[] = [
   { code: "MUSP-MIN", title: "Music Performance", college: "CAS" },
   { code: "ARAB-MIN", title: "Arabic, Islamic & Middle Eastern Studies", college: "CAS" },
 
+  // Added 2026-09-04: bulletin-confirmed minors not previously in the
+  // catalog (see docs/SCU_PROGRAM_CATALOG.md).
+  { code: "JOUR-MIN", title: "Journalism", college: "CAS" },
+  { code: "DFLM-MIN", title: "Digital Filmmaking", college: "CAS" },
+  { code: "OBPC-MIN", title: "Organizational, Business, and Professional Communication", college: "CAS" },
+  { code: "PWRT-MIN", title: "Professional Writing", college: "CAS" },
+  { code: "GEOA-MIN", title: "Geospatial Analysis", college: "CAS" },
+  { code: "AFAM-MIN", title: "African American Studies", college: "CAS" },
+  { code: "ASAM-MIN", title: "Asian American Studies", college: "CAS" },
+  { code: "LATX-MIN", title: "Latina/o/x Studies", college: "CAS" },
+  { code: "ANIM-MIN", title: "Animation and Illustration", college: "CAS" },
+  { code: "ARTM-MIN", title: "Arts Management", college: "CAS" },
+  { code: "GRDS-MIN", title: "Graphic Design", college: "CAS" },
+  { code: "TDTC-MIN", title: "Theatre Design and Technology", college: "CAS" },
+  { code: "GERO-MIN", title: "Gerontology", college: "CAS" },
+  { code: "MHUM-MIN", title: "Medical and Health Humanities", college: "CAS" },
+  { code: "BTEC-MIN", title: "Biotechnology", college: "CAS" },
+  { code: "MUTH-MIN", title: "Musical Theatre", college: "CAS" },
+
   // School of Engineering
   { code: "AERO-MIN", title: "Aerospace Engineering", college: "SOE" },
   { code: "BIOE-MIN", title: "Bioengineering", college: "SOE" },
@@ -1326,6 +1345,9 @@ const MINORS: MinorOption[] = [
   { code: "ECEN-MIN", title: "Electrical & Computer Engineering", college: "SOE" },
   { code: "MECH-MIN", title: "Mechanical Engineering", college: "SOE" },
   { code: "GENG-MIN", title: "General Engineering", college: "SOE" },
+  { code: "RAI-MIN", title: "Responsible Artificial Intelligence", college: "SOE" },
+  { code: "HCID-MIN", title: "Healthcare Innovation and Design", college: "SOE" },
+  { code: "CNST-MIN", title: "Construction Management", college: "SOE" },
 
   // Leavey School of Business
   { code: "ANLY-MIN", title: "Business Analytics", college: "LSB" },
@@ -1335,6 +1357,8 @@ const MINORS: MinorOption[] = [
   { code: "MKTG-MIN", title: "Marketing", college: "LSB" },
   { code: "RLES-MIN", title: "Real Estate", college: "LSB" },
   { code: "RTLM-MIN", title: "Retail Studies", college: "LSB" },
+  { code: "INTB-MIN", title: "International Business", college: "LSB" },
+  { code: "SFS-MIN", title: "Sustainable Food Systems", college: "LSB" },
 ];
 
 export function getAvailableMinors(): MinorOption[] {
@@ -1370,6 +1394,10 @@ export interface MinorRecipe {
 
 const BULLETIN_2026_27 = "2026-27 Undergraduate Bulletin";
 const VERIFIED_MINOR_DATE = "2026-08-11";
+const VERIFIED_MINOR_DATE_2 = "2026-09-04";
+const CAS_BULLETIN_BASE = "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/";
+const SOE_BULLETIN_BASE = "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/";
+const LSB_BULLETIN_BASE = "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/";
 
 /**
  * Course lists appear only when the Bulletin names the course explicitly.
@@ -1926,6 +1954,221 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
       { label: "Supporting engineering", courses: ["CENG 41", "ECEN 50"] },
       { label: "Mechanical Engineering elective pair", courses: [], minimumCourses: 2, needsVerification: true },
       { label: "Approved two-course technical sequence", courses: [], minimumCourses: 2, needsVerification: true },
+    ],
+  },
+
+  // Added 2026-09-04: bulletin-confirmed minors not previously in the
+  // catalog. Course lists are left empty + needsVerification where the
+  // Bulletin's exact approved-course list is not verified here, following
+  // the same honesty convention as the pre-existing entries above.
+  "JOUR-MIN": {
+    code: "JOUR-MIN", title: "Journalism",
+    sourceUrl: CAS_BULLETIN_BASE + "communication.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Communication (Journalism minor)",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Communication department. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Journalism minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "DFLM-MIN": {
+    code: "DFLM-MIN", title: "Digital Filmmaking",
+    sourceUrl: CAS_BULLETIN_BASE + "communication.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Communication (Digital Filmmaking minor)",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Communication department. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Digital Filmmaking minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "OBPC-MIN": {
+    code: "OBPC-MIN", title: "Organizational, Business, and Professional Communication",
+    sourceUrl: CAS_BULLETIN_BASE + "communication.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Communication",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Communication department. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Organizational, Business, and Professional Communication minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "PWRT-MIN": {
+    code: "PWRT-MIN", title: "Professional Writing",
+    sourceUrl: CAS_BULLETIN_BASE + "english.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — English",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the English department, distinct from the existing Creative Writing minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Professional Writing minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "GEOA-MIN": {
+    code: "GEOA-MIN", title: "Geospatial Analysis",
+    sourceUrl: CAS_BULLETIN_BASE + "environmental-studies-and-sciences.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Environmental Studies and Sciences",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Environmental Studies and Sciences department. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Geospatial Analysis minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "AFAM-MIN": {
+    code: "AFAM-MIN", title: "African American Studies",
+    sourceUrl: CAS_BULLETIN_BASE + "ethnic-studies.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Ethnic Studies",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Ethnic Studies department, distinct from the existing general Ethnic Studies minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "African American Studies minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "ASAM-MIN": {
+    code: "ASAM-MIN", title: "Asian American Studies",
+    sourceUrl: CAS_BULLETIN_BASE + "ethnic-studies.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Ethnic Studies",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Ethnic Studies department, distinct from the existing general Ethnic Studies minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Asian American Studies minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "LATX-MIN": {
+    code: "LATX-MIN", title: "Latina/o/x Studies",
+    sourceUrl: CAS_BULLETIN_BASE + "ethnic-studies.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Ethnic Studies",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Ethnic Studies department, distinct from the existing general Ethnic Studies minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Latina/o/x Studies minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "ANIM-MIN": {
+    code: "ANIM-MIN", title: "Animation and Illustration",
+    sourceUrl: CAS_BULLETIN_BASE + "art-and-art-history.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Art and Art History",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Art and Art History department. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Animation and Illustration minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "ARTM-MIN": {
+    code: "ARTM-MIN", title: "Arts Management",
+    sourceUrl: CAS_BULLETIN_BASE + "art-and-art-history.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Art and Art History",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Art and Art History department. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Arts Management minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "GRDS-MIN": {
+    code: "GRDS-MIN", title: "Graphic Design",
+    sourceUrl: CAS_BULLETIN_BASE + "art-and-art-history.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Art and Art History",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Art and Art History department. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Graphic Design minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "TDTC-MIN": {
+    code: "TDTC-MIN", title: "Theatre Design and Technology",
+    sourceUrl: CAS_BULLETIN_BASE + "theatre-and-dance.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Theatre and Dance",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by the Theatre and Dance department, distinct from the existing Theatre minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Theatre Design and Technology minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "GERO-MIN": {
+    code: "GERO-MIN", title: "Gerontology",
+    sourceUrl: CAS_BULLETIN_BASE + "gerontology.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Gerontology",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Interdisciplinary minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Gerontology minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "MHUM-MIN": {
+    code: "MHUM-MIN", title: "Medical and Health Humanities",
+    sourceUrl: CAS_BULLETIN_BASE + "medical-and-health-humanities.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Medical and Health Humanities",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Interdisciplinary minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Medical and Health Humanities minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "BTEC-MIN": {
+    code: "BTEC-MIN", title: "Biotechnology",
+    sourceUrl: CAS_BULLETIN_BASE + "biotechnology.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Biotechnology",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Interdisciplinary minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Biotechnology minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "MUTH-MIN": {
+    code: "MUTH-MIN", title: "Musical Theatre",
+    sourceUrl: CAS_BULLETIN_BASE + "musical-theatre.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Musical Theatre",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Joint minor between Music and Theatre and Dance. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Musical Theatre minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "RAI-MIN": {
+    code: "RAI-MIN", title: "Responsible Artificial Intelligence",
+    sourceUrl: SOE_BULLETIN_BASE + "computer-science-and-engineering.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Computer Science and Engineering",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by Computer Science and Engineering. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Responsible Artificial Intelligence minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "HCID-MIN": {
+    code: "HCID-MIN", title: "Healthcare Innovation and Design",
+    sourceUrl: SOE_BULLETIN_BASE + "bioengineering.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Bioengineering",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Interdisciplinary minor housed in Bioengineering. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Healthcare Innovation and Design minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "CNST-MIN": {
+    code: "CNST-MIN", title: "Construction Management",
+    sourceUrl: SOE_BULLETIN_BASE + "civil-environmental-and-sustainable-engineering.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Civil, Environmental, and Sustainable Engineering",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["Offered by Civil, Environmental, and Sustainable Engineering. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Construction Management minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "INTB-MIN": {
+    code: "INTB-MIN", title: "International Business",
+    sourceUrl: LSB_BULLETIN_BASE + "international-business.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — International Business",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["No corresponding major exists — minor only. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "International Business minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+    ],
+  },
+  "SFS-MIN": {
+    code: "SFS-MIN", title: "Sustainable Food Systems",
+    sourceUrl: LSB_BULLETIN_BASE + "sustainable-food-systems.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Sustainable Food Systems",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: ["No corresponding major exists — minor only. Verify the exact approved-course list and unit total against the Bulletin."],
+    groups: [
+      { label: "Sustainable Food Systems minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
     ],
   },
 };
