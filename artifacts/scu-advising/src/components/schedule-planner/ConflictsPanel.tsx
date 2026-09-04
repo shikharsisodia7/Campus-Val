@@ -7,8 +7,17 @@ import { findEventConflicts } from "@/lib/conflicts";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { DAYS } from "./utils";
 
-export function ConflictsPanel({ events }: { events: ScheduleEvent[] }) {
-  const timedEvents = useMemo(() => events.map(toTimedEvent), [events]);
+export function ConflictsPanel({
+  events,
+  isTentativeSchedule = false,
+}: {
+  events: ScheduleEvent[];
+  isTentativeSchedule?: boolean;
+}) {
+  const timedEvents = useMemo(
+    () => events.map((e) => toTimedEvent(e, isTentativeSchedule)),
+    [events, isTentativeSchedule],
+  );
   const conflicts = useMemo(() => findEventConflicts(timedEvents), [timedEvents]);
 
   if (events.length === 0) return null;

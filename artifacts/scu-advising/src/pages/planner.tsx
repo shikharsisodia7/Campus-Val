@@ -7,6 +7,7 @@ import {
   useListPlans,
   useGetPlan,
   getGetPlanQueryKey,
+  useCreateSchedule,
   PlanItem,
   Term,
 } from "@workspace/api-client-react";
@@ -31,6 +32,7 @@ import {
 import { Link } from "wouter";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
 import { useScheduleWorkspace } from "@/components/schedule-planner/useScheduleWorkspace";
+import { capitalize } from "@/components/schedule-planner/utils";
 import { anchorYearFor } from "@/lib/academic-year";
 import { TermAndScheduleHeader } from "@/components/schedule-planner/TermAndScheduleHeader";
 import { AcademicYearOverview } from "@/components/schedule-planner/AcademicYearOverview";
@@ -68,6 +70,40 @@ export default function Planner() {
 
   // Intentions panel: jump a course into Quick Add
   const [intentionCourse, setIntentionCourse] = useState<string | null>(null);
+  const createScheduleMut = useCreateSchedule();
+
+  // Clicking an intended course must always do something visible — Find
+  // Courses only renders once a schedule exists for this quarter (see the
+  // activeScheduleId ternary below), so a quarter with no schedule yet would
+  // otherwise make the click a silent no-op. Auto-create a default schedule
+  // the first time the student actually tries to search, rather than
+  // requiring them to notice and use "New schedule" first.
+  const handleFindSections = (code: string) => {
+    if (workspace.activeScheduleId) {
+      setIntentionCourse(code);
+      return;
+    }
+    if (!workspace.activeTerm || !workspace.activeYear) return;
+    createScheduleMut.mutate(
+      {
+        data: {
+          name: `${capitalize(workspace.activeTerm)} ${workspace.activeYear} Schedule`,
+          term: workspace.activeTerm,
+          year: workspace.activeYear,
+        },
+      },
+      {
+        onSuccess: (newSchedule) => {
+          workspace.invalidateSchedules();
+          workspace.setActiveScheduleId(newSchedule.id);
+          setIntentionCourse(code);
+          toast({ title: "Schedule created", description: `Searching for ${code} sections.` });
+        },
+        onError: () =>
+          toast({ title: "Failed to create schedule", variant: "destructive" }),
+      },
+    );
+  };
 
   // Load-check collapsible
   const [loadCheckOpen, setLoadCheckOpen] = useState(false);
@@ -242,8 +278,7 @@ export default function Planner() {
               activeTerm={workspace.activeTerm}
               activeYear={workspace.activeYear}
               isLoadingAvailability={workspace.isLoadingAvailability}
-              hasActiveSchedule={!!workspace.activeScheduleId}
-              onFindSections={(code) => setIntentionCourse(code)}
+              onFindSections={handleFindSections}
             />
             {workspace.activeScheduleId ? (
               <div className="min-h-[24rem] xl:h-[calc(100vh-22rem)]">
@@ -280,6 +315,7 @@ export default function Planner() {
                 </div>
                 <ConflictsPanel
                   events={workspace.activeSchedule?.events || []}
+                  isTentativeSchedule={isTentativeSchedule}
                 />
               </>
             ) : (
@@ -468,7 +504,6 @@ function PlannedThisQuarterChips({
   activeTerm,
   activeYear,
   isLoadingAvailability,
-  hasActiveSchedule,
   onFindSections,
 }: {
   items: PlanItem[];
@@ -476,7 +511,6 @@ function PlannedThisQuarterChips({
   activeTerm: string | null;
   activeYear: number | null;
   isLoadingAvailability: boolean;
-  hasActiveSchedule: boolean;
   onFindSections: (courseCode: string) => void;
 }) {
   if (isLoadingAvailability || (!activeTerm && !activeYear)) return null;
@@ -530,15 +564,10 @@ function PlannedThisQuarterChips({
                 key={item.id}
                 variant="outline"
                 size="sm"
-                className="h-6 px-2 font-mono text-[10px] disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!hasActiveSchedule}
-                onClick={() => hasActiveSchedule && onFindSections(code)}
+                className="h-6 px-2 font-mono text-[10px]"
+                onClick={() => onFindSections(code)}
                 data-testid={`button-find-sections-${item.id}`}
-                title={
-                  hasActiveSchedule
-                    ? `Find ${code} sections in ${quarterLabel}`
-                    : `Create a schedule for ${quarterLabel} above before searching for sections`
-                }
+                title={`Find ${code} sections in ${quarterLabel}`}
               >
                 {code}
               </Button>
