@@ -46,6 +46,10 @@ import {
 } from "@/lib/course-offering";
 import { SCU_BULLETIN_URL } from "@/data/advising-resources";
 import {
+  requirementCategoryKindFor,
+  REQUIREMENT_CATEGORY_STYLE,
+} from "@/lib/requirement-category";
+import {
   useQuarterFitSuggestions,
   type QuarterFitSuggestion,
 } from "./useQuarterFitSuggestions";
@@ -270,40 +274,64 @@ export function CourseCard({
             else setIsDetailOpen(true);
           }}
         >
-          {isPlaceholder ? (
-            <>
+          {(() => {
+            const categoryKind = requirementCategoryKindFor(item.requirementCategory);
+            const categoryStyle = REQUIREMENT_CATEGORY_STYLE[categoryKind];
+            const CategoryIcon = categoryStyle.icon;
+            const categoryBadge = item.requirementCategory ? (
               <Badge
                 variant="outline"
-                className="text-[9px] mb-1 font-mono uppercase tracking-widest text-primary border-primary/20"
+                className={`text-[9px] mb-1 font-mono uppercase tracking-widest gap-1 ${categoryStyle.badgeClass}`}
+                data-testid={`category-badge-${item.id}`}
+                title={item.requirementCategory}
               >
-                Requirement
+                <CategoryIcon className="h-2.5 w-2.5" />
+                {categoryStyle.label}
               </Badge>
-              <div className="font-medium text-sm leading-tight text-foreground/90">
-                {item.requirementLabel}
-              </div>
-              <div className="text-[10px] text-muted-foreground mt-1 truncate">
-                {item.requirementCategory}
-              </div>
-              <div className="text-[10px] text-muted-foreground mt-1">
-                Units TBD
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex justify-between items-start gap-1">
-                <div className="font-mono text-sm font-bold text-primary truncate">
-                  {item.courseCode}
+            ) : null;
+
+            return isPlaceholder ? (
+              <>
+                {categoryBadge ?? (
+                  <Badge
+                    variant="outline"
+                    className="text-[9px] mb-1 font-mono uppercase tracking-widest text-primary border-primary/20"
+                  >
+                    Requirement
+                  </Badge>
+                )}
+                <div className="font-medium text-sm leading-tight text-foreground/90">
+                  {item.requirementLabel}
                 </div>
-                <Badge
-                  variant="secondary"
-                  className="text-[10px] px-1 py-0 h-4"
-                >
-                  {item.units}u
-                </Badge>
-              </div>
-              <div className="text-xs text-foreground/80 mt-1 line-clamp-2 leading-snug">
-                {item.courseTitle || courseDetails?.title}
-              </div>
+                <div className="text-[10px] text-muted-foreground mt-1 truncate">
+                  {item.requirementCategory}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  Units TBD
+                </div>
+              </>
+            ) : (
+              <>
+                {categoryBadge}
+                <div className="flex justify-between items-start gap-1">
+                  <div className="font-mono text-sm font-bold text-primary truncate">
+                    {item.courseCode}
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] px-1 py-0 h-4"
+                  >
+                    {item.units}u
+                  </Badge>
+                </div>
+                <div className="text-xs text-foreground/80 mt-1 line-clamp-2 leading-snug">
+                  {item.courseTitle || courseDetails?.title}
+                </div>
+              </>
+            );
+          })()}
+          {!isPlaceholder && (
+            <>
               {isCompletedItem && (
                 <div
                   className="flex items-center gap-1 mt-1.5 text-[10px] text-emerald-700"
