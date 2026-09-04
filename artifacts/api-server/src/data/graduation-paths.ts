@@ -290,6 +290,86 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     lowerDiv: ["ENVS 21", "ENVS 22", "ENVS 23", "BIOL 1A", "CHEM 11"],
     upperDiv: ["ENVS 110", "ENVS 121", "ENVS 137", "ENVS 145", "ENVS 156"],
   },
+  // Added 2026-09-04: bulletin-confirmed majors not previously in the
+  // catalog (see docs/SCU_PROGRAM_CATALOG.md for the full audit). No
+  // official four-year-plan source was located for any of these, so they
+  // default to sequenceTrust "example" via sequenceTrustFor() below, same
+  // as every other major without an entry in SOE_RECOMMENDED_PROVENANCE.
+  BCHM: {
+    major: "BCHM",
+    title: "Biochemistry",
+    college: "CAS",
+    mathTrack: "calc-stem",
+    lowerDiv: ["CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33", "BIOL 1A", "BIOL 1B", "PHYS 31", "PHYS 32"],
+    upperDiv: ["CHEM 111", "CHEM 112", "CHEM 133", "CHEM 132", "CHEM 150", "CHEM 152"],
+  },
+  BCHM_ACS: {
+    major: "BCHM_ACS",
+    title: "Biochemistry, ACS Certified",
+    college: "CAS",
+    mathTrack: "calc-stem",
+    lowerDiv: ["CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33", "BIOL 1A", "BIOL 1B", "PHYS 31", "PHYS 32"],
+    upperDiv: ["CHEM 111", "CHEM 112", "CHEM 133", "CHEM 132", "CHEM 150", "CHEM 152", "CHEM 154", "CHEM 155"],
+    notes: ["ACS-certified variant of Biochemistry — additional lab/elective depth beyond the standard BS."],
+  },
+  CHEM_BA: {
+    major: "CHEM_BA",
+    title: "Chemistry (B.A.)",
+    college: "CAS",
+    mathTrack: "calc-stem",
+    lowerDiv: ["CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33"],
+    upperDiv: ["CHEM 111", "CHEM 112", "CHEM 130"],
+    notes: ["B.A. track — lighter lab/elective load than the Chemistry B.S. (CHEM major code)."],
+  },
+  ENSC: {
+    major: "ENSC",
+    title: "Environmental Science",
+    college: "CAS",
+    mathTrack: "calc-life",
+    lowerDiv: ["ENVS 21", "ENVS 22", "ENVS 23", "BIOL 1A", "BIOL 1B", "CHEM 11", "CHEM 12"],
+    upperDiv: ["ENVS 116", "ENVS 117", "ENVS 120", "ENVS 141", "ENVS 143"],
+    notes: ["Distinct science-track major from Environmental Studies (ENVS) — more lab science, less policy/social science."],
+  },
+  WDE: {
+    major: "WDE",
+    title: "Web Design and Engineering",
+    college: "SOE",
+    mathTrack: "calc-stem",
+    isEngineering: true,
+    lowerDiv: ["CSEN 10", "CSEN 11", "CSEN 12", "CSEN 20"],
+    upperDiv: ["CSEN 122", "CSEN 140", "CSEN 146", "CSEN 161", "CSEN 174"],
+    capstone: "ENGR 110",
+  },
+  EE: {
+    major: "EE",
+    title: "Electrical Engineering",
+    college: "SOE",
+    mathTrack: "calc-stem",
+    isEngineering: true,
+    lowerDiv: ["ECEN 20", "ECEN 21", "ECEN 50", "ECEN 100"],
+    upperDiv: ["ECEN 116", "ECEN 117", "ECEN 130", "ECEN 131", "ECEN 141", "ECEN 151"],
+    capstone: "ENGR 110",
+    notes: ["Distinct major from Electrical & Computer Engineering (ECEN) — power/analog/RF-focused, less computer-systems coursework."],
+  },
+  GENR: {
+    major: "GENR",
+    title: "General Engineering",
+    college: "SOE",
+    mathTrack: "calc-stem",
+    isEngineering: true,
+    lowerDiv: ["ENGR 1", "ENGR 2", "ENGR 19", "ENGR 35", "ENGR 40"],
+    upperDiv: ["ENGR 161", "ENGR 163", "ENGR 170", "ENGR 180"],
+    capstone: "ENGR 110",
+  },
+  ENGPHYS: {
+    major: "ENGPHYS",
+    title: "Engineering Physics",
+    college: "CAS",
+    mathTrack: "calc-stem",
+    lowerDiv: ["PHYS 31", "PHYS 32", "PHYS 33", "PHYS 70", "MATH 53"],
+    upperDiv: ["PHYS 111", "PHYS 112", "PHYS 113", "PHYS 121", "PHYS 141"],
+    notes: ["Physics and Engineering Physics is a College of Arts and Sciences department, not School of Engineering, despite the name."],
+  },
 
   // -------- CAS: Social Sciences & Humanities --------
   COMM: {
