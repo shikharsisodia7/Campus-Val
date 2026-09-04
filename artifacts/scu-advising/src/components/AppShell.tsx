@@ -26,6 +26,7 @@ import {
   ChevronDown,
   X,
   FileUp,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser, useClerk } from "@clerk/react";
@@ -95,6 +96,7 @@ const FEATURE_GROUPS: { label: string; items: NavItem[] }[] = [
       { path: "/resources", label: "SCU Resources", icon: Library },
       { path: "/advice", label: "Advice Board", icon: Lightbulb },
       { path: "/advisor", label: "Planning Support", icon: MessageSquareText },
+      { path: "/shared-with-me", label: "Shared with Me (Advisors)", icon: UserCheck },
       { path: "/voice", label: "Voice Planning Support", icon: Mic },
       { path: "/policies", label: "SCU Policies", icon: Library },
       { path: "/evaluation", label: "AI Evaluation", icon: Gauge },
