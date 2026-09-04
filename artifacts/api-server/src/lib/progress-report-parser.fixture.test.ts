@@ -47,6 +47,11 @@ function loadXlsxFixture(name: string): Buffer {
   return readFileSync(join(FIXTURE_DIR, name));
 }
 
+/** Load the committed PDF golden fixture (see generate-pdf-fixture.ts) as a Buffer. */
+function loadPdfFixture(name: string): Buffer {
+  return readFileSync(join(FIXTURE_DIR, name));
+}
+
 // ─── Catalog lookup helper ────────────────────────────────────────────────────
 
 const catalogMap = new Map(COURSES.map((c) => [c.code, c]));
@@ -396,6 +401,28 @@ describe("progress-report-parser fixture: golden text — hierarchical requireme
     const text = `${CA!.code} Accounting 4.00 A`;
     const groups = extractRequirementGroups(text);
     expect(groups).toEqual([]);
+  });
+
+  it("committed PDF fixture (real unpdf extraction, not text-only) reproduces the same hierarchical groups end-to-end", async () => {
+    // workday-apr-hierarchical.pdf is generate-pdf-fixture.ts's real PDF
+    // rendering of this exact .txt fixture — this exercises the actual
+    // upload -> unpdf text extraction -> parser path a live browser upload
+    // takes, not just extractRequirementGroups() on hand-typed text.
+    const buf = loadPdfFixture("workday-apr-hierarchical.pdf");
+    const { result, status } = await parseProgressReport(
+      buf,
+      "application/pdf",
+      "workday-apr-hierarchical.pdf",
+    );
+
+    expect(status).toBe("parsed");
+    expect(result.groups?.map((g) => g.name)).toEqual([
+      "Computer Science and Engineering Major Requirements",
+      "Mathematics Minor Requirements",
+    ]);
+    const codes = result.completedCourses.map((c) => c.code);
+    expect(codes).toEqual(expect.arrayContaining(["CSCI 10", "CSCI 60", "MATH 11", "MATH 12"]));
+    for (const c of result.completedCourses) assertInCatalog(c.code);
   });
 });
 
