@@ -12,8 +12,10 @@ import { itemDto, itemsOf } from "./plans";
 
 const router: IRouter = Router();
 
-/** Never granted by a plain "share with advisor" call — see docs/ADVISOR_SHARING.md. */
-const VALID_SCOPES = new Set(["degree_plan", "tentative_degree_plan", "apr"]);
+// "apr" is intentionally not a valid scope: no advisor-facing route reads
+// APR data, so accepting the scope would silently promise access that
+// doesn't exist. See docs/ADVISOR_SHARING.md.
+const VALID_SCOPES = new Set(["degree_plan", "tentative_degree_plan"]);
 const DEFAULT_SCOPES = ["degree_plan"];
 
 function normalizeEmail(email: unknown): string | null {
@@ -82,11 +84,6 @@ router.post("/plan-shares", requireAuth, async (req, res) => {
     : DEFAULT_SCOPES;
   if (scopes.length === 0) {
     return res.status(400).json({ error: "At least one valid scope is required." });
-  }
-  // APR is protected academic information — never bundled in by a default
-  // "share my plan" call. A student must explicitly list "apr" to grant it.
-  if (scopes.includes("apr") && !(Array.isArray(requestedScopes) && requestedScopes.includes("apr"))) {
-    return res.status(400).json({ error: "APR access must be explicitly requested." });
   }
 
   const existing = await db

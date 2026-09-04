@@ -22,7 +22,13 @@ export const planSharesTable = pgTable(
     studentUserId: text("student_user_id").notNull(),
     /** Normalized lowercase — advisors are matched by their verified sign-in email. */
     advisorEmail: text("advisor_email").notNull(),
-    /** Subset of "degree_plan" | "tentative_degree_plan" | "apr". APR is never granted by default. */
+    /**
+     * Subset of "degree_plan" | "tentative_degree_plan". Workday APR is
+     * deliberately not a shareable scope yet — no advisor-facing route
+     * reads APR data, so offering it as a grant option would be a promise
+     * the product doesn't keep. Revisit once a real advisor APR viewer
+     * exists.
+     */
     scopes: jsonb("scopes").$type<string[]>().notNull().default(["degree_plan"]),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

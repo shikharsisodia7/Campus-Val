@@ -93,22 +93,22 @@ describe("POST /api/plan-shares (student grants access)", () => {
       .expect(400);
   });
 
-  it("defaults to degree_plan-only scope and never bundles APR automatically", async () => {
+  it("defaults to degree_plan-only scope", async () => {
     const res = await asStudentA(request(app).post("/api/plan-shares"))
       .send({ advisorEmail: ADVISOR_X_EMAIL })
       .expect(201);
     expect(res.body.scopes).toEqual(["degree_plan"]);
-    expect(res.body.scopes).not.toContain("apr");
     expect(res.body.status).toBe("active");
   });
 
-  it("rejects a bare apr scope request unless explicitly listed by the client", async () => {
-    // Sanity: the server only trusts scopes the client actually sent, not an
-    // inferred default — this test documents that "apr" must be explicit.
+  it("silently drops an unsupported scope like apr instead of granting it", async () => {
+    // "apr" has no backing advisor-facing route — accepting it would grant a
+    // share that looks like it includes APR access but never actually does.
     const res = await asStudentA(request(app).post("/api/plan-shares"))
       .send({ advisorEmail: ADVISOR_Y_EMAIL, scopes: ["degree_plan", "apr"] })
       .expect(201);
-    expect(res.body.scopes.sort()).toEqual(["apr", "degree_plan"]);
+    expect(res.body.scopes).toEqual(["degree_plan"]);
+    expect(res.body.scopes).not.toContain("apr");
   });
 });
 
