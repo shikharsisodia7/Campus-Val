@@ -247,7 +247,11 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "CAS",
     mathTrack: "calc-stem",
     lowerDiv: ["CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33", "CHEM 50", "PHYS 31", "PHYS 32"],
-    upperDiv: ["CHEM 111", "CHEM 112", "CHEM 113", "CHEM 124", "CHEM 132"],
+    // Was CHEM 111/112/113/124/132 — CHEM 113 and CHEM 124 do not exist in
+    // the current SCU Bulletin (confirmed against the live Chemistry and
+    // Biochemistry bulletin page); replaced with the B.S. Chemistry core
+    // ("CHEM 102, 111, 141, 151, 152, 154" plus electives).
+    upperDiv: ["CHEM 102", "CHEM 111", "CHEM 141", "CHEM 151", "CHEM 152", "CHEM 154"],
   },
   PHYS: {
     major: "PHYS",
@@ -272,14 +276,14 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
       { title: "Mathematics Education Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
     ],
   },
-  AMTH: {
-    major: "AMTH",
-    title: "Applied Mathematics",
-    college: "CAS",
-    mathTrack: "calc-stem",
-    lowerDiv: ["MATH 11", "MATH 12", "MATH 13", "MATH 14", "MATH 22", "MATH 53"],
-    upperDiv: ["MATH 122", "MATH 141", "MATH 144", "MATH 155", "MATH 166"],
-  },
+  // Applied Mathematics is not a standalone SCU undergraduate major — the
+  // Department of Applied Mathematics offers only graduate degrees; at the
+  // undergraduate level it's an emphasis within the Mathematics major (see
+  // the "Applied Mathematics Emphasis" concentration on MATH above).
+  // Verified against the SCU Undergraduate Bulletin (Ch. 5, School of
+  // Engineering, Applied Mathematics) and Graduate Engineering Bulletin
+  // Ch. 7. Do not re-add an "AMTH" major entry without a bulletin citation
+  // showing SCU created a standalone undergraduate major.
   CSCI: {
     major: "CSCI",
     title: "Computer Science (B.S. Arts & Sciences)",
@@ -600,14 +604,10 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
       { title: "Emphasis in Dance", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/theatre-and-dance.html" },
     ],
   },
-  DANC: {
-    major: "DANC",
-    title: "Dance",
-    college: "CAS",
-    mathTrack: "any",
-    lowerDiv: ["DANC 4", "DANC 8", "DANC 50", "DANC 60"],
-    upperDiv: ["DANC 110", "DANC 137", "DANC 145", "DANC 175", "DANC 199"],
-  },
+  // Dance is not a standalone SCU undergraduate major — the bulletin shows
+  // one Theatre Arts major (THTR) with a Dance emphasis inside it (see the
+  // "Emphasis in Dance" concentration on THTR above). A standalone Dance
+  // *minor* (DANC-MIN) does exist separately and is already represented.
 
   // -------- CAS: Languages --------
   SPAN: {
@@ -634,22 +634,10 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     lowerDiv: ["ITAL 1", "ITAL 2", "ITAL 3", "ITAL 21A", "ITAL 21B"],
     upperDiv: ["ITAL 110", "ITAL 137", "ITAL 175", "ITAL 199"],
   },
-  CHIN: {
-    major: "CHIN",
-    title: "Chinese Studies",
-    college: "CAS",
-    mathTrack: "any",
-    lowerDiv: ["CHIN 1", "CHIN 2", "CHIN 3", "CHIN 21A", "CHIN 21B"],
-    upperDiv: ["CHIN 105", "CHIN 125", "CHIN 127", "CHIN 199"],
-  },
-  JAPN: {
-    major: "JAPN",
-    title: "Japanese Studies",
-    college: "CAS",
-    mathTrack: "any",
-    lowerDiv: ["JAPN 1", "JAPN 2", "JAPN 3", "JAPN 21A", "JAPN 21B"],
-    upperDiv: ["JAPN 110", "JAPN 137", "JAPN 175", "JAPN 199"],
-  },
+  // Chinese Studies and Japanese Studies are not standalone SCU
+  // undergraduate majors — the bulletin currently offers these only as
+  // minors ("Chinese and Sinophone Studies" = CHIN-MIN, "Japanese Studies"
+  // = JAPN-MIN), both represented in the minor catalog below.
 };
 
 // ---------------------------------------------------------------------------
@@ -1379,6 +1367,7 @@ const MINORS: MinorOption[] = [
   { code: "BIOC-MIN", title: "Biochemistry", college: "CAS" },
   { code: "CTHL-MIN", title: "Catholic Studies", college: "CAS" },
   { code: "CHEM-MIN", title: "Chemistry", college: "CAS" },
+  { code: "CHIN-MIN", title: "Chinese and Sinophone Studies", college: "CAS" },
   { code: "CLAS-MIN", title: "Classics and Ancient Studies", college: "CAS" },
   { code: "COMM-MIN", title: "Communication", college: "CAS" },
   { code: "CWRT-MIN", title: "Creative Writing", college: "CAS" },
@@ -1798,6 +1787,14 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
       { label: "Advanced Italian language", courses: ["ITAL 100", "ITAL 101"], minimumCourses: 1, needsVerification: true },
       { label: "Upper-division Italian Studies electives", courses: [], minimumUnits: 9, needsVerification: true },
     ],
+  },
+  "CHIN-MIN": {
+    code: "CHIN-MIN", title: "Chinese and Sinophone Studies",
+    sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/modern-languages-and-literatures.html",
+    sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Modern Languages and Literatures",
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
+    notes: ["Verify current Chinese and Sinophone Studies minor requirements from the Modern Languages and Literatures bulletin page."],
+    groups: [{ label: "Approved Chinese and Sinophone Studies courses", courses: [], minimumCourses: 5, needsVerification: true }],
   },
   "JAPN-MIN": {
     code: "JAPN-MIN", title: "Japanese Studies",
