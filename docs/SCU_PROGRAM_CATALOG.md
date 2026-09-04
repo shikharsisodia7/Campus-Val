@@ -61,32 +61,54 @@ needs deliberate review, not a blind edit made while unattended:
 recode/relabel these four majors or add a data migration for any existing
 student profiles that reference them, then update this document.
 
-## Minors and concentrations — known incomplete
+## Minors added this pass (bulletin-confirmed, previously entirely missing)
 
-The bulletin audit found roughly 35 minors not cross-checkable against the
-app's exact existing 52-minor list (interdisciplinary minors, department
-minors like Journalism/Creative Writing/Real Estate, and several newer
-minors like Responsible Artificial Intelligence and Healthcare Innovation
-and Design), plus 33 real concentrations/tracks/emphases across majors
-like Bioengineering (Biomolecular / Medical Device / Pre-Med), Anthropology,
-Communication, Mathematics, Computer Science, Philosophy, Political
-Science, and Public Health — **none of which are modeled in code yet.**
+Once the real MINORS list was inspected directly (rather than estimated),
+most of the audit's suspected gaps turned out to already exist (Real
+Estate, Business Analytics, MIS, Aerospace Engineering, Creative Writing,
+Japanese Studies, Dance, and more were already present). The following 21
+were genuinely absent and have been added, each with a real
+`scu.edu/bulletin` source URL:
 
-This was intentionally deferred rather than rushed: each minor and
-concentration needs the same course-code verification discipline applied
-to the 8 majors above, and concentrations have no data model in
-`graduation-paths.ts` at all yet (would need a new `concentrations` field
-on `MajorRecipe` plus UI in the program picker). Doing this properly for
-~35 minors and 33 concentrations is a substantial follow-up pass, not a
+Journalism, Digital Filmmaking, Organizational/Business/Professional
+Communication, Professional Writing, Geospatial Analysis, African American
+Studies, Asian American Studies, Latina/o/x Studies, Animation and
+Illustration, Arts Management, Graphic Design, Theatre Design and
+Technology, Gerontology, Medical and Health Humanities, Biotechnology,
+Musical Theatre, Responsible Artificial Intelligence, Healthcare
+Innovation and Design, Construction Management, International Business,
+Sustainable Food Systems.
+
+**Honesty note on requirement detail**: none of these 21 have their exact
+approved-course lists encoded — every requirement group is marked
+`needsVerification: true` with an empty course list, exactly like several
+pre-existing minors already in the catalog before this pass (e.g. the
+"Additional lower-division anthropology course" group). This is a
+deliberate choice, not a shortcut: encoding a specific course list without
+having actually read and confirmed it against the Bulletin page would be
+fabrication. A follow-up pass should visit each of the 21 source URLs
+above and fill in the real approved-course groups.
+
+## Concentrations — known incomplete
+
+The bulletin audit found 33 real concentrations/tracks/emphases across
+majors like Bioengineering (Biomolecular / Medical Device / Pre-Med),
+Anthropology, Communication, Mathematics, Computer Science, Philosophy,
+Political Science, and Public Health — **none of which are modeled in
+code yet.** `graduation-paths.ts` has no `concentrations` field on
+`MajorRecipe` at all; adding this needs both a data-model change and UI in
+the program picker, which is a substantial follow-up pass, not a
 same-session addition.
 
 ## Program coverage (honest count)
 
 - Majors: 54 of ~54 bulletin-confirmed majors represented (46 existing + 8
   added), modulo the 4 flagged-for-review discrepancies above.
-- Minors: 52 represented; ~35 bulletin-confirmed gaps remain, documented
-  above, not yet added.
+- Minors: 73 of ~73 bulletin-confirmed minors represented (52 existing +
+  21 added). The 21 new ones need their exact approved-course lists filled
+  in (see above) — the minor itself is real and selectable, but its
+  requirement detail is honestly marked unverified rather than complete.
 - Concentrations/tracks: 0 of 33 bulletin-confirmed ones modeled.
 
-**This is not 100% coverage.** It should not be reported as complete until
-the minors and concentrations gaps above are closed.
+**This is not 100% coverage.** Majors and minors are now name-complete
+against this audit; concentrations remain a real, documented gap.
