@@ -31,7 +31,10 @@ export function CalendarGrid({
 }) {
   const [showWeekends, setShowWeekends] = useState(false);
 
-  const timedEvents = useMemo(() => events.map(toTimedEvent), [events]);
+  const timedEvents = useMemo(
+    () => events.map((e) => toTimedEvent(e, isTentativeSchedule)),
+    [events, isTentativeSchedule],
+  );
   const conflicts = useMemo(() => findEventConflicts(timedEvents), [timedEvents]);
   const conflictIds = useMemo(() => {
     const set = new Set<number>();
@@ -175,12 +178,16 @@ export function CalendarGrid({
                     >
                       <div className="font-semibold truncate flex items-center gap-1">
                         <span className="truncate">
-                          {s.kind === "section" ? `${s.courseCode}-${s.sectionNumber}` : s.name}
+                          {s.kind === "section"
+                            ? isTentative
+                              ? s.courseCode
+                              : `${s.courseCode}-${s.sectionNumber}`
+                            : s.name}
                         </span>
                         {isTentative && (
                           <span
                             className="shrink-0 rounded-sm bg-amber-200/80 px-1 text-[8px] font-medium uppercase tracking-wide text-amber-900"
-                            title="This term's schedule is tentative — section number and instructor may change."
+                            title="This term's schedule is tentative — meeting details may change and this is not an official section number."
                           >
                             Tentative
                           </span>

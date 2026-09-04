@@ -4,8 +4,8 @@ Academic planning support for Santa Clara University students, grounded in real 
 policy and each student's own record.
 
 **Production:** https://campus-val.vercel.app
-**Production branch:** `replit-main` (this is the repo's default branch — `main` is a
-stale leftover from early development and is not used)
+**Production branch:** `main` (the repo's default branch). `replit-main` is a legacy
+branch from early development and is no longer used for deploys.
 
 ---
 
@@ -102,14 +102,14 @@ pnpm run vercel-build
 There is **no lint script** in this repository — that is deliberate, not an oversight.
 
 CI (`.github/workflows/ci.yml`) runs typecheck, all three suites and both builds against
-a Postgres 16 service on every push and PR to `replit-main`.
+a Postgres 16 service on every push and PR to `main`.
 
 ## Deployment
 
-Vercel project `campusval`, deployed from `replit-main`:
+Vercel project `campusval`, deployed from `main`:
 
 ```bash
-git checkout replit-main && git pull --ff-only
+git checkout main && git pull --ff-only
 npx vercel --prod --yes
 ```
 
@@ -125,7 +125,7 @@ Two things that have bitten before:
 Verifying a deployment means checking more than a 200:
 
 ```bash
-# target must be "production" and meta.githubCommitSha must match origin/replit-main
+# target must be "production" and meta.githubCommitSha must match origin/main
 curl -o /dev/null -w '%{http_code}\n' https://campus-val.vercel.app/          # 200
 curl -o /dev/null -w '%{http_code}\n' https://campus-val.vercel.app/api/plans # 401
 ```

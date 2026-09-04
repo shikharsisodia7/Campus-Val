@@ -35,31 +35,49 @@ Every course code referenced by these 8 recipes was verified against the
 real course catalog (`artifacts/api-server/src/data/courses-data.json`);
 see `graduation-paths.new-majors.test.ts`. No curriculum was invented.
 
-## Flagged for review — NOT changed this pass
+## Resolved: 4 flagged discrepancies (previously "not changed", now corrected)
 
-These are real discrepancies found between the current catalog and the
-live bulletin, but changing or removing an existing major code is a
-backward-compatibility risk (a student may already have selected it) that
-needs deliberate review, not a blind edit made while unattended:
+These were real discrepancies found between the catalog and the live
+bulletin. Each was independently re-verified against a live SCU Bulletin
+fetch (not just the earlier nav-menu-level check) before acting, since
+changing/removing an existing major code is a backward-compatibility-
+sensitive decision:
 
-- **`AMTH` (Applied Mathematics)** — the bulletin currently shows no
-  standalone Applied Mathematics major. It exists only as an emphasis
-  within the Mathematics major (`MATH`), and the School of Engineering's
-  Applied Mathematics department explicitly states it offers no
-  undergraduate major or minor.
-- **`CHIN` (Chinese Studies)** and **`JAPN` (Japanese Studies)** — the
-  bulletin currently shows these only as minors ("Chinese and Sinophone
-  Studies", "Japanese Studies"), not majors.
+- **`AMTH` (Applied Mathematics)** — confirmed via the live Bulletin
+  (Ch. 5, School of Engineering, Applied Mathematics) and the Graduate
+  Engineering Bulletin (Ch. 7): the Department of Applied Mathematics
+  offers only graduate degrees; undergraduate Applied Mathematics is an
+  emphasis within the Mathematics major. **Fixed:** removed the fake
+  standalone `AMTH` major entry. The "Applied Mathematics Emphasis" was
+  already correctly represented as a `MATH` concentration.
+- **`CHIN` (Chinese Studies)** and **`JAPN` (Japanese Studies)** — confirmed
+  via the live Modern Languages and Literatures bulletin page: "there are
+  no standalone majors in Chinese or Japanese Studies; only minors are
+  offered." **Fixed:** removed the fake `CHIN`/`JAPN` major entries.
+  `JAPN-MIN` already existed; **`CHIN-MIN` ("Chinese and Sinophone
+  Studies") was actually missing from the minor catalog entirely** (an
+  error in this document's earlier "already present" assumption) and has
+  been added.
 - **`DANC` (Dance)** — the bulletin shows one Theatre Arts major (`THTR`)
-  with a Dance emphasis inside it, not a standalone Dance major. A
-  standalone Dance *minor* does exist separately.
-- Pre-existing majors `CHEM` and `PHYS` reference course codes not found in
-  the current course catalog (`CHEM 113`, `CHEM 124`, `MATH 22`) — likely
-  stale, unrelated to this pass's additions.
+  with a Dance emphasis inside it, not a standalone Dance major. **Fixed:**
+  removed the fake standalone `DANC` major entry. The "Emphasis in Dance"
+  concentration on `THTR` and the standalone `DANC-MIN` minor were already
+  correctly represented and are unaffected.
+- **`CHEM` and `PHYS`** referenced course codes not found in the course
+  catalog. Verified against the live Chemistry & Biochemistry bulletin
+  page: `CHEM 113` and `CHEM 124` **do not exist in the current SCU
+  Bulletin at all** (not just missing from the scrape) — `CHEM`'s
+  upperDiv sequence was stale. **Fixed:** replaced with the real B.S.
+  Chemistry core (`CHEM 102, 111, 141, 151, 152, 154`). `MATH 22`
+  ("Ordinary Differential Equations") *is* a real, current course that was
+  genuinely just missing from `courses-data.json` — added it there instead
+  of touching `PHYS`'s (correct) requirement.
 
-**Recommended next step:** decide with the product owner whether to
-recode/relabel these four majors or add a data migration for any existing
-student profiles that reference them, then update this document.
+Regression coverage: `graduation-paths.catalog-discrepancies.test.ts`
+locks in that none of the four fake majors are selectable, that the real
+underlying programs remain represented (MATH/THTR concentrations,
+CHIN-MIN/JAPN-MIN minors), and that CHEM/PHYS reference only real catalog
+courses.
 
 ## Minors added this pass (bulletin-confirmed, previously entirely missing)
 
@@ -138,12 +156,16 @@ figure from the source research.
 
 ## Program coverage (honest count)
 
-- Majors: 54 of ~54 bulletin-confirmed majors represented (46 existing + 8
-  added), modulo the 4 flagged-for-review discrepancies above.
-- Minors: 73 of ~73 bulletin-confirmed minors represented (52 existing +
-  21 added). The 21 new ones need their exact approved-course lists filled
-  in (see above) — the minor itself is real and selectable, but its
-  requirement detail is honestly marked unverified rather than complete.
+- Majors: 50 of ~50 bulletin-confirmed standalone majors represented (54
+  previously counted, minus the 4 fake entries — AMTH/CHIN/JAPN/DANC —
+  removed after live-bulletin re-verification; those programs remain
+  represented correctly as emphases/minors, not majors).
+- Minors: 74 of ~74 bulletin-confirmed minors represented (73 previously
+  present + CHIN-MIN "Chinese and Sinophone Studies", which was missing
+  entirely and has been added). 22 of the 74 (the 21 originally added +
+  CHIN-MIN) need their exact approved-course lists filled in — the minor
+  itself is real and selectable, but its requirement detail is honestly
+  marked unverified rather than complete.
 - Concentrations/tracks: 46 bulletin-confirmed real concentrations
   represented as metadata (name + official source), across 15 majors. Four
   items found during the original audit were deliberately excluded as
@@ -154,6 +176,8 @@ figure from the source research.
   concentration.
 
 **Majors, minors, and concentrations are now name-complete against this
-audit.** What remains for full production-grade completeness: the 21 new
-minors' exact approved-course lists, and the 4 flagged major discrepancies
-pending your review.
+audit, and the 4 previously-flagged major discrepancies are resolved.**
+What remains for full production-grade completeness: the 22 minors'
+exact approved-course lists (a large, page-by-page Bulletin research
+effort, deliberately not attempted here to avoid fabricating course
+lists).

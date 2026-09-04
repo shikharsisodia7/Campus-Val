@@ -8053,6 +8053,28 @@
     "corequisites": []
   },
   {
+    "code": "CHEM 151",
+    "title": "Quantum Chemistry",
+    "department": "CHEM",
+    "departmentName": "Chemistry",
+    "units": 5,
+    "description": "Fundamentals of quantum mechanics, including wave functions and probability; rotational, vibrational, and electronic transitions; atomic and molecular electronic structure; and magnetic resonance.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "MATH 13 and CHEM 50",
+    "prereqGroups": [
+      [
+        "MATH 13",
+        "CHEM 50"
+      ]
+    ],
+    "corequisites": []
+  },
+  {
     "code": "CHEM 152",
     "title": "Chemical Thermodynamics",
     "department": "CHEM",
@@ -28872,6 +28894,27 @@
     "prereqGroups": [],
     "corequisites": [],
     "notes": "Bulletin does not specify fixed unit value (variable / by arrangement)."
+  },
+  {
+    "code": "MATH 22",
+    "title": "Ordinary Differential Equations",
+    "department": "MATH",
+    "departmentName": "Mathematics",
+    "units": 4,
+    "description": "Explicit solution techniques for ordinary differential equations, systems of first order differential equations, second order equations with constant coefficients, higher order linear differential equations, Laplace transform methods, and engineering applications. Only one of MATH 22 and AMTH 106 may be taken for credit.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "MATH 13",
+    "prereqGroups": [
+      [
+        "MATH 13"
+      ]
+    ],
+    "corequisites": []
   },
   {
     "code": "MATH 23",

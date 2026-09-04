@@ -13,7 +13,7 @@ Table: `plan_shares` (`lib/db/src/schema/plan-shares.ts`)
 |---|---|
 | `studentUserId` | The sharing student's Clerk user id. |
 | `advisorEmail` | Normalized (lowercase) email of the advisor being granted access. Matched against the advisor's own verified sign-in email — never client-supplied identity. |
-| `scopes` | Subset of `degree_plan`, `tentative_degree_plan`, `apr`. Defaults to `["degree_plan"]`. `apr` is **never** included unless the client explicitly requests it. |
+| `scopes` | Subset of `degree_plan`, `tentative_degree_plan`. Defaults to `["degree_plan"]`. `apr` is not a valid scope — see below. |
 | `createdAt` / `revokedAt` | A share is active while `revokedAt` is null. Revoking sets the timestamp rather than deleting the row, so history is auditable. |
 | `lastViewedAt` | Updated when the advisor successfully loads the shared plan — the minimal "advisor viewed shared plan" audit signal the product spec asked for. |
 
@@ -45,8 +45,10 @@ Advisor-side (identity always the caller's own verified email):
 
 - Every advisor-facing read re-verifies the share server-side — never a
   hidden button or route obscurity.
-- APR access is opt-in per share, never bundled into a default
-  "share my plan" call.
+- Workday APR is **never** shareable with an advisor through this feature.
+  `apr` is not accepted as a scope by `POST /api/plan-shares` (silently
+  dropped if sent), and no advisor-facing route reads APR data. APR stays
+  private to the student by default, per the product spec.
 - Revoking is immediate: the very next advisor request 403s.
 - Admin (`ADMIN_EMAILS`) status does **not** grant plan/APR access — the
   usage-analytics admin role and advisor sharing are unrelated permission
@@ -68,6 +70,9 @@ against a real database.
 
 ## Known limitations (by design, this pass)
 
+- Workday APR sharing is not implemented — a future phase, once a real
+  advisor APR viewer exists. Do not re-add `apr` as an accepted scope
+  without also building the route that reads it.
 - No advisor-editing capability — read-only only, per the product spec's
   "Read-only first" requirement.
 - No proactive advisor dashboard scanning assigned students — a future,

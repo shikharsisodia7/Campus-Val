@@ -59,6 +59,8 @@ Thumbs.db
 # Claude Code local tooling (not part of the app)
 .claude/
 skills-lock.json
+.claude-campusval-progress.md
+.semgrep/
 
 # Private / never publish (prompts, screenshots, agent state)
 attached_assets/

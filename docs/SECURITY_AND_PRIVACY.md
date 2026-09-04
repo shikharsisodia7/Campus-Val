@@ -32,10 +32,12 @@ file/test if you want to verify it yourself.
 
 Read `docs/ADVISOR_SHARING.md` for the full model. Summary: a student
 explicitly grants a specific advisor's email read-only access to a scoped
-subset of their planning data; every advisor-facing read re-checks an
-active, correctly-scoped grant server-side on every request; APR access is
-never bundled in automatically; revocation is immediate. Covered by 14
-tests against a real database (`routes/plan-shares.test.ts`).
+subset of their planning data (Degree Plan and/or Tentative Degree Plan);
+every advisor-facing read re-checks an active, correctly-scoped grant
+server-side on every request; Workday APR is never shareable through this
+feature at all (no scope for it, no route reads it); revocation is
+immediate. Covered by tests against a real database
+(`routes/plan-shares.test.ts`).
 
 ## Usage analytics
 
