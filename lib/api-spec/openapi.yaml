@@ -1450,8 +1450,12 @@ paths:
       tags: [progress-report]
       summary: Delete the authenticated student's progress report
       responses:
-        "204":
+        "200":
           description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletedResponse"
         "404":
           description: No report found
   /progress-report/file:
@@ -1854,6 +1858,13 @@ components:
           oneOf:
             - $ref: "#/components/schemas/ProgressReport"
             - type: "null"
+
+    DeletedResponse:
+      type: object
+      required: [deleted]
+      properties:
+        deleted:
+          type: boolean
 
     StudentType:
       type: string

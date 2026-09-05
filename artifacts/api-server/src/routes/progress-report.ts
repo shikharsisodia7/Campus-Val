@@ -329,7 +329,12 @@ router.delete("/progress-report", requireAuth, async (req, res): Promise<void> =
     .delete(progressReportsTable)
     .where(eq(progressReportsTable.userId, userId));
 
-  res.status(204).end();
+  // A 204 (empty body) response has been observed intermittently arriving at
+  // the client as a platform-level 503 even though this handler completed
+  // and the row was deleted (confirmed via matching Vercel runtime logs
+  // showing the request finishing with statusCode 204). Returning a small
+  // JSON body on 200 avoids that empty-body response shape.
+  res.status(200).json({ deleted: true });
 });
 
 /**

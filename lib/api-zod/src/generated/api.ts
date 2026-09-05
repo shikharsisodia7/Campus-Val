@@ -2760,3 +2760,10 @@ export const RegisterProgressReportResponse = zod
   .describe(
     "When available=false, object storage is not configured.\nWhen available=true, report may be null (no upload yet) or a full ProgressReport.\n",
   );
+
+/**
+ * @summary Delete the authenticated student's progress report
+ */
+export const DeleteProgressReportResponse = zod.object({
+  deleted: zod.boolean(),
+});

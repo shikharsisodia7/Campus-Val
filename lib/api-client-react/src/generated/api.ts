@@ -36,6 +36,7 @@ import type {
   CreateOpenaiConversationBody,
   DashboardSummary,
   DegreeRequirementsResponse,
+  DeletedResponse,
   DuplicateScheduleBody,
   ErrorEnvelope,
   EvaluateTransferBody,
@@ -5684,8 +5685,8 @@ export const getDeleteProgressReportUrl = () => {
 
 export const deleteProgressReport = async (
   options?: RequestInit,
-): Promise<void> => {
-  return customFetch<void>(getDeleteProgressReportUrl(), {
+): Promise<DeletedResponse> => {
+  return customFetch<DeletedResponse>(getDeleteProgressReportUrl(), {
     ...options,
     method: "DELETE",
   });

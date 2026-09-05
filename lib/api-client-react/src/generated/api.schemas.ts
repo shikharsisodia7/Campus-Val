@@ -414,6 +414,10 @@ export interface ProgressReportEnvelope {
   report?: ProgressReport | null;
 }
 
+export interface DeletedResponse {
+  deleted: boolean;
+}
+
 export type StudentType = (typeof StudentType)[keyof typeof StudentType];
 
 export const StudentType = {
