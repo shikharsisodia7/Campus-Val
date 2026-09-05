@@ -255,13 +255,23 @@ export default function Advisor() {
                 conversations.map((c) => (
                   <div
                     key={c.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open conversation: ${c.title}`}
+                    aria-current={activeId === c.id ? "true" : undefined}
                     className={cn(
-                      "group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors",
+                      "group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       activeId === c.id
                         ? "bg-primary/10 border border-primary/20"
                         : "hover:bg-accent/50 border border-transparent",
                     )}
                     onClick={() => setActiveId(c.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setActiveId(c.id);
+                      }
+                    }}
                     data-testid={`conv-${c.id}`}
                   >
                     <MessageSquareText
@@ -276,6 +286,7 @@ export default function Advisor() {
                       {c.title}
                     </div>
                     <button
+                      aria-label={`Delete conversation: ${c.title}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         removeConv(c.id);
