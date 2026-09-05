@@ -784,7 +784,7 @@ describe("progress report: ownership and metadata protections", () => {
     await asB(request(reportApp).put("/api/progress-report"))
       .send({ objectPath: `/objects/uploads/${segA}/mine`, fileName: "r.pdf", fileSize: 2048, contentType: "application/pdf" })
       .expect(403);
-    await asA(request(reportApp).delete("/api/progress-report")).expect(204);
+    await asA(request(reportApp).delete("/api/progress-report")).expect(200, { deleted: true });
   });
 });
 
@@ -816,7 +816,7 @@ describe("progress report: user scoping", () => {
 
   it("DELETE removes the user's report row", async () => {
     // USER_A has a report from previous test
-    await asA(request(reportApp).delete("/api/progress-report")).expect(204);
+    await asA(request(reportApp).delete("/api/progress-report")).expect(200, { deleted: true });
 
     // Now 404
     await asA(request(reportApp).get("/api/progress-report")).expect(404);
@@ -824,6 +824,26 @@ describe("progress report: user scoping", () => {
 
   it("DELETE returns 404 when no report exists", async () => {
     await asA(request(reportApp).delete("/api/progress-report")).expect(404);
+  });
+
+  // Regression test: this route previously replied 204 (No Content) on
+  // success. In production that empty-body response shape was observed
+  // intermittently arriving at the client as a platform-level 503 even
+  // though the row had already been deleted (confirmed via matching Vercel
+  // runtime logs showing the request completing with statusCode 204).
+  // Asserting a non-empty 200 body here locks in the fix.
+  it("replies 200 with a JSON body, never an empty 204", async () => {
+    await db.insert(progressReportsTable).values({
+      userId: USER_A,
+      fileName: "test.pdf",
+      fileSize: 1000,
+      contentType: "application/pdf",
+      objectPath: "/objects/test/a-report-2",
+      parseStatus: "pending",
+    });
+    const res = await asA(request(reportApp).delete("/api/progress-report"));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ deleted: true });
   });
 });
 
@@ -1098,7 +1118,7 @@ describe("progress report: file download", () => {
     expect(res.headers["content-type"]).toMatch(/application\/pdf/);
     expect(Buffer.isBuffer(res.body) ? res.body.toString() : res.text).toBe("PDF bytes here");
 
-    await asA(request(reportApp).delete("/api/progress-report")).expect(204);
+    await asA(request(reportApp).delete("/api/progress-report")).expect(200, { deleted: true });
   });
 
   it("rejects a different user's request for the file (403), never a leaked 200", async () => {
@@ -1112,7 +1132,7 @@ describe("progress report: file download", () => {
     // A's file exists via this endpoint, let alone read it.
     await asB(request(reportApp).get("/api/progress-report/file")).expect(404);
 
-    await asA(request(reportApp).delete("/api/progress-report")).expect(204);
+    await asA(request(reportApp).delete("/api/progress-report")).expect(200, { deleted: true });
   });
 });
 

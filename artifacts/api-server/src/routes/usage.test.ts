@@ -65,7 +65,7 @@ describe("POST /api/usage-events", () => {
   it("records a known feature under the caller's own verified identity, not client-supplied data", async () => {
     await asScuUser(request(app).post("/api/usage-events"))
       .send({ feature: "degree_plan", userId: "someone-else", userEmail: "attacker@evil.com" })
-      .expect(204);
+      .expect(200, { recorded: true });
 
     const rows = await db
       .select()
@@ -80,12 +80,26 @@ describe("POST /api/usage-events", () => {
   it("classifies a non-@scu.edu caller as external_reviewer", async () => {
     await asReviewer(request(app).post("/api/usage-events"))
       .send({ feature: "quarter_plan" })
-      .expect(204);
+      .expect(200, { recorded: true });
     const rows = await db
       .select()
       .from(usageEventsTable)
       .where(inArray(usageEventsTable.userId, [REVIEWER_USER]));
     expect(rows[0]!.userType).toBe("external_reviewer");
+  });
+
+  // Regression test: this route previously replied 204 (No Content) on
+  // success. That empty-body response shape was observed in production
+  // intermittently arriving at the client as a platform-level 503 even
+  // though the write had already committed (see docs/DEPLOYMENT.md and the
+  // PR that introduced this test for the Vercel runtime-log evidence).
+  // Asserting a non-empty 200 body here locks in the fix.
+  it("replies 200 with a JSON body, never an empty 204", async () => {
+    const res = await asScuUser(request(app).post("/api/usage-events")).send({
+      feature: "find_courses",
+    });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ recorded: true });
   });
 });
 
