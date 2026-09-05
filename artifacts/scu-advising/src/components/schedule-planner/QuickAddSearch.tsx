@@ -350,10 +350,19 @@ export function QuickAddSearch({
         ) : (
           <div className="space-y-2">
             {searchResults?.courses.map((course) => (
-              <div 
-                key={course.code} 
-                className="border rounded-md p-3 cursor-pointer hover:border-primary/50 transition-colors bg-card cv-card-hover"
+              <div
+                key={course.code}
+                role="button"
+                tabIndex={0}
+                aria-label={`View sections for ${course.code}: ${course.title}`}
+                className="border rounded-md p-3 cursor-pointer hover:border-primary/50 transition-colors bg-card cv-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => setSelectedCourse(course.code)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedCourse(course.code);
+                  }
+                }}
               >
                 <div className="font-bold text-sm text-foreground">{course.code}</div>
                 <div className="text-xs text-muted-foreground truncate mb-2">{course.title}</div>

@@ -27,6 +27,19 @@ export function useScheduleWorkspace() {
     }
   }, [activeTerm, activeYear, defaultTerm]);
 
+  // Switching quarters (e.g. clicking a different term in the overview)
+  // changes activeTerm/activeYear immediately, but the schedules-list query
+  // for the new quarter hasn't resolved yet. Without this, activeScheduleId
+  // keeps pointing at the PREVIOUS quarter's schedule for the whole
+  // round-trip, and useGetSchedule below happily serves that already-cached
+  // schedule — so the calendar renders the old quarter's events under the
+  // new quarter's header until the new list loads. Clear it immediately so a
+  // quarter switch shows a loading gap instead of the wrong quarter's data.
+  useEffect(() => {
+    setActiveScheduleId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTerm, activeYear]);
+
   const listParams = { term: activeTerm as Term, year: activeYear! };
   const { data: listData, isLoading: isLoadingList, isFetching: isFetchingList } = useListSchedules(
     listParams,
