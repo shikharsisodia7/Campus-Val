@@ -167,6 +167,26 @@ describe("DegreePlanToolbar — plan controls sit on the planning side", () => {
     );
   });
 
+  it("closes Plan Controls on Escape (live QA: Radix's default Escape dismissal silently did nothing on this Sheet, unlike DegreePlanWorkspace's Palette/Progress sheets which already wire onEscapeKeyDown explicitly)", () => {
+    renderToolbar();
+    fireEvent.click(screen.getByTestId("button-open-plan-controls"));
+    expect(screen.getByTestId("sheet-plan-controls").getAttribute("data-state")).toBe("open");
+
+    fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
+
+    expect(screen.queryByTestId("sheet-plan-controls")).toBeNull();
+  });
+
+  it("closes the advisor-sharing Sheet on Escape", () => {
+    renderToolbar();
+    fireEvent.click(screen.getByTestId("button-open-advisor-sharing"));
+    expect(screen.getByTestId("sheet-advisor-sharing").getAttribute("data-state")).toBe("open");
+
+    fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
+
+    expect(screen.queryByTestId("sheet-advisor-sharing")).toBeNull();
+  });
+
   it("keeps the toolbar to a single compact row", () => {
     const { container } = renderToolbar();
     const toolbar = container.querySelector(

@@ -116,6 +116,8 @@ export function DegreePlanToolbar({
           side="left"
           className="flex w-full flex-col p-0 sm:max-w-md"
           data-testid="sheet-plan-controls"
+          onEscapeKeyDown={() => setControlsOpen(false)}
+          onPointerDownOutside={() => setControlsOpen(false)}
         >
           <SheetHeader className="border-b border-border/60 px-4 pb-2 pt-4">
             <SheetTitle>Plan Controls</SheetTitle>
@@ -137,6 +139,8 @@ export function DegreePlanToolbar({
           side="right"
           className="flex w-full flex-col p-0 sm:max-w-md"
           data-testid="sheet-advisor-sharing"
+          onEscapeKeyDown={() => setSharingOpen(false)}
+          onPointerDownOutside={() => setSharingOpen(false)}
         >
           <SheetHeader className="border-b border-border/60 px-4 pb-2 pt-4">
             <SheetTitle>Share with an advisor</SheetTitle>

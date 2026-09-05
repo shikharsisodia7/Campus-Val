@@ -86,7 +86,11 @@ function CourseDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent
+        aria-describedby={undefined}
+        onEscapeKeyDown={() => onOpenChange(false)}
+        onPointerDownOutside={() => onOpenChange(false)}
+      >
         <DialogHeader>
           <DialogTitle className="font-mono text-xl">{code}</DialogTitle>
           <DialogDescription>
@@ -468,7 +472,11 @@ export function CourseCard({
       {/* Replace Placeholder Dialog */}
       {isPlaceholder && (
         <Dialog open={isReplaceOpen} onOpenChange={setIsReplaceOpen}>
-          <DialogContent aria-describedby={undefined}>
+          <DialogContent
+            aria-describedby={undefined}
+            onEscapeKeyDown={() => setIsReplaceOpen(false)}
+            onPointerDownOutside={() => setIsReplaceOpen(false)}
+          >
             <DialogHeader>
               <DialogTitle>Replace Placeholder</DialogTitle>
               <DialogDescription>

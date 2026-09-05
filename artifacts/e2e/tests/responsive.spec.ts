@@ -34,7 +34,14 @@ test.describe("authenticated responsive QA", () => {
     await planControls.click();
     await expect(page.getByText(/programs for this plan|additional majors/i)).toBeVisible();
     await assertNoHorizontalOverflow(page, "Plan Controls panel");
+
+    // Regression: this Sheet's Escape dismissal silently did nothing in a
+    // real browser (Radix's Presence never unmounted it — confirmed live,
+    // not reproducible in a jsdom unit test since jsdom has no real CSS
+    // animation for Presence to wait on). A real browser is required to
+    // catch this class of bug, which is exactly what this E2E suite is for.
     await page.keyboard.press("Escape");
+    await expect(page.getByText(/programs for this plan|additional majors/i)).toBeHidden();
   });
 
   test("APR panel and upload zone are usable", async ({ page }) => {
@@ -52,7 +59,9 @@ test.describe("authenticated responsive QA", () => {
     const emailInput = page.getByPlaceholder(/advisor@scu\.edu/i);
     await expect(emailInput).toBeVisible();
     await assertNoHorizontalOverflow(page, "Advisor sharing panel");
+
     await page.keyboard.press("Escape");
+    await expect(page.getByText(/share with an advisor/i)).toBeHidden();
   });
 
   test("Tentative Degree Plan renders without horizontal overflow", async ({ page }) => {

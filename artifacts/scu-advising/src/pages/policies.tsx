@@ -110,7 +110,11 @@ export default function Policies() {
         )}
 
         <Sheet open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-          <SheetContent className="overflow-y-auto sm:max-w-lg">
+          <SheetContent
+            className="overflow-y-auto sm:max-w-lg"
+            onEscapeKeyDown={() => setOpen(null)}
+            onPointerDownOutside={() => setOpen(null)}
+          >
             {open && (
               <>
                 <SheetHeader>

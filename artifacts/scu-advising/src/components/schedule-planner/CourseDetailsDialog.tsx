@@ -57,7 +57,12 @@ export function CourseDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent aria-describedby={undefined} className="max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        aria-describedby={undefined}
+        className="max-w-xl max-h-[85vh] overflow-y-auto"
+        onEscapeKeyDown={() => onOpenChange(false)}
+        onPointerDownOutside={() => onOpenChange(false)}
+      >
         {isSection ? (
           <>
             <DialogHeader>

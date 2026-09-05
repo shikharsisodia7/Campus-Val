@@ -173,6 +173,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SheetContent
               side="right"
               className="w-[min(22rem,90vw)] overflow-y-auto p-0"
+              onEscapeKeyDown={() => setMobileOpen(false)}
+              onPointerDownOutside={() => setMobileOpen(false)}
             >
               <SheetTitle className="sr-only">CampusVal navigation</SheetTitle>
               <div className="border-b border-border p-5">
