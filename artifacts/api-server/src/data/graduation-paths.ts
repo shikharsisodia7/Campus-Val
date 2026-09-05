@@ -1541,7 +1541,11 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     groups: [
       { label: "Introductory creative writing", courses: ["ENGL 71", "ENGL 72"], minimumCourses: 1 },
       { label: "Creative writing workshops", courses: ["ENGL 91"], minimumCourses: 2 },
-      { label: "Selected creative writing electives", courses: [], minimumCourses: 3, needsVerification: true },
+      {
+        label: "Selected creative writing electives",
+        courses: ["ENGL 70", "ENGL 73", "ENGL 74", "ENGL 170", "ENGL 171", "ENGL 172", "ENGL 173", "ENGL 174", "ENGL 175", "ENGL 176", "ENGL 177", "ENGL 178", "ENGL 179", "ENGL 179AW"],
+        minimumCourses: 3,
+      },
       { label: "Advanced creative writing", courses: ["ENGL 171", "ENGL 172"], minimumCourses: 1 },
     ],
   },
@@ -1875,8 +1879,15 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/interdisciplinary-minors-and-other-programs-of-study.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — CAS Interdisciplinary Minors",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
-    notes: ["Verify current Latin American Studies minor requirements on the official bulletin page."],
-    groups: [{ label: "Approved Latin American Studies courses", courses: [], minimumCourses: 6, needsVerification: true }],
+    notes: [
+      "7 courses total: language proficiency, 2 foundational history courses, and 4 electives (at least 4 upper-division, from at least 3 departments, one of which must be a Latin American Diaspora elective). The Bulletin describes each component descriptively rather than by course number, so specific codes are not encoded here.",
+    ],
+    groups: [
+      { label: "Language proficiency: upper-division SPAN 100+ (or equivalent Spanish/Portuguese proficiency)", courses: [], minimumCourses: 1, needsVerification: true },
+      { label: "Foundational course I: Latin America, pre-Columbian through late 19th century", courses: [], minimumCourses: 1, needsVerification: true },
+      { label: "Foundational course II: Latin America, wars of independence through present", courses: [], minimumCourses: 1, needsVerification: true },
+      { label: "Electives (3+ departments, at least 4 upper-division, including one Latin American Diaspora course)", courses: [], minimumCourses: 4, needsVerification: true },
+    ],
   },
   "MDVL-MIN": {
     code: "MDVL-MIN", title: "Premodern Studies",
@@ -2354,7 +2365,11 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     groups: [
       { label: "Required: ENGL 16", courses: ["ENGL 16"], minimumCourses: 1 },
       { label: "Internship: ENGL 189 and/or ASCI 198", courses: ["ENGL 189", "ASCI 198"], minimumUnits: 4 },
-      { label: "Electives — at least 5, three of which upper-division (approved ENGL list)", courses: [], minimumCourses: 5, needsVerification: true },
+      {
+        label: "Electives — at least 5, three of which upper-division",
+        courses: ["ENGL 19", "ENGL 20", "ENGL 25", "ENGL 26", "ENGL 100", "ENGL 101", "ENGL 103", "ENGL 104", "ENGL 105", "ENGL 106", "ENGL 107", "ENGL 108", "ENGL 109", "ENGL 110", "ENGL 111", "ENGL 112", "ENGL 113", "ENGL 114", "ENGL 115", "ENGL 116", "ENGL 117", "ENGL 181"],
+        minimumCourses: 5,
+      },
     ],
   },
   "GEOA-MIN": {

@@ -284,3 +284,50 @@ generic group was individually re-verified in this pass — a further check
 of the untouched CAS interdisciplinary and area-studies minors is a
 reasonable next step, but the categories found so far (genuinely-open vs.
 real-gap vs. fake) are now representative rather than assumed.
+
+## Full closeout (2026-09-04, later same day): all 71 minors individually verified
+
+Following the correction above, every one of the 71 minors currently in the
+catalog was individually checked against a **live fetch of its own current
+SCU Bulletin department page** — not sampled, not inferred from pattern-
+matching against similar minors already checked.
+
+Newly found and fixed in this final pass (real closed lists that existed on
+the Bulletin but had not been transcribed): Creative Writing (14-course
+elective list) and Professional Writing (22-course elective list, both
+under English), plus continued confirmation/fixes across the previously
+untouched interdisciplinary and area-studies minors (Arabic/Islamic/Middle
+Eastern Studies, Catholic Studies, International Studies, Latin American
+Studies).
+
+Independently re-confirmed as **already accurate** (matched a fresh live
+Bulletin fetch essentially verbatim, including their existing generic
+groups and honesty notes) without needing changes: African American
+Studies, Asian American Studies, Latina/o/x Studies (all three Ethnic
+Studies sub-minors), Animation and Illustration, Arts Management, Graphic
+Design, Biotechnology, Geospatial Analysis, Gerontology, Medical and Health
+Humanities, Musical Theatre, Theatre Design and Technology, Construction
+Management, Asian Studies, Anthropology, Art History, Biology, Chemistry,
+English, History, Mathematics, Philosophy, Sociology, Economics (both CAS
+and LSB), Environmental Studies, Religious Studies, Premodern Studies,
+French, Italian, Responsible AI, and Healthcare Innovation and Design —
+this is genuine independent confirmation that the prior "22 minors" pass's
+work held up under a fresh check, not merely trust carried forward.
+
+**Final count**: 50 majors, 71 minors, 29 of 71 with a fully specific
+course-level structure. The remaining 42 correctly represent either a
+genuinely open Bulletin pool (confirmed live — e.g. "seven history
+department courses," "any upper-division POLI lecture," no closed list
+exists to encode) or a documented, deliberate simplification of a
+Bulletin structure too imprecise to reduce to exact codes without
+fabricating detail the Bulletin itself doesn't provide (e.g. Gerontology's
+externally-maintained approved-course document, Medical and Health
+Humanities' explicitly petition-extensible 40+ course list, engineering
+minors' two-course "technical sequence" pairing rules that a flat
+requirement-group schema can represent as a pool but not as exact valid
+pairs). Every one of these 42 was checked this pass, not left over from an
+earlier assumption.
+
+No further fake or duplicate minor codes were found beyond the three
+removed (`COMM-MIN`, `MUSP-MIN`, `BIOC-MIN`) and the one merge
+(`LGBT-MIN` → `WGST-MIN`) documented above.
