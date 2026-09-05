@@ -1,0 +1,20 @@
+{
+  "name": "@workspace/e2e",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "pretest": "tsx scripts/ensure-test-users.ts",
+    "test": "playwright test",
+    "test:responsive": "pnpm run pretest && playwright test responsive.spec.ts",
+    "test:security": "pnpm run pretest && playwright test multi-account-security.spec.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@clerk/backend": "^2.19.4",
+    "@clerk/testing": "^2.2.33",
+    "@playwright/test": "^1.56.0",
+    "@types/node": "catalog:",
+    "tsx": "catalog:"
+  }
+}
