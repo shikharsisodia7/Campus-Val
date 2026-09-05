@@ -167,7 +167,12 @@ export default function ProfessorsPage() {
         )}
 
         <Sheet open={selected !== null} onOpenChange={(o) => !o && setSelected(null)}>
-          <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetContent
+            side="right"
+            className="w-full sm:max-w-lg overflow-y-auto"
+            onEscapeKeyDown={() => setSelected(null)}
+            onPointerDownOutside={() => setSelected(null)}
+          >
             {selected && (
               <ProfessorSheetBody
                 name={selected}

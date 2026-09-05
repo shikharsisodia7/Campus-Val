@@ -252,7 +252,11 @@ function CourseDrawer({
   });
   return (
     <Sheet open={!!code} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="overflow-y-auto sm:max-w-lg">
+      <SheetContent
+        className="overflow-y-auto sm:max-w-lg"
+        onEscapeKeyDown={onClose}
+        onPointerDownOutside={onClose}
+      >
         {isLoading || !data ? (
           <div className="text-muted-foreground p-6">Loading…</div>
         ) : (

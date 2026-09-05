@@ -270,7 +270,11 @@ export function TermAndScheduleHeader({
       </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent aria-describedby={undefined}>
+        <DialogContent
+          aria-describedby={undefined}
+          onEscapeKeyDown={() => setCreateOpen(false)}
+          onPointerDownOutside={() => setCreateOpen(false)}
+        >
           <DialogHeader>
             <DialogTitle>Create New Schedule</DialogTitle>
           </DialogHeader>
@@ -295,7 +299,11 @@ export function TermAndScheduleHeader({
       </Dialog>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent aria-describedby={undefined}>
+        <DialogContent
+          aria-describedby={undefined}
+          onEscapeKeyDown={() => setRenameOpen(false)}
+          onPointerDownOutside={() => setRenameOpen(false)}
+        >
           <DialogHeader>
             <DialogTitle>Rename Schedule</DialogTitle>
           </DialogHeader>

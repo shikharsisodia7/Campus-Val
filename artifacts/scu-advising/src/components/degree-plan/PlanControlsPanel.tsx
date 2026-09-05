@@ -848,7 +848,11 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
             </div>
           </ScrollArea>
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent aria-describedby={undefined}>
+        <DialogContent
+          aria-describedby={undefined}
+          onEscapeKeyDown={() => setCreateOpen(false)}
+          onPointerDownOutside={() => setCreateOpen(false)}
+        >
           <DialogHeader>
             <DialogTitle>New Tentative Degree Plan</DialogTitle>
             <DialogDescription>
@@ -890,7 +894,11 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
       </Dialog>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent aria-describedby={undefined}>
+        <DialogContent
+          aria-describedby={undefined}
+          onEscapeKeyDown={() => setRenameOpen(false)}
+          onPointerDownOutside={() => setRenameOpen(false)}
+        >
           <DialogHeader>
             <DialogTitle>Rename Plan</DialogTitle>
           </DialogHeader>

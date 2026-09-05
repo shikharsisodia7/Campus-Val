@@ -265,7 +265,11 @@ if (!index || index.length === 0) return null;
         onOpenChange={(o) => !isPreloading && setOpen(o)}
       >
         {data && trust && (
-        <DialogContent data-testid="dialog-four-year-preload">
+        <DialogContent
+          data-testid="dialog-four-year-preload"
+          onEscapeKeyDown={() => !isPreloading && setOpen(false)}
+          onPointerDownOutside={() => !isPreloading && setOpen(false)}
+        >
           <DialogHeader>
             <DialogTitle>{data.title}</DialogTitle>
             <DialogDescription>{trust.blurb}</DialogDescription>

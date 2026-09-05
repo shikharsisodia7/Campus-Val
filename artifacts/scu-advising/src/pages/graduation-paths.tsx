@@ -597,7 +597,11 @@ export default function GraduationPaths() {
       </PageContent>
 
       <Dialog open={preloadOpen} onOpenChange={(o) => !isPreloading && setPreloadOpen(o)}>
-        <DialogContent aria-describedby={undefined}>
+        <DialogContent
+          aria-describedby={undefined}
+          onEscapeKeyDown={() => !isPreloading && setPreloadOpen(false)}
+          onPointerDownOutside={() => !isPreloading && setPreloadOpen(false)}
+        >
           <DialogHeader>
             <DialogTitle>Load Engineering Four-Year Plan</DialogTitle>
             <DialogDescription>

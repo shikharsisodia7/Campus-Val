@@ -60,6 +60,45 @@ prominence (reduced core nav vs. full nav) — it carries no authorization
 weight of its own; every actual data access is still independently
 enforced server-side as described above.
 
+## Clerk Development vs. Production mode (deliberate, current choice)
+
+CampusVal's Clerk auth instance is currently a **Development** instance
+(`pk_test_...`, frontend API on a `*.accounts.dev` domain), not a Production
+instance. This is a deliberate decision for the current controlled
+undergraduate-testing phase, not an oversight:
+
+- **Why Development is appropriate right now:** the current cohort is a
+  small, controlled group of invited SCU students and reviewers (see
+  `docs/TESTING_ROLLOUT.md`). Clerk's Development instance has no
+  functional limitation that affects this cohort — sign-in, OAuth
+  (Apple/GitHub/Google), sessions, and the advisor-sharing/APR/plan
+  features all work identically to Production. The only differences are a
+  visible "Development mode" badge on the auth UI and Clerk's own
+  higher-volume rate limits, neither of which matters at this scale.
+- **Why NOT to migrate yet:** creating a Clerk Production instance requires
+  binding a **custom domain** (Clerk does not let a Production instance run
+  on a shared `*.accounts.dev`/Vercel preview-style domain the way
+  Development does) and provisions an **entirely separate, initially empty
+  user database** — every existing account, including real testers, would
+  need to sign up again from zero. That is a real migration event with real
+  user-facing disruption, not a config flag, and shouldn't be triggered
+  incidentally.
+- **Exact migration trigger:** migrate to a Clerk Production instance
+  *before* any rollout beyond the current controlled-testing cohort (i.e.
+  before opening CampusVal to the broader SCU student body, or any
+  audience whose accounts must be treated as durable/institutional). At
+  that point: acquire/confirm a custom domain for the Production frontend
+  API, create the Production instance in the Clerk Dashboard, configure
+  `CLERK_SECRET_KEY`/`CLERK_PUBLISHABLE_KEY`/`VITE_CLERK_PUBLISHABLE_KEY` in
+  Vercel for the Production instance's keys, and plan for existing testers
+  to re-authenticate once.
+- **Sign-in strategy note for anyone extending auth-adjacent code:** this
+  Clerk instance has only OAuth (Apple/GitHub/Google) and the `ticket`
+  strategy enabled for sign-in — no password or email-code strategy. Any
+  tooling that assumes password-based sign-in (e.g. a script or test) will
+  fail against this instance regardless of credentials; see
+  `artifacts/e2e/README.md` for how the E2E harness authenticates instead.
+
 ## What CampusVal is not
 
 - Not an official degree audit, registration system, or Workday
