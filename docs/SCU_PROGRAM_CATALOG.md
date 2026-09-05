@@ -216,3 +216,71 @@ majors unrelated to this pass (`ENGL-MIN`, `PHIL-MIN`, `CSEN-MIN`,
 e.g. two groups both called "Programming foundations" with different
 course choices) — cosmetic-but-confusing UI bugs, now given distinct
 labels.
+
+## Correction (2026-09-04, later same day): the "all 74 structured" claim above was overstated
+
+A subsequent independent re-verification pass — opening `graduation-paths.ts`
+fresh and programmatically counting `needsVerification`/empty-`courses[]`
+groups rather than trusting this document — found the "All 74 now have a
+real, Bulletin-sourced requirement structure... none are blank placeholders"
+claim above was misleading: **67 of the (then) 75 minors** still had at
+least one fully generic, empty-course-list group. The claim conflated "has
+*some* honestly-labeled structure" with "has a *specific* closed course
+list" — those are not the same thing, and this document's summary line
+implied the latter for all 74.
+
+Re-verifying each one against a **live** SCU Bulletin fetch (not reasoning
+from this document) found two categories:
+
+1. **Genuinely open pools.** For most (e.g. History, English, Mathematics,
+   Philosophy, Sociology, Anthropology, Art History, Biology, Chemistry,
+   Economics, French, Italian), the Bulletin itself has no closed list —
+   "seven history department courses," "three approved upper-division
+   mathematics courses," etc. The prior generic representation was already
+   correct for these; no fabricated list was added.
+2. **Real gaps**: closed lists that exist in the Bulletin but were never
+   transcribed. Fixed with the actual course lists for: Business Analytics,
+   Entrepreneurship, Marketing, Management Information Systems, Real
+   Estate, Retail Studies (LSB); Electrical & Computer Engineering, General
+   Engineering, Mechanical Engineering, Aerospace Engineering, Bioengineering,
+   Computer Engineering, Computer Science and Engineering (SOE); Journalism,
+   Digital Filmmaking, Organizational/Business/Professional Communication,
+   Classics and Ancient Studies, Sociology (partial), Political Science
+   (partial), Dance, Theatre, Ethnic Studies (partial), Studio Art, Music,
+   Physics, Public Health, Urban Education, Sustainability (partial),
+   Arabic/Islamic/Middle Eastern Studies (partial), Catholic Studies
+   (partial), International Studies (partial), Japanese Studies, Spanish
+   Studies, Women's & Gender Studies (CAS).
+
+This same pass also found **three minor codes that do not correspond to any
+real SCU minor** and removed them (see
+`graduation-paths.minor-discrepancies.test.ts`):
+
+- `COMM-MIN` ("Communication") — the Communication department offers
+  exactly three minors (Journalism, Digital Filmmaking,
+  Organizational/Business/Professional Communication), each already
+  separately modeled. `COMM-MIN` duplicated and confused these.
+- `MUSP-MIN` ("Music Performance") — the Music department offers exactly
+  one minor (Music), plus the separately-modeled Musical Theatre minor.
+- `BIOC-MIN` ("Biochemistry") — the Chemistry and Biochemistry department
+  offers exactly one minor (Chemistry).
+
+`LGBT-MIN` ("Gender and Sexuality Studies") was found to duplicate
+`WGST-MIN` (same real program modeled twice under two names) and was merged
+into a single `WGST-MIN` entry. Note: the live Bulletin currently titles
+this program's page "Gender and Sexuality Studies," while CampusVal's
+course catalog and the corresponding major both consistently use "Women's &
+Gender Studies" (WGST) — kept as the title pending clarification of whether
+this is a name-in-transition or two genuinely distinct pages.
+
+**Updated honest count**: 50 majors, 71 minors (74 minus the 3 removed fake
+entries, net of the WGST/LGBT merge), 26 of 71 minors with a fully specific
+course-level structure (up from 8 before this pass), the remaining 45 
+correctly representing genuinely open Bulletin pools or already-deliberate,
+documented simplifications of complex multi-track requirements (e.g.
+Responsible AI's three computing-foundation tracks, Medical and Health
+Humanities' intentionally open 40+ course list). Not every remaining
+generic group was individually re-verified in this pass — a further check
+of the untouched CAS interdisciplinary and area-studies minors is a
+reasonable next step, but the categories found so far (genuinely-open vs.
+real-gap vs. fake) are now representative rather than assumed.
