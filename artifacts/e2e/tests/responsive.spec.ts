@@ -20,7 +20,7 @@ async function assertNoHorizontalOverflow(page: Page, label: string) {
 test.describe("authenticated responsive QA", () => {
   test("Dashboard renders without horizontal overflow", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("navigation").first().or(page.locator("body"))).toBeVisible();
+    await expect(page.locator("body")).toBeVisible();
     await assertNoHorizontalOverflow(page, "Dashboard");
   });
 
@@ -32,7 +32,8 @@ test.describe("authenticated responsive QA", () => {
     const planControls = page.getByRole("button", { name: /plan controls/i });
     await expect(planControls).toBeVisible();
     await planControls.click();
-    await expect(page.getByText(/programs for this plan|additional majors/i)).toBeVisible();
+    const panelMarker = page.getByText(/programs for this plan|additional majors/i).first();
+    await expect(panelMarker).toBeVisible();
     await assertNoHorizontalOverflow(page, "Plan Controls panel");
 
     // Regression: this Sheet's Escape dismissal silently did nothing in a
@@ -41,7 +42,7 @@ test.describe("authenticated responsive QA", () => {
     // animation for Presence to wait on). A real browser is required to
     // catch this class of bug, which is exactly what this E2E suite is for.
     await page.keyboard.press("Escape");
-    await expect(page.getByText(/programs for this plan|additional majors/i)).toBeHidden();
+    await expect(panelMarker).toBeHidden();
   });
 
   test("APR panel and upload zone are usable", async ({ page }) => {
@@ -55,13 +56,14 @@ test.describe("authenticated responsive QA", () => {
     const shareButton = page.getByRole("button", { name: /^share$/i });
     await expect(shareButton).toBeVisible();
     await shareButton.click();
-    await expect(page.getByText(/share with an advisor/i)).toBeVisible();
+    const panelMarker = page.getByText(/share with an advisor/i).first();
+    await expect(panelMarker).toBeVisible();
     const emailInput = page.getByPlaceholder(/advisor@scu\.edu/i);
     await expect(emailInput).toBeVisible();
     await assertNoHorizontalOverflow(page, "Advisor sharing panel");
 
     await page.keyboard.press("Escape");
-    await expect(page.getByText(/share with an advisor/i)).toBeHidden();
+    await expect(panelMarker).toBeHidden();
   });
 
   test("Tentative Degree Plan renders without horizontal overflow", async ({ page }) => {
@@ -75,7 +77,21 @@ test.describe("authenticated responsive QA", () => {
     await expect(page.getByText(/quarter schedule planner|schedule planner/i).first()).toBeVisible();
     await assertNoHorizontalOverflow(page, "Quarter Plan");
 
+    // Find Courses only renders once a schedule exists ("Create a schedule
+    // above to search for sections.") — a fresh synthetic test account has
+    // none yet, so create one first, matching what a real first-time user
+    // does.
+    const newScheduleButton = page.getByRole("button", { name: /new schedule/i });
+    await expect(newScheduleButton).toBeVisible();
+    await newScheduleButton.click();
+    const nameInput = page.getByPlaceholder(/plan a|bio major path/i);
+    if (await nameInput.isVisible().catch(() => false)) {
+      await nameInput.fill("E2E Responsive QA Schedule");
+      await page.getByRole("button", { name: /^create$/i }).click();
+    }
+
     const findCoursesInput = page.getByPlaceholder(/search by code or title/i);
     await expect(findCoursesInput).toBeVisible();
+    await assertNoHorizontalOverflow(page, "Quarter Plan with active schedule");
   });
 });

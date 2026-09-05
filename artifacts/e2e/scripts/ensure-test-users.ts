@@ -31,19 +31,50 @@ if (!secretKey) {
 
 const clerk = createClerkClient({ secretKey });
 
+// This Clerk instance requires username + phone_number at user creation
+// (confirmed live: `form_data_missing` on ["username","phone_number"]).
+// Phone numbers use Clerk's fictional test range +1 (XXX) 555-01XX, verified
+// with the fixed code 424242 — no real SMS is ever sent:
+// https://clerk.com/docs/testing/test-emails-and-phones
 export const TEST_USERS = {
-  studentA: { email: "e2e-student-a+clerk_test@scu.edu", firstName: "E2E", lastName: "StudentA" },
-  studentB: { email: "e2e-student-b+clerk_test@scu.edu", firstName: "E2E", lastName: "StudentB" },
-  advisorY: { email: "e2e-advisor-y+clerk_test@scu.edu", firstName: "E2E", lastName: "AdvisorY" },
+  studentA: {
+    email: "e2e-student-a+clerk_test@scu.edu",
+    username: "e2e_student_a",
+    phoneNumber: "+12025550101",
+    firstName: "E2E",
+    lastName: "StudentA",
+  },
+  studentB: {
+    email: "e2e-student-b+clerk_test@scu.edu",
+    username: "e2e_student_b",
+    phoneNumber: "+12025550102",
+    firstName: "E2E",
+    lastName: "StudentB",
+  },
+  advisorY: {
+    email: "e2e-advisor-y+clerk_test@scu.edu",
+    username: "e2e_advisor_y",
+    phoneNumber: "+12025550103",
+    firstName: "E2E",
+    lastName: "AdvisorY",
+  },
 } as const;
 
-async function ensureUser(email: string, firstName: string, lastName: string) {
+async function ensureUser(
+  email: string,
+  username: string,
+  phoneNumber: string,
+  firstName: string,
+  lastName: string,
+) {
   const existing = await clerk.users.getUserList({ emailAddress: [email] });
   if (existing.data.length > 0) {
     return existing.data[0]!;
   }
   return clerk.users.createUser({
     emailAddress: [email],
+    username,
+    phoneNumber: [phoneNumber],
     firstName,
     lastName,
     skipPasswordRequirement: true,
@@ -56,8 +87,8 @@ async function main() {
   mkdirSync(outDir, { recursive: true });
 
   const ids: Record<string, string> = {};
-  for (const [key, { email, firstName, lastName }] of Object.entries(TEST_USERS)) {
-    const user = await ensureUser(email, firstName, lastName);
+  for (const [key, { email, username, phoneNumber, firstName, lastName }] of Object.entries(TEST_USERS)) {
+    const user = await ensureUser(email, username, phoneNumber, firstName, lastName);
     ids[key] = user.id;
     console.log(`${key}: ${email} -> ${user.id}`);
   }
