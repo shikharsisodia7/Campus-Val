@@ -97,15 +97,10 @@ Musical Theatre, Responsible Artificial Intelligence, Healthcare
 Innovation and Design, Construction Management, International Business,
 Sustainable Food Systems.
 
-**Honesty note on requirement detail**: none of these 21 have their exact
-approved-course lists encoded — every requirement group is marked
-`needsVerification: true` with an empty course list, exactly like several
-pre-existing minors already in the catalog before this pass (e.g. the
-"Additional lower-division anthropology course" group). This is a
-deliberate choice, not a shortcut: encoding a specific course list without
-having actually read and confirmed it against the Bulletin page would be
-fabrication. A follow-up pass should visit each of the 21 source URLs
-above and fill in the real approved-course groups.
+**Update (2026-09-04 closeout pass): all 22 (these 21 + `CHIN-MIN`) now
+have real, Bulletin-researched requirement structures** — see "22 minors:
+exact requirements completed" below. This section is left as the original
+historical record of what this pass added by name.
 
 ## Concentrations added this pass (46 entries across 15 majors)
 
@@ -162,10 +157,9 @@ figure from the source research.
   represented correctly as emphases/minors, not majors).
 - Minors: 74 of ~74 bulletin-confirmed minors represented (73 previously
   present + CHIN-MIN "Chinese and Sinophone Studies", which was missing
-  entirely and has been added). 22 of the 74 (the 21 originally added +
-  CHIN-MIN) need their exact approved-course lists filled in — the minor
-  itself is real and selectable, but its requirement detail is honestly
-  marked unverified rather than complete.
+  entirely and has been added). **All 74 now have a real, Bulletin-sourced
+  requirement structure** (see "22 minors: exact requirements completed"
+  below) — none are blank placeholders.
 - Concentrations/tracks: 46 bulletin-confirmed real concentrations
   represented as metadata (name + official source), across 15 majors. Four
   items found during the original audit were deliberately excluded as
@@ -175,9 +169,50 @@ figure from the source research.
   represent something the Bulletin itself doesn't name as a real
   concentration.
 
-**Majors, minors, and concentrations are now name-complete against this
-audit, and the 4 previously-flagged major discrepancies are resolved.**
-What remains for full production-grade completeness: the 22 minors'
-exact approved-course lists (a large, page-by-page Bulletin research
-effort, deliberately not attempted here to avoid fabricating course
-lists).
+**Majors, minors, and concentrations are now both name-complete and
+requirement-complete against this audit, and the 4 previously-flagged
+major discrepancies are resolved.**
+
+## 22 minors: exact requirements completed (2026-09-04 closeout pass)
+
+Each of the 22 minors flagged above (the 21 originally added + `CHIN-MIN`)
+was individually researched against its live SCU Bulletin department page
+(the same `sourceUrl` already on file for each) and its `MINOR_RECIPES`
+entry replaced with the real requirement structure — required courses,
+choice groups ("choose N from [...]"), and unit minimums, exactly as
+published. Where the Bulletin itself only describes a generic pool (a
+large rotating elective list, an open "any ARTH course except X/Y/Z"
+rule, or an externally-maintained course list not itself part of the
+Bulletin page), that is represented as a generic count/unit requirement
+with `needsVerification: true` — honest about what wasn't reduced to
+specific codes, never a fabricated list. Examples: Biotechnology (13
+courses across 5 groups, fully specific), the three Ethnic Studies minors
+(required courses + bounded choice lists, fully specific), Construction
+Management (fully specific with a documented double-dip allowance),
+Responsible Artificial Intelligence (three alternative computing-foundation
+tracks), Medical and Health Humanities (kept generic — the Bulletin's own
+40+ course, 14-department list is intentionally open-ended, with
+program-director approval allowed for courses outside it).
+
+**Known follow-up, not blocking**: encoding this pass surfaced ~35 elective-
+list course codes (e.g. several `ETHN`/`BUSN`/`MGMT` electives, `CHIN
+100-103`, language codes like `ARAB 23`/`ITAL 100`) that are cited in a
+minor's requirement group but not yet present in `courses-data.json`. This
+does not break the requirement display (`requirements.ts` renders a course
+code directly from the group's own list; catalog membership is only needed
+for click-through course details), so it's a separate, lower-priority
+catalog-population task rather than a defect in the requirement structures
+themselves.
+
+Also added `graduation-paths.minor-completeness.test.ts`, a sweep across
+**every** minor in the catalog (all 74, not just these 22) checking:
+official provenance, a non-empty requirement structure, no invalid/empty
+requirement group, no duplicate requirement labels within one minor, and
+internally-consistent choice groups (a "choose N" group must actually list
+at least N distinct options, unless it's a single repeatable course).
+This surfaced and fixed several small **pre-existing** label collisions in
+majors unrelated to this pass (`ENGL-MIN`, `PHIL-MIN`, `CSEN-MIN`,
+`CSCI-MIN-SOE` each had two requirement groups sharing an identical label,
+e.g. two groups both called "Programming foundations" with different
+course choices) — cosmetic-but-confusing UI bugs, now given distinct
+labels.

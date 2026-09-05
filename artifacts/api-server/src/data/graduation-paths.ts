@@ -1568,8 +1568,8 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
     notes: ["Complete ENGL 14 or 15, ENGL 16, and five English electives, four of which must be upper division."],
     groups: [
-      { label: "English foundations", courses: ["ENGL 14", "ENGL 15"], minimumCourses: 1 },
-      { label: "English foundations", courses: ["ENGL 16"] },
+      { label: "English foundations: ENGL 14 or 15", courses: ["ENGL 14", "ENGL 15"], minimumCourses: 1 },
+      { label: "Required: ENGL 16", courses: ["ENGL 16"] },
       { label: "English electives", courses: [], minimumCourses: 5, needsVerification: true, notes: ["Verify that four selected electives are upper division."] },
     ],
   },
@@ -1600,8 +1600,8 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
     notes: ["Complete PHIL 14 or 15; PHIL 17 or 18; four PHIL courses numbered 108–199; and PHIL 199 for five units."],
     groups: [
-      { label: "Philosophy foundation", courses: ["PHIL 14", "PHIL 15"], minimumCourses: 1 },
-      { label: "Philosophy foundation", courses: ["PHIL 17", "PHIL 18"], minimumCourses: 1 },
+      { label: "Philosophy foundation: PHIL 14 or 15", courses: ["PHIL 14", "PHIL 15"], minimumCourses: 1 },
+      { label: "Philosophy foundation: PHIL 17 or 18", courses: ["PHIL 17", "PHIL 18"], minimumCourses: 1 },
       { label: "Upper-division philosophy", courses: [], minimumCourses: 4, needsVerification: true },
       { label: "Philosophy seminar", courses: ["PHIL 199"], minimumCourses: 1, needsVerification: true, notes: ["Verify five-unit enrollment."] },
     ],
@@ -1624,8 +1624,8 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
     notes: ["At least two courses must be beyond the student's primary-major/free-elective requirements."],
     groups: [
-      { label: "Programming foundations", courses: ["CSEN 11", "CSCI 60"], minimumCourses: 1 },
-      { label: "Programming foundations", courses: ["CSEN 12", "CSCI 61"], minimumCourses: 1 },
+      { label: "Programming foundations: CSEN 11 or CSCI 60", courses: ["CSEN 11", "CSCI 60"], minimumCourses: 1 },
+      { label: "Programming foundations: CSEN 12 or CSCI 61", courses: ["CSEN 12", "CSCI 61"], minimumCourses: 1 },
       { label: "Computer science foundations", courses: ["CSEN 20"] },
       { label: "Computer engineering foundations", courses: ["ECEN 21", "CSEN 21"], minimumCourses: 1 },
       { label: "Approved technical selections", courses: [], minimumCourses: 4, needsVerification: true },
@@ -1792,9 +1792,19 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     code: "CHIN-MIN", title: "Chinese and Sinophone Studies",
     sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/modern-languages-and-literatures.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Modern Languages and Literatures",
-    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
-    notes: ["Verify current Chinese and Sinophone Studies minor requirements from the Modern Languages and Literatures bulletin page."],
-    groups: [{ label: "Approved Chinese and Sinophone Studies courses", courses: [], minimumCourses: 5, needsVerification: true }],
+    catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
+    notes: [
+      "At least 19 quarter units total; at least 10 of those units must be taken at SCU or taught by SCU faculty.",
+      "Track A (placement at CHIN 23 or below) vs Track B (placement at CHIN 100 or above) is a placement-based procedural split, not a curricular concentration — represented as two alternative group sets below; a student follows only the track matching their placement.",
+    ],
+    groups: [
+      { label: "Track A — intermediate course (e.g. CHIN 23 or approved substitution)", courses: ["CHIN 23"], minimumCourses: 1 },
+      { label: "Track A — at least two courses", courses: ["CHIN 100", "CHIN 101", "CHIN 102", "CHIN 103", "CHIN 105", "CHIN 106", "CHIN 107", "CHIN 127"], minimumCourses: 2 },
+      { label: "Track A — one course (or approved substitution)", courses: ["CHIN 125", "CHIN 126", "CHIN 128"], minimumCourses: 1 },
+      { label: "Track B (placement CHIN 100+) — at least three courses", courses: ["CHIN 100", "CHIN 101", "CHIN 102", "CHIN 103", "CHIN 105", "CHIN 106", "CHIN 107", "CHIN 127"], minimumCourses: 3 },
+      { label: "Track B — one course (or approved substitution)", courses: ["CHIN 125", "CHIN 126", "CHIN 128"], minimumCourses: 1 },
+      { label: "Remaining electives to reach 19 total quarter units (upper-division for Track B)", courses: [], minimumUnits: 19, needsVerification: true },
+    ],
   },
   "JAPN-MIN": {
     code: "JAPN-MIN", title: "Japanese Studies",
@@ -1999,8 +2009,8 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE,
     notes: ["This is the Computer Engineering track of the CSE minor. Requirements are the same as the CSE minor (CSCI-MIN-SOE). Verify with the department."],
     groups: [
-      { label: "Programming foundations", courses: ["CSEN 11", "CSCI 60"], minimumCourses: 1 },
-      { label: "Programming foundations", courses: ["CSEN 12", "CSCI 61"], minimumCourses: 1 },
+      { label: "Programming foundations: CSEN 11 or CSCI 60", courses: ["CSEN 11", "CSCI 60"], minimumCourses: 1 },
+      { label: "Programming foundations: CSEN 12 or CSCI 61", courses: ["CSEN 12", "CSCI 61"], minimumCourses: 1 },
       { label: "Computer science foundations", courses: ["CSEN 20"] },
       { label: "Computer engineering foundations", courses: ["ECEN 21", "CSEN 21"], minimumCourses: 1 },
       { label: "Approved technical selections", courses: [], minimumCourses: 4, needsVerification: true },
@@ -2056,9 +2066,13 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "communication.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Communication (Journalism minor)",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Communication department. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "7 courses total: COMM 60 plus 6 electives from the department's approved Journalism list (a large rotating list of COMM 1xx courses, e.g. COMM 160/161/162/163/165/166/167/168 — see Bulletin for the complete current list) or up to 5 repeated units of COMM 190 Journalism Practicum counted as one elective.",
+      "Up to two upper-division courses from another department (e.g. political science, ethnic studies, public health) may count with the journalism minor director's permission.",
+    ],
     groups: [
-      { label: "Journalism minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: COMM 60 (Journalism)", courses: ["COMM 60"], minimumCourses: 1 },
+      { label: "Journalism electives (approved COMM 1xx list or COMM 190 practicum)", courses: [], minimumCourses: 6, needsVerification: true },
     ],
   },
   "DFLM-MIN": {
@@ -2066,9 +2080,12 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "communication.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Communication (Digital Filmmaking minor)",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Communication department. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "7 courses total: COMM 30 plus 6 electives from the department's approved Digital Filmmaking list — a production track (e.g. COMM 130/131D/131E/131F/132/133/134/135) and a history/theory track (e.g. COMM 137/138/139/140/143) — see Bulletin for the complete current list.",
+    ],
     groups: [
-      { label: "Digital Filmmaking minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: COMM 30 (Digital Filmmaking)", courses: ["COMM 30"], minimumCourses: 1 },
+      { label: "Production and history/theory electives (approved COMM list)", courses: [], minimumCourses: 6, needsVerification: true },
     ],
   },
   "OBPC-MIN": {
@@ -2076,9 +2093,13 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "communication.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Communication",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Communication department. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "7 courses total: COMM 10 plus 6 upper-division electives from the department's approved list (e.g. COMM 112/119/120/121/122/123/150/198) — see Bulletin for the complete current list.",
+      "A COMM special-topics course and/or one relevant non-COMM course may count with the minor director's or department chair's approval.",
+    ],
     groups: [
-      { label: "Organizational, Business, and Professional Communication minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: COMM 10 (Interpersonal Communication)", courses: ["COMM 10"], minimumCourses: 1 },
+      { label: "Upper-division Communication electives (approved list)", courses: [], minimumCourses: 6, needsVerification: true },
     ],
   },
   "PWRT-MIN": {
@@ -2086,9 +2107,13 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "english.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — English",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the English department, distinct from the existing Creative Writing minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Distinct from the existing Creative Writing minor. No more than two courses used for an English major may also count toward this minor.",
+    ],
     groups: [
-      { label: "Professional Writing minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: ENGL 16", courses: ["ENGL 16"], minimumCourses: 1 },
+      { label: "Internship: ENGL 189 and/or ASCI 198", courses: ["ENGL 189", "ASCI 198"], minimumUnits: 4 },
+      { label: "Electives — at least 5, three of which upper-division (approved ENGL list)", courses: [], minimumCourses: 5, needsVerification: true },
     ],
   },
   "GEOA-MIN": {
@@ -2096,9 +2121,15 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "environmental-studies-and-sciences.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Environmental Studies and Sciences",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Environmental Studies and Sciences department. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "ENVS/ENSC majors must take at least one upper-division course here that does not also count toward their major.",
+      "The exact approved 'data-focused' and 'natural/social-justice dimension' elective lists are referenced by the Bulletin but not fully enumerated there — verify current options directly with the department.",
+    ],
     groups: [
-      { label: "Geospatial Analysis minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: ENVS 15 or CENG 15", courses: ["ENVS 15", "CENG 15"], minimumCourses: 1 },
+      { label: "Required: ENVS 116 or CENG 160", courses: ["ENVS 116", "CENG 160"], minimumCourses: 1 },
+      { label: "Required: ENVS 117", courses: ["ENVS 117"], minimumCourses: 1 },
+      { label: "Approved data-focused and natural/social-justice dimension electives", courses: [], minimumCourses: 2, needsVerification: true },
     ],
   },
   "AFAM-MIN": {
@@ -2106,9 +2137,14 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "ethnic-studies.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Ethnic Studies",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Ethnic Studies department, distinct from the existing general Ethnic Studies minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Distinct from the existing general Ethnic Studies minor.",
+      "Consult the Ethnic Studies Department Chair on applicability of transfer/study-abroad courses.",
+    ],
     groups: [
-      { label: "African American Studies minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: ETHN 5, ETHN 30", courses: ["ETHN 5", "ETHN 30"], minimumCourses: 2 },
+      { label: "One Black Studies course", courses: ["ETHN 31", "ETHN 35", "ETHN 36", "ETHN 38", "ETHN 55", "ETHN 56", "ETHN 58", "ETHN 69", "ETHN 70", "ETHN 90", "ETHN 91", "ETHN 95", "ETHN 96"], minimumCourses: 1 },
+      { label: "Four upper-division electives", courses: ["ETHN 100", "ETHN 130", "ETHN 130A", "ETHN 131", "ETHN 131A", "ETHN 132", "ETHN 132A", "ETHN 133", "ETHN 135", "ETHN 136", "ETHN 137", "ETHN 138", "ETHN 138A", "ETHN 148", "ETHN 149", "ETHN 165", "ETHN 172", "ETHN 175", "ETHN 178", "ETHN 187", "ETHN 188"], minimumCourses: 4 },
     ],
   },
   "ASAM-MIN": {
@@ -2116,9 +2152,14 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "ethnic-studies.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Ethnic Studies",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Ethnic Studies department, distinct from the existing general Ethnic Studies minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Distinct from the existing general Ethnic Studies minor.",
+      "Consult the Ethnic Studies Department Chair on applicability of transfer/study-abroad courses.",
+    ],
     groups: [
-      { label: "Asian American Studies minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: ETHN 5, ETHN 40", courses: ["ETHN 5", "ETHN 40"], minimumCourses: 2 },
+      { label: "One Asian American Studies course", courses: ["ETHN 41", "ETHN 50", "ETHN 51", "ETHN 52", "ETHN 55", "ETHN 56", "ETHN 58", "ETHN 69", "ETHN 70", "ETHN 91", "ETHN 96"], minimumCourses: 1 },
+      { label: "Four upper-division electives", courses: ["ETHN 100", "ETHN 140", "ETHN 141", "ETHN 142", "ETHN 144", "ETHN 145", "ETHN 152", "ETHN 153", "ETHN 165", "ETHN 185", "ETHN 187"], minimumCourses: 4 },
     ],
   },
   "LATX-MIN": {
@@ -2126,9 +2167,14 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "ethnic-studies.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Ethnic Studies",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Ethnic Studies department, distinct from the existing general Ethnic Studies minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Distinct from the existing general Ethnic Studies minor. The Bulletin renders this minor's name with an accented 'é' variant (Latina/é/o/x Studies) in some places — represented here in its plain-ASCII form for catalog-code consistency.",
+      "Consult the Ethnic Studies Department Chair on applicability of transfer/study-abroad courses.",
+    ],
     groups: [
-      { label: "Latina/o/x Studies minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: ETHN 5, ETHN 20", courses: ["ETHN 5", "ETHN 20"], minimumCourses: 2 },
+      { label: "One Latina/o/x Studies course", courses: ["ETHN 21", "ETHN 25", "ETHN 55", "ETHN 56", "ETHN 58", "ETHN 69", "ETHN 70", "ETHN 91", "ETHN 96"], minimumCourses: 1 },
+      { label: "Four upper-division electives", courses: ["ETHN 100", "ETHN 120", "ETHN 121", "ETHN 122", "ETHN 123", "ETHN 124", "ETHN 125", "ETHN 125A", "ETHN 126", "ETHN 127", "ETHN 128", "ETHN 129", "ETHN 165", "ETHN 186", "ETHN 187"], minimumCourses: 4 },
     ],
   },
   "ANIM-MIN": {
@@ -2136,9 +2182,16 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "art-and-art-history.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Art and Art History",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Art and Art History department. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Must declare by junior year. Cannot simultaneously declare with the Graphic Design minor, Studio Art minor, or Studio Art major.",
+      "The required ARTH course must be taken at SCU (excludes ARTH 11A, 12A, 194) — represented generically since it is 'any' ARTH course meeting that rule, not a fixed list.",
+    ],
     groups: [
-      { label: "Animation and Illustration minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: ARTS 30, ARTS 74, ARTS 81, ARTS 181", courses: ["ARTS 30", "ARTS 74", "ARTS 81", "ARTS 181"], minimumCourses: 4 },
+      { label: "One 3D course", courses: ["ARTS 33", "ARTS 63", "ARTS 64"], minimumCourses: 1 },
+      { label: "One ARTH course taken at SCU (excluding ARTH 11A, 12A, 194)", courses: [], minimumCourses: 1, needsVerification: true },
+      { label: "Two electives", courses: ["ARTS 131", "ARTS 173", "ARTS 175", "ARTS 179", "ARTS 182", "COMM 30", "COMM 130"], minimumCourses: 2 },
+      { label: "One additional studio ARTS course (excluding ARTS 190, 194, 196)", courses: [], minimumCourses: 1, needsVerification: true },
     ],
   },
   "ARTM-MIN": {
@@ -2146,9 +2199,16 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "art-and-art-history.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Art and Art History",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Art and Art History department. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Must declare by junior year. Cannot simultaneously declare with the Art History minor or major.",
+      "Also requires an internship at an arts organization and participation in a senior-year culminating event (non-course requirements, not represented as course groups).",
+      "The three required ARTH 'Arts Management'-designated courses (at least one upper-division) are referenced by the Bulletin without a fixed course-number list — represented generically.",
+    ],
     groups: [
-      { label: "Arts Management minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Three ARTH courses with the Arts Management designation (at least one upper-division)", courses: [], minimumCourses: 3, needsVerification: true },
+      { label: "One English course (ENGL 100 preferred, or ENGL 101/112)", courses: ["ENGL 100", "ENGL 101", "ENGL 112"], minimumCourses: 1 },
+      { label: "Two Management courses (MGMT 160 preferred, or MGMT 170/174)", courses: ["MGMT 160", "MGMT 170", "MGMT 174"], minimumCourses: 2 },
+      { label: "One Marketing course (MKTG 181 preferred, or MKTG 186/190)", courses: ["MKTG 181", "MKTG 186", "MKTG 190"], minimumCourses: 1 },
     ],
   },
   "GRDS-MIN": {
@@ -2156,9 +2216,17 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "art-and-art-history.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Art and Art History",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Art and Art History department. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Must declare by junior year. Cannot simultaneously declare with the Animation and Illustration minor, Studio Art minor, or Studio Art major.",
+      "ARTS 30 may be substituted with an approved upper-division equivalent. The required ARTH course must be taken at SCU (excludes ARTH 11A, 12A, 194) — represented generically.",
+    ],
     groups: [
-      { label: "Graphic Design minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: ARTS 30 (or approved upper-division equivalent), ARTS 70, ARTS 74", courses: ["ARTS 30", "ARTS 70", "ARTS 74"], minimumCourses: 3 },
+      { label: "One 3D course", courses: ["ARTS 33", "ARTS 63", "ARTS 64"], minimumCourses: 1 },
+      { label: "One ARTH course taken at SCU (excluding ARTH 11A, 12A, 194)", courses: [], minimumCourses: 1, needsVerification: true },
+      { label: "Two electives", courses: ["ARTS 173", "ARTS 175", "ARTS 177", "ARTS 182"], minimumCourses: 2 },
+      { label: "Two additional studio ARTS courses (excluding ARTS 190, 194, 199)", courses: [], minimumCourses: 2, needsVerification: true },
+      { label: "One additional studio ARTS course (ARTS 75 recommended; excluding ARTS 190, 194, 196)", courses: [], minimumCourses: 1, needsVerification: true },
     ],
   },
   "TDTC-MIN": {
@@ -2166,9 +2234,15 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "theatre-and-dance.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Theatre and Dance",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by the Theatre and Dance department, distinct from the existing Theatre minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Distinct from the general Theatre minor; not available to Theatre Arts majors.",
+      "Practicum requirement is an OR condition the schema below only approximates: either THTR 39/139 (4 units), or THTR 38 plus 2 units of THTR 39/139 with a mainstage production element — verify the exact combination with the department.",
+    ],
     groups: [
-      { label: "Theatre Design and Technology minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: THTR 10, THTR 30", courses: ["THTR 10", "THTR 30"], minimumCourses: 2 },
+      { label: "One design course", courses: ["THTR 31", "THTR 32", "THTR 33", "THTR 36"], minimumCourses: 1 },
+      { label: "Practicum: THTR 39/139 (4 units), or THTR 38 + 2 units of THTR 39/139", courses: ["THTR 38", "THTR 39", "THTR 139"], minimumUnits: 4 },
+      { label: "Three or more upper-division design/tech courses", courses: ["THTR 130", "THTR 131", "THTR 132", "THTR 133", "THTR 134", "THTR 136", "THTR 137", "THTR 138"], minimumCourses: 3 },
     ],
   },
   "GERO-MIN": {
@@ -2176,9 +2250,15 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "gerontology.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Gerontology",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Interdisciplinary minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "29 units total. Interdisciplinary minor — no more than 2 age-related courses from any single discipline may count.",
+      "The Bulletin refers students to a maintained external document (not itself the Bulletin) for the complete current approved-course list — not fetched or transcribed here; verify directly with the department.",
+    ],
     groups: [
-      { label: "Gerontology minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "One lower-division introductory/aging course (e.g. PHSC 21, or intro anthropology/psychology/public health/sociology)", courses: [], minimumCourses: 1, needsVerification: true },
+      { label: "Required upper-division: ANTH 172, PSYC 196", courses: ["ANTH 172", "PSYC 196"], minimumCourses: 2 },
+      { label: "Two elective upper-division age-related courses (anthropology, biology, psychology, religious studies, or sociology)", courses: [], minimumCourses: 2, needsVerification: true },
+      { label: "Practicum: GERO 198 (100-hour service-learning/internship or equivalent)", courses: ["GERO 198"], minimumCourses: 1 },
     ],
   },
   "MHUM-MIN": {
@@ -2186,9 +2266,12 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "medical-and-health-humanities.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Medical and Health Humanities",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Interdisciplinary minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "No individually required course — 7 total courses from a 40+ course approved list spanning 14 departments (Anthropology, Art and Art History, Classics, Communication, English, Gender and Sexuality Studies, History, Modern Languages, Philosophy, Public Health, Religious Studies, University Honors Program, and others). No more than 3 courses may come from the same department, and no more than 3 may be lower-division. Courses outside the published list may count with program-director approval.",
+      "The 40+ course list is genuinely this open-ended by design (Bulletin's own words: 'courses not included in the list below may count... with approval') — represented as a generic 7-course requirement with its real distribution rules rather than an invented fixed list.",
+    ],
     groups: [
-      { label: "Medical and Health Humanities minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "7 courses from the approved interdisciplinary list (max 3 per department, max 3 lower-division)", courses: [], minimumCourses: 7, needsVerification: true },
     ],
   },
   "BTEC-MIN": {
@@ -2196,9 +2279,16 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "biotechnology.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Biotechnology",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Interdisciplinary minor. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "13 courses total. Also requires a research internship (10 weeks full-time, or 200-300 hours part-time) at a biotechnology company, research institute, or academic lab, plus a written report evaluated by the program director — a non-course requirement, not represented as a course group.",
+      "BIOL 160, 170, 172, or 178 are strongly recommended for data-analysis/computational exposure but not separately required beyond the elective group below.",
+    ],
     groups: [
-      { label: "Biotechnology minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Scientific foundations: BIOL 1A, 1B, 1C, 175, CHEM 11, 12, 31, 32, 33", courses: ["BIOL 1A", "BIOL 1B", "BIOL 1C", "BIOL 175", "CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33"], minimumCourses: 9 },
+      { label: "One ethics/contemporary-topics course", courses: ["BIOL 169", "BIOL 171"], minimumCourses: 1 },
+      { label: "One additional ethics/contemporary-topics course", courses: ["BIOL 189A", "BIOL 189B"], minimumCourses: 1 },
+      { label: "One advanced laboratory-skills course", courses: ["BIOL 176", "BIOL 177", "BIOL 191", "CHEM 143"], minimumCourses: 1 },
+      { label: "One elective", courses: ["BIOL 110", "BIOL 111", "BIOL 112", "BIOL 113", "BIOL 116", "BIOL 122", "BIOL 123", "BIOL 145", "BIOL 160", "BIOL 172", "BIOL 174", "BIOL 178", "BIOL 179", "CHEM 141"], minimumCourses: 1 },
     ],
   },
   "MUTH-MIN": {
@@ -2206,9 +2296,18 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: CAS_BULLETIN_BASE + "musical-theatre.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Musical Theatre",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Joint minor between Music and Theatre and Dance. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Joint minor between Music and Theatre and Dance. No Bulletin-stated total unit count.",
+      "Singing requirement is MUSC 34 plus 3 quarters of on-campus private voice instruction (a placement test may substitute an additional 3 quarters of private instruction for MUSC 34 at higher proficiency) — the private-instruction component is not a standard course code.",
+      "Dance-technique requirement is 4 units from DANC 40-47 'or higher level depending upon proficiency' — an open range, represented generically rather than enumerating every level.",
+    ],
     groups: [
-      { label: "Musical Theatre minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Music Theory and Aural Skills (one course each; MUSC 1 and 1A suggested)", courses: ["MUSC 1", "MUSC 1A"], minimumCourses: 2 },
+      { label: "Singing: MUSC 34 (plus private voice instruction, see notes)", courses: ["MUSC 34"], minimumCourses: 1 },
+      { label: "One acting course", courses: ["THTR 8", "THTR 10", "THTR 24"], minimumCourses: 1 },
+      { label: "Dance technique — 4 units (DANC 40-47 or higher by proficiency)", courses: [], minimumUnits: 4, needsVerification: true },
+      { label: "Required: DANC 55/155", courses: ["DANC 55", "DANC 155"], minimumCourses: 1 },
+      { label: "Two electives", courses: ["THTR 123", "THTR 165", "THTR 80", "THTR 180", "MUSC 153"], minimumCourses: 2 },
     ],
   },
   "RAI-MIN": {
@@ -2216,9 +2315,18 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: SOE_BULLETIN_BASE + "computer-science-and-engineering.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Computer Science and Engineering",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by Computer Science and Engineering. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "The 'Computing Foundation' requirement is satisfied by completing ONE of three whole tracks (CSEN, CSCI, or OMIS) — the three groups below are alternatives, not all three combined; pick one track's courses.",
+      "The 4-unit elective requirement draws from an extensive ~24-course approved list spanning communication, philosophy, history, sociology, and engineering — not fully enumerated by the Bulletin excerpt reviewed; represented generically.",
+    ],
     groups: [
-      { label: "Responsible Artificial Intelligence minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Computing foundation — Track A (CSEN)", courses: ["CSEN 10", "CSEN 11", "CSEN 12", "AMTH 108"], minimumCourses: 4 },
+      { label: "Computing foundation — Track B (CSCI)", courses: ["CSCI 10", "CSCI 60", "CSCI 61", "CSCI 62", "CSEN 19"], minimumCourses: 5 },
+      { label: "Computing foundation — Track C (OMIS)", courses: ["OMIS 30", "OMIS 114"], minimumCourses: 2 },
+      { label: "Technology ethics", courses: ["ENGR 19", "PHIL 22"], minimumCourses: 1 },
+      { label: "Required: PHIL 130 (Ethics in AI)", courses: ["PHIL 130"], minimumCourses: 1 },
+      { label: "AI technology", courses: ["CSEN 166", "OMIS 116", "CSCI 183"], minimumCourses: 1 },
+      { label: "Electives — at least 4 units (approved cross-disciplinary list)", courses: [], minimumUnits: 4, needsVerification: true },
     ],
   },
   "HCID-MIN": {
@@ -2226,9 +2334,16 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: SOE_BULLETIN_BASE + "bioengineering.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Bioengineering",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Interdisciplinary minor housed in Bioengineering. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "21 units total across 4 components. Technical electives (2 courses, 8 units) must come from ONE topical theme: biodevice design (BIOE 106/163/168/174), biomolecular engineering (BIOE 175/176, BIOL 116/174/175/176/177/179), business/entrepreneurship (ECON 154, MGMT 165/177, MKTG 187/191, PHSC/SOCI 172), data science (BIOE 120/177A/177B/180, BIOL 170/178, CSCI 183/184, CSEN 140/166), design/prototyping (CSEN 168, ECEN 123/131, MECH 144), instrumentation (BIOE 161/162, CHEM 111, CSEN 143, ECEN 115/133/134/167), neuroscience (BIOL 122, PSYC 165/169), public health (PHSC 103/124, BIOL 106, PHSC 150/156, PSYC 167), or strategic communications (COMM 100/114/124/151/160/161H/173, ENGL 100/112, MKTG 179/182) — represented generically below rather than flattening all 9 themes into one combined list.",
+      "Also requires a 5-unit healthcare-related capstone/supervised-research experiential activity and a 1-unit seminar/design-challenge elective — both have multiple qualifying options per the Bulletin, represented generically.",
+    ],
     groups: [
-      { label: "Healthcare Innovation and Design minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Foundational: MGMT 164, or 4 units from ENGR 110/166A/166B/171A/171B/172A/172B", courses: ["MGMT 164", "ENGR 110", "ENGR 166A", "ENGR 166B", "ENGR 171A", "ENGR 171B", "ENGR 172A", "ENGR 172B"], minimumUnits: 4 },
+      { label: "Required: BIOE 111 (Introduction to Healthcare Innovation)", courses: ["BIOE 111"], minimumCourses: 1 },
+      { label: "Two technical electives from one approved topical theme (see notes)", courses: [], minimumCourses: 2, needsVerification: true },
+      { label: "Experiential activity: healthcare-related capstone or supervised research (5 units)", courses: [], minimumUnits: 5, needsVerification: true },
+      { label: "Seminar/design-challenge elective (1 unit)", courses: [], minimumUnits: 1, needsVerification: true },
     ],
   },
   "CNST-MIN": {
@@ -2236,9 +2351,15 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: SOE_BULLETIN_BASE + "civil-environmental-and-sustainable-engineering.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Civil, Environmental, and Sustainable Engineering",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["Offered by Civil, Environmental, and Sustainable Engineering. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "Up to 14 units may 'double-dip' to concurrently satisfy major or University Core requirements.",
+      "Mechanical Engineering students may satisfy the CENG 7/7L requirement with MECH 10L/12L instead.",
+    ],
     groups: [
-      { label: "Construction Management minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Required: CENG 7, CENG 7L, CENG 115, CENG 115L", courses: ["CENG 7", "CENG 7L", "CENG 115", "CENG 115L"], minimumCourses: 4 },
+      { label: "Required: CENG 118 or CENG 128", courses: ["CENG 118", "CENG 128"], minimumCourses: 1 },
+      { label: "Two courses from CENG 185, 186, 187", courses: ["CENG 185", "CENG 186", "CENG 187"], minimumCourses: 2 },
+      { label: "Two electives", courses: ["CENG 119", "CENG 182", "CENG 188", "CENG 189", "ECEN 164", "ECEN 164L", "ECEN 182", "ECEN 183", "MECH 125", "MECH 160", "MECH 160L", "FNCE 118", "FNCE 129", "ENVS 128"], minimumCourses: 2 },
     ],
   },
   "INTB-MIN": {
@@ -2246,9 +2367,14 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: LSB_BULLETIN_BASE + "international-business.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — International Business",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["No corresponding major exists — minor only. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "No corresponding major exists — minor only.",
+      "Students with existing language competency may satisfy the language requirement with a more advanced 100/101-level course instead of the listed option.",
+    ],
     groups: [
-      { label: "International Business minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Foreign language (one course)", courses: ["ARAB 23", "CHIN 23", "FREN 100", "GERM 100", "ITAL 100", "JAPN 23", "SPAN 23"], minimumCourses: 1 },
+      { label: "Business fundamentals: BUSN 70/170, ACTG 11/11A, ECON 1, ECON 2, ECON 3, MGMT 80, MGMT 136/6", courses: ["BUSN 70", "BUSN 170", "ACTG 11", "ACTG 11A", "ECON 1", "ECON 2", "ECON 3", "MGMT 80", "MGMT 136", "MGMT 6"], minimumCourses: 6 },
+      { label: "Two upper-division international business courses", courses: ["FNCE 151", "MGMT 110", "MGMT 170", "MGMT 177", "MKTG 178", "ECON 181", "ECON 182", "ECON 184"], minimumCourses: 2 },
     ],
   },
   "SFS-MIN": {
@@ -2256,9 +2382,15 @@ const MINOR_RECIPES: Record<string, MinorRecipe> = {
     sourceUrl: LSB_BULLETIN_BASE + "sustainable-food-systems.html",
     sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Sustainable Food Systems",
     catalogYear: BULLETIN_2026_27, lastVerified: VERIFIED_MINOR_DATE_2,
-    notes: ["No corresponding major exists — minor only. Verify the exact approved-course list and unit total against the Bulletin."],
+    notes: [
+      "No corresponding major exists — minor only. 7 courses total; at least 4 must be upper-division, and no more than 3 may come from a student's own major.",
+      "Courses in the Experiential Learning group marked with an asterisk in the Bulletin (MGMT 132, BUSN 188, ELSJ 134/135, ENVS 95, ENVS 195) require prior program-director approval.",
+    ],
     groups: [
-      { label: "Sustainable Food Systems minor requirements", courses: [], minimumCourses: 5, needsVerification: true },
+      { label: "Cultural/Societal Dimension (choose 2)", courses: ["ANTH 5", "ANTH 50", "ENVS 50", "POLI 50", "ANTH 140", "ENVS 136", "BIOL 106", "PHSC 124", "ENVS 79", "ENVS 185", "ITAL 101", "MGMT 110", "SOCI 132"], minimumCourses: 2 },
+      { label: "Sustainable Development Dimension (choose 2)", courses: ["ANTH 133", "ANTH 138", "ENVS 132", "BUSN 150", "CENG 124", "ENVS 124", "ECON 135", "ENVS 22", "ENVS 146", "ENVS 147", "MGMT 110", "PHSC 1", "POLI 123"], minimumCourses: 2 },
+      { label: "Innovation and Change Dimension (choose 2)", courses: ["ANTH 137", "BIOL 18", "ECON 101", "MGMT 173", "ECON 134", "ENGR 161", "MGMT 177", "ENVS 155", "MGMT 40", "MGMT 42", "MGMT 172", "MGMT 176", "MKTG 187", "SOCI 60", "SOCI 130"], minimumCourses: 2 },
+      { label: "Experiential Learning Dimension (choose 1, some require program-director approval)", courses: ["MGMT 132", "BUSN 151A", "BUSN 151B", "BUSN 183A", "BUSN 183B", "BUSN 183C", "BUSN 188", "ELSJ 134", "ELSJ 135", "ENVS 95", "ENVS 191", "ENVS 195"], minimumCourses: 1 },
     ],
   },
 };
