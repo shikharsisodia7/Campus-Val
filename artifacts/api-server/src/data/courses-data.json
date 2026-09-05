@@ -13403,6 +13403,23 @@
     "corequisites": []
   },
   {
+    "code": "COMM 60",
+    "title": "Journalism",
+    "department": "COMM",
+    "departmentName": "Communication",
+    "units": 5,
+    "description": "Introduction to the theories and techniques of journalism, with emphasis on the role of journalism in a democracy, news values and ethics, reporting and writing techniques. Discussions and readings on the future of journalism. Includes weekly online lab. This course satisfies the Civic Engagement Core.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "COMM 1, COMM 2, COMM 3, and COMM 4 for majors; no prerequisite for journalism minors and non-majors.",
+    "prereqGroups": [],
+    "corequisites": []
+  },
+  {
     "code": "COMM 80",
     "title": "Global Media Technologies, Culture & Politics",
     "department": "COMM",

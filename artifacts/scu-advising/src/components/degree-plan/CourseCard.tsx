@@ -268,10 +268,24 @@ export function CourseCard({
         </div>
 
         <div
-          className="flex-1 min-w-0 cursor-pointer"
+          className="flex-1 min-w-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm"
+          role="button"
+          tabIndex={0}
+          aria-label={
+            isPlaceholder
+              ? `Set up requirement: ${item.requirementLabel}`
+              : `View details for ${item.courseCode}`
+          }
           onClick={() => {
             if (isPlaceholder) setIsReplaceOpen(true);
             else setIsDetailOpen(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (isPlaceholder) setIsReplaceOpen(true);
+              else setIsDetailOpen(true);
+            }
           }}
         >
           {(() => {
@@ -427,6 +441,7 @@ export function CourseCard({
             size="icon"
             className="h-6 w-6 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
             onClick={handleDelete}
+            aria-label={`Remove ${item.courseCode || item.requirementLabel || "item"} from plan`}
           >
             <Trash2 className="h-3 w-3" />
           </Button>

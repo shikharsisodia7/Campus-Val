@@ -909,3 +909,40 @@ describe("CourseCard — Degree Plan course detail dialog has no section picker"
     expect(global.fetch as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
   });
 });
+
+describe("CourseCard — accessibility", () => {
+  it("opens the detail dialog via keyboard (Enter), not just a mouse click", async () => {
+    const item = makePlanItem(95, "MATH 11", CURRENT_TERM, CURRENT_YEAR);
+    renderCard({
+      item,
+      conflicts: [],
+      sectionsByCode: {},
+      scheduleAvailability: makeAvailability([
+        { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["MATH 11"] },
+      ]),
+    });
+
+    // The clickable card body must be a real, keyboard-reachable control —
+    // not a bare div only a mouse can activate.
+    const cardBody = screen.getByRole("button", { name: /View details for MATH 11/i });
+    expect(cardBody).toBeTruthy();
+    expect(cardBody.getAttribute("tabindex")).toBe("0");
+
+    fireEvent.keyDown(cardBody, { key: "Enter" });
+    await screen.findByTestId("course-detail-description");
+  });
+
+  it("labels the remove/delete button so it isn't just an unnamed icon", () => {
+    const item = makePlanItem(96, "MATH 11", CURRENT_TERM, CURRENT_YEAR);
+    renderCard({
+      item,
+      conflicts: [],
+      sectionsByCode: {},
+      scheduleAvailability: makeAvailability([
+        { year: CURRENT_YEAR, term: CURRENT_TERM, status: "published", offered: ["MATH 11"] },
+      ]),
+    });
+
+    expect(screen.getByRole("button", { name: /Remove MATH 11 from plan/i })).toBeTruthy();
+  });
+});

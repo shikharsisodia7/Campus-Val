@@ -76,7 +76,13 @@ export function CourseDetailsDialog({
                     </Badge>
                   )}
                   {course && <Badge variant="outline">{course.units} units</Badge>}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={handleRemove}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={handleRemove}
+                    aria-label={`Remove ${courseCode} from schedule`}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
