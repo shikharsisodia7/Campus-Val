@@ -52,6 +52,21 @@ server-side `ADMIN_EMAILS` allowlist (`lib/admin.ts`) — being an admin does
 **not** grant access to any student's plan or APR; those are separate
 permission systems.
 
+## Report Error / Suggest Changes
+
+Full detail in `docs/FEEDBACK_AND_ERROR_REPORTING.md`. Security-relevant
+points: `POST /api/feedback` requires the same `requireAuth` gate as every
+other route (no separate, weaker auth path for this feature); the admin
+review queue (`GET`/`PATCH /api/admin/feedback`) is gated by the same
+`ADMIN_EMAILS` allowlist as usage analytics, and a non-admin gets a 403
+rather than an empty list (no enumeration signal). The server never
+auto-captures APR content, Degree Plan contents, grades, cookies, or auth
+tokens — only what a reporter explicitly typed, plus their verified
+identity. Field lengths and the official-source URL are validated
+server-side; unrecognized request fields are dropped, not stored (see the
+"ignores client-supplied identity and any unrecognized/sensitive fields"
+test in `routes/feedback.test.ts`).
+
 ## Tester feature gating
 
 `GET /api/me/role` exposes a single `isAdmin` boolean derived from the same
@@ -117,3 +132,4 @@ undergraduate-testing phase, not an oversight:
 - Usage analytics: `routes/usage.test.ts`
 - Role gating: `routes/role.test.ts`
 - Auth allowlist: `middlewares/requireAuth.test.ts`
+- Feedback/error reporting: `routes/feedback.test.ts`

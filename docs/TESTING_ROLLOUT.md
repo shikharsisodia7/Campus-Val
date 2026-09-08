@@ -75,7 +75,12 @@ public launch.
   verification links? Do the offering warnings make sense? Can you build a
   Winter/Spring schedule? Do you know what CampusVal does *not* guarantee?
   Is the Workday APR comparison useful? Is anything overwhelming? What
-  would you hide? What would you need as an advisor?
+  would you hide? What would you need as an advisor? Use
+  **"Report Error / Suggest Changes"** in the header when: information
+  looks incorrect, a feature fails, a requirement seems outdated, or there
+  is a suggested improvement — see
+  [docs/FEEDBACK_AND_ERROR_REPORTING.md](FEEDBACK_AND_ERROR_REPORTING.md).
+  Do not include student records or APR contents in a report.
 
 ## Explicitly out of scope for this phase
 
