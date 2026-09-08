@@ -21,6 +21,7 @@ export const USAGE_FEATURES = [
   "plan_controls",
   "find_courses",
   "workday_handoff",
+  "feedback_submit",
 ] as const;
 export type UsageFeature = (typeof USAGE_FEATURES)[number];
 const FEATURE_SET = new Set<string>(USAGE_FEATURES);
