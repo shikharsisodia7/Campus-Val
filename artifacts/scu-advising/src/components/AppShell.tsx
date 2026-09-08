@@ -27,6 +27,7 @@ import {
   X,
   FileUp,
   UserCheck,
+  Flag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -48,6 +49,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { ReportIssueDialog } from "@/components/ReportIssueDialog";
 import { useState } from "react";
 
 type NavItem = {
@@ -155,6 +157,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <AdditionalFeatures location={location} isAdmin={isAdmin} />
           </nav>
 
+          <ReportIssueDialog
+            trigger={
+              <Button
+                variant="ghost"
+                size="sm"
+                title="Report Error / Suggest Changes"
+                data-testid="button-report-error"
+                className="hidden shrink-0 items-center gap-1.5 px-2 text-muted-foreground hover:text-foreground lg:flex"
+              >
+                <Flag className="h-4 w-4" />
+                <span className="hidden whitespace-nowrap text-sm xl:inline">
+                  Report Error / Suggest Changes
+                </span>
+                <span className="whitespace-nowrap text-sm xl:hidden">Report Error</span>
+              </Button>
+            }
+          />
+
           <div className="ml-auto hidden lg:block">
             <AccountMenu />
           </div>
@@ -201,6 +221,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     onNavigate={() => setMobileOpen(false)}
                   />
                 ))}
+                <ReportIssueDialog
+                  trigger={
+                    <button
+                      type="button"
+                      data-testid="button-report-error-mobile"
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      <Flag className="h-4 w-4" /> Report Error / Suggest Changes
+                    </button>
+                  }
+                />
                 <div className="my-3 border-t border-border" />
                 {isAdmin ? (
                   <FeatureGroupsList location={location} onNavigate={() => setMobileOpen(false)} />
