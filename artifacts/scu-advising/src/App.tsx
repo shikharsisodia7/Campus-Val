@@ -47,6 +47,7 @@ const ResourcesPage = lazy(() => import("@/pages/resources"));
 const FeedbackPage = lazy(() => import("@/pages/feedback"));
 const ProgressReportPage = lazy(() => import("@/pages/progress-report"));
 const AdminUsagePage = lazy(() => import("@/pages/admin-usage"));
+const AdminFeedbackPage = lazy(() => import("@/pages/admin-feedback"));
 
 // Keep data feeling live without hammering the server:
 // - 30s stale time so quick navigations don't re-fetch needlessly
@@ -310,6 +311,11 @@ function AppRoutes() {
         <Route path="/admin/usage">
           <Protected>
             <AdminUsagePage />
+          </Protected>
+        </Route>
+        <Route path="/admin/feedback">
+          <Protected>
+            <AdminFeedbackPage />
           </Protected>
         </Route>
         <Route component={NotFound} />

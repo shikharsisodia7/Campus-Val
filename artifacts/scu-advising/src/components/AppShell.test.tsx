@@ -1,6 +1,6 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "./AppShell";
 
@@ -87,5 +87,45 @@ describe("AppShell primary navigation", () => {
         "Additional Features",
       ),
     );
+  });
+});
+
+describe("AppShell -- Report Error / Suggest Changes placement", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("places the desktop header button after Additional Features and before the account menu, in DOM order", async () => {
+    const { container } = renderWithProviders(false);
+    await waitFor(() => expect(screen.getByTestId("button-report-error")).toBeTruthy());
+
+    const additionalFeatures = screen.getByTestId("nav-additional-features");
+    const reportButton = screen.getByTestId("button-report-error");
+    const accountMenuLabel = await screen.findByLabelText(/Account menu for/i);
+
+    const order = Array.from(
+      container.querySelectorAll(
+        `[data-testid="nav-additional-features"], [data-testid="button-report-error"], [aria-label^="Account menu for"]`,
+      ),
+    );
+    expect(order[0]).toBe(additionalFeatures);
+    expect(order[1]).toBe(reportButton);
+    expect(order[2]).toBe(accountMenuLabel);
+  });
+
+  it("carries the full-phrase tooltip regardless of the responsive text shown", async () => {
+    renderWithProviders(false);
+    await waitFor(() =>
+      expect(screen.getByTestId("button-report-error").getAttribute("title")).toBe(
+        "Report Error / Suggest Changes",
+      ),
+    );
+  });
+
+  it("also exposes the action in the mobile navigation sheet", async () => {
+    renderWithProviders(false);
+    fireEvent.click(await screen.findByLabelText("Open navigation"));
+    await waitFor(() => expect(screen.getByTestId("button-report-error-mobile")).toBeTruthy());
   });
 });
