@@ -10,10 +10,13 @@ import type { DegreeRequirementsResponseUniversityRules } from "./degreeRequirem
 import type { RequirementGroup } from "./requirementGroup";
 
 export interface DegreeRequirementsResponse {
-  /** The student's college as stored in their profile. */
+  /** The effective college for these requirement groups. Follows the effective primary major's college when a plan-scoped primaryMajor in a different school/college is supplied; otherwise the profile college. */
   college: string;
   collegeCode: DegreeRequirementsResponseCollegeCode;
+  /** The effective PRIMARY major these requirements were built for (the plan's primaryMajor when supplied, else the profile major). */
   major: string | null;
+  /** The profile/onboarding major (aligned with the Workday APR record). Present so callers can tell when the planning primary major differs from the university record. */
+  declaredMajor?: string | null;
   universityRules: DegreeRequirementsResponseUniversityRules;
   groups: RequirementGroup[];
 }

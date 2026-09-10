@@ -468,6 +468,18 @@ export const GetDashboardSummaryResponse = zod.object({
       updatedAt: zod.coerce.date(),
     })
     .nullish(),
+  planningMajor: zod
+    .string()
+    .nullish()
+    .describe(
+      "The PRIMARY major the student is currently planning around in their main Degree Plan (the plan's primaryMajor, or the profile major when unset). This is planning intent, not the official SCU declaration.",
+    ),
+  declaredMajor: zod
+    .string()
+    .nullish()
+    .describe(
+      "The major from onboarding\/profile (aligned with the Workday APR record). Differs from planningMajor when the student is planning a future major change. Shown so the dashboard can distinguish planning intent from the university record.",
+    ),
   classification: zod
     .string()
     .describe("First Year, Sophomore, Junior, Senior based on units"),
@@ -883,6 +895,12 @@ export const ListProfessorsResponse = zod.object({
  * @summary College-aware degree requirements (University Core, college/school, and major) with official SCU source URLs and completion status
  */
 export const GetDegreeRequirementsQueryParams = zod.object({
+  primaryMajor: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      "Plan-scoped PRIMARY major code (e.g. \"CHEM\") to use as the primary major instead of the profile's onboarding major. Planning intent only — it never changes the official SCU declaration or Workday APR. When the effective primary major belongs to a different school\/college than the profile, the college requirement groups follow the major's college.",
+    ),
   scenarioMajors: zod.coerce.string().optional(),
   scenarioMinors: zod.coerce.string().optional(),
   professionalGoals: zod.coerce
@@ -902,9 +920,22 @@ export const GetDegreeRequirementsQueryParams = zod.object({
 export const GetDegreeRequirementsResponse = zod.object({
   college: zod
     .string()
-    .describe("The student's college as stored in their profile."),
+    .describe(
+      "The effective college for these requirement groups. Follows the effective primary major's college when a plan-scoped primaryMajor in a different school\/college is supplied; otherwise the profile college.",
+    ),
   collegeCode: zod.enum(["CAS", "LSB", "SOE"]),
-  major: zod.string().nullable(),
+  major: zod
+    .string()
+    .nullable()
+    .describe(
+      "The effective PRIMARY major these requirements were built for (the plan's primaryMajor when supplied, else the profile major).",
+    ),
+  declaredMajor: zod
+    .string()
+    .nullish()
+    .describe(
+      "The profile\/onboarding major (aligned with the Workday APR record). Present so callers can tell when the planning primary major differs from the university record.",
+    ),
   universityRules: zod.object({
     rules: zod.array(zod.string()),
     sourceUrl: zod.string(),
@@ -1245,11 +1276,15 @@ export const ListPlansResponse = zod.object({
       programs: zod
         .union([
           zod.object({
+            primaryMajor: zod
+              .string()
+              .nullish()
+              .describe(
+                "Plan-scoped PRIMARY major the student is planning around (a major code, e.g. \"CHEM\"). Planning intent only — it never changes the student's official SCU declaration or the Workday APR. When null, the profile's onboarding major is used as the primary major.",
+              ),
             additionalMajors: zod
               .array(zod.string())
-              .describe(
-                "Additional majors (beyond the one in the student profile).",
-              ),
+              .describe("Additional majors (beyond the primary major)."),
             minors: zod.array(zod.string()).describe("Declared minors."),
             professionalGoals: zod
               .array(
@@ -1354,11 +1389,15 @@ export const GetPlanResponse = zod.object({
   programs: zod
     .union([
       zod.object({
+        primaryMajor: zod
+          .string()
+          .nullish()
+          .describe(
+            "Plan-scoped PRIMARY major the student is planning around (a major code, e.g. \"CHEM\"). Planning intent only — it never changes the student's official SCU declaration or the Workday APR. When null, the profile's onboarding major is used as the primary major.",
+          ),
         additionalMajors: zod
           .array(zod.string())
-          .describe(
-            "Additional majors (beyond the one in the student profile).",
-          ),
+          .describe("Additional majors (beyond the primary major)."),
         minors: zod.array(zod.string()).describe("Declared minors."),
         professionalGoals: zod
           .array(
@@ -1503,11 +1542,15 @@ export const UpdatePlanBody = zod.object({
   programs: zod
     .union([
       zod.object({
+        primaryMajor: zod
+          .string()
+          .nullish()
+          .describe(
+            "Plan-scoped PRIMARY major the student is planning around (a major code, e.g. \"CHEM\"). Planning intent only — it never changes the student's official SCU declaration or the Workday APR. When null, the profile's onboarding major is used as the primary major.",
+          ),
         additionalMajors: zod
           .array(zod.string())
-          .describe(
-            "Additional majors (beyond the one in the student profile).",
-          ),
+          .describe("Additional majors (beyond the primary major)."),
         minors: zod.array(zod.string()).describe("Declared minors."),
         professionalGoals: zod
           .array(
@@ -1595,11 +1638,15 @@ export const UpdatePlanResponse = zod.object({
   programs: zod
     .union([
       zod.object({
+        primaryMajor: zod
+          .string()
+          .nullish()
+          .describe(
+            "Plan-scoped PRIMARY major the student is planning around (a major code, e.g. \"CHEM\"). Planning intent only — it never changes the student's official SCU declaration or the Workday APR. When null, the profile's onboarding major is used as the primary major.",
+          ),
         additionalMajors: zod
           .array(zod.string())
-          .describe(
-            "Additional majors (beyond the one in the student profile).",
-          ),
+          .describe("Additional majors (beyond the primary major)."),
         minors: zod.array(zod.string()).describe("Declared minors."),
         professionalGoals: zod
           .array(
@@ -1716,11 +1763,15 @@ export const PromotePlanResponse = zod.object({
   programs: zod
     .union([
       zod.object({
+        primaryMajor: zod
+          .string()
+          .nullish()
+          .describe(
+            "Plan-scoped PRIMARY major the student is planning around (a major code, e.g. \"CHEM\"). Planning intent only — it never changes the student's official SCU declaration or the Workday APR. When null, the profile's onboarding major is used as the primary major.",
+          ),
         additionalMajors: zod
           .array(zod.string())
-          .describe(
-            "Additional majors (beyond the one in the student profile).",
-          ),
+          .describe("Additional majors (beyond the primary major)."),
         minors: zod.array(zod.string()).describe("Declared minors."),
         professionalGoals: zod
           .array(
