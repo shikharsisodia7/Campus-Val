@@ -141,8 +141,15 @@ export function DegreePlanWorkspace({
           .map((i) => i.courseCode!.toUpperCase()),
       ),
     ).join(",") || undefined;
+  // Plan-scoped PRIMARY major (from "Set / Change Primary Major"). It REPLACES
+  // the profile major as the primary for THIS plan's requirement view, so a
+  // tentative scenario workshops a different major without touching the Degree
+  // Plan. Part of the query key so rapid A→B→C switching always renders the
+  // latest selection — a slower earlier response can never overwrite it.
+  const primaryMajorQuery = activePlan?.programs?.primaryMajor || undefined;
   const { data: reqsData } = useGetDegreeRequirements(
     {
+      ...(primaryMajorQuery ? { primaryMajor: primaryMajorQuery } : {}),
       ...(scenarioMajorQuery ? { scenarioMajors: scenarioMajorQuery } : {}),
       ...(scenarioMinorQuery ? { scenarioMinors: scenarioMinorQuery } : {}),
       ...(professionalGoalsQuery
@@ -156,6 +163,7 @@ export function DegreePlanWorkspace({
       query: {
         queryKey: [
           "/api/requirements",
+          primaryMajorQuery,
           scenarioMajorQuery,
           scenarioMinorQuery,
           professionalGoalsQuery,

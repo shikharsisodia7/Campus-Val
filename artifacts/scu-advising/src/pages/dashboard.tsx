@@ -260,7 +260,18 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-sm">
               <Detail label="College" value={sp.college} />
-              <Detail label="Major" value={sp.major} />
+              <Detail
+                label="Major"
+                value={sp.major}
+                hint={
+                  summary.declaredMajor &&
+                  summary.planningMajor &&
+                  summary.declaredMajor !== summary.planningMajor
+                    ? `Planning intent — SCU/Workday record: ${summary.declaredMajor}. Verify formal changes with your advisor.`
+                    : undefined
+                }
+                hintTestId="dashboard-planning-major-note"
+              />
               {sp.secondMajor && (
                 <Detail label="Second major" value={sp.secondMajor} />
               )}
@@ -348,7 +359,17 @@ function StatCard({
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({
+  label,
+  value,
+  hint,
+  hintTestId,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  hintTestId?: string;
+}) {
   return (
     <div>
       <div className="text-xs text-muted-foreground uppercase tracking-wider">
@@ -357,6 +378,14 @@ function Detail({ label, value }: { label: string; value: string }) {
       <div className="text-sm font-medium text-foreground mt-1 truncate">
         {value}
       </div>
+      {hint && (
+        <div
+          className="mt-0.5 text-[10px] leading-snug text-muted-foreground"
+          data-testid={hintTestId}
+        >
+          {hint}
+        </div>
+      )}
     </div>
   );
 }
