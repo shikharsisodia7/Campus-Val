@@ -64,6 +64,7 @@ const MAX_PROGRAMS_ENTRIES = 8;
 const MAX_PROGRAM_LABEL_LEN = 50;
 
 type PlanPrograms = {
+  primaryMajor?: string | null;
   additionalMajors: string[];
   minors: string[];
   professionalGoals: ProfessionalGoal[];
@@ -196,14 +197,33 @@ function validatePrograms(raw: unknown): { ok: true; value: PlanPrograms } | { o
   const goalsResult = normalizeProfessionalGoals(obj.professionalGoals);
   if (typeof goalsResult === "string") return { ok: false, error: goalsResult };
 
-  return {
-    ok: true,
-    value: {
-      additionalMajors: majorsResult,
-      minors: minorsResult,
-      professionalGoals: goalsResult,
-    },
+  // Plan-scoped primary major (planning intent). Optional; null clears it and
+  // falls back to the profile major. A blank string is treated as "unset".
+  let primaryMajor: string | null = null;
+  if (obj.primaryMajor !== undefined && obj.primaryMajor !== null) {
+    if (typeof obj.primaryMajor !== "string") {
+      return { ok: false, error: "programs.primaryMajor must be a string." };
+    }
+    const trimmed = obj.primaryMajor.trim();
+    if (trimmed.length > MAX_PROGRAM_LABEL_LEN) {
+      return {
+        ok: false,
+        error: `programs.primaryMajor must not exceed ${MAX_PROGRAM_LABEL_LEN} characters.`,
+      };
+    }
+    primaryMajor = trimmed.length > 0 ? trimmed : null;
+  }
+
+  // Only surface primaryMajor when it is actually set, so plans that never
+  // touch it keep the exact same programs shape (backward compatible) and
+  // clearing it (null) removes the key entirely.
+  const value: PlanPrograms = {
+    additionalMajors: majorsResult,
+    minors: minorsResult,
+    professionalGoals: goalsResult,
   };
+  if (primaryMajor !== null) value.primaryMajor = primaryMajor;
+  return { ok: true, value };
 }
 
 
@@ -1077,6 +1097,10 @@ async function getEligibleCoursesForRequirement(
     scenarioMajors,
     scenarioMinors,
     programs.professionalGoals ?? [],
+    [],
+    // Placeholder eligibility must match the plan's effective primary major,
+    // so a course is only "eligible" for the major the student is planning.
+    programs.primaryMajor ?? null,
   );
   for (const group of groups as Array<{ items: Array<{ id: string; courses: string[] }> }>) {
     const found = group.items.find((i) => i.id === requirementId);

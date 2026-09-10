@@ -8,7 +8,13 @@ import {
   SOURCES,
   type RequirementGroupDef,
 } from "../data/degree-requirements";
-import { getMajorRequirements, getMinorRequirements, type College } from "../data/graduation-paths";
+import {
+  getMajorRequirements,
+  getMinorRequirements,
+  getMajorCollege,
+  getMajorTitle,
+  type College,
+} from "../data/graduation-paths";
 import { findCourse } from "../data/courses";
 import {
   resolveCrossSatisfaction,
@@ -50,6 +56,14 @@ const COLLEGE_CODE: Record<string, College> = {
   "Leavey School of Business": "LSB",
   "College of Arts and Sciences": "CAS",
   "School of Education and Counseling Psychology": "CAS",
+};
+
+// Display name for a college code, used when a plan-scoped primary major moves
+// the effective college to a different school than the profile's.
+const COLLEGE_NAME: Record<College, string> = {
+  CAS: "College of Arts and Sciences",
+  LSB: "Leavey School of Business",
+  SOE: "School of Engineering",
 };
 
 function normalize(code: string): string {
@@ -129,8 +143,35 @@ export function buildRequirementsResponse(
    * a tentative scenario never affects the Degree Plan's requirement view.
    */
   plannedCourses: string[] = [],
+  /**
+   * Plan-scoped PRIMARY major override (a major code). When set, it REPLACES
+   * the profile's onboarding major as the primary major these requirements are
+   * built for — the whole point of "Set / Change Primary Major" in Plan
+   * Controls. It is planning intent only: it never mutates the profile or the
+   * Workday APR. Passed from the active plan's `programs.primaryMajor`
+   * (Degree Plan or the specific Tentative scenario), so a tentative scenario's
+   * major never bleeds into the Degree Plan's requirement view.
+   */
+  primaryMajorOverride: string | null = null,
 ) {
-  const collegeCode: College = COLLEGE_CODE[profile.college] ?? "CAS";
+  const declaredMajor = profile.major;
+  const effectivePrimaryMajor =
+    (primaryMajorOverride ?? "").trim().slice(0, 120) || declaredMajor;
+  const primaryMajorChanged =
+    normalize(effectivePrimaryMajor) !== normalize(declaredMajor);
+
+  // When the effective primary major belongs to a different school/college
+  // than the profile, that college's own University Core / college
+  // requirements apply. Majors without a loaded recipe fall back to the
+  // profile college rather than guessing.
+  const overrideCollege = primaryMajorChanged
+    ? getMajorCollege(effectivePrimaryMajor)
+    : null;
+  const collegeCode: College =
+    overrideCollege ?? COLLEGE_CODE[profile.college] ?? "CAS";
+  const effectiveCollegeName = overrideCollege
+    ? COLLEGE_NAME[collegeCode]
+    : profile.college;
   const completed = new Set(
     (profile.completedCourseCodes ?? []).map(normalize),
   );
@@ -235,8 +276,12 @@ export function buildRequirementsResponse(
       .filter((m): m is string => !!m)
       .map(normalize),
   );
+  // The effective primary major leads. The old profile primary is REPLACED
+  // (not kept as an extra) when overridden, so changing the primary major
+  // swaps that program's requirements without deleting second majors, minors,
+  // or professional preparation.
   const declaredMajors = [
-    profile.major,
+    effectivePrimaryMajor,
     profile.secondMajor,
     ...(profile.additionalMajors ?? []),
     ...scenarioMajors,
@@ -245,9 +290,25 @@ export function buildRequirementsResponse(
     buildMajorGroup(
       m,
       idx === 0 ? "primary" : `extra-${idx}`,
-      !profileDeclaredMajors.has(normalize(m)),
+      // The primary major group is the plan's planning primary, never a
+      // "proposed" extra. Only additional majors keep the declared-vs-proposed
+      // distinction.
+      idx === 0 ? false : !profileDeclaredMajors.has(normalize(m)),
     ),
   );
+  // Truthful planning note on the primary group when the student is planning
+  // around a major other than the one on their profile / Workday APR record.
+  if (primaryMajorChanged && majorGroups[0]) {
+    const primaryTitle =
+      getMajorTitle(effectivePrimaryMajor) ?? effectivePrimaryMajor;
+    majorGroups[0] = {
+      ...majorGroups[0],
+      notes: [
+        `Planning major — you're planning around ${primaryTitle} in CampusVal. This updates your CampusVal plan only; your official SCU declaration and Workday APR are unchanged. Verify any formal major change with SCU or your advisor.`,
+        ...majorGroups[0].notes,
+      ],
+    };
+  }
 
   // Minor recipes use the same centralized requirement pipeline as majors,
   // including the server-side placeholder eligibility check.
@@ -416,9 +477,10 @@ export function buildRequirementsResponse(
   });
 
   return {
-    college: profile.college,
+    college: effectiveCollegeName,
     collegeCode,
-    major: profile.major ?? null,
+    major: effectivePrimaryMajor ?? null,
+    declaredMajor: declaredMajor ?? null,
     universityRules: {
       rules: UNIVERSITY_DEGREE_RULES,
       sourceUrl: SOURCES.degreeRequirements,
@@ -493,6 +555,7 @@ router.get("/requirements", requireAuth, async (req, res) => {
       parseScenarioList(req.query.scenarioMinors),
       parseProfessionalGoals(req.query.professionalGoals),
       parseScenarioList(req.query.plannedCourses),
+      typeof req.query.primaryMajor === "string" ? req.query.primaryMajor : null,
     ),
   );
 });

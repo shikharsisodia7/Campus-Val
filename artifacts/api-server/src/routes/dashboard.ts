@@ -1,12 +1,13 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, studentProfilesTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
+import { db, studentProfilesTable, academicPlansTable } from "@workspace/db";
 import {
   classifyStanding,
   standardCapFor,
   approvedCapFor,
   standingLabel,
 } from "../lib/standing";
+import { getMajorCollege, type College } from "../data/graduation-paths";
 import { overloadEligibility, probationNotice } from "../lib/academic-status";
 import { requireAuth } from "../middlewares/requireAuth";
 import {
@@ -20,6 +21,44 @@ import {
 const router: IRouter = Router();
 
 const REQUIRED_TO_GRADUATE = 175;
+
+const COLLEGE_NAME: Record<College, string> = {
+  CAS: "College of Arts and Sciences",
+  LSB: "Leavey School of Business",
+  SOE: "School of Engineering",
+};
+
+/**
+ * The PRIMARY major (and its college) the student is planning around in their
+ * main Degree Plan. Reads the Degree Plan's plan-scoped `programs.primaryMajor`
+ * (planning intent) and falls back to the profile/onboarding major when unset.
+ * Deliberately reads ONLY the "degree" plan, never a Tentative one, so
+ * experimenting inside an unpromoted tentative scenario never changes the
+ * dashboard. Never mutates the profile or the Workday APR.
+ */
+async function planningMajorFor(
+  userId: string,
+  declaredMajor: string,
+  declaredCollege: string,
+): Promise<{ major: string; college: string }> {
+  const degreeRows = await db
+    .select()
+    .from(academicPlansTable)
+    .where(
+      and(
+        eq(academicPlansTable.userId, userId),
+        eq(academicPlansTable.planType, "degree"),
+      ),
+    )
+    .limit(1);
+  const primary = (degreeRows[0]?.programs?.primaryMajor ?? "").trim();
+  if (!primary) return { major: declaredMajor, college: declaredCollege };
+  const overrideCollege = getMajorCollege(primary);
+  return {
+    major: primary,
+    college: overrideCollege ? COLLEGE_NAME[overrideCollege] : declaredCollege,
+  };
+}
 
 type SCUTerm = "fall" | "winter" | "spring" | "summer";
 
@@ -86,6 +125,24 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
     .where(eq(studentProfilesTable.userId, req.userId!))
     .limit(1);
   const profile = rows.length === 0 ? null : rowToDto(rows[0]!);
+
+  // The major shown on the dashboard is PLANNING intent from the main Degree
+  // Plan, not the raw onboarding value. `declaredMajor` keeps the profile/APR
+  // value so the frontend can flag when the two differ. Tentative scenarios
+  // are ignored here on purpose.
+  let declaredMajor: string | null = null;
+  let planningMajor: string | null = null;
+  if (profile) {
+    declaredMajor = profile.major;
+    const planning = await planningMajorFor(
+      req.userId!,
+      profile.major,
+      profile.college,
+    );
+    planningMajor = planning.major;
+    profile.major = planning.major;
+    profile.college = planning.college;
+  }
 
   const today = getCurrentSCUTerm();
   const todayDate = new Date();
@@ -157,6 +214,8 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
     const term = today.term;
     return res.json({
       profile: null,
+      planningMajor: null,
+      declaredMajor: null,
       todayTerm: today.term,
       todayYear: today.year,
       classification: "Unknown",
@@ -228,6 +287,8 @@ router.get("/dashboard/summary", requireAuth, async (req, res) => {
 
   res.json({
     profile,
+    planningMajor,
+    declaredMajor,
     todayTerm: today.term,
     todayYear: today.year,
     classification,
