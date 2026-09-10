@@ -149,3 +149,12 @@ themselves; schedule data comes from the Registrar's published and tentative sch
 
 [docs/WORKDAY_INTEGRATION.md](docs/WORKDAY_INTEGRATION.md) documents what SCU would need
 to provide before a real read-only integration could exist.
+
+## Planning major vs. university record
+
+The major a student plans around ("Set or Change Primary Major" in Plan
+Controls) is planning intent stored on the plan — it never changes the profile,
+the formal SCU declaration, or the uploaded Workday APR. Tentative Degree Plans
+carry their own primary major in isolation until promoted.
+[docs/PLANNING_MAJOR_AND_TENTATIVE.md](docs/PLANNING_MAJOR_AND_TENTATIVE.md)
+explains the four distinct major values and how promotion carries them.

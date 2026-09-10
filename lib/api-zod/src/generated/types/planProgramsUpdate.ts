@@ -8,6 +8,8 @@
 import type { ProfessionalGoal } from "./professionalGoal";
 
 export interface PlanProgramsUpdate {
+  /** Plan-scoped primary major code the student is planning around, or null to fall back to the profile's onboarding major. Planning intent only — never changes the official SCU declaration or Workday APR. */
+  primaryMajor?: string | null;
   additionalMajors: string[];
   minors: string[];
   professionalGoals: (string | ProfessionalGoal)[];

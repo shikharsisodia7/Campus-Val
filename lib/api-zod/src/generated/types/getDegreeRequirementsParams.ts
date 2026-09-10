@@ -8,6 +8,10 @@
 
 export type GetDegreeRequirementsParams = {
   /**
+   * Plan-scoped PRIMARY major code (e.g. "CHEM") to use as the primary major instead of the profile's onboarding major. Planning intent only — it never changes the official SCU declaration or Workday APR. When the effective primary major belongs to a different school/college than the profile, the college requirement groups follow the major's college.
+   */
+  primaryMajor?: string;
+  /**
    * Comma-separated draft-only additional majors to include (tentative scenarios); does not alter the profile.
    */
   scenarioMajors?: string;

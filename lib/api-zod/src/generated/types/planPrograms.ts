@@ -8,7 +8,9 @@
 import type { ProfessionalGoal } from "./professionalGoal";
 
 export interface PlanPrograms {
-  /** Additional majors (beyond the one in the student profile). */
+  /** Plan-scoped PRIMARY major the student is planning around (a major code, e.g. "CHEM"). Planning intent only — it never changes the student's official SCU declaration or the Workday APR. When null, the profile's onboarding major is used as the primary major. */
+  primaryMajor?: string | null;
+  /** Additional majors (beyond the primary major). */
   additionalMajors: string[];
   /** Declared minors. */
   minors: string[];

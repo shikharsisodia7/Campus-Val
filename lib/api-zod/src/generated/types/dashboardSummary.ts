@@ -12,6 +12,10 @@ import type { Term } from "./term";
 
 export interface DashboardSummary {
   profile?: StudentProfile | null;
+  /** The PRIMARY major the student is currently planning around in their main Degree Plan (the plan's primaryMajor, or the profile major when unset). This is planning intent, not the official SCU declaration. */
+  planningMajor?: string | null;
+  /** The major from onboarding/profile (aligned with the Workday APR record). Differs from planningMajor when the student is planning a future major change. Shown so the dashboard can distinguish planning intent from the university record. */
+  declaredMajor?: string | null;
   /** First Year, Sophomore, Junior, Senior based on units */
   classification: string;
   totalUnitsAllSources: number;

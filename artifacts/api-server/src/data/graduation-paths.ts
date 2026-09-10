@@ -1077,6 +1077,28 @@ export function getAvailableMajors(): {
 }
 
 /**
+ * The verified college a major belongs to, or null when the major has no
+ * loaded recipe. Used so that changing the plan-scoped PRIMARY major to a
+ * program in a different school/college (e.g. a CAS major → an LSB or SOE
+ * major) loads that college's own University Core / college requirements
+ * rather than assuming every program shares one college's rules.
+ */
+export function getMajorCollege(major: string): College | null {
+  const normalizedMajor = major === "COEN" ? "CSE" : major;
+  return MAJOR_RECIPES[normalizedMajor]?.college ?? null;
+}
+
+/**
+ * Canonical display title for a major code (e.g. "CHEM" → "Chemistry"),
+ * or null when the code has no loaded recipe. Falls back to the raw value
+ * at call sites so free-form/legacy majors still render.
+ */
+export function getMajorTitle(major: string): string | null {
+  const normalizedMajor = major === "COEN" ? "CSE" : major;
+  return MAJOR_RECIPES[normalizedMajor]?.title ?? null;
+}
+
+/**
  * Majors with a real (non-"example") four-year plan: either preloadable
  * ("prescribed", reconciled course-by-course) or reference-only
  * ("recommended", an official SCU plan exists but isn't reconciled yet).

@@ -41,6 +41,16 @@ export const academicPlansTable = pgTable(
      * planning data only; they never represent official SCU requirements.
      */
     programs: jsonb("programs").$type<{
+      /**
+       * Plan-scoped PRIMARY major the student is planning around (a major code).
+       * Planning intent only — it never changes the official SCU declaration or
+       * the Workday APR. When unset, the profile's onboarding major is the
+       * primary major. Each plan (Degree Plan and every Tentative Degree Plan)
+       * carries its own value, so a tentative scenario can explore a different
+       * primary major in isolation, and promotion carries it atomically with the
+       * rest of the plan row.
+       */
+      primaryMajor?: string | null;
       additionalMajors?: string[];
       minors?: string[];
       professionalGoals?: Array<

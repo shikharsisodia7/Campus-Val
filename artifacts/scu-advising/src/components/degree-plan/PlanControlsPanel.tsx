@@ -30,7 +30,9 @@ import {
   GraduationCap,
   BookOpen,
   Target,
+  Star,
 } from "lucide-react";
+import { MajorCombobox } from "./MajorCombobox";
 import {
   Dialog,
   DialogContent,
@@ -145,12 +147,39 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
     );
   };
 
+  // The PRIMARY major the student is planning around in THIS plan. Falls back
+  // to the profile/onboarding major until the student sets a plan-scoped one.
+  const effectivePrimaryMajor =
+    currentPrograms.primaryMajor?.trim() || profile?.major || "";
+  const primaryMajorTitle =
+    majorsList?.majors.find(
+      (m) => normalized(m.code) === normalized(effectivePrimaryMajor),
+    )?.title ?? effectivePrimaryMajor;
+
+  // Set/Change the plan-scoped PRIMARY major. On the Degree Plan this updates
+  // the canonical planning major + dashboard; on a Tentative Degree Plan it
+  // changes only that scenario until it is explicitly promoted. Never touches
+  // the profile or the Workday APR. If the chosen program was listed as an
+  // additional major, it is removed from that list so it is never both.
+  const setPrimaryMajor = (code: string) => {
+    if (!code || !activePlanId || !activePlan) return;
+    if (normalized(code) === normalized(effectivePrimaryMajor)) return;
+    updatePrograms({
+      ...currentPrograms,
+      primaryMajor: code,
+      additionalMajors: currentPrograms.additionalMajors.filter(
+        (m) => normalized(m) !== normalized(code),
+      ),
+    });
+  };
+
   const addMajor = (majorCode = majorDraft) => {
     if (
       !majorCode ||
       !activePlanId ||
       !activePlan ||
-      majorMatchesProfile(majorCode)
+      majorMatchesProfile(majorCode) ||
+      normalized(majorCode) === normalized(effectivePrimaryMajor)
     )
       return;
     const updated = {
@@ -254,7 +283,9 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
     (major) =>
       !currentPrograms.additionalMajors.some(
         (selected) => normalized(selected) === normalized(major.code),
-      ) && !majorMatchesProfile(major.code),
+      ) &&
+      !majorMatchesProfile(major.code) &&
+      normalized(major.code) !== normalized(effectivePrimaryMajor),
   );
   const minorOptions = (minorsList?.minors ?? []).filter(
     (minor) =>
@@ -521,6 +552,43 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                   Programs for this plan
                 </Label>
+
+                {/* Primary Major — the program the student is planning around.
+                    Deliberately first and visually distinct so students change
+                    the major they plan around here, not by editing an account
+                    profile or their Workday declaration. */}
+                <div
+                  className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3"
+                  data-testid="plan-primary-major-section"
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <Star className="h-3.5 w-3.5 text-primary" />
+                    Set or Change Primary Major
+                  </div>
+                  <div
+                    className="text-[11px] text-muted-foreground"
+                    data-testid="plan-primary-major-current"
+                  >
+                    Planning around:{" "}
+                    <span className="font-medium text-foreground">
+                      {primaryMajorTitle || "—"}
+                    </span>
+                  </div>
+                  <MajorCombobox
+                    value={effectivePrimaryMajor}
+                    onChange={setPrimaryMajor}
+                    options={majorsList?.majors ?? []}
+                    placeholder="Set your primary major…"
+                    disabled={updatePlan.isPending}
+                    testId="select-plan-primary-major"
+                    ariaLabel="Set or change primary major"
+                  />
+                  <p className="text-[10px] leading-snug text-muted-foreground">
+                    {activePlan.planType === "tentative"
+                      ? "Changes this tentative scenario only. Promote it to apply this major to your Degree Plan."
+                      : "Planning major — changing this updates your CampusVal plan only. Your official SCU declaration and Workday APR stay the same; verify formal major changes with SCU or your advisor."}
+                  </p>
+                </div>
 
                 {/* Additional Majors */}
                 <div className="space-y-2">
