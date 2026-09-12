@@ -95,3 +95,83 @@ test.describe("authenticated responsive QA", () => {
     await assertNoHorizontalOverflow(page, "Quarter Plan with active schedule");
   });
 });
+
+/**
+ * Pilot feature-visibility QA, run against the real deployed app (not a
+ * jsdom unit test) at every required viewport. student-a is a non-admin
+ * pilot tester, so this proves the professor's controlled-pilot contract
+ * holds end-to-end: nav hiding and direct-URL blocking never drift apart,
+ * and neither reappears on mobile.
+ */
+const PILOT_HIDDEN_ROUTES = [
+  "/professors",
+  "/compare",
+  "/graduation-paths",
+  "/advice",
+  "/advisor",
+  "/voice",
+  "/policies",
+  "/evaluation",
+  "/sync-workday",
+  "/feedback",
+];
+
+const PILOT_HIDDEN_LABELS = [
+  "Advice Board",
+  "Planning Support",
+  "Voice Planning Support",
+  "SCU Policies",
+  "AI Evaluation",
+  "Graduation Paths",
+  "Sync Workday Sections",
+];
+
+async function openAdditionalFeatures(page: Page) {
+  const desktopTrigger = page.getByTestId("nav-additional-features");
+  if (await desktopTrigger.isVisible().catch(() => false)) {
+    await desktopTrigger.click();
+    return;
+  }
+  await page.getByLabel("Open navigation").click();
+  await page.getByTestId("mobile-additional-features").getByText("Additional Features").click();
+}
+
+test.describe("pilot feature visibility (non-admin)", () => {
+  test("shows the Pilot badge in the header", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("badge-pilot")).toBeVisible();
+    await expect(page.getByTestId("badge-pilot")).toHaveText(/pilot/i);
+  });
+
+  test("Additional Features shows the conservative kept set and none of the hidden features", async ({ page }) => {
+    await page.goto("/");
+    await openAdditionalFeatures(page);
+
+    await expect(page.getByText("Course Catalog")).toBeVisible();
+    await expect(page.getByText("GPA Calculator")).toBeVisible();
+    await expect(page.getByText("Transfer Credit")).toBeVisible();
+    await expect(page.getByText(/Workday APR/)).toBeVisible();
+    await expect(page.getByText("SCU Resources")).toBeVisible();
+
+    for (const label of PILOT_HIDDEN_LABELS) {
+      await expect(page.getByText(label, { exact: true })).toHaveCount(0);
+    }
+  });
+
+  test("Dashboard Quick Actions are exactly Degree Plan / Quarter Plan / Tentative Degree Plan, no AI assistant action", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("quick-degree-plan")).toBeVisible();
+    await expect(page.getByTestId("quick-planner")).toBeVisible();
+    await expect(page.getByTestId("quick-tentative-plans")).toBeVisible();
+    await expect(page.getByText(/ask the ai assistant/i)).toHaveCount(0);
+  });
+
+  for (const route of PILOT_HIDDEN_ROUTES) {
+    test(`direct navigation to ${route} redirects a non-admin back to Dashboard`, async ({ page }) => {
+      await page.goto(route);
+      await page.waitForURL((url) => url.pathname === "/", { timeout: 10_000 });
+      await expect(page.locator("body")).toBeVisible();
+      await assertNoHorizontalOverflow(page, `redirected from ${route}`);
+    });
+  }
+});

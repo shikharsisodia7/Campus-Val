@@ -18,6 +18,9 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { getGetProgressReportQueryKey } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
+import { useAdminStatus } from "@/hooks/use-is-admin";
+import { isPathPilotAllowed } from "@/lib/pilot-features";
 
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
@@ -174,6 +177,35 @@ function Protected({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Wraps a PILOT_HIDDEN route (see lib/pilot-features.ts). Admins render the
+ * real page unchanged -- nothing is deleted or behaves differently for them.
+ * A non-admin pilot tester gets redirected to Dashboard with a concise
+ * toast instead of the feature silently rendering, so nav hiding and direct-
+ * URL behavior can never drift apart. This is a UI contract only -- the
+ * underlying API routes still enforce their own server-side authorization.
+ */
+function PilotGate({ path, children }: { path: string; children: React.ReactNode }) {
+  const { isAdmin, isLoading } = useAdminStatus();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const notifiedRef = useRef(false);
+  const allowed = isPathPilotAllowed(path, isAdmin);
+
+  useEffect(() => {
+    if (isLoading || allowed || notifiedRef.current) return;
+    notifiedRef.current = true;
+    toast({
+      title: "Not part of the current pilot",
+      description: "This feature is hidden during the controlled pilot review. Taking you back to your Dashboard.",
+    });
+    setLocation("/");
+  }, [isLoading, allowed, setLocation, toast]);
+
+  if (isLoading || !allowed) return null;
+  return <>{children}</>;
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -240,17 +272,23 @@ function AppRoutes() {
         </Route>
         <Route path="/sync-workday">
           <Protected>
-            <SyncWorkdayPage />
+            <PilotGate path="/sync-workday">
+              <SyncWorkdayPage />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/policies">
           <Protected>
-            <Policies />
+            <PilotGate path="/policies">
+              <Policies />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/advisor">
           <Protected>
-            <Advisor />
+            <PilotGate path="/advisor">
+              <Advisor />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/shared-with-me">
@@ -260,17 +298,23 @@ function AppRoutes() {
         </Route>
         <Route path="/voice">
           <Protected>
-            <VoiceAdvisor />
+            <PilotGate path="/voice">
+              <VoiceAdvisor />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/graduation-paths">
           <Protected>
-            <GraduationPaths />
+            <PilotGate path="/graduation-paths">
+              <GraduationPaths />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/professors">
           <Protected>
-            <ProfessorsPage />
+            <PilotGate path="/professors">
+              <ProfessorsPage />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/core-reqs">
@@ -280,12 +324,16 @@ function AppRoutes() {
         </Route>
         <Route path="/compare">
           <Protected>
-            <ComparePage />
+            <PilotGate path="/compare">
+              <ComparePage />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/advice">
           <Protected>
-            <AdvicePage />
+            <PilotGate path="/advice">
+              <AdvicePage />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/resources">
@@ -295,12 +343,16 @@ function AppRoutes() {
         </Route>
         <Route path="/evaluation">
           <Protected>
-            <Evaluation />
+            <PilotGate path="/evaluation">
+              <Evaluation />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/feedback">
           <Protected>
-            <FeedbackPage />
+            <PilotGate path="/feedback">
+              <FeedbackPage />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/progress-report">
@@ -355,5 +407,5 @@ function App() {
   );
 }
 
-export { useUser };
+export { useUser, PilotGate };
 export default App;

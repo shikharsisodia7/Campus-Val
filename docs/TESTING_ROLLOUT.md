@@ -21,29 +21,81 @@ Two populations, enforced server-side in
 Everyone else is denied with a generic message that doesn't reveal who is
 or isn't on the allowlist.
 
-## What the cohort sees: reduced nav, not reduced product
+## What the cohort sees: a pilot-focused nav, not a reduced product
 
-Deleting an unfinished feature is worse than hiding it — you lose the work
-and can't come back to it later. Instead, `AppShell.tsx` exposes exactly
-four items in the primary nav for everyone: **Dashboard, Degree Plan,
-Quarter Plan, Tentative Degree Plan**. Every other feature (Excel export,
-advisor sharing, catalog browsing, admin analytics, etc.) still exists and
-still works — it collapses into a de-emphasized **"More tools"** disclosure
-one click away, rather than disappearing.
+Deleting an unfinished or risky feature is worse than hiding it — you lose
+the work and can't come back to it later. Instead, every feature's pilot
+visibility is defined in one place —
+[`artifacts/scu-advising/src/lib/pilot-features.ts`](../artifacts/scu-advising/src/lib/pilot-features.ts)
+— as `CORE`, `PILOT_VISIBLE`, or `PILOT_HIDDEN`. Desktop nav, mobile nav,
+the Dashboard's Quick Actions, and route gating in `App.tsx` all read from
+this single registry, so what a menu shows and what a direct URL renders
+can never drift apart. See
+[docs/PILOT_FEATURE_MATRIX.md](PILOT_FEATURE_MATRIX.md) for the full list,
+the professor's rationale for each status, and re-enable criteria.
+
+- **`CORE`** — always prominent, in the primary nav, for every signed-in
+  user: **Dashboard, Degree Plan, Quarter Plan, Tentative Degree Plan**.
+  Degree Plan is the central planning workflow.
+- **`PILOT_VISIBLE`** — a conservative set of lower-risk utilities shown to
+  every pilot user under **"Additional Features"** (next to the header's
+  **"Report Error / Suggest Changes"** control): Course Catalog, Core
+  Curriculum, GPA Calculator, Transfer Credit, the Workday Academic
+  Progress Report (APR) upload, SCU Resources, and Shared with Me
+  (Advisors).
+- **`PILOT_HIDDEN`** — features the professor asked to keep out of this
+  review because incorrect output could affect academic decisions, or
+  because they'd distract from the three key workflows: Professors,
+  Compare Courses, Graduation Paths, Advice Board, Planning Support, Voice
+  Planning Support, SCU Policies, AI Evaluation, Sync Workday Sections, and
+  the legacy Feedback page (superseded by "Report Error / Suggest
+  Changes"). Nothing is deleted — the code, data, and routes still exist.
 
 Admin accounts (`ADMIN_EMAILS` env allowlist, checked server-side in
-`lib/admin.ts`) always see the full nav under **"Additional Features"**
-instead of the reduced set — there's no separate "tester cohort" concept
-to manage beyond admin vs. everyone else. The signal driving this is a
-single `GET /api/me/role` call (`isAdmin: boolean`), consumed by the
-`useIsAdmin()` hook, which **defaults to the reduced/non-admin view** on a
-slow request or any error — a failure mode never accidentally over-exposes
-a feature.
+`lib/admin.ts`) see `PILOT_HIDDEN` items too, in both nav and by direct
+URL — in a clearly separated "Hidden during pilot" group — so nothing
+requires a code change to inspect during development. The signal driving
+this is a single `GET /api/me/role` call (`isAdmin: boolean`), consumed by
+the `useIsAdmin()` / `useAdminStatus()` hooks, which **default to the
+non-admin pilot view** on a slow request or any error — a failure mode
+never accidentally over-exposes a feature. A non-admin who navigates
+directly to a `PILOT_HIDDEN` route (e.g. typing `/advice` in the address
+bar) is redirected to Dashboard with a concise toast rather than the
+feature silently rendering — see `PilotGate` in `App.tsx`. This is a UI
+contract only; the underlying API routes keep their own server-side
+authorization regardless of pilot status.
 
 This is a role/allowlist model, not dozens of hardcoded per-person checks:
 adding a trusted tester who needs the full nav means adding their email to
-`ADMIN_EMAILS`; adding a reviewer who should get the reduced/core
-experience means adding them to `GUEST_REVIEWER_EMAILS` only.
+`ADMIN_EMAILS`; adding a reviewer who should get the pilot experience means
+adding them to `GUEST_REVIEWER_EMAILS` only.
+
+## What to focus on during this pilot review
+
+The professor's two review videos asked for feedback centered on a small
+number of things — please prioritize these over exploring hidden or
+secondary features:
+
+1. **Degree Plan** — the central planning workflow. Does "Set or Change
+   Primary Major" behave the way you'd expect? Is it clear that changing
+   your planning major here does **not** formally declare a new major at
+   SCU?
+2. **Quarter Plan** — turning your degree plan into an actual Fall/Winter/
+   Spring schedule.
+3. **Tentative Degree Plan** — workshopping another major or scenario
+   without touching your main plan, and how/when a scenario gets promoted.
+4. **APR comparison** — upload your Workday Academic Progress Report
+   (Dashboard → Progress Report, or the read-only panel next to Degree
+   Plan) and compare it against what CampusVal shows. Does anything
+   disagree with Workday?
+5. **Official-source verification** — for anything CampusVal shows (Core
+   Curriculum, Transfer Credit, SCU Resources), can you tell where the
+   information comes from and how current it is? Does anything read as
+   more authoritative than it should?
+6. **Report Error / Suggest Changes** — the one feedback mechanism for
+   this pilot, in the header next to "Additional Features". Use it for
+   anything that looks wrong, outdated, or missing — see
+   [docs/FEEDBACK_AND_ERROR_REPORTING.md](FEEDBACK_AND_ERROR_REPORTING.md).
 
 ## Suggested initial cohort
 
