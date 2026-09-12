@@ -1,39 +1,12 @@
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import {
-  LayoutDashboard,
-  BookOpen,
-  CalendarRange,
-  Calculator,
-  ArrowLeftRight,
-  MessageSquareText,
-  Library,
-  GraduationCap,
-  UserCog,
-  Route,
-  Gauge,
-  ClipboardPaste,
-  Mic,
-  Users,
-  LogOut,
-  CheckSquare,
-  Scale,
-  Lightbulb,
-  MessageSquarePlus,
-  FlaskConical,
-  Map,
-  Menu,
-  ChevronDown,
-  X,
-  FileUp,
-  UserCheck,
-  Flag,
-} from "lucide-react";
+import { UserCog, LogOut, Menu, ChevronDown, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useUser, useClerk } from "@clerk/react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,62 +24,15 @@ import {
 } from "@/components/ui/sheet";
 import { ReportIssueDialog } from "@/components/ReportIssueDialog";
 import { useState } from "react";
+import {
+  getPrimaryNavItems,
+  getAdditionalFeatureGroups,
+  type PilotFeatureDef,
+} from "@/lib/pilot-features";
 
-type NavItem = {
-  path: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-};
+type NavItem = PilotFeatureDef;
 
-const PRIMARY_NAV: NavItem[] = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/degree-plan", label: "Degree Plan", icon: Map },
-  { path: "/planner", label: "Quarter Plan", icon: CalendarRange },
-  {
-    path: "/tentative-plans",
-    label: "Tentative Degree Plan",
-    icon: FlaskConical,
-  },
-];
-
-const FEATURE_GROUPS: { label: string; items: NavItem[] }[] = [
-  {
-    label: "Course information",
-    items: [
-      { path: "/courses", label: "Course Catalog", icon: BookOpen },
-      { path: "/professors", label: "Professors", icon: Users },
-      { path: "/compare", label: "Compare Courses", icon: Scale },
-      { path: "/core-reqs", label: "Core Curriculum", icon: CheckSquare },
-    ],
-  },
-  {
-    label: "Planning utilities",
-    items: [
-      { path: "/graduation-paths", label: "Graduation Paths", icon: Route },
-      { path: "/gpa", label: "GPA Calculator", icon: Calculator },
-      { path: "/transfer", label: "Transfer Credit", icon: ArrowLeftRight },
-      {
-        path: "/sync-workday",
-        label: "Sync Workday Sections",
-        icon: ClipboardPaste,
-      },
-      { path: "/progress-report", label: "Progress Report", icon: FileUp },
-    ],
-  },
-  {
-    label: "Resources & feedback",
-    items: [
-      { path: "/resources", label: "SCU Resources", icon: Library },
-      { path: "/advice", label: "Advice Board", icon: Lightbulb },
-      { path: "/advisor", label: "Planning Support", icon: MessageSquareText },
-      { path: "/shared-with-me", label: "Shared with Me (Advisors)", icon: UserCheck },
-      { path: "/voice", label: "Voice Planning Support", icon: Mic },
-      { path: "/policies", label: "SCU Policies", icon: Library },
-      { path: "/evaluation", label: "AI Evaluation", icon: Gauge },
-      { path: "/feedback", label: "Feedback", icon: MessageSquarePlus },
-    ],
-  },
-];
+const PRIMARY_NAV: NavItem[] = getPrimaryNavItems();
 
 function isActive(location: string, path: string) {
   return path === "/" ? location === "/" : location.startsWith(path);
@@ -115,11 +41,12 @@ function isActive(location: string, path: string) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  // Reduces initial cognitive load for the controlled testing cohort: only
-  // Dashboard/Degree Plan/Quarter Plan/Tentative Degree Plan are prominent
-  // by default. Nothing is deleted - secondary features stay one click away
-  // behind a de-emphasized "More tools" disclosure, and admins always see
-  // the full nav (Part 15/16 of the controlled-rollout spec).
+  // Reduces initial cognitive load for the controlled pilot cohort: only
+  // Dashboard/Degree Plan/Quarter Plan/Tentative Degree Plan are prominent by
+  // default. Secondary features live under "Additional Features", grouped by
+  // pilot status in artifacts/scu-advising/src/lib/pilot-features.ts --
+  // nothing is deleted, admins/developers still see PILOT_HIDDEN items in
+  // the same dropdown, in a clearly separated group.
   const isAdmin = useIsAdmin();
 
   return (
@@ -141,6 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </Link>
+          <PilotBadge />
 
           <nav
             className="ml-2 hidden min-w-0 flex-1 items-center gap-0.5 xl:gap-1 lg:flex"
@@ -233,16 +161,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   }
                 />
                 <div className="my-3 border-t border-border" />
-                {isAdmin ? (
-                  <FeatureGroupsList location={location} onNavigate={() => setMobileOpen(false)} />
-                ) : (
-                  <details className="group" data-testid="mobile-more-tools">
-                    <summary className="cursor-pointer select-none px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      More tools
-                    </summary>
-                    <FeatureGroupsList location={location} onNavigate={() => setMobileOpen(false)} />
-                  </details>
-                )}
+                <details className="group" data-testid="mobile-additional-features">
+                  <summary className="cursor-pointer select-none px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Additional Features
+                  </summary>
+                  <FeatureGroupsList location={location} isAdmin={isAdmin} onNavigate={() => setMobileOpen(false)} />
+                </details>
               </nav>
               <div className="border-t border-border p-3">
                 <AccountMenu mobile onNavigate={() => setMobileOpen(false)} />
@@ -307,8 +231,22 @@ function MobileLink({
   );
 }
 
+function PilotBadge() {
+  return (
+    <Badge
+      variant="outline"
+      data-testid="badge-pilot"
+      title="CampusVal is in a controlled pilot evaluation. Some features are hidden while under review."
+      className="shrink-0 gap-1 border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary"
+    >
+      Pilot
+    </Badge>
+  );
+}
+
 function AdditionalFeatures({ location, isAdmin }: { location: string; isAdmin: boolean }) {
-  const active = FEATURE_GROUPS.some((group) =>
+  const groups = getAdditionalFeatureGroups(isAdmin);
+  const active = groups.some((group) =>
     group.items.some((item) => isActive(location, item.path)),
   );
   return (
@@ -318,17 +256,16 @@ function AdditionalFeatures({ location, isAdmin }: { location: string; isAdmin: 
           variant="ghost"
           data-testid="nav-additional-features"
           className={cn(
-            "shrink-0 gap-1 px-2 xl:gap-1.5 xl:px-2.5",
-            isAdmin ? "text-[13px] xl:text-sm" : "text-[11px] text-muted-foreground/70 xl:text-xs",
+            "shrink-0 gap-1 px-2 text-[13px] xl:gap-1.5 xl:px-2.5 xl:text-sm",
             active && "bg-primary/10 text-primary",
           )}
         >
-          {isAdmin ? "Additional Features" : "More tools"} <ChevronDown className="h-3.5 w-3.5" />
+          Additional Features <ChevronDown className="h-3.5 w-3.5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        {FEATURE_GROUPS.map((group, index) => (
-          <DropdownMenuGroup key={group.label}>
+        {groups.map((group, index) => (
+          <DropdownMenuGroup key={group.id}>
             {index > 0 && <DropdownMenuSeparator />}
             <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
               {group.label}
@@ -355,15 +292,18 @@ function AdditionalFeatures({ location, isAdmin }: { location: string; isAdmin: 
 
 function FeatureGroupsList({
   location,
+  isAdmin,
   onNavigate,
 }: {
   location: string;
+  isAdmin: boolean;
   onNavigate: () => void;
 }) {
+  const groups = getAdditionalFeatureGroups(isAdmin);
   return (
     <>
-      {FEATURE_GROUPS.map((group) => (
-        <div key={group.label} className="mb-4">
+      {groups.map((group) => (
+        <div key={group.id} className="mb-4">
           <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             {group.label}
           </div>
