@@ -127,8 +127,13 @@ const PILOT_HIDDEN_LABELS = [
 ];
 
 async function openAdditionalFeatures(page: Page) {
-  const desktopTrigger = page.getByTestId("nav-additional-features");
-  if (await desktopTrigger.isVisible().catch(() => false)) {
+  // Decide by viewport width, not a one-shot isVisible() probe -- at exactly
+  // the lg breakpoint the desktop nav can still be mid-layout on first paint,
+  // and a single isVisible() check races that instead of waiting for it.
+  const width = page.viewportSize()?.width ?? 0;
+  if (width >= 1024) {
+    const desktopTrigger = page.getByTestId("nav-additional-features");
+    await desktopTrigger.waitFor({ state: "visible", timeout: 10_000 });
     await desktopTrigger.click();
     return;
   }
