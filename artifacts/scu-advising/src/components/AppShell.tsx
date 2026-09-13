@@ -71,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <PilotBadge />
 
           <nav
-            className="ml-2 hidden min-w-0 flex-1 items-center gap-0.5 xl:gap-1 lg:flex"
+            className="ml-2 hidden min-w-0 flex-1 items-center gap-0.5 2xl:gap-1 lg:flex"
             aria-label="Primary navigation"
             data-testid="primary-nav"
           >
@@ -95,10 +95,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="hidden shrink-0 items-center gap-1.5 px-2 text-muted-foreground hover:text-foreground lg:flex"
               >
                 <Flag className="h-4 w-4" />
-                <span className="hidden whitespace-nowrap text-sm xl:inline">
+                <span className="hidden whitespace-nowrap text-sm 2xl:inline">
                   Report Error / Suggest Changes
                 </span>
-                <span className="whitespace-nowrap text-sm xl:hidden">Report Error</span>
+                <span className="whitespace-nowrap text-sm 2xl:hidden">Report Error</span>
               </Button>
             }
           />
@@ -192,13 +192,13 @@ function TopLink({ item, active }: { item: NavItem; active: boolean }) {
       href={item.path}
       data-testid={testId}
       className={cn(
-        "flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors xl:gap-1.5 xl:px-2.5 xl:text-sm",
+        "flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors 2xl:gap-1.5 2xl:px-2.5 2xl:text-sm",
         active
           ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
-      <Icon className="hidden h-4 w-4 xl:block" aria-hidden="true" />
+      <Icon className="hidden h-4 w-4 2xl:block" aria-hidden="true" />
       <span className="whitespace-nowrap">{item.label}</span>
     </Link>
   );
@@ -256,7 +256,7 @@ function AdditionalFeatures({ location, isAdmin }: { location: string; isAdmin: 
           variant="ghost"
           data-testid="nav-additional-features"
           className={cn(
-            "shrink-0 gap-1 px-2 text-[13px] xl:gap-1.5 xl:px-2.5 xl:text-sm",
+            "shrink-0 gap-1 px-2 text-[13px] 2xl:gap-1.5 2xl:px-2.5 2xl:text-sm",
             active && "bg-primary/10 text-primary",
           )}
         >

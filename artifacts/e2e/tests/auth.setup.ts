@@ -43,6 +43,36 @@ for (const key of Object.keys(TEST_USERS) as (keyof typeof TEST_USERS)[]) {
     await page.goto(`${baseURL}/sign-in?__clerk_ticket=${token}`);
     await page.waitForURL((url) => !url.pathname.startsWith("/sign-in"), { timeout: 20_000 });
 
+    // A brand-new synthetic user has no CampusVal profile yet, so Dashboard
+    // (and other profile-gated pages) would otherwise redirect every test to
+    // /onboarding. Seed a minimal valid profile directly via the API the
+    // real onboarding form itself calls, using this same authenticated
+    // session -- idempotent (PUT upserts), safe to run on every setup.
+    await page.request.put(`${baseURL}/api/profile`, {
+      data: {
+        name: `E2E ${key}`,
+        studentType: "continuing",
+        college: "School of Engineering",
+        major: "CSE",
+        secondMajor: null,
+        minor: null,
+        additionalMajors: [],
+        additionalMinors: [],
+        startTerm: "fall",
+        startYear: 2024,
+        expectedGradTerm: "spring",
+        expectedGradYear: 2028,
+        unitsCompletedAtSCU: 60,
+        unitsTransferredIn: 0,
+        cumulativeGpa: null,
+        majorGpa: null,
+        completedCourseCodes: [],
+        priorityRegistration: false,
+        currentTerm: "fall",
+        currentYear: 2026,
+      },
+    });
+
     await page.context().storageState({ path: path.join(STORAGE_DIR, STORAGE_FILE[key]) });
   });
 }
