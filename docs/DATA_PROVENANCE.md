@@ -16,6 +16,11 @@ than fabricating a list.
 | **SCU Undergraduate Bulletin** (`scu.edu/bulletin`) | Course descriptions, prerequisites, and program (major/minor/concentration) requirements. |
 | **CampusVal** | None of the above — a planning workspace that reads and cites the three sources above. It never overrides them. |
 
+See `docs/SECTION_AVAILABILITY.md` for how current-quarter seat availability
+(open/waitlist/full/unknown) is derived without a live Workday feed, and
+`docs/APR_SIDEBAR_AND_RECONCILIATION.md` / `docs/WORKDAY_INTEGRATION.md` for
+how the Academic Progress Report and degree-audit data are handled.
+
 ## Where provenance is recorded in code
 
 - **Course catalog** — `artifacts/api-server/src/data/courses.ts` /
