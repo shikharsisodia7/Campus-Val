@@ -24,6 +24,40 @@ const COMPONENT_LABEL: Record<string, string> = {
 
 const COMPONENT_ORDER = ["lecture", "lab", "recitation", "unknown"];
 
+/**
+ * Text always carries the meaning — color is additive only (professor
+ * feedback: "color may reinforce the status but text must carry the
+ * meaning"). Backed by lib/section-availability.ts on the server; never
+ * derived client-side.
+ */
+const AVAILABILITY_BADGE: Record<
+  "open" | "waitlist" | "full" | "unknown",
+  { label: string; classes: string }
+> = {
+  open: { label: "OPEN", classes: "border-emerald-300 text-emerald-800 bg-emerald-50" },
+  waitlist: { label: "WAITLIST", classes: "border-amber-300 text-amber-900 bg-amber-50" },
+  full: { label: "FULL", classes: "border-red-300 text-red-800 bg-red-50" },
+  unknown: { label: "UNKNOWN", classes: "border-border text-muted-foreground bg-muted/30" },
+};
+
+type AvailabilityFilter = "all" | "open" | "open_waitlist";
+
+const AVAILABILITY_FILTER_OPTIONS: { value: AvailabilityFilter; label: string }[] = [
+  { value: "all", label: "Show all sections" },
+  { value: "open_waitlist", label: "Show open + waitlist" },
+  { value: "open", label: "Show open only" },
+];
+
+function passesAvailabilityFilter(
+  status: "open" | "waitlist" | "full" | "unknown",
+  filter: AvailabilityFilter,
+): boolean {
+  if (filter === "all") return true;
+  if (filter === "open") return status === "open" || status === "unknown";
+  // open_waitlist
+  return status !== "full";
+}
+
 function groupByComponent<T extends { componentType?: string | null }>(
   sections: T[],
 ): Array<{ component: string; sections: T[] }> {
@@ -55,6 +89,9 @@ export function QuickAddSearch({
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 250);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  // Conservative default: never hide a section from a student by default —
+  // "all" is the only choice that can't cause a student to miss an option.
+  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>("all");
 
   // Apply initialCourse the first time it arrives or changes
   const prevInitialCourse = useRef<string | null | undefined>(undefined);
@@ -254,7 +291,37 @@ export function QuickAddSearch({
               </div>
             ) : (
               <div className="space-y-5">
-                {groupByComponent(sections).map(({ component, sections: group }) => (
+                <div className="flex items-center justify-between gap-2">
+                  <label htmlFor="availability-filter" className="text-[11px] text-muted-foreground">
+                    Availability
+                  </label>
+                  <select
+                    id="availability-filter"
+                    data-testid="select-availability-filter"
+                    value={availabilityFilter}
+                    onChange={(e) => setAvailabilityFilter(e.target.value as AvailabilityFilter)}
+                    className="h-7 rounded-md border border-input bg-background px-2 text-[11px]"
+                  >
+                    {AVAILABILITY_FILTER_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {sections.filter((s) => passesAvailabilityFilter(s.availabilityStatus, availabilityFilter)).length === 0 && (
+                  <div
+                    className="text-center p-3 text-xs text-muted-foreground bg-muted/30 rounded-md"
+                    data-testid="availability-filter-empty"
+                  >
+                    No sections match this filter. Closed/full sections stay
+                    listed under "Show all sections" — CampusVal never hides
+                    them permanently.
+                  </div>
+                )}
+                {groupByComponent(
+                  sections.filter((s) => passesAvailabilityFilter(s.availabilityStatus, availabilityFilter)),
+                ).map(({ component, sections: group }) => (
                   <div key={component} data-testid={`section-group-${component}`}>
                     <div className="mb-2 flex items-baseline gap-2">
                       <h5 className="text-xs font-semibold uppercase tracking-wider text-foreground">
@@ -279,9 +346,18 @@ export function QuickAddSearch({
                         {sec.tentative ? "Tentative offering" : `Section ${sec.sectionNumber}`}
                         {isOnSchedule && <Badge variant="default" className="text-[10px] bg-emerald-600 hover:bg-emerald-600">Added</Badge>}
                       </div>
-                      {sec.tentative && (
-                        <Badge variant="secondary" className="text-[10px]">Tentative</Badge>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {sec.tentative && (
+                          <Badge variant="secondary" className="text-[10px]">Tentative</Badge>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-semibold ${AVAILABILITY_BADGE[sec.availabilityStatus].classes}`}
+                          data-testid={`availability-badge-${sec.sectionNumber}`}
+                        >
+                          {AVAILABILITY_BADGE[sec.availabilityStatus].label}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="space-y-1.5 text-xs text-muted-foreground mb-3">
                       <div className="flex items-center gap-2">
@@ -307,14 +383,33 @@ export function QuickAddSearch({
                       ) : (
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-3.5 w-3.5 shrink-0 opacity-50" />
-                          <span className="italic opacity-80">Seats unknown</span>
+                          <span className="italic opacity-80">
+                            {sec.tentative ? "Tentative schedule — no seat data yet" : "Availability unknown — no live seat data"}
+                          </span>
                         </div>
                       )}
+                      <div className="text-[10px] opacity-70" data-testid={`freshness-${sec.sectionNumber}`}>
+                        {sec.lastUpdatedAt
+                          ? `Updated ${new Date(sec.lastUpdatedAt).toLocaleDateString()} (${sec.sourceLabel})`
+                          : sec.sourceLabel}
+                      </div>
                     </div>
+                    {(sec.availabilityStatus === "waitlist" || sec.availabilityStatus === "full") && (
+                      <div
+                        className="mb-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900"
+                        data-testid={`not-available-warning-${sec.sectionNumber}`}
+                      >
+                        <strong>
+                          {sec.availabilityStatus === "full" ? "This section is full." : "This section is waitlisted."}
+                        </strong>{" "}
+                        You can still add it to plan around it, but line up a
+                        backup (Plan B) section in case it doesn't open up.
+                      </div>
+                    )}
                     {!isOnSchedule && (
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
+                      <Button
+                        size="sm"
+                        variant="secondary"
                         className="w-full h-8 text-xs font-medium bg-primary/5 hover:bg-primary/10 text-primary"
                         onClick={() => handleAddOrSwap(sec.sectionNumber, sec.componentType)}
                         disabled={addMut.isPending || updateMut.isPending}

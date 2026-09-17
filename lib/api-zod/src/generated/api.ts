@@ -599,6 +599,25 @@ export const ListCourseSectionsResponseItem = zod.object({
     .describe(
       "Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official.",
     ),
+  availabilityStatus: zod
+    .enum(["open", "waitlist", "full", "unknown"])
+    .describe(
+      'Derived from seatsKnown\/seatsOpen\/waitlist, never fabricated. \"unknown\" whenever seatsKnown is false (including every tentative Winter\/Spring term, which never carries seat data). CampusVal has no source that distinguishes an instructor-closed section from a merely-full one, so both collapse to \"full\" rather than inventing a fifth state without evidence — see docs\/SECTION_AVAILABILITY.md.',
+    ),
+  lastUpdatedAt: zod.coerce
+    .date()
+    .nullable()
+    .describe(
+      "When this section's seat counts were last refreshed. Set from the student's own Workday paste-in timestamp when seatsKnown is true; null otherwise (the official Registrar schedule has no live seat refresh cadence to report).",
+    ),
+  sourceType: zod
+    .enum(["workday_self_paste", "registrar_schedule"])
+    .describe(
+      "Where this section's data currently comes from — never a scraped or shared feed. See docs\/SECTION_AVAILABILITY.md.",
+    ),
+  sourceLabel: zod
+    .string()
+    .describe("Human-readable source label to render next to lastUpdatedAt."),
 });
 export const ListCourseSectionsResponse = zod.array(
   ListCourseSectionsResponseItem,
@@ -679,6 +698,27 @@ export const SyncWorkdaySectionsResponse = zod.object({
           .optional()
           .describe(
             "Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official.",
+          ),
+        availabilityStatus: zod
+          .enum(["open", "waitlist", "full", "unknown"])
+          .describe(
+            'Derived from seatsKnown\/seatsOpen\/waitlist, never fabricated. \"unknown\" whenever seatsKnown is false (including every tentative Winter\/Spring term, which never carries seat data). CampusVal has no source that distinguishes an instructor-closed section from a merely-full one, so both collapse to \"full\" rather than inventing a fifth state without evidence — see docs\/SECTION_AVAILABILITY.md.',
+          ),
+        lastUpdatedAt: zod.coerce
+          .date()
+          .nullable()
+          .describe(
+            "When this section's seat counts were last refreshed. Set from the student's own Workday paste-in timestamp when seatsKnown is true; null otherwise (the official Registrar schedule has no live seat refresh cadence to report).",
+          ),
+        sourceType: zod
+          .enum(["workday_self_paste", "registrar_schedule"])
+          .describe(
+            "Where this section's data currently comes from — never a scraped or shared feed. See docs\/SECTION_AVAILABILITY.md.",
+          ),
+        sourceLabel: zod
+          .string()
+          .describe(
+            "Human-readable source label to render next to lastUpdatedAt.",
           ),
       }),
     )

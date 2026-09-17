@@ -8,6 +8,7 @@ import {
   useGetPlan,
   getGetPlanQueryKey,
   useCreateSchedule,
+  useListGraduationMajors,
   PlanItem,
   Term,
 } from "@workspace/api-client-react";
@@ -38,6 +39,8 @@ import { TermAndScheduleHeader } from "@/components/schedule-planner/TermAndSche
 import { AcademicYearOverview } from "@/components/schedule-planner/AcademicYearOverview";
 import { CalendarGrid } from "@/components/schedule-planner/CalendarGrid";
 import { ConflictsPanel } from "@/components/schedule-planner/ConflictsPanel";
+import { ScheduleAvailabilityBanner } from "@/components/schedule-planner/ScheduleAvailabilityBanner";
+import { useScheduleAvailabilityWarnings } from "@/components/schedule-planner/useScheduleAvailabilityWarnings";
 import { SidebarPanels } from "@/components/schedule-planner/SidebarPanels";
 import { CourseDetailsDialog } from "@/components/schedule-planner/CourseDetailsDialog";
 import { WorkdayAprPanel } from "@/components/progress-report/WorkdayAprPanel";
@@ -67,6 +70,11 @@ export default function Planner() {
     workspace.availability?.terms.find(
       (t) => t.term === workspace.activeTerm && t.year === workspace.activeYear,
     )?.status === "tentative";
+  const availabilityWarnings = useScheduleAvailabilityWarnings(
+    workspace.activeSchedule?.events || [],
+    workspace.activeTerm,
+    workspace.activeYear,
+  );
 
   // Intentions panel: jump a course into Quick Add
   const [intentionCourse, setIntentionCourse] = useState<string | null>(null);
@@ -113,6 +121,14 @@ export default function Planner() {
   const { data: profile } = useGetProfile({
     query: { retry: false, queryKey: getGetProfileQueryKey() },
   });
+  // Resolved for the APR reconciliation warning only — comparison, never
+  // written back to the profile or any plan.
+  const { data: majorsList } = useListGraduationMajors();
+  const planningMajorTitle = profile?.major
+    ? (majorsList?.majors.find(
+        (m) => m.code.toLowerCase() === profile.major!.toLowerCase(),
+      )?.title ?? profile.major)
+    : undefined;
 
   // Degree plan (find the 'degree' type plan)
   const { data: plansList } = useListPlans();
@@ -267,21 +283,33 @@ export default function Planner() {
           className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)_minmax(260px,300px)] 2xl:grid-cols-[minmax(330px,380px)_minmax(0,1fr)_minmax(280px,320px)]"
           data-testid="quarter-plan-layout"
         >
-          {/* Left: section search — the main action on this page. */}
+          {/* Left: section search — the main action on this page.
+              The whole column shares its total viewport-relative height
+              budget with the APR column (100vh-18rem) instead of guessing a
+              second, smaller budget for Find Courses specifically — the
+              chips row above takes its natural height (shrink-0) and Find
+              Courses/Filter/Other expands with flex-1 to fill whatever is
+              left, so the results list gets a large, independently
+              scrollable area on real laptop/desktop heights without a
+              brittle hard-coded pixel subtraction. Below `xl` the column
+              simply stacks with the page (no height cap), which is what
+              keeps this safe down to 768px-tall and mobile viewports. */}
           <div
-            className="order-2 flex min-w-0 flex-col gap-3 xl:order-1"
+            className="order-2 flex min-w-0 flex-col gap-3 xl:order-1 xl:h-[calc(100vh-18rem)]"
             data-testid="quarter-plan-search-column"
           >
-            <PlannedThisQuarterChips
-              items={degreeItems}
-              selectedCourseCodes={selectedCourseCodes}
-              activeTerm={workspace.activeTerm}
-              activeYear={workspace.activeYear}
-              isLoadingAvailability={workspace.isLoadingAvailability}
-              onFindSections={handleFindSections}
-            />
+            <div className="shrink-0">
+              <PlannedThisQuarterChips
+                items={degreeItems}
+                selectedCourseCodes={selectedCourseCodes}
+                activeTerm={workspace.activeTerm}
+                activeYear={workspace.activeYear}
+                isLoadingAvailability={workspace.isLoadingAvailability}
+                onFindSections={handleFindSections}
+              />
+            </div>
             {workspace.activeScheduleId ? (
-              <div className="min-h-[24rem] xl:h-[calc(100vh-22rem)]">
+              <div className="min-h-[24rem] xl:min-h-0 xl:flex-1">
                 <SidebarPanels
                   workspace={workspace}
                   initialCourse={intentionCourse}
@@ -317,6 +345,7 @@ export default function Planner() {
                   events={workspace.activeSchedule?.events || []}
                   isTentativeSchedule={isTentativeSchedule}
                 />
+                <ScheduleAvailabilityBanner warnings={availabilityWarnings} />
               </>
             ) : (
               <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl bg-muted/10 p-8 text-center text-muted-foreground min-h-[300px]">
@@ -472,7 +501,7 @@ export default function Planner() {
             className="order-1 flex min-w-0 flex-col gap-3 xl:order-3 xl:h-[calc(100vh-18rem)]"
             data-testid="quarter-plan-apr-column"
           >
-            <WorkdayAprPanel />
+            <WorkdayAprPanel planningMajorTitle={planningMajorTitle} />
           </div>
         </div>
       </PageContent>
