@@ -5,9 +5,10 @@ import {
   useGetProgressReport,
   getGetProgressReportQueryKey,
 } from "@workspace/api-client-react";
-import { ExternalLink, FileWarning, Info } from "lucide-react";
+import { AlertTriangle, ExternalLink, FileWarning, Info } from "lucide-react";
 import { Link } from "wouter";
 import { RequirementGroupList } from "./RequirementGroupList";
+import { reconcileMajor } from "@/lib/apr-major-reconciliation";
 
 /**
  * The Workday Academic Progress Report reference column — used identically
@@ -25,7 +26,18 @@ import { RequirementGroupList } from "./RequirementGroupList";
  * Upload/Replace lives in each page's own executive control bar, directly
  * above this column, so this panel stays focused on report content.
  */
-export function WorkdayAprPanel() {
+export function WorkdayAprPanel({
+  planningMajorTitle,
+}: {
+  /**
+   * The student's current CampusVal planning major (Degree Plan only — the
+   * caller should omit this on a Tentative Degree Plan, where an
+   * intentional "what if another major" divergence is expected and must
+   * never be flagged as a discrepancy). Comparison only; never mutates
+   * plan or profile state.
+   */
+  planningMajorTitle?: string | null;
+}) {
   const {
     data: reportEnvelope,
     isLoading: isReportLoading,
@@ -40,6 +52,10 @@ export function WorkdayAprPanel() {
   const reportNotUploaded = (reportError as any)?.status === 404;
   const report = reportEnvelope?.report;
   const fileUrl = `${import.meta.env.BASE_URL}api/progress-report/file`;
+  const majorReconciliation = reconcileMajor(
+    report?.parsed?.program,
+    planningMajorTitle,
+  );
 
   return (
     <Card className="flex h-full flex-col overflow-hidden border-border/60 bg-card shadow-sm">
@@ -133,9 +149,29 @@ export function WorkdayAprPanel() {
             )}
           </div>
 
+          {majorReconciliation === "mismatch" && (
+            <div
+              className="flex items-start gap-1.5 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900"
+              data-testid="apr-major-mismatch-warning"
+            >
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <span>
+                Your CampusVal planning requirements differ from the uploaded
+                Workday APR. Workday is the university-record reference —
+                review your CampusVal planning major/catalog year and verify
+                with your advisor. CampusVal will not change your plan for
+                you.
+              </span>
+            </div>
+          )}
+
           {report?.parsed?.groups && report.parsed.groups.length > 0 && (
             <div data-testid="apr-requirement-groups">
-              <RequirementGroupList groups={report.parsed.groups} defaultOpen="none" />
+              <RequirementGroupList
+                groups={report.parsed.groups}
+                defaultOpen="none"
+                showGrades={false}
+              />
             </div>
           )}
         </div>
