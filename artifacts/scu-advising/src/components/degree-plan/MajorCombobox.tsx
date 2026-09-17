@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MajorOption } from "@workspace/api-client-react";
 import {
   Popover,
   PopoverContent,
@@ -16,29 +15,43 @@ import {
   CommandList,
 } from "@/components/ui/command";
 
+export interface ComboboxOption {
+  code: string;
+  title: string;
+}
+
 /**
- * Searchable major picker used by the "Set / Change Primary Major" control in
- * Plan Controls. Mirrors onboarding's MajorPicker (Command + Popover) so the
- * two behave identically, but is self-contained and keyboard-accessible:
- * Enter/Space opens, typing filters, Enter selects, Escape closes and returns
- * focus to the trigger (Radix Popover handles focus return).
+ * Searchable program picker (Command + Popover) shared by every
+ * major/minor selector in Plan Controls — "Set / Change Primary Major",
+ * "Additional Majors", and "Minors" all render this same component against
+ * the same canonical `/api/graduation-paths/majors|minors` list, so there is
+ * exactly one searchable/scrollable implementation instead of one combobox
+ * and one plain non-searchable dropdown. Mirrors onboarding's MajorPicker
+ * behavior (Enter/Space opens, typing filters, Enter selects, Escape closes
+ * and returns focus to the trigger via Radix Popover).
  *
- * `value` and the emitted `onChange` value are always the major CODE (e.g.
- * "CHEM"), matching how the profile major and additionalMajors are stored.
+ * `value` and the emitted `onChange` value are always the program CODE
+ * (e.g. "CHEM"), matching how profile/plan program fields are stored.
+ * Works for both majors and minors — `MajorOption` and `MinorOption` are
+ * structurally identical ({ code, title, college }).
  */
 export function MajorCombobox({
   value,
   onChange,
   options,
   placeholder = "Select major…",
+  searchPlaceholder = "Search majors…",
+  emptyLabel = "No majors match.",
   disabled,
   testId,
   ariaLabel,
 }: {
   value: string;
   onChange: (code: string) => void;
-  options: MajorOption[];
+  options: ComboboxOption[];
   placeholder?: string;
+  searchPlaceholder?: string;
+  emptyLabel?: string;
   disabled?: boolean;
   testId?: string;
   ariaLabel?: string;
@@ -78,9 +91,9 @@ export function MajorCombobox({
         align="start"
       >
         <Command>
-          <CommandInput placeholder="Search majors…" />
+          <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
-            <CommandEmpty>No majors match.</CommandEmpty>
+            <CommandEmpty>{emptyLabel}</CommandEmpty>
             <CommandGroup>
               {options.map((o) => (
                 <CommandItem

@@ -47,13 +47,6 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 /**
  * Everything that mutates which plan is active or edits its
@@ -200,17 +193,17 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
     updatePrograms(updated);
   };
 
-  const addMinor = () => {
+  const addMinor = (minorCode = minorDraft) => {
     if (
-      !minorDraft ||
+      !minorCode ||
       currentPrograms.minors.some(
-        (minor) => normalized(minor) === normalized(minorDraft),
+        (minor) => normalized(minor) === normalized(minorCode),
       )
     )
       return;
     const updated = {
       ...currentPrograms,
-      minors: [...currentPrograms.minors, minorDraft],
+      minors: [...currentPrograms.minors, minorCode],
     };
     updatePrograms(updated);
     setMinorDraft("");
@@ -322,7 +315,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
 
   const handleDelete = () => {
     if (!activePlanId || activePlan?.planType === "degree") return;
-    if (confirm("Are you sure you want to delete this tentative plan?")) {
+    if (confirm("Are you sure you want to delete this Tentative Degree Plan?")) {
       deletePlan.mutate(
         { id: activePlanId },
         {
@@ -341,7 +334,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
     if (!activePlanId || activePlan?.planType === "degree") return;
     if (
       confirm(
-        "Make this your Degree Plan? Your current Degree Plan will be saved as a tentative backup. This is planning only — it does not change anything with the university.",
+        "Make this your Degree Plan? Your current Degree Plan will be saved as a Tentative Degree Plan. This is planning only — it does not change anything with the university.",
       )
     ) {
       promotePlan.mutate(
@@ -482,7 +475,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
                   <div className="flex items-center gap-2 text-amber-800 font-medium text-sm mb-2">
                     <AlertTriangle className="h-4 w-4" />
-                    TENTATIVE PLAN
+                    TENTATIVE DEGREE PLAN
                   </div>
                   <div className="text-xs text-amber-700/80 mb-3">
                     This is a draft. Promote it when you are ready to make it
@@ -539,7 +532,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
                     onClick={handleDuplicate}
                   >
                     <Files className="h-3 w-3 mr-1" /> Duplicate to Tentative
-                    Plan
+                    Degree Plan
                   </Button>
                 </div>
               )}
@@ -618,45 +611,17 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-1.5">
-                    <Select
-                      value={majorDraft}
-                      onValueChange={(code) => {
-                        setMajorDraft(code);
-                        // Selecting a program is the student intent. Apply it
-                        // immediately instead of relying on a tiny adjacent
-                        // icon button that is easy to miss in compact panels.
-                        addMajor(code);
-                      }}
-                    >
-                      <SelectTrigger
-                        className="h-7 text-xs flex-1"
-                        data-testid="select-plan-additional-major"
-                      >
-                        <SelectValue placeholder="Add major…" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {majorOptions.map((m) => (
-                          <SelectItem
-                            key={m.code}
-                            value={m.code}
-                            className="text-xs"
-                          >
-                            {m.title} ({m.code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      size="sm"
-                      className="h-7 px-2"
-                      onClick={() => addMajor()}
-                      disabled={!majorDraft || updatePlan.isPending}
-                      data-testid="button-add-plan-major"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  <MajorCombobox
+                    value=""
+                    onChange={(code) => addMajor(code)}
+                    options={majorOptions}
+                    placeholder="Add a major…"
+                    searchPlaceholder="Search majors…"
+                    emptyLabel="No majors match."
+                    disabled={updatePlan.isPending}
+                    testId="select-plan-additional-major"
+                    ariaLabel="Add an additional major"
+                  />
                 </div>
 
                 {/* Minors */}
@@ -688,36 +653,17 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-1.5">
-                    <Select value={minorDraft} onValueChange={setMinorDraft}>
-                      <SelectTrigger
-                        className="h-7 text-xs flex-1"
-                        data-testid="select-plan-minor"
-                      >
-                        <SelectValue placeholder="Add minor…" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {minorOptions.map((m) => (
-                          <SelectItem
-                            key={m.code}
-                            value={m.code}
-                            className="text-xs"
-                          >
-                            {m.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      size="sm"
-                      className="h-7 px-2"
-                      onClick={addMinor}
-                      disabled={!minorDraft || updatePlan.isPending}
-                      data-testid="button-add-plan-minor"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  <MajorCombobox
+                    value=""
+                    onChange={(code) => addMinor(code)}
+                    options={minorOptions}
+                    placeholder="Add a minor…"
+                    searchPlaceholder="Search minors…"
+                    emptyLabel="No minors match."
+                    disabled={updatePlan.isPending}
+                    testId="select-plan-minor"
+                    ariaLabel="Add a minor"
+                  />
                 </div>
 
                 {/* Professional Goals */}
@@ -968,7 +914,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
           onPointerDownOutside={() => setRenameOpen(false)}
         >
           <DialogHeader>
-            <DialogTitle>Rename Plan</DialogTitle>
+            <DialogTitle>Rename Tentative Degree Plan</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">

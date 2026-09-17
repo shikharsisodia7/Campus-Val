@@ -11,6 +11,11 @@ import {
   requiredComponentsFor,
   type ComponentType,
 } from "../lib/course-components";
+import {
+  deriveAvailability,
+  type AvailabilityStatus,
+  type AvailabilitySourceType,
+} from "../lib/section-availability";
 
 const router: IRouter = Router();
 
@@ -108,6 +113,10 @@ router.get("/courses/:code/sections", async (req, res) => {
      */
     componentType: ComponentType;
     componentInferred: boolean;
+    availabilityStatus: AvailabilityStatus;
+    lastUpdatedAt: string | null;
+    sourceType: AvailabilitySourceType;
+    sourceLabel: string;
   };
 
   const out: OutSection[] = official.map((s) => {
@@ -115,6 +124,7 @@ router.get("/courses/:code/sections", async (req, res) => {
     const seatsTotal = live?.seatsTotal ?? s.seatsTotal;
     const seatsOpen = live?.seatsOpen ?? s.seatsOpen;
     const waitlist = live?.waitlist ?? s.waitlist;
+    const seatsKnown = seatsTotal > 0 || waitlist > 0;
     const meetingDays = (
       live?.meetingDays?.length ? live.meetingDays : s.meetingDays
     ) as string[];
@@ -125,6 +135,12 @@ router.get("/courses/:code/sections", async (req, res) => {
       meetingDays,
       startTime,
       endTime,
+    });
+    const availability = deriveAvailability({
+      seatsKnown,
+      seatsOpen,
+      waitlist,
+      syncedAt: live?.syncedAt ?? null,
     });
     return {
       id: `${s.courseCode}-${s.sectionNumber}-${s.term}-${s.year}`,
@@ -140,10 +156,11 @@ router.get("/courses/:code/sections", async (req, res) => {
       seatsTotal,
       seatsOpen,
       waitlist,
-      seatsKnown: seatsTotal > 0 || waitlist > 0,
+      seatsKnown,
       tentative: isTentativeTerm(s.term, s.year),
       componentType: component.componentType,
       componentInferred: component.inferred,
+      ...availability,
     };
   });
 
@@ -177,6 +194,12 @@ router.get("/courses/:code/sections", async (req, res) => {
         endTime: w.endTime,
       }).componentType,
       componentInferred: true,
+      ...deriveAvailability({
+        seatsKnown: w.seatsTotal > 0 || w.waitlist > 0,
+        seatsOpen: w.seatsOpen,
+        waitlist: w.waitlist,
+        syncedAt: w.syncedAt,
+      }),
     });
   }
 

@@ -1235,7 +1235,7 @@ router.get("/plans/:id/export", requireAuth, async (req, res) => {
   ]);
   ws.insertRow(3, [
     "Plan Type",
-    plan.planType === "degree" ? "Degree Plan" : "Tentative Plan",
+    plan.planType === "degree" ? "Degree Plan" : "Tentative Degree Plan",
     "",
     "Exported",
     new Date().toISOString().slice(0, 10),

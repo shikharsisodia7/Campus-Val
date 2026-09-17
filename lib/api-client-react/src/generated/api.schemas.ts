@@ -1235,6 +1235,30 @@ export const CourseSectionComponentType = {
   unknown: "unknown",
 } as const;
 
+/**
+ * Derived from seatsKnown/seatsOpen/waitlist, never fabricated. "unknown" whenever seatsKnown is false (including every tentative Winter/Spring term, which never carries seat data). CampusVal has no source that distinguishes an instructor-closed section from a merely-full one, so both collapse to "full" rather than inventing a fifth state without evidence — see docs/SECTION_AVAILABILITY.md.
+ */
+export type CourseSectionAvailabilityStatus =
+  (typeof CourseSectionAvailabilityStatus)[keyof typeof CourseSectionAvailabilityStatus];
+
+export const CourseSectionAvailabilityStatus = {
+  open: "open",
+  waitlist: "waitlist",
+  full: "full",
+  unknown: "unknown",
+} as const;
+
+/**
+ * Where this section's data currently comes from — never a scraped or shared feed. See docs/SECTION_AVAILABILITY.md.
+ */
+export type CourseSectionSourceType =
+  (typeof CourseSectionSourceType)[keyof typeof CourseSectionSourceType];
+
+export const CourseSectionSourceType = {
+  workday_self_paste: "workday_self_paste",
+  registrar_schedule: "registrar_schedule",
+} as const;
+
 export interface CourseSection {
   /** e.g. "COEN-12-01-fall-2025" */
   id: string;
@@ -1260,6 +1284,14 @@ export interface CourseSection {
   componentType?: CourseSectionComponentType;
   /** Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official. */
   componentInferred?: boolean;
+  /** Derived from seatsKnown/seatsOpen/waitlist, never fabricated. "unknown" whenever seatsKnown is false (including every tentative Winter/Spring term, which never carries seat data). CampusVal has no source that distinguishes an instructor-closed section from a merely-full one, so both collapse to "full" rather than inventing a fifth state without evidence — see docs/SECTION_AVAILABILITY.md. */
+  availabilityStatus: CourseSectionAvailabilityStatus;
+  /** When this section's seat counts were last refreshed. Set from the student's own Workday paste-in timestamp when seatsKnown is true; null otherwise (the official Registrar schedule has no live seat refresh cadence to report). */
+  lastUpdatedAt: string | null;
+  /** Where this section's data currently comes from — never a scraped or shared feed. See docs/SECTION_AVAILABILITY.md. */
+  sourceType: CourseSectionSourceType;
+  /** Human-readable source label to render next to lastUpdatedAt. */
+  sourceLabel: string;
 }
 
 export type ArticulationEntrySourceUnitSystem =

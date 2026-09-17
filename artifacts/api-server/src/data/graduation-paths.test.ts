@@ -26,8 +26,19 @@ describe("graduation path sequence trust", () => {
     expect(otherThree.sequenceTrust).not.toBe("prescribed");
   });
 
-  it("marks other SOE engineering majors as recommended (real source, not yet reconciled) — never prescribed", () => {
-    for (const major of ["ECEN", "MECH", "CENG", "BIOE"]) {
+  it("marks reconciled Engineering majors as prescribed, each with a real SCU source", () => {
+    for (const major of ["ECEN", "EE", "CENG", "BIOE", "WDE"]) {
+      const path = getGraduationPath("four_year", major);
+      expect(path.sequenceTrust, `${major} should be prescribed`).toBe("prescribed");
+      expect(path.provenance.sourceUrl, `${major} should link a real source`).toMatch(
+        /^https:\/\/www\.scu\.edu\//,
+      );
+      expect(path.provenance.lastVerified, `${major} should record when it was verified`).toBeTruthy();
+    }
+  });
+
+  it("marks the two not-yet-reconciled SOE majors as recommended (real source, flow-chart format not yet safely reconciled) — never prescribed", () => {
+    for (const major of ["MECH", "GENR"]) {
       const path = getGraduationPath("four_year", major);
       expect(path.sequenceTrust, `${major} should not be prescribed`).toBe("recommended");
       expect(path.provenance.sourceUrl, `${major} should link a real source`).toMatch(
@@ -68,9 +79,18 @@ describe("getFourYearIndex — 'Load Four-Year Plan' dropdown source list", () =
     expect(cse!.sequenceTrust).toBe("prescribed");
   });
 
-  it("includes the other SOE majors as recommended (reference-only), never prescribed", () => {
+  it("includes the reconciled Engineering majors as prescribed (loadable)", () => {
     const index = getFourYearIndex();
-    for (const code of ["ECEN", "MECH", "CENG", "BIOE"]) {
+    for (const code of ["ECEN", "EE", "CENG", "BIOE", "WDE"]) {
+      const entry = index.find((m) => m.code === code);
+      expect(entry, `${code} should be in the index`).toBeDefined();
+      expect(entry!.sequenceTrust).toBe("prescribed");
+    }
+  });
+
+  it("includes MECH and GENR as recommended (reference-only), never prescribed", () => {
+    const index = getFourYearIndex();
+    for (const code of ["MECH", "GENR"]) {
       const entry = index.find((m) => m.code === code);
       expect(entry, `${code} should be in the index`).toBeDefined();
       expect(entry!.sequenceTrust).toBe("recommended");
@@ -85,10 +105,10 @@ describe("getFourYearIndex — 'Load Four-Year Plan' dropdown source list", () =
     expect(index.every((m) => m.sequenceTrust !== "example")).toBe(true);
   });
 
-  it("returns exactly the known real-plan majors, nothing more", () => {
+  it("returns exactly the known real-plan majors, nothing more — the complete School of Engineering four-year-plan matrix", () => {
     const index = getFourYearIndex();
     expect(index.map((m) => m.code).sort()).toEqual(
-      ["BIOE", "CENG", "CSE", "ECEN", "MECH"].sort(),
+      ["BIOE", "CENG", "CSE", "ECEN", "EE", "GENR", "MECH", "WDE"].sort(),
     );
   });
 });

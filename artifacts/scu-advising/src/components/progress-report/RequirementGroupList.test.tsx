@@ -78,4 +78,21 @@ describe("RequirementGroupList", () => {
     const trigger = screen.getByText("Computer Science and Engineering Major Requirements").closest("button");
     expect(trigger!.getAttribute("aria-expanded")).toBe("true");
   });
+
+  it("defaults to showing grades (the full private Progress Report page keeps them)", () => {
+    render(<RequirementGroupList groups={GROUPS} defaultOpen="all" />);
+    expect(screen.getByTestId("requirement-course-0-1-0").textContent).toContain("(A)");
+  });
+
+  it("showGrades={false} (the Degree Plan / Quarter Plan sidebar) never renders a grade or 'in progress' marker — a simple completion benchmark, no performance clutter", () => {
+    render(<RequirementGroupList groups={GROUPS} defaultOpen="all" showGrades={false} />);
+    const course = screen.getByTestId("requirement-course-0-1-0");
+    expect(course.textContent).not.toContain("(A)");
+    expect(course.textContent).not.toContain("in progress");
+    // The course code/title still render — only the grade is hidden.
+    expect(course.textContent).toContain("CSCI 10");
+    // Status badges (Completed/Remaining/etc.) are structural, not a grade —
+    // they still convey completion, which the sidebar must keep.
+    expect(screen.getByText("Completed")).toBeTruthy();
+  });
 });

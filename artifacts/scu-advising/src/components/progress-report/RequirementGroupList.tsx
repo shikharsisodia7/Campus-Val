@@ -62,10 +62,18 @@ function RequirementStatusBadge({ status }: { status: RequirementStatus }) {
 export function RequirementGroupList({
   groups,
   defaultOpen = "all",
+  showGrades = true,
 }: {
   groups: ParsedProgressReportGroupsItem[];
   /** "all" for the dedicated page; "none" for compact sidebar placements. */
   defaultOpen?: "all" | "none";
+  /**
+   * The professor was explicit: the Degree Plan / Quarter Plan APR sidebar
+   * is a completion benchmark, not a grade report, and must not clutter that
+   * with per-course grades. The full private Progress Report page (ReportCard)
+   * keeps grades — pass `showGrades={false}` only for sidebar placements.
+   */
+  showGrades?: boolean;
 }) {
   if (groups.length === 0) return null;
 
@@ -107,9 +115,11 @@ export function RequirementGroupList({
                               {course.code}
                             </span>
                             <span>{course.title}</span>
-                            <span className="font-mono">
-                              {course.grade ? `(${course.grade})` : "(in progress)"}
-                            </span>
+                            {showGrades && (
+                              <span className="font-mono">
+                                {course.grade ? `(${course.grade})` : "(in progress)"}
+                              </span>
+                            )}
                           </li>
                         ))}
                       </ul>

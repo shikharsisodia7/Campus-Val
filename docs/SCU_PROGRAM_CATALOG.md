@@ -5,10 +5,12 @@ Source of truth: `artifacts/api-server/src/data/graduation-paths.ts`
 sequence is only as trustworthy as its `sequenceTrust`:
 
 - **`prescribed`** — reconciled course-by-course against an official SCU
-  four-year plan; eligible for one-click preload. Only CSE currently.
+  four-year plan; eligible for one-click preload. CSE, ECEN, EE, CENG, BIOE,
+  WDE (see `docs/ENGINEERING_FOUR_YEAR_PLAN_MATRIX.md` for the full matrix).
 - **`recommended`** — an official SCU source is linked (`provenance`), but
   CampusVal's generated quarters have not been reconciled against it
-  line-by-line. Reference only. ECEN, MECH, CENG, BIOE.
+  line-by-line (their source is a prerequisite flow chart, not a per-quarter
+  table). Reference only. MECH, GENR.
 - **`example`** — no major-specific official source; a generic
   template-generated sequence, illustration only. Every other major,
   including all 8 added below.
@@ -34,6 +36,14 @@ concentrations modeled).
 Every course code referenced by these 8 recipes was verified against the
 real course catalog (`artifacts/api-server/src/data/courses-data.json`);
 see `graduation-paths.new-majors.test.ts`. No curriculum was invented.
+
+**Update, 2026-09-17:** `WDE` and `EE` were subsequently reconciled
+course-by-course against an official SCU four-year plan and are now
+`prescribed`; `GENR` gained a linked official source and is now
+`recommended`. The "Status" column above reflects the state when these
+majors were first added, not today — see the "Majors" sequenceTrust list at
+the top of this document and `docs/ENGINEERING_FOUR_YEAR_PLAN_MATRIX.md`
+for current status.
 
 ## Resolved: 4 flagged discrepancies (previously "not changed", now corrected)
 

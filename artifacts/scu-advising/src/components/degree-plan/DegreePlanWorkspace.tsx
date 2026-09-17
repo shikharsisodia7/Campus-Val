@@ -238,7 +238,7 @@ export function DegreePlanWorkspace({
               data-testid="button-copy-degree-plan"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Copy my Degree Plan into a tentative plan
+              Copy my Degree Plan into a Tentative Degree Plan
             </Button>
           )}
           <Button
@@ -248,7 +248,7 @@ export function DegreePlanWorkspace({
             data-testid="button-start-blank-tentative"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Start a blank tentative plan
+            Start a blank Tentative Degree Plan
           </Button>
         </div>
       </div>

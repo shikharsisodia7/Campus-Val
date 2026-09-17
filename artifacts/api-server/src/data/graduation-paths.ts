@@ -745,38 +745,27 @@ function makeQuarter(
 // these majors have NOT been reconciled course-by-course against them, so
 // they stay "recommended" (reference link only), not "prescribed"
 // (preloadable). Reconciling each is future work.
+// ECEN, CENG, and BIOE were reconciled course-by-course in the 2026-09-17
+// professor-feedback pass and are now hand-tuned "prescribed" plans
+// (FOUR_YEAR_ECEN/FOUR_YEAR_CENG/FOUR_YEAR_BIOE below, dispatched before
+// this generic template is ever reached) — see HAND_TUNED_FOUR_YEAR. Only
+// majors below WITHOUT a hand-tuned entry fall through to this table.
 const SOE_RECOMMENDED_PROVENANCE: Record<string, GraduationPathProvenance> = {
-  ECEN: {
-    sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/2023-24-Four-Year-Plan-ECEN.pdf",
-    sourceLabel: "SCU School of Engineering — Electrical & Computer Engineering 4-Year Plan",
-    catalogYear: "2023-24",
-    lastVerified: "2026-08-16",
-    verificationNote:
-      "Official plan found and linked, but CampusVal's generated quarters below have not yet been reconciled against it course-by-course. Not eligible for preload until verified.",
-  },
   MECH: {
     sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/2023-24-Four-Year-Plan-MECH.pdf",
-    sourceLabel: "SCU School of Engineering — Mechanical Engineering 4-Year Plan",
+    sourceLabel: "SCU School of Engineering — Mechanical Engineering Curriculum Flow Chart (MATH 11 track)",
     catalogYear: "2023-24",
-    lastVerified: "2026-08-16",
+    lastVerified: "2026-09-17",
     verificationNote:
-      "Official plan found and linked, but CampusVal's generated quarters below have not yet been reconciled against it course-by-course. Not eligible for preload until verified.",
+      "Official plan found and linked (re-verified 2026-09-17; a MATH 9 track and a study-abroad variant also exist at the same source). This document is a prerequisite flow chart rather than a simple per-quarter table, so CampusVal's generated quarters below have NOT been reconciled against it course-by-course — not eligible for preload until a maintainer manually re-verifies quarter placement against the chart.",
   },
-  CENG: {
-    sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/civil-engineering/CESE_4yearPlan_MATH11_2026.pdf",
-    sourceLabel: "SCU School of Engineering — Civil, Environmental & Sustainable Engineering 4-Year Planning Guide (MATH 11 track)",
-    catalogYear: "2026",
-    lastVerified: "2026-08-16",
+  GENR: {
+    sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/GENG_4-yrPlans_AY24-25--Math-11.pdf",
+    sourceLabel: "SCU School of Engineering — Sample Four-Year Plan for General Engineering (MATH 11 or higher track)",
+    catalogYear: "2024-25",
+    lastVerified: "2026-09-17",
     verificationNote:
-      "Official plan found and linked (a MATH 9 track also exists), but CampusVal's generated quarters below have not yet been reconciled against it course-by-course. Not eligible for preload until verified.",
-  },
-  BIOE: {
-    sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/bioengineering/BIOE-4-Year-Plan_Biomolecular-track_2027-1.pdf",
-    sourceLabel: "SCU School of Engineering — Bioengineering 4-Year Plan (Biomolecular track)",
-    catalogYear: "2027",
-    lastVerified: "2026-08-16",
-    verificationNote:
-      "Official plan found and linked (Medical Device and Pre-Med tracks also exist), but CampusVal's generated quarters below have not yet been reconciled against it course-by-course. Not eligible for preload until verified.",
+      "Official plan found and linked (a MATH 9 track and a transfer-student track also exist at the same source directory). This document is a prerequisite flow chart rather than a simple per-quarter table, so CampusVal's generated quarters below have NOT been reconciled against it course-by-course — not eligible for preload until a maintainer manually re-verifies quarter placement against the chart.",
   },
 };
 
@@ -1061,6 +1050,226 @@ const THREE_YEAR_CSE: GraduationPathEntry = {
 };
 
 // ---------------------------------------------------------------------------
+// Hand-tuned Engineering four-year plans (2026 professor-feedback pass).
+// Each of these was reconciled course-by-course against the official SCU
+// School of Engineering "Student Planning Guide" / four-year-plan PDF
+// (fetched and read directly, not inferred) — see provenance below for the
+// exact source and verification date. Elective/Core slots that the official
+// plan leaves open (concentration electives, unnamed University Core, BS/MS
+// or free-elective slots) are kept as descriptive placeholders rather than
+// invented specific courses, matching the same convention as FOUR_YEAR_CSE.
+// ---------------------------------------------------------------------------
+
+const ECEN_PROVENANCE: GraduationPathProvenance = {
+  sourceUrl: "https://www.scu.edu/media/school-of-engineering/ECEN-4-YR-Plan-2026.pdf",
+  sourceLabel: "SCU School of Engineering — Electrical and Computer Engineering Student Planning Guide",
+  catalogYear: "2026",
+  lastVerified: "2026-09-17",
+  verificationNote:
+    "Reconciled course-by-course against the official PDF (dated 4/30/26). ECEN Elective slots (Note 3) require 2 from the \"Digital and Embedded Systems\" group plus 2 more 100-level ECEN electives (CSEN 79/CSCI 163 may substitute for one) — left as placeholders rather than a guessed specific course. Minimum 191 units.",
+};
+
+const FOUR_YEAR_ECEN: GraduationPathEntry = {
+  type: "four_year",
+  major: "ECEN",
+  title: "Electrical and Computer Engineering — Standard 4-Year Path",
+  summary: "Standard 12-quarter (4-year) plan following SCU's official Student Planning Guide for Electrical and Computer Engineering.",
+  feasibilityNote: "Matches SCU's official 2026 planning guide. ECEN Elective and University Core slots require an approved course each time — verify current options with your advisor.",
+  averageUnitsPerQuarter: 16.3,
+  requiresOverload: false,
+  sequenceTrust: "prescribed",
+  provenance: ECEN_PROVENANCE,
+  risks: [
+    "This plan follows SCU's official 2026 planning guide, but \"University Core\", \"ECEN Elective\", and \"Professional Development\" slots require you to pick an approved option each time — verify current choices with your advisor.",
+    "Senior Design (ECEN 194/195/196) runs across all three quarters of senior year — falling behind on any one course delays graduation.",
+    "If study abroad or a co-op is done in the junior year, courses may need to move to senior year (noted directly on the official guide).",
+  ],
+  quarters: [
+    { year: 1, term: "fall", label: "Y1 Fall", courses: ["MATH 11", "CHEM 11", "CSEN 10", "ENGR 1", "ENGR 1L", "Core: Critical Thinking & Writing 1"], plannedUnits: 19, notes: "CHEM 11 may be substituted with an approved University Core course per the official guide." },
+    { year: 1, term: "winter", label: "Y1 Winter", courses: ["MATH 12", "PHYS 31", "CSEN 11", "ECEN 20", "Core: Critical Thinking & Writing 2"], plannedUnits: 21 },
+    { year: 1, term: "spring", label: "Y1 Spring", courses: ["MATH 13", "PHYS 32", "CSEN 12", "ECEN 21"], plannedUnits: 17 },
+    { year: 2, term: "fall", label: "Y2 Fall", courses: ["ECEN 50", "ECEN 120", "MATH 14", "Core: Cultures & Ideas 1"], plannedUnits: 16 },
+    { year: 2, term: "winter", label: "Y2 Winter", courses: ["ECEN 100", "ECEN 122", "AMTH 106", "Core: Cultures & Ideas 2"], plannedUnits: 16 },
+    { year: 2, term: "spring", label: "Y2 Spring", courses: ["ECEN 115", "ECEN 121", "MATH 51", "Core: University Core (RTC 1 recommended, e.g. ENGR 16)"], plannedUnits: 16 },
+    { year: 3, term: "fall", label: "Y3 Fall", courses: ["AMTH 108", "PHYS 33", "ENGL 181", "ECEN Elective (Note 3)"], plannedUnits: 17 },
+    { year: 3, term: "winter", label: "Y3 Winter", courses: ["CSEN 177", "Math 53", "Core: University Core (Ethics recommended, e.g. ENGR 19)", "ECEN Elective (Note 3)"], plannedUnits: 16 },
+    { year: 3, term: "spring", label: "Y3 Spring", courses: ["ECEN 133", "ECEN 142", "ECEN 192", "ECEN 192L", "ECEN Elective (Note 3)"], plannedUnits: 18 },
+    { year: 4, term: "fall", label: "Y4 Fall", courses: ["ECEN 194", "Math Science Elective (Note 2)", "ECEN Elective (Note 3)"], plannedUnits: 10 },
+    { year: 4, term: "winter", label: "Y4 Winter", courses: ["ECEN 195", "Professional Development (Note 4)", "Optional Elective or BS/MS option"], plannedUnits: 10 },
+    { year: 4, term: "spring", label: "Y4 Spring", courses: ["ECEN 196", "Optional Elective or BS/MS option", "Optional Elective or BS/MS option", "Core: University Core"], plannedUnits: 13 },
+  ],
+};
+
+const EE_PROVENANCE: GraduationPathProvenance = {
+  sourceUrl: "https://www.scu.edu/media/school-of-engineering/ELEN-4-YR-Plan-2026.pdf",
+  sourceLabel: "SCU School of Engineering — Electrical Engineering Student Planning Guide",
+  catalogYear: "2026",
+  lastVerified: "2026-09-17",
+  verificationNote:
+    "Reconciled course-by-course against the official PDF (dated 4/30/26). Distinct from Electrical and Computer Engineering (ECEN) — power/analog/RF-focused, five 100-level electives spanning at least four topic areas. Minimum 190 units.",
+};
+
+const FOUR_YEAR_EE: GraduationPathEntry = {
+  type: "four_year",
+  major: "EE",
+  title: "Electrical Engineering — Standard 4-Year Path",
+  summary: "Standard 12-quarter (4-year) plan following SCU's official Student Planning Guide for Electrical Engineering.",
+  feasibilityNote: "Matches SCU's official 2026 planning guide. ECEN Elective and University Core slots require an approved option each time — verify current choices with your advisor.",
+  averageUnitsPerQuarter: 16.6,
+  requiresOverload: false,
+  sequenceTrust: "prescribed",
+  provenance: EE_PROVENANCE,
+  risks: [
+    "This plan follows SCU's official 2026 planning guide, but \"University Core\", \"ECEN Elective\", and \"Professional Development\" slots require an approved option each time — verify current choices with your advisor.",
+    "Senior Design (ECEN 194/195/196) runs across all three quarters of senior year — falling behind on any one course delays graduation.",
+    "If study abroad or a co-op is done in the junior year, courses may need to move to senior year (noted directly on the official guide).",
+  ],
+  quarters: [
+    { year: 1, term: "fall", label: "Y1 Fall", courses: ["MATH 11", "CHEM 11", "ENGR 1", "ENGR 1L", "Core: Critical Thinking & Writing 1", "Core: Cultures & Ideas 1"], plannedUnits: 19 },
+    { year: 1, term: "winter", label: "Y1 Winter", courses: ["MATH 12", "PHYS 31", "ECEN 20", "Core: Critical Thinking & Writing 2", "Core: Cultures & Ideas 2"], plannedUnits: 21 },
+    { year: 1, term: "spring", label: "Y1 Spring", courses: ["MATH 13", "PHYS 32", "ECEN 21", "Core: University Core"], plannedUnits: 17 },
+    { year: 2, term: "fall", label: "Y2 Fall", courses: ["ECEN 50", "CSEN 10", "MATH 14", "PHYS 33"], plannedUnits: 17 },
+    { year: 2, term: "winter", label: "Y2 Winter", courses: ["ECEN 100", "CSEN 11", "AMTH 106", "PHYS 34"], plannedUnits: 17 },
+    { year: 2, term: "spring", label: "Y2 Spring", courses: ["ECEN 115", "CSEN 12", "ECEN 110", "Core: University Core (RTC 1 recommended, e.g. ENGR 16)"], plannedUnits: 17 },
+    { year: 3, term: "fall", label: "Y3 Fall", courses: ["ECEN 104", "ECEN 120", "ECEN Elective (Note 3)", "Core: University Core (Ethics recommended, e.g. ENGR 19)"], plannedUnits: 16 },
+    { year: 3, term: "winter", label: "Y3 Winter", courses: ["MECH 121", "Math Science Elective (Note 2)", "ECEN Elective (Note 3)", "ENGL 181"], plannedUnits: 17 },
+    { year: 3, term: "spring", label: "Y3 Spring", courses: ["ECEN 192", "ECEN 192L", "AMTH 108", "ECEN Elective (Note 3)", "Professional Development (Note 4)"], plannedUnits: 14 },
+    { year: 4, term: "fall", label: "Y4 Fall", courses: ["ECEN 194", "ECEN Elective (Note 3)", "Optional Elective or BS/MS option", "Core: University Core"], plannedUnits: 14 },
+    { year: 4, term: "winter", label: "Y4 Winter", courses: ["ECEN 195", "ECEN Elective (Note 3)", "Optional Elective or BS/MS option", "Core: University Core"], plannedUnits: 14 },
+    { year: 4, term: "spring", label: "Y4 Spring", courses: ["ECEN 196", "Optional Elective or BS/MS option", "Optional Elective or BS/MS option", "Core: University Core"], plannedUnits: 13 },
+  ],
+};
+
+const CENG_PROVENANCE: GraduationPathProvenance = {
+  sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/civil-engineering/CESE_4yearPlan_MATH11_2026.pdf",
+  sourceLabel: "SCU School of Engineering — Civil, Environmental and Sustainable Engineering Student Planning Guide (MATH 11 track)",
+  catalogYear: "2026-27",
+  lastVerified: "2026-09-17",
+  verificationNote:
+    "Reconciled course-by-course against the official PDF for first-year students starting 2026-27 with MATH 11 (a MATH 9 track also exists at the same source directory — not separately encoded). Minimum 191 units. Five CENG Technical Electives are required (one DIMA, two design, one analysis, one design-or-analysis) — kept as placeholders rather than guessed specific courses.",
+};
+
+const FOUR_YEAR_CENG: GraduationPathEntry = {
+  type: "four_year",
+  major: "CENG",
+  title: "Civil, Environmental and Sustainable Engineering — Standard 4-Year Path (MATH 11 track)",
+  summary: "Standard 12-quarter (4-year) plan following SCU's official Student Planning Guide for Civil, Environmental and Sustainable Engineering.",
+  feasibilityNote: "Matches SCU's official 2026-27 planning guide (MATH 11 track). A MATH 9 track also exists — see the official source for that variant. Technical Elective and University Core slots require an approved option each time.",
+  averageUnitsPerQuarter: 16,
+  requiresOverload: false,
+  sequenceTrust: "prescribed",
+  provenance: CENG_PROVENANCE,
+  risks: [
+    "This plan follows SCU's official 2026-27 MATH 11-track planning guide — a separate MATH 9 track exists with a different Year 1 sequence.",
+    "CENG Technical Electives are not all offered every year (many alternate years) — sequence them with your advisor.",
+    "Civil Engineering Professional Practice (CENG 192A/192B) and Civil Design Communication (CENG 194) run across senior year alongside the Project Design course — falling behind delays graduation.",
+  ],
+  quarters: [
+    { year: 1, term: "fall", label: "Y1 Fall", courses: ["MATH 11", "CHEM 11", "ENGR 1", "Core: Critical Thinking & Writing 1", "CENG 7"], plannedUnits: 18 },
+    { year: 1, term: "winter", label: "Y1 Winter", courses: ["MATH 12", "PHYS 31", "ENGR 1L", "Core: Critical Thinking & Writing 2"], plannedUnits: 14 },
+    { year: 1, term: "spring", label: "Y1 Spring", courses: ["MATH 13", "PHYS 32", "CENG 10", "Core: Cultures & Ideas 1", "Core: Cultures & Ideas 2"], plannedUnits: 18, notes: "ENGR 1/1L may be taken in any order and any quarter of the first year per the official guide — placed in Fall/Winter here." },
+    { year: 2, term: "fall", label: "Y2 Fall", courses: ["MATH 14", "PHYS 33", "CENG 15", "CENG 41"], plannedUnits: 17 },
+    { year: 2, term: "winter", label: "Y2 Winter", courses: ["AMTH 106", "CENG 20", "CENG 43", "Core: University Core"], plannedUnits: 17 },
+    { year: 2, term: "spring", label: "Y2 Spring", courses: ["CENG 115", "CENG 143", "CENG 132", "Core: University Core"], plannedUnits: 13 },
+    { year: 3, term: "fall", label: "Y3 Fall", courses: ["CENG 121", "CENG 145", "CENG 148", "Core: University Core"], plannedUnits: 16 },
+    { year: 3, term: "winter", label: "Y3 Winter", courses: ["AMTH 112", "CENG 141", "CENG 125", "CENG Technical Elective"], plannedUnits: 16 },
+    { year: 3, term: "spring", label: "Y3 Spring", courses: ["CENG 128", "CENG 140", "CENG 192A", "CENG Technical Elective"], plannedUnits: 12 },
+    { year: 4, term: "fall", label: "Y4 Fall", courses: ["CENG 192B", "ECEN 49", "CENG Technical Elective", "ENGL 181"], plannedUnits: 14 },
+    { year: 4, term: "winter", label: "Y4 Winter", courses: ["CENG 193", "Free Elective", "CENG Technical Elective", "Core: University Core"], plannedUnits: 13 },
+    { year: 4, term: "spring", label: "Y4 Spring", courses: ["CENG 194", "CENG Technical Elective", "Core: University Core", "Core: University Core"], plannedUnits: 14 },
+  ],
+};
+
+const BIOE_PROVENANCE: GraduationPathProvenance = {
+  sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/bioengineering/BIOE-4-Year-Plan_Biomolecular-track_2027-1.pdf",
+  sourceLabel: "SCU School of Engineering — Bioengineering Student Planning Guide (Biomolecular track)",
+  catalogYear: "2024-25 (Rev. 5/24/2024, effective Fall 2024)",
+  lastVerified: "2026-09-17",
+  verificationNote:
+    "Reconciled course-by-course against the official PDF for the Biomolecular track. Medical-Device and Pre-Med tracks are also officially published at the same source directory but not separately encoded — see the Bioengineering department page for those variants. Technical Electives require ≥8 units, at least 4 upper-division BIOE.",
+};
+
+const FOUR_YEAR_BIOE: GraduationPathEntry = {
+  type: "four_year",
+  major: "BIOE",
+  title: "Bioengineering — Standard 4-Year Path (Biomolecular track)",
+  summary: "Standard 12-quarter (4-year) plan following SCU's official Student Planning Guide for Bioengineering's Biomolecular track.",
+  feasibilityNote: "Matches SCU's official Biomolecular-track planning guide (effective Fall 2024). Medical-Device and Pre-Med tracks exist with a different upper-division sequence — see the official source for those variants.",
+  averageUnitsPerQuarter: 16,
+  requiresOverload: false,
+  sequenceTrust: "prescribed",
+  provenance: BIOE_PROVENANCE,
+  risks: [
+    "This plan follows the Biomolecular track specifically — the Medical-Device and Pre-Med tracks require different upper-division BIOE courses.",
+    "Senior Design (BIOE 194/195/196) runs across all three quarters of senior year — falling behind on any one course delays graduation.",
+    "Technical Electives (≥8 units, ≥4 upper-division BIOE) are not modeled as specific courses — choose with your advisor.",
+  ],
+  quarters: [
+    { year: 1, term: "fall", label: "Y1 Fall", courses: ["MATH 11", "CHEM 11", "BIOE 1", "BIOE 21", "Core: Critical Thinking & Writing 1"], plannedUnits: 18 },
+    { year: 1, term: "winter", label: "Y1 Winter", courses: ["MATH 12", "CHEM 12", "PHYS 31", "ENGR 1", "Core: Critical Thinking & Writing 2"], plannedUnits: 19 },
+    { year: 1, term: "spring", label: "Y1 Spring", courses: ["MATH 13", "CHEM 31", "PHYS 32", "ENGR 1L", "Core: University Core (Ethics recommended, e.g. ENGR 19)"], plannedUnits: 19 },
+    { year: 2, term: "fall", label: "Y2 Fall", courses: ["MATH 14", "CHEM 32", "PHYS 33", "BIOE 32"], plannedUnits: 18 },
+    { year: 2, term: "winter", label: "Y2 Winter", courses: ["AMTH 106", "BIOE 25", "BIOE 45", "BIOE 45L", "Core: Cultures & Ideas 1"], plannedUnits: 17 },
+    { year: 2, term: "spring", label: "Y2 Spring", courses: ["BIOE 22", "BIOE 23", "BIOE 24", "Core: Cultures & Ideas 2"], plannedUnits: 18 },
+    { year: 3, term: "fall", label: "Y3 Fall", courses: ["BIOE 163", "BIOE 172", "BIOE 120", "Core: University Core (RTC 1 recommended, e.g. ENGR 16)"], plannedUnits: 17 },
+    { year: 3, term: "winter", label: "Y3 Winter", courses: ["BIOE 162", "BIOE 175", "Core: University Core"], plannedUnits: 14 },
+    { year: 3, term: "spring", label: "Y3 Spring", courses: ["BIOE 153", "BIOE 176", "BIOE 171", "ENGL 181"], plannedUnits: 17 },
+    { year: 4, term: "fall", label: "Y4 Fall", courses: ["BIOE 194", "Technical Elective", "Core: University Core", "Core: University Core"], plannedUnits: 14 },
+    { year: 4, term: "winter", label: "Y4 Winter", courses: ["BIOE 195", "Technical Elective", "Core: University Core"], plannedUnits: 10 },
+    { year: 4, term: "spring", label: "Y4 Spring", courses: ["BIOE 196", "Core: University Core", "Core: University Core"], plannedUnits: 10 },
+  ],
+};
+
+const WDE_PROVENANCE: GraduationPathProvenance = {
+  sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/WDECoursePlan-Standard.pdf",
+  sourceLabel: "SCU School of Engineering — Sample 4-Year Course Plan for Web Design & Engineering",
+  catalogYear: "2023-24",
+  lastVerified: "2026-09-17",
+  verificationNote:
+    "Reconciled course-by-course against the official PDF (last modified 1/16/2024). Web Design and Engineering is not yet ABET-accredited (confirmed via the department's program page) — this does not affect degree validity at SCU, but is worth knowing for licensure-track students.",
+};
+
+const FOUR_YEAR_WDE: GraduationPathEntry = {
+  type: "four_year",
+  major: "WDE",
+  title: "Web Design and Engineering — Standard 4-Year Path",
+  summary: "Standard 12-quarter (4-year) plan following SCU's published sample sequence for Web Design and Engineering.",
+  feasibilityNote: "Matches SCU's published sample sequence. Confirm University Core area choices and Educational Enrichment electives with your advisor before registering.",
+  averageUnitsPerQuarter: 15.8,
+  requiresOverload: false,
+  sequenceTrust: "prescribed",
+  provenance: WDE_PROVENANCE,
+  risks: [
+    "This plan follows SCU's published sample sequence, but \"University Core\" and elective slots require you to pick an approved course each time — verify current options in the SCU Bulletin.",
+    "Senior Design (CSEN 194/195/196) runs across all three quarters of senior year — falling behind on any one course delays graduation.",
+    "Students without prior programming experience should not skip CSEN 10 — the footnote substitution is only for students with existing experience.",
+  ],
+  quarters: [
+    { year: 1, term: "fall", label: "Y1 Fall", courses: ["MATH 11", "Core: Natural Science", "Core: Critical Thinking & Writing 1", "CSEN 60", "ENGR 1"], plannedUnits: 17 },
+    { year: 1, term: "winter", label: "Y1 Winter", courses: ["MATH 12", "Core: Cultures & Ideas 1", "Core: Critical Thinking & Writing 2", "CSEN 10", "ENGR 1L"], plannedUnits: 17 },
+    { year: 1, term: "spring", label: "Y1 Spring", courses: ["MATH 13", "Core: Cultures & Ideas 2", "Core: University Core", "CSEN 11"], plannedUnits: 16, notes: "Students with prior programming experience may replace CSEN 10 with a free elective." },
+    { year: 2, term: "fall", label: "Y2 Fall", courses: ["MATH 14", "Core: University Core", "COMM 50", "CSEN 12"], plannedUnits: 16 },
+    { year: 2, term: "winter", label: "Y2 Winter", courses: ["AMTH 108", "SOCI 49", "COMM 12", "Free Elective"], plannedUnits: 16, notes: "An RTC 1 course such as ENGR 16 is recommended during the sophomore year." },
+    { year: 2, term: "spring", label: "Y2 Spring", courses: ["Core: University Core", "Core: University Core", "COMM 3 or COMM 30", "Free Elective"], plannedUnits: 16 },
+    { year: 3, term: "fall", label: "Y3 Fall", courses: ["ARTS 174", "Core: University Core", "Core: University Core", "CSEN 146"], plannedUnits: 16, notes: "An Ethics course such as ENGR 19 is recommended during the junior year." },
+    { year: 3, term: "winter", label: "Y3 Winter", courses: ["ARTS 177", "Core: University Core", "CSEN 161", "CSEN 163"], plannedUnits: 16 },
+    { year: 3, term: "spring", label: "Y3 Spring", courses: ["ARTS 175", "ENGL 181", "CSEN 162", "CSEN 164"], plannedUnits: 16 },
+    { year: 4, term: "fall", label: "Y4 Fall", courses: ["Core: University Core", "Educational Enrichment Elective", "CSEN 174", "CSEN 194"], plannedUnits: 14 },
+    { year: 4, term: "winter", label: "Y4 Winter", courses: ["Free Elective", "Educational Enrichment Elective", "CSEN 169", "CSEN 195"], plannedUnits: 14 },
+    { year: 4, term: "spring", label: "Y4 Spring", courses: ["Free Elective", "Educational Enrichment Elective", "Educational Enrichment Elective", "CSEN 196"], plannedUnits: 14 },
+  ],
+};
+
+const HAND_TUNED_FOUR_YEAR: Record<string, GraduationPathEntry> = {
+  CSE: FOUR_YEAR_CSE,
+  ECEN: FOUR_YEAR_ECEN,
+  EE: FOUR_YEAR_EE,
+  CENG: FOUR_YEAR_CENG,
+  BIOE: FOUR_YEAR_BIOE,
+  WDE: FOUR_YEAR_WDE,
+};
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -1125,10 +1334,16 @@ export function getGraduationPath(
 ): GraduationPathEntry {
   // Normalize legacy COEN code to current CSEN/CSE.
   const normalizedMajor = major === "COEN" ? "CSE" : major;
-  // Hand-tuned CSE plans take precedence (well-documented, in production).
+  // Hand-tuned plans (reconciled course-by-course against an official SCU
+  // source) take precedence over the generic recipe generator. CSE keeps its
+  // own hand-tuned three-year compression too; the other hand-tuned majors
+  // only have a curated four-year plan — their three-year path still falls
+  // through to the generic (always-"example") compressor below.
   let base: GraduationPathEntry;
-  if (normalizedMajor === "CSE") {
-    base = type === "three_year" ? THREE_YEAR_CSE : FOUR_YEAR_CSE;
+  if (normalizedMajor === "CSE" && type === "three_year") {
+    base = THREE_YEAR_CSE;
+  } else if (type === "four_year" && HAND_TUNED_FOUR_YEAR[normalizedMajor]) {
+    base = HAND_TUNED_FOUR_YEAR[normalizedMajor];
   } else {
     const recipe = MAJOR_RECIPES[normalizedMajor];
     if (!recipe) {

@@ -57,10 +57,22 @@ describe("newly-added majors", () => {
     }
   });
 
-  it("defaults to sequenceTrust 'example' (no fabricated official-plan claim)", () => {
-    for (const code of NEW_MAJOR_CODES) {
+  // WDE, EE, and GENR later gained an official SCU four-year-plan source
+  // (2026-09-17 Engineering four-year-plan matrix pass) — WDE/EE were
+  // reconciled course-by-course into hand-tuned "prescribed" plans, GENR's
+  // official source is a flow chart not yet safely reconciled so it stays
+  // "recommended". The remaining 5 still have no official-plan source found
+  // and must stay "example" — a generic template, never presented as more.
+  it("defaults to sequenceTrust 'example' for majors with no official-plan source (no fabricated official-plan claim)", () => {
+    for (const code of ["BCHM", "BCHM_ACS", "CHEM_BA", "ENSC", "ENGPHYS"]) {
       const path = getGraduationPath("four_year", code);
       expect(path.sequenceTrust).toBe("example");
     }
+  });
+
+  it("WDE and EE are prescribed (reconciled), GENR is recommended (official source, not yet reconciled)", () => {
+    expect(getGraduationPath("four_year", "WDE").sequenceTrust).toBe("prescribed");
+    expect(getGraduationPath("four_year", "EE").sequenceTrust).toBe("prescribed");
+    expect(getGraduationPath("four_year", "GENR").sequenceTrust).toBe("recommended");
   });
 });

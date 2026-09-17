@@ -25,7 +25,7 @@ describe("Quarter Plan APR panel matches Degree Plan / Tentative Degree Plan", (
     expect(plannerSource).toMatch(
       /import\s*{\s*WorkdayAprPanel\s*}\s*from\s*"@\/components\/progress-report\/WorkdayAprPanel"/,
     );
-    expect(plannerSource).toMatch(/<WorkdayAprPanel\s*\/>/);
+    expect(plannerSource).toMatch(/<WorkdayAprPanel\b/);
   });
 
   it("no longer imports the divergent legacy AcademicProgress panel", () => {

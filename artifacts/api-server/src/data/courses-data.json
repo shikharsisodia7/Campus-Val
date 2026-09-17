@@ -2559,6 +2559,27 @@
     "corequisites": []
   },
   {
+    "code": "ARTS 174",
+    "title": "Intermediate Digital Imaging",
+    "department": "ARTS",
+    "departmentName": "Studio Art",
+    "units": 5,
+    "description": "Continuation and extension of ARTS 74. Students create intermediate-level, original digital artwork through comprehensive assignments using raster- and vector-based software, emphasizing both conceptual development and refinement of digital imaging methods.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "ARTS 74 or instructor permission",
+    "prereqGroups": [
+      [
+        "ARTS 74"
+      ]
+    ],
+    "corequisites": []
+  },
+  {
     "code": "ARTS 175",
     "title": "Information Design: Graphic Design",
     "department": "ARTS",
@@ -4680,6 +4701,68 @@
         "PHYS 32"
       ]
     ],
+    "corequisites": [],
+    "restrictedToColleges": [
+      "School of Engineering"
+    ]
+  },
+  {
+    "code": "BIOE 32",
+    "title": "Introduction to Biochemical Engineering",
+    "department": "BIOE",
+    "departmentName": "Bioengineering",
+    "units": 4,
+    "description": "Material and energy balances applied to reactive processes, foundational to unit operations understanding, with case studies in bioengineering. Emphasizes process variables and simulation software.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "Sophomore standing",
+    "prereqGroups": [],
+    "corequisites": [],
+    "restrictedToColleges": [
+      "School of Engineering"
+    ]
+  },
+  {
+    "code": "BIOE 45",
+    "title": "Computer Programming in MATLAB and Python",
+    "department": "BIOE",
+    "departmentName": "Bioengineering",
+    "units": 4,
+    "description": "An introduction to computer programming using MATLAB and Python, with an emphasis on applications in bioengineering. Covers computational fundamentals and their application to engineering problems.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "None listed in bulletin. C orequisite : BIOE 45L",
+    "prereqGroups": [],
+    "corequisites": [
+      "BIOE 45L"
+    ],
+    "restrictedToColleges": [
+      "School of Engineering"
+    ]
+  },
+  {
+    "code": "BIOE 45L",
+    "title": "Computer Programming in MATLAB and Python Laboratory",
+    "department": "BIOE",
+    "departmentName": "Bioengineering",
+    "units": 1,
+    "description": "Laboratory for BIOE 45. C orequisite : BIOE 45.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "None listed in bulletin",
+    "prereqGroups": [],
     "corequisites": [],
     "restrictedToColleges": [
       "School of Engineering"
@@ -14824,6 +14907,57 @@
     "departmentName": "Computer Science & Engineering",
     "units": 1,
     "description": "Laboratory for CSEN 164. C orequisite : CSEN 164.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "None listed in bulletin",
+    "prereqGroups": [],
+    "corequisites": [],
+    "restrictedToColleges": [
+      "School of Engineering"
+    ]
+  },
+  {
+    "code": "CSEN 169",
+    "title": "Web Search and Information Retrieval",
+    "department": "CSEN",
+    "departmentName": "Computer Science & Engineering",
+    "units": 4,
+    "description": "Theory, design, and implementation of information systems that process, organize, and analyze large-scale information on the Web. Search engine technology, recommender systems, and web data classification and clustering.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "a grade of C- or better in AMTH 108 or MATH 122, and in CSEN 12 or CSCI 61, or instructor permission. C orequisite : CSEN 169L",
+    "prereqGroups": [
+      [
+        "AMTH 108",
+        "MATH 122"
+      ],
+      [
+        "CSEN 12",
+        "CSCI 61"
+      ]
+    ],
+    "corequisites": [
+      "CSEN 169L"
+    ],
+    "restrictedToColleges": [
+      "School of Engineering"
+    ]
+  },
+  {
+    "code": "CSEN 169L",
+    "title": "Web Search and Information Retrieval Laboratory",
+    "department": "CSEN",
+    "departmentName": "Computer Science & Engineering",
+    "units": 1,
+    "description": "Laboratory for CSEN 169. C orequisite : CSEN 169.",
     "coreAreas": [],
     "offeredTerms": [
       "fall",
@@ -41235,6 +41369,23 @@
     "departmentName": "Sociology",
     "units": 4,
     "description": "Introduces students to the logic and basic methods of sociological research. The focus is on research methods used regularly by sociologists such as participant observation, interviewing, and surveys/statistical analysis. Through a combination of readings and exercises, students will be exposed to a few of sociology’s best practices using each of these methods, as well as how to collect data appropriate to the nature of a project. We will reflect on research ethics and on opportunities for…",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "None listed in bulletin",
+    "prereqGroups": [],
+    "corequisites": []
+  },
+  {
+    "code": "SOCI 49",
+    "title": "Media and Culture",
+    "department": "SOCI",
+    "departmentName": "Sociology",
+    "units": 4,
+    "description": "Examines the reciprocal impacts of media and culture on one another, as well as the roles of individuals, groups, institutions, and/or culture on the development, reception, use, and/or deployment of various media.",
     "coreAreas": [],
     "offeredTerms": [
       "fall",
