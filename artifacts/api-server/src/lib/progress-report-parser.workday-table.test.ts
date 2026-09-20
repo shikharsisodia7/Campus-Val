@@ -245,6 +245,41 @@ describe("Workday table layout — planning projection", () => {
   });
 });
 
+describe("Workday table layout — status vocabulary", () => {
+  const mini = (status: string) => `View My Academic Progress 9:05 AM
+01/15/2027Page 1 of 1Sample Department/Undergraduate (Finance Major)
+Cumulative GPA 3.100
+Finance Major Requirements
+Program of Study GPA 3.000
+Requirements Effective 3
+Last Evaluated 01/12/2027 08:00:00 AM GMT-08:00 Pacific Time (Los Angeles)
+Satisfied With
+Requirement Status Remaining
+Registrations Used Academic
+Period Units Grade
+Finance Major : FNCE 124 ${status} Minimum 1
+Course(s)
+Finance Major : FNCE 125 Satisfied ACTG 11 - Introduction to
+Financial Accounting
+(Transfer Credit)
+6 CR
+`;
+
+  it.each([
+    ["Not Started", "remaining"],
+    ["Not Satisfied", "remaining"],
+    ["In Progress", "in_progress"],
+  ] as const)("reads a %s row as %s, with its Remaining text, without swallowing the next row", (word, expected) => {
+    const rows = parseReportText(mini(word)).groups![0]!.requirements;
+    expect(rows.map((r) => [r.name, r.status])).toEqual([
+      ["Finance Major : FNCE 124", expected],
+      ["Finance Major : FNCE 125", "completed"],
+    ]);
+    expect(rows[0]!.remaining).toBe("Minimum 1 Course(s)");
+    expect(rows[1]!.courses[0]).toMatchObject({ code: "ACTG 11", transfer: true });
+  });
+});
+
 describe("Workday table layout — fallbacks", () => {
   it("leaves a simple (non-table) report on the line-based reader", () => {
     const simple = readFileSync(

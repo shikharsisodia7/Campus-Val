@@ -15,6 +15,10 @@
  *     whether it is still "cached" or has gone "stale" (stale ⇒ status unknown)
  *   - failure with nothing to fall back on → live state "unavailable"; sections
  *     fall through to the manual snapshot / static schedule
+ *   - a failed upstream call is remembered for `failureBackoffMs`, during which
+ *     the upstream is NOT called again: an outage costs one timeout per backoff
+ *     window, not one per student request (each of which would otherwise block
+ *     for the full upstream timeout before answering "unknown")
  * Planning never breaks: `getTermAvailability` does not throw.
  */
 import { SingleFlightTtlCache } from "./cache";
@@ -63,6 +67,8 @@ export interface AvailabilityServiceOptions {
   fixture?: CourseAvailabilityProvider | null;
   manual: CourseAvailabilityProvider;
   cacheTtlMs?: number;
+  /** How long a failed upstream call suppresses further attempts. Default: min(cacheTtlMs, 15 s). */
+  failureBackoffMs?: number;
   livePolicy?: FreshnessPolicy;
   manualPolicy?: FreshnessPolicy;
   now?: () => Date;
@@ -78,14 +84,23 @@ class ProviderFailure extends Error {
   }
 }
 
+/** A failure replayed from the backoff window: no upstream call was made, so nothing new to report. */
+class BackedOff extends ProviderFailure {}
+
 export class AvailabilityService {
   private readonly cache: SingleFlightTtlCache<OkResult>;
   private readonly livePolicy: FreshnessPolicy;
   private readonly manualPolicy: FreshnessPolicy;
   private readonly now: () => Date;
+  private readonly failureBackoffMs: number;
+  /** key → when the last upstream attempt failed and why. */
+  private readonly failures = new Map<string, { at: number; reason: ProviderFailureReason }>();
+  /** Failures already reported: every waiter on one shared in-flight call sees the SAME error object. */
+  private readonly reported = new WeakSet<Error>();
 
   constructor(private readonly opts: AvailabilityServiceOptions) {
     this.now = opts.now ?? (() => new Date());
+    this.failureBackoffMs = opts.failureBackoffMs ?? Math.min(opts.cacheTtlMs ?? 60_000, 15_000);
     this.cache = new SingleFlightTtlCache<OkResult>(opts.cacheTtlMs ?? 60_000, 32, () => this.now().getTime());
     this.livePolicy = opts.livePolicy ?? DEFAULT_LIVE_POLICY;
     this.manualPolicy = opts.manualPolicy ?? MANUAL_PASTE_POLICY;
@@ -101,14 +116,32 @@ export class AvailabilityService {
     const key = `${term}|${year}`;
     try {
       const { value } = await this.cache.get(key, async () => {
-        const r = await live.getAvailability({ term, year });
-        if (!r.ok) throw new ProviderFailure(r.reason);
+        const recent = this.failures.get(key);
+        if (recent && this.now().getTime() - recent.at < this.failureBackoffMs) {
+          throw new BackedOff(recent.reason); // do not hammer (or wait on) an upstream that just failed
+        }
+        let r: ProviderResult;
+        try {
+          r = await live.getAvailability({ term, year });
+        } catch {
+          r = { ok: false, reason: "upstream_error", message: "" };
+        }
+        if (!r.ok) {
+          this.failures.set(key, { at: this.now().getTime(), reason: r.reason });
+          throw new ProviderFailure(r.reason);
+        }
+        this.failures.delete(key);
         return r;
       });
       return { result: value, failure: null };
     } catch (err) {
       const reason: ProviderFailureReason = err instanceof ProviderFailure ? err.reason : "upstream_error";
-      this.opts.onProviderFailure?.({ provider: live.id, reason });
+      // Report each real upstream failure once — not once per student who was waiting on it,
+      // and not for replays from the backoff window (no upstream call was made).
+      if (err instanceof Error && !(err instanceof BackedOff) && !this.reported.has(err)) {
+        this.reported.add(err);
+        this.opts.onProviderFailure?.({ provider: live.id, reason });
+      }
       // Stale-if-error: keep serving the last good answer; freshness decides whether it is trusted.
       const previous = this.cache.peek(key);
       return { result: previous?.value ?? null, failure: reason };
@@ -188,5 +221,6 @@ export class AvailabilityService {
   /** Test seam. */
   clearCache(): void {
     this.cache.clear();
+    this.failures.clear();
   }
 }

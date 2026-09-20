@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
-import { sql } from "drizzle-orm";
 import { HealthCheckResponse } from "@workspace/api-zod";
-import { db } from "@workspace/db";
+import { pool } from "@workspace/db";
 import { isPrivateStorageConfigured } from "../lib/storage";
 
 const router: IRouter = Router();
@@ -18,6 +17,64 @@ router.get("/healthz", (_req, res) => {
 
 const READINESS_DB_TIMEOUT_MS = 3_000;
 
+/** The slice of a pooled connection the probe uses (`release(true)` destroys it rather than recycling it). */
+interface ProbeClient {
+  on(event: "error", listener: (err: Error) => void): unknown;
+  query(text: string): Promise<unknown>;
+  release(destroy?: boolean): void;
+}
+
+/**
+ * One bounded `select 1` on a dedicated pool client.
+ *
+ * Racing a query against a timer does NOT cancel it: the hung round trip keeps
+ * its pool client checked out after the handler has already answered 503, and a
+ * load balancer polling every few seconds would slowly drain the pool until
+ * real requests block too. So the client is released WITH an error on failure or
+ * timeout, which makes the pool destroy that connection instead of recycling
+ * it, and a late-arriving connection or result is discarded the same way.
+ */
+function probeDatabase(): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false;
+    // A holder object (not a bare `let`) because it is assigned inside a callback.
+    const held: { client?: ProbeClient } = {};
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      held.client?.release(!ok);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(false), READINESS_DB_TIMEOUT_MS);
+    pool
+      .connect()
+      .then((c) => {
+        // A late connection (after the timeout already answered) must not linger in the pool.
+        c.on("error", () => undefined);
+        if (settled) {
+          c.release(true);
+          return undefined;
+        }
+        held.client = c;
+        return c.query("select 1").then(() => finish(true));
+      })
+      .catch(() => finish(false));
+  });
+}
+
+/**
+ * Concurrent readiness polls share ONE in-flight probe, so readiness can never
+ * hold more than a single pool client no matter how often it is polled.
+ */
+let probeInFlight: Promise<boolean> | null = null;
+function isDatabaseReady(): Promise<boolean> {
+  probeInFlight ??= probeDatabase().finally(() => {
+    probeInFlight = null;
+  });
+  return probeInFlight;
+}
+
 /**
  * GET /api/readyz — READINESS. "Can this instance do useful work right now?"
  * Verifies the one critical dependency (Postgres) with a bounded round trip.
@@ -29,22 +86,7 @@ const READINESS_DB_TIMEOUT_MS = 3_000;
  * without APR storage still plans courses correctly.
  */
 router.get("/readyz", async (_req, res) => {
-  let database: "ok" | "error" = "error";
-  let timer: NodeJS.Timeout | undefined;
-  try {
-    await Promise.race([
-      db.execute(sql`select 1`),
-      new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error("timeout")), READINESS_DB_TIMEOUT_MS);
-      }),
-    ]);
-    database = "ok";
-  } catch {
-    database = "error";
-  } finally {
-    clearTimeout(timer);
-  }
-
+  const database: "ok" | "error" = (await isDatabaseReady()) ? "ok" : "error";
   const ready = database === "ok";
   res.status(ready ? 200 : 503).json({
     status: ready ? "ready" : "unavailable",

@@ -61,6 +61,11 @@ optional. **No Workday payload shape reaches the frontend.**
 - **Caching**: one upstream request per term per `WORKDAY_AVAILABILITY_CACHE_TTL_SECONDS`
   (default 60 s) no matter how many students ask (single-flight), bounded to 32 terms.
   Process-local: N instances ⇒ at most N requests per TTL. No extra infrastructure.
+- **Outage backoff**: a failed upstream call suppresses further attempts for
+  min(cache TTL, 15 s). Without it every student request during an outage would block for
+  the full upstream timeout (5 s by default) before answering "unknown". Terms are fetched
+  concurrently, so one slow upstream costs a request one timeout, not one per term. Each
+  real failure is reported once, not once per waiting student.
 - **Failure**: the last good answer keeps being served, flagged by age (live → cached
   → stale ⇒ unknown). With nothing cached the state is "unavailable". A failure
   is logged as a reason only — never the URL, credential or upstream body.

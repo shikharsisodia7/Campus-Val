@@ -245,6 +245,61 @@ describe("AvailabilityService", () => {
     expect(a).toMatchObject({ sourceType: "workday_self_paste", isLive: false, freshness: "cached" });
   });
 
+  it("an outage costs ONE upstream attempt per backoff window, not one per student request", async () => {
+    let now = NOW;
+    const failures: string[] = [];
+    const live = fakeProvider("workday_live", async () => ({ ok: false, reason: "timeout", message: "x" }), true);
+    const svc = new AvailabilityService({
+      live,
+      manual: emptyManual(),
+      now: () => now,
+      cacheTtlMs: 60_000,
+      failureBackoffMs: 15_000,
+      onProviderFailure: (f) => failures.push(f.reason),
+    });
+
+    // 30 students hit the sections endpoint while the upstream is down.
+    const first = await Promise.all(Array.from({ length: 30 }, () => svc.getTermAvailability("fall", 2026)));
+    expect(live.calls).toBe(1);
+    expect(first.every((t) => t.live.state === "unavailable" && t.live.failure === "timeout")).toBe(true);
+
+    // Still inside the backoff window: no new upstream call, the failure reason is still reported honestly.
+    now = new Date(NOW.getTime() + 10_000);
+    const during = await svc.getTermAvailability("fall", 2026);
+    expect(live.calls).toBe(1);
+    expect(during.live).toMatchObject({ state: "unavailable", failure: "timeout" });
+    // Replays are not new incidents: only the real attempt was reported.
+    expect(failures).toEqual(["timeout"]);
+
+    // Window over: exactly one more attempt.
+    now = new Date(NOW.getTime() + 16_000);
+    await svc.getTermAvailability("fall", 2026);
+    expect(live.calls).toBe(2);
+    expect(failures).toEqual(["timeout", "timeout"]);
+  });
+
+  it("recovers immediately once the upstream answers again (a success clears the backoff)", async () => {
+    let now = NOW;
+    let healthy = false;
+    const live = fakeProvider("workday_live", async () => (healthy ? okResult([rec({ sectionNumber: "01", status: "open" })]) : { ok: false, reason: "upstream_error", message: "x" }), true);
+    const svc = new AvailabilityService({ live, manual: emptyManual(), now: () => now, cacheTtlMs: 60_000, failureBackoffMs: 15_000 });
+    await svc.getTermAvailability("fall", 2026);
+    healthy = true;
+    now = new Date(NOW.getTime() + 16_000);
+    const t = await svc.getTermAvailability("fall", 2026);
+    expect(t.bySection.get(sectionKey("CSCI 10", "01"))!.availabilityStatus).toBe("open");
+    expect(t.live.failure).toBeNull();
+  });
+
+  it("a provider that THROWS (instead of returning ok:false) is handled as a failure, never propagated", async () => {
+    const live = fakeProvider("workday_live", async () => {
+      throw new Error("socket hang up");
+    }, true);
+    const svc = new AvailabilityService({ live, manual: emptyManual(), now: () => NOW });
+    const t = await svc.getTermAvailability("fall", 2026);
+    expect(t.live).toMatchObject({ state: "unavailable", failure: "upstream_error" });
+  });
+
   it("stale-if-error: serves the last good answer as 'cached', then as stale ⇒ unknown once too old", async () => {
     let now = NOW;
     let healthy = true;

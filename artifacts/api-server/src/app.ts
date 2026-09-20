@@ -13,6 +13,7 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { sanitizeLoggedUrl } from "./lib/log-url";
 import { isOriginAllowed, resolveTrustProxy } from "./lib/config";
 import { publicOrigin } from "./lib/public-origin";
 
@@ -53,7 +54,7 @@ app.use(
         return {
           id: req.id,
           method: req.method,
-          url: req.url?.split("?")[0],
+          url: sanitizeLoggedUrl(req.url),
         };
       },
       res(res) {

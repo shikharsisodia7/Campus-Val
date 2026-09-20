@@ -68,7 +68,8 @@ const FURNITURE_LINES = [
   /^Period Units Grade$/i,
 ];
 
-const STATUS_RE = /\b(Not Satisfied|Satisfied|In Progress)\b/;
+// Same vocabulary as the line-based reader: Workday also prints "Not Started".
+const STATUS_RE = /\b(Not Satisfied|Not Started|Satisfied|In Progress)\b/;
 // The title may start on the next line ("ENVS 131 -" / "Environmental Education"), so it is optional.
 const COURSE_START_RE = /^([A-Z]{2,5})\s?(\d{1,3}[A-Z]{0,2})\s+-(?:\s+(.*))?$/;
 const UNITS_GRADE_RE = /^(\d+(?:\.\d+)?)(?:\s+(A[+-]?|B[+-]?|C[+-]?|D[+-]?|F|P|NP|CR|NC|W|I|AU))?$/;

@@ -110,10 +110,15 @@ router.get("/courses/:code/sections", async (req, res) => {
   }
 
   const service = getAvailabilityService();
-  const availabilityByTerm = new Map<string, Awaited<ReturnType<typeof service.getTermAvailability>>>();
-  for (const [k, t] of termKeys) {
-    availabilityByTerm.set(k, await service.getTermAvailability(t.term, t.year, matchedCode));
-  }
+  // Terms are independent: fetch them concurrently so a slow upstream costs one
+  // timeout for the request, not one per term.
+  const availabilityByTerm = new Map<string, Awaited<ReturnType<typeof service.getTermAvailability>>>(
+    await Promise.all(
+      [...termKeys].map(
+        async ([k, t]) => [k, await service.getTermAvailability(t.term, t.year, matchedCode)] as const,
+      ),
+    ),
+  );
 
   type OutSection = {
     id: string;
