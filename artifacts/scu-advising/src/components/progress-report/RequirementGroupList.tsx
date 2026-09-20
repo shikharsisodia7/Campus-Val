@@ -112,7 +112,15 @@ export function RequirementGroupList({
   mappings?: readonly CourseMapping[];
 }) {
   if (groups.length === 0) return null;
-  const mappingByRaw = new Map(mappings.map((m) => [normalizeReportCode(m.rawCode), m]));
+  const mappingByRaw = new Map<string, CourseMapping>();
+  for (const m of mappings) {
+    const key = normalizeReportCode(m.rawCode);
+    if (key) mappingByRaw.set(key, m);
+  }
+  const mappingFor = (code: string): CourseMapping | undefined => {
+    const key = normalizeReportCode(code);
+    return key ? mappingByRaw.get(key) : undefined;
+  };
 
   const original: IndexedGroup[] = groups.map((group, index) => ({
     group,
@@ -213,12 +221,12 @@ export function RequirementGroupList({
                                   (not matched to the CampusVal catalog)
                                 </span>
                               )}
-                              {!course.inCatalog && !course.transfer && mappingByRaw.has(normalizeReportCode(course.code)) && (
+                              {!course.inCatalog && !course.transfer && mappingFor(course.code) && (
                                 <span
                                   className="text-[10px] italic text-foreground/80"
                                   data-testid={`requirement-course-mapped-${index}-${j}-${k}`}
                                 >
-                                  · matched by you to {mappingByRaw.get(normalizeReportCode(course.code))!.courseCode} (your
+                                  · matched by you to {mappingFor(course.code)!.courseCode} (your
                                   note, not Workday&rsquo;s)
                                 </span>
                               )}

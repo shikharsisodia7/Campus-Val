@@ -215,6 +215,16 @@ describe("AprStructuredView — where mappings appear", () => {
     expect(screen.getByTestId("apr-mapped").textContent).toMatch(/ENGL 2A on your report → ENGL 1A/);
   });
 
+  it("offers no Match control for an item that is not code-shaped (the server would refuse it) but still lists it to verify", () => {
+    const p = parsed();
+    p.possibleCourses = [{ raw: "ENGL 2A" }, { raw: "???" }];
+    wrap(<AprStructuredView parsed={p} variant="page" editableMappings />);
+    expect(screen.getByTestId("apr-review").textContent).toContain("???");
+    expect(screen.getByTestId("mapper-open-ENGL-2A")).toBeTruthy();
+    // Exactly one Match button: the code-shaped item's.
+    expect(screen.getAllByRole("button", { name: /Match .* to a catalog course/ })).toHaveLength(1);
+  });
+
   it("never changes the completed count: a mapping is not a completion", () => {
     wrap(<AprStructuredView parsed={parsed()} variant="page" mappings={mine} />);
     expect(within(screen.getByTestId("apr-tally-completed")).getByText("1")).toBeTruthy();

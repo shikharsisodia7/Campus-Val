@@ -233,12 +233,16 @@ export function AprStructuredView({
                 )}
               </li>
             ))}
-            {review.unrecognized.map((raw, i) => (
-              <li key={`u-${i}`} className="font-mono">
-                {raw} <span className="font-sans italic">(not in the CampusVal catalog)</span>
-                {isPage && editableMappings && <UnmatchedCourseMapper raw={normalizeReportCode(raw)} />}
-              </li>
-            ))}
+            {review.unrecognized.map((raw, i) => {
+              // Only a code-shaped item can be matched (the server refuses anything else).
+              const matchable = normalizeReportCode(raw);
+              return (
+                <li key={`u-${i}`} className="font-mono">
+                  {raw} <span className="font-sans italic">(not in the CampusVal catalog)</span>
+                  {isPage && editableMappings && matchable && <UnmatchedCourseMapper raw={matchable} />}
+                </li>
+              );
+            })}
           </ul>
           {!isPage && (
             <Link href="/progress-report" className="mt-1.5 inline-block font-medium underline">

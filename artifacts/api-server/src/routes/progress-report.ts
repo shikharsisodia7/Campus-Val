@@ -364,13 +364,14 @@ router.delete("/progress-report", requireAuth, async (req, res): Promise<void> =
     // Best effort — ignore errors
   }
 
-  await db
-    .delete(progressReportsTable)
-    .where(eq(progressReportsTable.userId, userId));
-  // The student's own mappings describe THIS report's items; deleting the report deletes them.
-  await db
-    .delete(progressReportMappingsTable)
-    .where(eq(progressReportMappingsTable.userId, userId));
+  // The student's own mappings describe THIS report's items, so they go with it —
+  // in ONE transaction. Two separate statements could leave the mappings behind if the
+  // second failed, and orphaned notes would silently re-attach to the next upload.
+  // Either both rows are gone or neither is (a retry of the delete is then safe).
+  await db.transaction(async (tx) => {
+    await tx.delete(progressReportMappingsTable).where(eq(progressReportMappingsTable.userId, userId));
+    await tx.delete(progressReportsTable).where(eq(progressReportsTable.userId, userId));
+  });
 
   // A 204 (empty body) response has been observed intermittently arriving at
   // the client as a platform-level 503 even though this handler completed

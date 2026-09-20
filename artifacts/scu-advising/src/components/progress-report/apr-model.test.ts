@@ -308,6 +308,18 @@ describe("reviewSummary with the student's own mappings", () => {
     expect(normalizeReportCode("TESP4")).toBe("TESP 4");
   });
 
+  it("returns null for anything that is not code-shaped — the same rule the server enforces", () => {
+    for (const junk of ["", "hello world", "E 1", "ENGLISHH 1", "ENGL", "ENGL 12345", "ENGL 2ABC", "12 ENGL", "ENGL 2A extra"]) {
+      expect(normalizeReportCode(junk), junk).toBeNull();
+    }
+  });
+
+  it("a token that is not code-shaped stays on the verify list and can never be 'mapped'", () => {
+    const r = reviewSummary(parsed(["ENGL 2A", "???"]), [map("ENGL 2A"), map("???")]);
+    expect(r.unrecognized).toEqual(["???"]);
+    expect(r.mapped.map((m) => m.rawCode)).toEqual(["ENGL 2A"]);
+  });
+
   it("without mappings every unrecognized token still needs verifying", () => {
     const r = reviewSummary(parsed(["ENGL 2A", "TESP 4"]));
     expect(r.unrecognized).toEqual(["ENGL 2A", "TESP 4"]);

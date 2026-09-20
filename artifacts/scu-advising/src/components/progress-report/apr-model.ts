@@ -244,13 +244,21 @@ export interface CourseMapping {
   courseTitle: string | null;
 }
 
-/** "engl2a" → "ENGL 2A": the same normalization the server applies to a report code. */
-export function normalizeReportCode(raw: string): string {
-  return raw
+/** The shape of a code an APR prints — the SAME rule the server enforces (`REPORT_CODE_SHAPE`). */
+const REPORT_CODE_SHAPE = /^[A-Z]{2,5} \d{1,3}[A-Z]{0,2}$/;
+
+/**
+ * "engl2a" → "ENGL 2A", or null when the text is not a code-shaped item. Mirrors the
+ * server's `normalizeReportCode` INCLUDING the shape check: the server refuses to store a
+ * mapping for anything else, so the UI must not offer to match it.
+ */
+export function normalizeReportCode(raw: string): string | null {
+  const code = raw
     .toUpperCase()
     .replace(/^([A-Z]{2,5})\s?(\d)/, "$1 $2")
     .replace(/\s+/g, " ")
     .trim();
+  return REPORT_CODE_SHAPE.test(code) ? code : null;
 }
 
 export interface ReviewSummary {
@@ -283,13 +291,18 @@ export function reviewSummary(parsed: ParsedProgressReport, mappings: readonly C
       }
     }
   }
-  const byRaw = new Map(mappings.map((m) => [normalizeReportCode(m.rawCode), m]));
+  const byRaw = new Map<string, CourseMapping>();
+  for (const m of mappings) {
+    const key = normalizeReportCode(m.rawCode);
+    if (key) byRaw.set(key, m);
+  }
   const unrecognized: string[] = [];
   const mapped: CourseMapping[] = [];
   for (const c of parsed.possibleCourses) {
-    const m = byRaw.get(normalizeReportCode(c.raw));
+    const key = normalizeReportCode(c.raw);
+    const m = key ? byRaw.get(key) : undefined;
     if (m) mapped.push(m);
-    else unrecognized.push(c.raw);
+    else unrecognized.push(c.raw); // includes anything not code-shaped: it can be verified, never matched
   }
   return { items, unrecognized, mapped, count: items.length + unrecognized.length };
 }

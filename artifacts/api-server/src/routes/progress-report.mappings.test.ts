@@ -14,7 +14,7 @@ import request from "supertest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 
 vi.mock("../middlewares/requireAuth", () => ({
   requireAuth: (req: any, res: any, next: any) => {
@@ -211,5 +211,47 @@ describe("lifecycle", () => {
     expect(rows).toEqual([]);
     // Bob's report and his (empty) mappings are untouched.
     expect(await storedReport(BOB)).toBeDefined();
+  });
+});
+
+describe("deleting the report is ATOMIC with deleting the student's mappings", () => {
+  // A trigger that makes the mappings delete FAIL, scoped to one test user so tests running in
+  // parallel against the same database are unaffected.
+  const CAROL = `apr-map-carol-${STAMP}`;
+  const FN = `pr_map_block_${STAMP}`;
+  const rowsOf = async (userId: string) =>
+    db.select().from(progressReportMappingsTable).where(eq(progressReportMappingsTable.userId, userId));
+
+  afterAll(async () => {
+    await db.execute(sql.raw(`DROP TRIGGER IF EXISTS ${FN} ON progress_report_mappings`));
+    await db.execute(sql.raw(`DROP FUNCTION IF EXISTS ${FN}()`));
+    await db.delete(progressReportMappingsTable).where(eq(progressReportMappingsTable.userId, CAROL));
+    await db.delete(progressReportsTable).where(eq(progressReportsTable.userId, CAROL));
+  });
+
+  it("a failure while deleting the mappings leaves BOTH the report and the mappings in place; the retry then removes both", async () => {
+    await seedReport(CAROL);
+    await db.insert(progressReportMappingsTable).values({ userId: CAROL, rawCode: "ENGL 2A", courseCode: "MATH 11" });
+    await db.execute(
+      sql.raw(`CREATE FUNCTION ${FN}() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'injected failure'; END; $$ LANGUAGE plpgsql`),
+    );
+    await db.execute(
+      sql.raw(
+        `CREATE TRIGGER ${FN} BEFORE DELETE ON progress_report_mappings FOR EACH ROW WHEN (OLD.user_id = '${CAROL}') EXECUTE FUNCTION ${FN}()`,
+      ),
+    );
+
+    const failed = await request(app).delete("/api/progress-report").set(as(CAROL));
+    expect(failed.status).toBe(500);
+    // Nothing was half-deleted: the report is still there, and so are the notes.
+    expect(await storedReport(CAROL)).toBeDefined();
+    expect((await rowsOf(CAROL)).map((r) => r.rawCode)).toEqual(["ENGL 2A"]);
+
+    // Once the fault clears, the same request removes both — a retry is safe.
+    await db.execute(sql.raw(`DROP TRIGGER ${FN} ON progress_report_mappings`));
+    const retried = await request(app).delete("/api/progress-report").set(as(CAROL));
+    expect(retried.status).toBe(200);
+    expect(await storedReport(CAROL)).toBeUndefined();
+    expect(await rowsOf(CAROL)).toEqual([]);
   });
 });
