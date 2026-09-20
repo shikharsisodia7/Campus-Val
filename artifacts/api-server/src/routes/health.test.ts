@@ -23,6 +23,7 @@ afterEach(() => {
 function fakeClient(query: () => Promise<unknown>) {
   return {
     on: vi.fn(),
+    off: vi.fn(),
     query: vi.fn(query),
     release: vi.fn(),
   };
@@ -60,6 +61,40 @@ describe("GET /api/readyz (readiness)", () => {
     expect(res.status).toBe(200);
     expect(client.release).toHaveBeenCalledTimes(1);
     expect(client.release).toHaveBeenCalledWith(false);
+  });
+
+  it("does not leave its error listener on a healthy connection that goes back into the pool", async () => {
+    const client = fakeClient(() => Promise.resolve({}));
+    vi.spyOn(pool, "connect").mockResolvedValue(client as never);
+    expect((await request(app).get("/api/readyz")).status).toBe(200);
+    expect(client.on).toHaveBeenCalledTimes(1);
+    expect(client.off).toHaveBeenCalledTimes(1);
+    // The very function that was added is the one removed.
+    expect(client.off.mock.calls[0]![1]).toBe(client.on.mock.calls[0]![1]);
+  });
+
+  it("keeps the listener on a connection it destroys (it must absorb the error from closing it)", async () => {
+    const client = fakeClient(() => Promise.reject(new Error("boom")));
+    vi.spyOn(pool, "connect").mockResolvedValue(client as never);
+    expect((await request(app).get("/api/readyz")).status).toBe(503);
+    expect(client.off).not.toHaveBeenCalled();
+    expect(client.release).toHaveBeenCalledWith(true);
+  });
+
+  it("repeated polls against the REAL pool leave no stray listeners on the recycled connection", async () => {
+    const before = await pool.connect();
+    const baseline = before.listenerCount("error");
+    before.release();
+    for (let i = 0; i < 25; i++) {
+      expect((await request(app).get("/api/readyz")).status).toBe(200);
+    }
+    const after = await pool.connect();
+    try {
+      // Without cleanup this would be 25 and Node would have warned about a listener leak.
+      expect(after.listenerCount("error")).toBe(baseline);
+    } finally {
+      after.release();
+    }
   });
 
   it("is 503 when the database is unreachable, and leaks no error text, host or connection detail", async () => {

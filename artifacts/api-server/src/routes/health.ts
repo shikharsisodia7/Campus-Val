@@ -20,9 +20,19 @@ const READINESS_DB_TIMEOUT_MS = 3_000;
 /** The slice of a pooled connection the probe uses (`release(true)` destroys it rather than recycling it). */
 interface ProbeClient {
   on(event: "error", listener: (err: Error) => void): unknown;
+  off(event: "error", listener: (err: Error) => void): unknown;
   query(text: string): Promise<unknown>;
   release(destroy?: boolean): void;
 }
+
+/**
+ * Swallows an `error` event on the probe's connection while it is checked out
+ * (a checked-out pg client has no pool listener, and an unhandled `error` event
+ * would crash the process). ONE shared function, so it can be removed again: a
+ * healthy client goes back into the pool and is reused by the next probe, and a
+ * listener left behind would stack up on it until Node warns about a leak.
+ */
+const swallowClientError = (): void => undefined;
 
 /**
  * One bounded `select 1` on a dedicated pool client.
@@ -43,6 +53,9 @@ function probeDatabase(): Promise<boolean> {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      // A healthy connection is recycled, so it must not keep our listener. A failed
+      // one is destroyed — its listener stays to absorb the error from closing it.
+      if (ok) held.client?.off("error", swallowClientError);
       held.client?.release(!ok);
       resolve(ok);
     };
@@ -51,7 +64,7 @@ function probeDatabase(): Promise<boolean> {
       .connect()
       .then((c) => {
         // A late connection (after the timeout already answered) must not linger in the pool.
-        c.on("error", () => undefined);
+        c.on("error", swallowClientError);
         if (settled) {
           c.release(true);
           return undefined;
