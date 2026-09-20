@@ -18,7 +18,7 @@ integration could exist, and how the codebase is already shaped to accept one.
 | --- | --- |
 | Academic progress / requirements | The student downloads their own Academic Progress Report from Workday and uploads the file. It is stored in private object storage, bound to that user, and served only through an authenticated, owner-checked route. CampusVal never rewrites it. |
 | Course sections, times, instructors | SCU Registrar published and tentative quarter schedules, imported as static data (`artifacts/api-server/src/data/offered-sections.json`) with source URL, publish date and last-verified date. |
-| Live seat counts | Optional: a student may paste their own Workday "Find Course Sections" table, which overlays seat counts onto the Registrar schedule. |
+| Live seat counts | **None.** The only seat data is a manual snapshot pasted by the authorized data steward (`WORKDAY_SYNC_ADMIN_EMAIL`), labelled "SNAPSHOT — not live" and treated as stale after 24 h. The complete provider/cache/freshness/UI layer for a real feed exists and is switched off — see [`SECTION_AVAILABILITY.md`](./SECTION_AVAILABILITY.md). |
 | Registration | Not performed. Quarter Plan ends in a Workday Handoff: a section list the student copies and enters in Workday themselves. |
 
 ### Things CampusVal deliberately does not do

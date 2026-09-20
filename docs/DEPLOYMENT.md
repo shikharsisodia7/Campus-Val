@@ -1,5 +1,10 @@
 # CampusVal — Deployment
 
+> **Hosting somewhere other than Vercel (SCU servers, a VM, a container)?** Read
+> [`SCU_DEPLOYMENT.md`](./SCU_DEPLOYMENT.md) — a `Dockerfile`, versioned migrations,
+> `/api/healthz` + `/api/readyz`, and a filesystem storage provider mean the app has
+> no Vercel or Replit dependency. This document describes the current Vercel setup.
+
 ## Monorepo structure
 
 pnpm workspace, TypeScript throughout.
@@ -55,7 +60,11 @@ Optional features that degrade gracefully when unset: the AI advisor chat (needs
 
 ## Database
 
-Drizzle ORM against Postgres. Schema lives in `lib/db/src/schema/*`; push changes with:
+Drizzle ORM against Postgres. Schema lives in `lib/db/src/schema/*`. **Versioned SQL
+migrations** live in `lib/db/drizzle/` (`pnpm db:generate` after a schema change;
+`node artifacts/api-server/dist/migrate.mjs` applies them — see `SCU_DEPLOYMENT.md#3-database`;
+the existing production database, created by `push`, needs `--baseline` once). The
+live-`push` workflow below still works for local development:
 
 ```bash
 pnpm --filter @workspace/db run push
@@ -67,9 +76,10 @@ This is a live `push` (no migration files) — appropriate for this project's cu
 
 ## Private object storage (Academic Progress Reports)
 
-FERPA-sensitive uploads use a provider-selecting abstraction (`artifacts/api-server/src/lib/storage/`):
+FERPA-sensitive uploads use a provider-selecting abstraction (`artifacts/api-server/src/lib/storage/`; choose explicitly with `PRIVATE_STORAGE_PROVIDER=vercel-blob|local|replit`, otherwise it is inferred as below):
 
 - **Vercel** (detected via the platform's own `VERCEL` env var): Vercel Blob, private access, per-pathname signed URLs. Requires a **private** Blob store connected to the project (`vercel blob create-store <name> --access private`, then it connects automatically and injects `BLOB_READ_WRITE_TOKEN`). Never create a public store for this — APRs must never be publicly readable.
+- **`PRIVATE_STORAGE_DIR` set** (a VM/container/university host): a private, persistent directory with HMAC-signed upload links — no cloud dependency. See `SCU_DEPLOYMENT.md#4-uploaded-apr-storage`.
 - **Everywhere else** (local dev, Replit): the original Replit object-storage sidecar, requiring `PRIVATE_OBJECT_DIR`/`PUBLIC_OBJECT_SEARCH_PATHS`, only reachable from inside Replit's runtime.
 
 Both providers are lazily loaded (dynamic `import()`, not a static top-level import) — this matters: a static import of the Replit provider's `@google-cloud/storage` dependency would crash *every* request on Vercel, since that package isn't installed there. If you touch `lib/storage/`, keep provider loading lazy.

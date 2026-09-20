@@ -114,6 +114,37 @@ undergraduate-testing phase, not an oversight:
   fail against this instance regardless of credentials; see
   `artifacts/e2e/README.md` for how the E2E harness authenticates instead.
 
+## Academic Progress Report (APR) access audit — 2026-09-19
+
+The APR is a student record. This is what was checked, what was found, and what
+was changed. Every "checked" line is enforced by a test that fails if it regresses.
+
+| Question | Finding | Evidence |
+| --- | --- | --- |
+| Can only the owner upload / replace / delete / read? | **Yes.** Every APR route is `requireAuth`, and the user is only ever `req.userId` (derived from the verified session). No route reads a client-sent user id (`?userId=`, body `userId`, params are all ignored). | `progress-report.access-control.test.ts` (structural guards + HTTP attempts) |
+| Is the file reachable by anyone else, or by a public URL? | **No.** The only read paths are the owner-checked routes. Cloud providers use per-object signed URLs (≤ 15 min); the local provider has no URL at all — HMAC upload links expire in 15 minutes and are bound to one path, size cap and content type. | `progress-report.local-storage.test.ts` |
+| Does a shared plan disclose the APR? | **No.** `routes/progress-report.ts` is the *only* module that touches the APR table; the sharing routes cannot read it, `apr` is not a valid share scope (silently dropped), and an advisor with a valid share still gets 404 for the APR and file. Re-verified in a real browser with two accounts. | structural guard "only module that reads the APR table"; `qa-flows` spec F |
+| Can a parser job read arbitrary files? | **No.** The parser is called only with bytes the route has just read from the caller's own owner-bound object path; `objectPath` is rejected unless it was minted for that user. | `isUploadPathOwnedBy` check in `PUT /progress-report`; test "refuses to register another user's uploaded object" |
+| Is the storage path / owner id exposed to clients? | **Was: yes (found and fixed).** The DTO returned `userId` and the internal `objectPath`. No client used either. Both are removed. | `reportDto`; `features.test.ts`; `qa-flows` spec A |
+| Are grades / student ID / raw lines sent to planning pages? | **Was: yes (found and fixed).** Planning surfaces fetched the full parse and merely hid grades in the UI. They now request `?view=planning`, a server-side projection with grades nulled, source lines and student ID removed — so a planning view *cannot* render them. The APR page shows grades only behind an explicit toggle. | `progress-report-view.ts`; `progress-report-parser.structure.test.ts`; `qa-flows` spec B |
+| Could an uploaded file be rendered as HTML/script in our origin? | **Was: content type came from storage metadata, unchecked (found and fixed).** Downloads now echo only PDF/XLSX types (anything else is forced to an `octet-stream` download), with `nosniff`, a `sandbox` CSP on downloads, a fixed generic file name, and `Cache-Control: private, no-store`. | `private-file-response.ts`; local-storage test asserts the headers |
+| Can the cache leak a report on a shared machine? | **Was: `private, max-age=3600` (found and fixed)** → `no-store`. | same |
+| Are APR contents in logs? | **No.** The parser and routes log reasons only; a reparse failure logs `source_missing` / `reparse_failed`, never content or the object path. Request logging strips the query string and redacts `Authorization`/cookies. | `progress-report-parser.fixture.test.ts` logging-guard suite |
+| Are secrets in the client bundle or error responses? | **No.** Only `VITE_*` public keys reach the bundle; `STORAGE_SIGNING_SECRET`, `WORKDAY_AVAILABILITY_AUTH_TOKEN`, `CLERK_SECRET_KEY` are server-only. Startup errors name variables, never values; upstream availability failures log a reason, never a URL or token. | `config.test.ts`; `availability.test.ts` |
+| Is CORS open? | **Was: reflected any origin with credentials (found and fixed).** Production is now an allowlist (`PUBLIC_APP_URL` + `CORS_ALLOWED_ORIGINS`). The bundled app is same-origin and needs none. | `config.test.ts`; container check |
+
+Other hardening added with the SCU-hosting work: baseline security headers
+(`nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS on
+HTTPS), `x-powered-by` removed, configurable `trust proxy`, a redirect-refusing
+availability client, and startup validation that refuses to run with a storage
+directory the server cannot write.
+
+**Not done / residual:** the stored *parse* (JSON in Postgres) still contains
+per-course grades, because the APR page's optional grade toggle needs them;
+they are exposed only to the owner over the `full` view. Encryption at rest is a
+database/volume concern for the hosting environment (`docs/SCU_DEPLOYMENT.md`).
+There is no malware scanning of uploads (PDF/XLSX are parsed, never executed).
+
 ## What CampusVal is not
 
 - Not an official degree audit, registration system, or Workday

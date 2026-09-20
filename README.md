@@ -52,7 +52,8 @@ lib/db                     Drizzle schema + Postgres client
 lib/api-spec               OpenAPI spec (source of truth for the generated clients)
 lib/api-client-react       Generated React Query client
 lib/api-zod                Generated Zod schemas
-docs/                      Deployment and Workday-integration docs
+docs/                      Deployment (Vercel + SCU hosting), Workday, APR, Core-area and security docs
+Dockerfile                 Production image (Node process, no cloud dependency)
 ```
 
 Notable modules worth knowing about:
@@ -87,7 +88,9 @@ pnpm --filter @workspace/api-server run dev:all   # build frontend + API, then s
 ```
 
 Environment variables are documented in `.env.example` and
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). To host CampusVal on a university server or
+container instead of Vercel — build, start, migrations, health checks, reverse proxy,
+storage, first-deployment checklist — see [docs/SCU_DEPLOYMENT.md](docs/SCU_DEPLOYMENT.md).
 
 ## Tests
 
@@ -138,7 +141,10 @@ live. A 500 there means the deployment is missing production environment variabl
 Sign-in is restricted to `@scu.edu` accounts. Invited external reviewers can be allowed
 individually through the server-side `GUEST_REVIEWER_EMAILS` allowlist — see
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Uploaded Academic Progress Reports live in
-private object storage behind owner checks; they are never publicly addressable.
+private object storage behind owner checks; they are never publicly addressable, and
+planning pages receive a grade-free projection of them
+([docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md),
+[docs/APR_SIDEBAR_AND_RECONCILIATION.md](docs/APR_SIDEBAR_AND_RECONCILIATION.md)).
 
 ## Workday integration
 
@@ -148,7 +154,11 @@ Workday password. Academic-record data comes from the report a student uploads
 themselves; schedule data comes from the Registrar's published and tentative schedules.
 
 [docs/WORKDAY_INTEGRATION.md](docs/WORKDAY_INTEGRATION.md) documents what SCU would need
-to provide before a real read-only integration could exist.
+to provide before a real read-only integration could exist. Live seat availability
+(Open Sections / All Sections) has a complete provider layer that is switched off until
+SCU names a supported source: [docs/SECTION_AVAILABILITY.md](docs/SECTION_AVAILABILITY.md).
+How Core areas (CTW, Advanced Writing, C&I…) are defined and traced to the bulletin:
+[docs/CORE_AREAS.md](docs/CORE_AREAS.md).
 
 ## Planning major vs. university record
 

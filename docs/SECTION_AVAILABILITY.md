@@ -1,88 +1,155 @@
-# Current-quarter section availability
+# Section availability (Open Sections / All Sections)
 
-Professor feedback (2026-09 pass): students scheduling during registration
-need to know whether a section is open, closed, waitlisted, full, or unknown
-— truthfully, with a visible freshness timestamp, never presented as "real
-time" unless it actually is.
+## Status
 
-## Status: CODE READY. AUTHORIZED SCU DATA SOURCE REQUIRED for true live data.
+| Layer | State |
+| --- | --- |
+| Provider architecture, normalized model, freshness rules, caching, failure handling | **Complete and tested** |
+| Student-facing control (All Sections / Open Sections), freshness banner, badges | **Complete and tested** |
+| Configuration for a live source (URL, credential, timeouts, TTLs) | **Complete, switched off** (`WORKDAY_AVAILABILITY_ENABLED=false`) |
+| A real, SCU-approved live seat source | **Not available.** No endpoint, credential or mechanism has been provided, so nothing live was connected or verified. |
 
-CampusVal has **no** automatic live feed of Workday seat counts, and does not
-scrape one (see `docs/WORKDAY_INTEGRATION.md` for why, and what SCU would
-need to authorize). What exists today, verified in this pass, is the
-complete provider/schema/API/UI/test layer described below, running on top
-of the one legitimate data source CampusVal already has: a student
-voluntarily pasting their own Workday "Find Course Sections" table.
+CampusVal does **not** know live seat counts today and the UI never claims to.
+The remaining step is external: SCU (Tony) must name the supported mechanism —
+see [What SCU must provide](#what-scu-must-provide). Everything else is done, so
+that step is configuration (or, at worst, replacing one mapping function), not a
+redesign of Quarter Planning.
 
-## The four states, and what each one truthfully means
+## The honest states
 
-| Label the UI shows | When it applies | Backed by |
+`availabilityStatus` is `open`, `waitlist`, `full` or `unknown`, decided once,
+server-side (`lib/availability`). `unknown` is a first-class state, never a
+failure. CampusVal has no source that separates an instructor-closed section from a
+merely full one, so both are `full`.
+
+| Where the data came from | Label shown | Can it say "Live"? |
 | --- | --- | --- |
-| **Live/current** | Never shown today — reserved for a future authorized real-time feed. | n/a until SCU authorizes one |
-| **Recently refreshed** (`lastUpdatedAt` shown, `sourceType: workday_self_paste`) | A student pasted their own Workday seat data for this section; the seat count and its refresh timestamp both come from that paste. | `course_sections` DB table (`syncedAt` column) |
-| **Tentative** | Winter/Spring terms before the Registrar publishes real sections (no real section numbers/instructors yet). | `data/offered-sections.ts` (`isTentativeTerm`) — always reports `availabilityStatus: "unknown"` |
-| **Unknown** (`sourceType: registrar_schedule`) | The official Registrar schedule lists the section (what/when), but nobody has pasted live seat data for it yet. This is the default state for most sections, most of the time. | `data/offered-sections.json` |
+| A real, authorized live feed, refreshed within `LIVE_WITHIN` (default 2 min) | **LIVE** chip; banner "Live availability · updated N min ago" | **Yes — the only case** |
+| Live feed, older than that but within `STALE_AFTER` (default 15 min) | "Updated N min ago"; banner "…not live right now" | No |
+| Anything older than `STALE_AFTER` | **OUT OF DATE** chip; status shown as **UNKNOWN**; banner explains | No |
+| The data steward's manual Workday paste (`WORKDAY_SYNC_ADMIN_EMAIL`) | **SNAPSHOT** chip; banner "manual snapshot … not live"; older than 24 h ⇒ stale ⇒ UNKNOWN | No |
+| Development fixture (`AVAILABILITY_FIXTURE_ENABLED`, never in production) | **SAMPLE DATA** chip; banner "SAMPLE DATA for development" | No |
+| Registrar schedule only (what is offered/when, no seats) | **UNKNOWN** | No |
+| Winter/Spring before the Registrar publishes sections | **UNKNOWN**, "Tentative" | No |
+| Live feed configured but unreachable, nothing cached | banner "Availability currently unavailable"; sections listed as UNKNOWN; planning continues | No |
 
-`availabilityStatus` itself is one of `open` / `waitlist` / `full` /
-`unknown` — derived once, server-side, in
-`artifacts/api-server/src/lib/section-availability.ts`
-(`deriveAvailability`), never computed client-side and never wired directly
-into a UI component. CampusVal has no source that distinguishes an
-instructor-closed section from a merely-full one, so both collapse honestly
-into `full` rather than inventing a fifth state without evidence.
+A stale observation is **never** displayed as open: past the stale limit its
+status is downgraded to `unknown` on the server (`trustedStatus`) and its seat
+numbers are withheld.
 
-## Where this shows up
+## Architecture
 
-- **Quarter Plan → Find Courses** (`QuickAddSearch.tsx`): every section shows
-  an OPEN/WAITLIST/FULL/UNKNOWN text badge (color is additive only), a
-  freshness line ("Updated <date> (Your own Workday paste-in)" or "SCU
-  Registrar schedule (no live seat data)"), and a filter — **Show all
-  sections** (default), **Show open + waitlist**, **Show open only**. The
-  filter only ever hides a section CampusVal is *confident* doesn't match —
-  `unknown` sections are never hidden by any filter tier, since hiding them
-  could hide a section that's actually open.
-- **Closed/full sections stay visible and addable.** Adding one shows an
-  inline warning ("This section is full/waitlisted... line up a backup Plan
-  B") rather than blocking the add.
-- **Already-scheduled sections that later show full/waitlisted** are flagged
-  by `ScheduleAvailabilityBanner` (fed by
-  `useScheduleAvailabilityWarnings.ts`) directly on the Quarter Plan
-  calendar page — the section is never removed from the schedule, only
-  flagged.
-- **Future tentative terms** (Winter/Spring before Registrar publication)
-  always report `unknown` and keep the existing "Tentative" badge and
-  Instructor-TBA behavior — never a fabricated open/closed claim.
-- **Degree Plan** intentionally does not show seat availability at all — it
-  is about sequencing, not registration-moment seat counts (the professor's
-  own on-camera correction).
+```
+routes/courses.ts  ── /courses/:code/sections, /section-availability/status
+        │   (official Registrar rows + availability; never decides open/full itself)
+        ▼
+lib/availability/service.ts      AvailabilityService.getTermAvailability(term, year, course?)
+        │   precedence per section:  live → fixture (dev) → manual paste → unknown
+        │   live: single-flight TTL cache, stale-if-error, never throws
+        ├── providers/workday.ts       WorkdayAvailabilityProvider   (isLive)
+        ├── providers/fixture.ts       FixtureAvailabilityProvider   (refuses to exist in production)
+        ├── providers/manualPaste.ts   ManualPasteAvailabilityProvider (DB snapshot by the data steward)
+        └── providers/staticCatalog.ts StaticCatalogAvailabilityProvider (Registrar schedule; always unknown)
+```
 
-## What SCU/Tony-IT would need to provide for true live data
+Everything downstream — the routes, the API contract, the Quarter Plan UI — sees
+only the **normalized** model (`lib/availability/types.ts`): course, section,
+term, instructor, meetings, capacity, enrolled, seats available, waitlist count,
+status, `lastUpdatedAt`, and a `source` `{id, label, isLive}`. Optional fields stay
+optional. **No Workday payload shape reaches the frontend.**
 
-This is additive to, not a replacement for, `docs/WORKDAY_INTEGRATION.md` —
-that document already covers the approved-endpoint/OAuth/RaaS/refresh-
-cadence/rate-limit/FERPA questions in full. Specific to *section
-availability* on top of that:
+- **Caching**: one upstream request per term per `WORKDAY_AVAILABILITY_CACHE_TTL_SECONDS`
+  (default 60 s) no matter how many students ask (single-flight), bounded to 32 terms.
+  Process-local: N instances ⇒ at most N requests per TTL. No extra infrastructure.
+- **Failure**: the last good answer keeps being served, flagged by age (live → cached
+  → stale ⇒ unknown). With nothing cached the state is "unavailable". A failure
+  is logged as a reason only — never the URL, credential or upstream body.
+- **Security**: the live provider follows no redirects (the credential never travels
+  to another host), enforces a timeout, requires `https://`, and the credential
+  is server-side only.
+- **Degree Plan** intentionally shows no seat data (it is about sequencing).
 
-1. **Section identifiers.** What key would a feed use to identify a section
-   (Workday's internal Course Section ID, or the human "course code + section
-   number + term" tuple CampusVal already uses)? CampusVal's schema
-   (`courseSectionsTable`) is keyed on `(courseCode, sectionNumber, term,
-   year)` today — an authorized feed would need to map cleanly onto that, or
-   CampusVal would add a `workdaySectionId` column.
-2. **Status semantics.** Does Workday expose a section status distinct from
-   raw seat counts (e.g. an explicit "Closed" state set by a department even
-   with open seats, separate from "full")? If so, CampusVal would add a real
-   `closed` status instead of collapsing it into `full`.
-3. **Hosting.** Can this integration run from CampusVal's existing Vercel
-   deployment (serverless functions calling an authorized endpoint on a
-   schedule), or does SCU require the polling/service-account job to run on
-   an SCU-managed service instead?
-4. **Refresh cadence and rate limits**, and whether they differ from the
-   cadence already asked about for the broader Workday integration.
+## The UI
 
-Until SCU authorizes and provisions this, the honest status for **live**
-current-quarter availability is `AUTHORIZED SCU DATA SOURCE REQUIRED` — every
-other part of this feature (schema, API contract, provider interface,
-importer/self-paste path, UI, freshness display, filters, retention warning,
-and tests) is complete and does not need to change when that source arrives;
-only `deriveAvailability`'s inputs would gain a new provider.
+Quarter Plan → Find → a course's sections:
+
+- Header banner stating the true source/freshness of the data (table above).
+- **Section availability: [ All Sections ] [ Open Sections ]** (default All).
+  *Open Sections* hides only what CampusVal **knows** is full or waitlisted;
+  sections whose availability is unknown stay visible and labelled UNKNOWN (hiding
+  them could hide a genuinely open section), with a note saying so. If no section has
+  known seat data, *Open Sections* is disabled with an explanation instead of
+  showing an empty list.
+- Each section: text badge (OPEN / WAITLIST / FULL / UNKNOWN — color is additive),
+  source chip, and a freshness line ("Updated 2 minutes ago (…)").
+- Full/waitlisted sections stay addable, with a "line up a backup" warning.
+
+## Configuration
+
+All from the environment (`.env.example`); nothing is hard-coded.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `WORKDAY_AVAILABILITY_ENABLED` | `false` | Master switch. Also needs URL + credential (startup validation refuses an enabled-but-incomplete config). |
+| `WORKDAY_AVAILABILITY_URL` | — | `https://` endpoint. |
+| `WORKDAY_AVAILABILITY_AUTH_TOKEN` | — | Credential issued by SCU. |
+| `WORKDAY_AVAILABILITY_AUTH_HEADER` / `_AUTH_SCHEME` | `Authorization` / `Bearer` | How it is sent. Empty scheme = bare token. |
+| `WORKDAY_AVAILABILITY_TIMEOUT_MS` | 5000 | Upstream timeout. |
+| `WORKDAY_AVAILABILITY_CACHE_TTL_SECONDS` | 60 | One upstream call per term per TTL. |
+| `WORKDAY_AVAILABILITY_LIVE_WITHIN_SECONDS` | 120 | Younger than this ⇒ "live". |
+| `WORKDAY_AVAILABILITY_STALE_AFTER_SECONDS` | 900 | Older ⇒ stale ⇒ unknown. |
+| `AVAILABILITY_FIXTURE_ENABLED` | `false` | Dev only; ignored (with a warning) in production. |
+
+## The input contract
+
+CampusVal does not know Workday's real API and does not pretend to. The live
+adapter implements CampusVal's **own documented contract**: `GET <URL>?term=fall&year=2026`
+with the credential header, returning JSON:
+
+```json
+{
+  "asOf": "2026-09-19T20:00:00Z",
+  "sections": [
+    { "course": "CSCI 10", "section": "01", "term": "fall", "year": 2026,
+      "instructor": "A. Instructor", "capacity": 30, "enrolled": 21, "waitlist": 0,
+      "status": "open", "updatedAt": "2026-09-19T20:00:00Z" }
+  ]
+}
+```
+
+All fields except `course`, `section`, `term`, `year` are optional. Status comes
+from `status` (`open` / `waitlist` / `full` / `closed`) or, absent that, from seat
+numbers (`seatsAvailable`, or `capacity − enrolled`, plus `waitlist`); with neither
+it is `unknown` — never guessed. `updatedAt` → `asOf` → the time CampusVal received
+the response, in that order. Records that fail validation are dropped, not guessed
+at. (`lib/availability/providers/workday.ts`, fixture:
+`__fixtures__/availability/upstream-payload.json`.)
+
+If SCU's real mechanism can be fronted to emit this shape, connecting it is
+`ENABLED=true` + URL + credential. If it cannot, only `normalizeUpstreamPayload`
+changes; the service, cache, freshness rules, API and UI do not.
+
+## What was verified, and what was not
+
+Verified (automated): open, full/closed, waitlist, unknown, missing optional fields,
+upstream 401/403/5xx/timeout/network/non-JSON failure, stale data, stale-if-error,
+single upstream call under concurrent load, provider precedence, fixture refusal
+in production, "LIVE" never shown for non-live data, the two-option filter, banner
+wording per state, and the manual-snapshot path end to end in a real browser.
+
+**Not verified: any real Workday data.** No endpoint or credentials existed, and no
+authenticated Workday page was scraped.
+
+## What SCU must provide
+
+For Tony/SCU (also: `docs/WORKDAY_INTEGRATION.md`):
+
+1. The supported **endpoint or report** for section seat availability, and its
+   authentication mechanism (OAuth client / ISU / RaaS / gateway).
+2. The **section identifier** it uses (Workday Section ID vs course code + section
+   number + term).
+3. **Status semantics**: is there an explicit "Closed" distinct from full? Waitlist counts?
+4. **Refresh cadence and rate limits** (drives the TTL settings).
+5. Whether it may be called from the **SCU-hosted CampusVal service** (`docs/SCU_DEPLOYMENT.md`).
+6. FERPA/data-handling expectations for anything student-specific (this feed is
+   section-level, not student-level).
