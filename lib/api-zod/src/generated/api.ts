@@ -2864,6 +2864,18 @@ export const GetProgressReportResponse = zod
                             .describe(
                               "Text Workday printed after the status word, kept verbatim and not interpreted.",
                             ),
+                          remaining: zod
+                            .string()
+                            .optional()
+                            .describe(
+                              'The row\'s \"Remaining\" column, verbatim (for example \"Minimum 1 Course(s)\", \"Minimum 44 Unit(s)\", \"Minimum Combination Required\"). Present only when Workday printed one; never computed.',
+                            ),
+                          category: zod
+                            .enum(["core", "college"])
+                            .optional()
+                            .describe(
+                              '\"core\" for University Core rows (\"Core: LSB: CTW 1\"), \"college\" for a school\'s own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set (\"Core: CAS: ...\").',
+                            ),
                           sourceText: zod
                             .string()
                             .optional()
@@ -2883,6 +2895,22 @@ export const GetProgressReportResponse = zod
                               units: zod.number().nullable(),
                               grade: zod.string().nullable(),
                               inCatalog: zod.boolean(),
+                              inProgress: zod
+                                .boolean()
+                                .optional()
+                                .describe('The row said \"(In Progress)\".'),
+                              transfer: zod
+                                .boolean()
+                                .optional()
+                                .describe(
+                                  'The row said \"(Transfer Credit)\".',
+                                ),
+                              period: zod
+                                .string()
+                                .optional()
+                                .describe(
+                                  'Workday\'s \"Academic Period\" text (for example \"Fall 2025\"), when the row has one.',
+                                ),
                             }),
                           ),
                         }),
@@ -2892,6 +2920,30 @@ export const GetProgressReportResponse = zod
                   .optional()
                   .describe(
                     "Requirement-group hierarchy derived from the document's own structure (e.g. \"<Program> Requirements\"); absent when the document doesn't support it or predates this field.",
+                  ),
+                declaredMajors: zod
+                  .array(zod.string())
+                  .optional()
+                  .describe(
+                    "Majors named in the report header, exactly as Workday lists them. Never inferred.",
+                  ),
+                declaredMinors: zod
+                  .array(zod.string())
+                  .optional()
+                  .describe(
+                    "Minors named in the report header, exactly as Workday lists them. Never inferred.",
+                  ),
+                reportDate: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "The date printed on the report pages (YYYY-MM-DD).",
+                  ),
+                lastEvaluated: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    'The most recent \"Last Evaluated\" date across the program blocks (YYYY-MM-DD).',
                   ),
                 summary: zod
                   .object({
@@ -3087,6 +3139,18 @@ export const RegisterProgressReportResponse = zod
                             .describe(
                               "Text Workday printed after the status word, kept verbatim and not interpreted.",
                             ),
+                          remaining: zod
+                            .string()
+                            .optional()
+                            .describe(
+                              'The row\'s \"Remaining\" column, verbatim (for example \"Minimum 1 Course(s)\", \"Minimum 44 Unit(s)\", \"Minimum Combination Required\"). Present only when Workday printed one; never computed.',
+                            ),
+                          category: zod
+                            .enum(["core", "college"])
+                            .optional()
+                            .describe(
+                              '\"core\" for University Core rows (\"Core: LSB: CTW 1\"), \"college\" for a school\'s own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set (\"Core: CAS: ...\").',
+                            ),
                           sourceText: zod
                             .string()
                             .optional()
@@ -3106,6 +3170,22 @@ export const RegisterProgressReportResponse = zod
                               units: zod.number().nullable(),
                               grade: zod.string().nullable(),
                               inCatalog: zod.boolean(),
+                              inProgress: zod
+                                .boolean()
+                                .optional()
+                                .describe('The row said \"(In Progress)\".'),
+                              transfer: zod
+                                .boolean()
+                                .optional()
+                                .describe(
+                                  'The row said \"(Transfer Credit)\".',
+                                ),
+                              period: zod
+                                .string()
+                                .optional()
+                                .describe(
+                                  'Workday\'s \"Academic Period\" text (for example \"Fall 2025\"), when the row has one.',
+                                ),
                             }),
                           ),
                         }),
@@ -3115,6 +3195,30 @@ export const RegisterProgressReportResponse = zod
                   .optional()
                   .describe(
                     "Requirement-group hierarchy derived from the document's own structure (e.g. \"<Program> Requirements\"); absent when the document doesn't support it or predates this field.",
+                  ),
+                declaredMajors: zod
+                  .array(zod.string())
+                  .optional()
+                  .describe(
+                    "Majors named in the report header, exactly as Workday lists them. Never inferred.",
+                  ),
+                declaredMinors: zod
+                  .array(zod.string())
+                  .optional()
+                  .describe(
+                    "Minors named in the report header, exactly as Workday lists them. Never inferred.",
+                  ),
+                reportDate: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    "The date printed on the report pages (YYYY-MM-DD).",
+                  ),
+                lastEvaluated: zod
+                  .string()
+                  .optional()
+                  .describe(
+                    'The most recent \"Last Evaluated\" date across the program blocks (YYYY-MM-DD).',
                   ),
                 summary: zod
                   .object({

@@ -36,7 +36,18 @@ const MAX_COMPARABLE_LENGTH = 80;
 export function reconcileMajor(
   aprProgramText: string | null | undefined,
   planMajorTitle: string | null | undefined,
+  /**
+   * The majors Workday itself lists in the report header. When present they are
+   * clean names (no "Expected Grad" noise), so a student with two majors matches
+   * on EITHER; a mismatch is only reported when NONE of them matches.
+   */
+  declaredMajors?: readonly string[] | null,
 ): MajorReconciliation {
+  if (declaredMajors && declaredMajors.length > 0) {
+    const each = declaredMajors.map((m) => reconcileMajor(m, planMajorTitle));
+    if (each.includes("match")) return "match";
+    return each.every((r) => r === "mismatch") ? "mismatch" : "unknown";
+  }
   if (!aprProgramText || !planMajorTitle) return "unknown";
   if (
     aprProgramText.length > MAX_COMPARABLE_LENGTH ||

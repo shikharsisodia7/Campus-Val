@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { ParsedProgressReportGroupsItemRequirementsItemCategory } from "./parsedProgressReportGroupsItemRequirementsItemCategory";
 import type { ParsedProgressReportGroupsItemRequirementsItemCoursesItem } from "./parsedProgressReportGroupsItemRequirementsItemCoursesItem";
 import type { ParsedProgressReportGroupsItemRequirementsItemScope } from "./parsedProgressReportGroupsItemRequirementsItemScope";
 import type { ParsedProgressReportGroupsItemRequirementsItemStatus } from "./parsedProgressReportGroupsItemRequirementsItemStatus";
@@ -25,6 +26,10 @@ export type ParsedProgressReportGroupsItemRequirementsItem = {
    * @nullable
    */
   detail?: string | null;
+  /** The row's "Remaining" column, verbatim (for example "Minimum 1 Course(s)", "Minimum 44 Unit(s)", "Minimum Combination Required"). Present only when Workday printed one; never computed. */
+  remaining?: string;
+  /** "core" for University Core rows ("Core: LSB: CTW 1"), "college" for a school's own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set ("Core: CAS: ..."). */
+  category?: ParsedProgressReportGroupsItemRequirementsItemCategory;
   /** The source line this row was read from. Omitted from the planning view. */
   sourceText?: string;
   status: ParsedProgressReportGroupsItemRequirementsItemStatus;

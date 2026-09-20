@@ -127,7 +127,7 @@ describe("units — only what the report states", () => {
     const total = screen.getByTestId("apr-units-total");
     expect(total.textContent).toMatch(/Total units/);
     expect(total.textContent).toMatch(/Workday requires 180/);
-    expect(total.textContent).toMatch(/Workday shows: Minimum 40\.0 Unit\(s\)/);
+    expect(total.textContent).toMatch(/Remaining, as Workday prints it: Minimum 40\.0 Unit\(s\)/);
     expect(within(total).getByTestId("badge-requirement-status").textContent).toMatch(/In Progress/);
     expect(screen.getByTestId("apr-units-upper").textContent).toMatch(/Upper-division units/);
   });
@@ -191,5 +191,89 @@ describe("no recognizable requirement sections", () => {
     render(<AprStructuredView parsed={parsed({ groups: undefined })} variant="sidebar" />);
     expect(screen.getByTestId("apr-no-groups").textContent).toMatch(/original file as the source of truth/);
     expect(screen.getByTestId("apr-course-lists")).toBeTruthy();
+  });
+});
+
+describe("real Workday table layout: Core rows live inside program blocks", () => {
+  const coreRow = (name: string, status: string, extra: object = {}) => ({
+    name, status, scope: "program", category: "core", courses: [], ...extra,
+  });
+  const repeated = (): ParsedProgressReport =>
+    ({
+      completedCourses: [],
+      possibleCourses: [],
+      notes: [],
+      groups: [
+        { name: "Finance Major Requirements", kind: "major", order: 0, requirements: [
+          coreRow("Core: LSB: CTW 1", "completed", { courses: [{ ...course("ENGL 1A", "B"), period: "Fall 2025" }] }),
+          coreRow("Core: LSB: C&I 2", "remaining", { remaining: "Minimum 1 Course(s)" }),
+          { name: "Finance Major : FNCE 124", status: "remaining", scope: "program", remaining: "Minimum 1 Course(s)", courses: [] },
+        ] },
+        { name: "Mathematics Major Requirements", kind: "major", order: 5, requirements: [
+          coreRow("Core: LSB: CTW 1", "completed", { courses: [{ ...course("ENGL 1A", "B"), period: "Fall 2025" }] }),
+          coreRow("Core: LSB: C&I 2", "remaining", { remaining: "Minimum 1 Course(s)" }),
+          { name: "Mathematics Major : MATH 13", status: "remaining", scope: "program", remaining: "Minimum 1 Course(s)", courses: [] },
+        ] },
+      ],
+    }) as unknown as ParsedProgressReport;
+
+  it("shows each Core row once under one University Core section, named by Workday's own school tag", () => {
+    render(<AprStructuredView parsed={repeated()} variant="page" />);
+    expect(screen.getAllByText("Core: LSB: CTW 1")).toHaveLength(1);
+    expect(screen.getAllByText("Core: LSB: C&I 2")).toHaveLength(1);
+    expect(screen.getByText("University Core (LSB)")).toBeTruthy();
+    expect(screen.getByTestId("apr-section-core")).toBeTruthy();
+  });
+
+  it("keeps a second school's Core (CAS) as its own group instead of merging it into LSB's", () => {
+    const p = repeated();
+    p.groups![1]!.requirements = [
+      coreRow("Core: CAS: CTW 1", "completed"),
+      coreRow("Core: CAS: Ethics", "completed"),
+      { name: "Mathematics Major : MATH 13", status: "remaining", scope: "program", remaining: "Minimum 1 Course(s)", courses: [] },
+    ] as never;
+    render(<AprStructuredView parsed={p} variant="page" />);
+    expect(screen.getByText("University Core (LSB)")).toBeTruthy();
+    expect(screen.getByText("University Core (CAS)")).toBeTruthy();
+    expect(screen.getAllByText("Core: LSB: CTW 1")).toHaveLength(1);
+    expect(screen.getAllByText("Core: CAS: CTW 1")).toHaveLength(1);
+  });
+
+  it("counts each requirement once in the tally (2 core + 2 program rows, not 6)", () => {
+    render(<AprStructuredView parsed={repeated()} variant="page" />);
+    expect(within(screen.getByTestId("apr-tally-completed")).getByText("1")).toBeTruthy();
+    expect(within(screen.getByTestId("apr-tally-remaining")).getByText("3")).toBeTruthy();
+  });
+
+  it("prints the Remaining column for rows that are not completed, in Workday's words", () => {
+    render(<AprStructuredView parsed={repeated()} variant="page" />);
+    const remaining = screen.getAllByText("Minimum 1 Course(s)");
+    expect(remaining.length).toBeGreaterThanOrEqual(3);
+    expect(document.body.textContent).toMatch(/Remaining, as Workday prints it:\s*Minimum 1 Course\(s\)/);
+  });
+
+  it("does not print a Remaining line for a completed row", () => {
+    render(<AprStructuredView parsed={repeated()} variant="page" />);
+    const ctwRow = screen.getByText("Core: LSB: CTW 1").closest("li")!;
+    expect(ctwRow.textContent).not.toMatch(/Remaining, as Workday prints it/);
+  });
+
+  it("shows the academic period but no grade in the default (grade-free) view", () => {
+    render(<AprStructuredView parsed={repeated()} variant="page" />);
+    const ctwRow = screen.getByText("Core: LSB: CTW 1").closest("li")!;
+    expect(ctwRow.textContent).toMatch(/ENGL 1A/);
+    expect(ctwRow.textContent).toMatch(/Fall 2025/);
+    expect(ctwRow.textContent).not.toMatch(/\(B\)/);
+  });
+
+  it("flags transfer-credit and in-progress courses in text", () => {
+    const p = repeated();
+    p.groups![0]!.requirements[0]!.courses = [
+      { ...course("ACTG 11", "CR"), transfer: true },
+      { ...course("HIST 11A", null), inProgress: true },
+    ] as never;
+    render(<AprStructuredView parsed={p} variant="sidebar" />);
+    expect(document.body.textContent).toMatch(/ACTG 11.*transfer credit/);
+    expect(document.body.textContent).toMatch(/HIST 11A.*in progress/);
   });
 });

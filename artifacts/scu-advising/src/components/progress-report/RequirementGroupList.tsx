@@ -170,6 +170,15 @@ export function RequirementGroupList({
                         <span className="text-xs text-foreground/90">{req.name}</span>
                         <RequirementStatusBadge status={req.status} />
                       </div>
+                      {req.remaining && req.status !== "completed" && (
+                        <p
+                          className="mt-0.5 text-[11px] text-muted-foreground"
+                          data-testid={`requirement-remaining-${index}-${j}`}
+                        >
+                          Remaining, as Workday prints it:{" "}
+                          <span className="font-medium text-foreground">{req.remaining}</span>
+                        </p>
+                      )}
                       {showSourceText && req.status === "needs_review" && req.sourceText && (
                         <p
                           className="mt-1 rounded border border-amber-200 bg-amber-50/70 px-2 py-1 font-mono text-[10px] text-amber-900"
@@ -190,7 +199,10 @@ export function RequirementGroupList({
                                 {course.code}
                               </span>
                               <span>{course.title}</span>
-                              {!course.inCatalog && (
+                              {course.period && <span className="text-[10px]">· {course.period}</span>}
+                              {course.transfer && <span className="text-[10px] italic">· transfer credit</span>}
+                              {course.inProgress && !showGrades && <span className="text-[10px] italic">· in progress</span>}
+                              {!course.inCatalog && !course.transfer && (
                                 <span className="text-[10px] italic text-amber-800">
                                   (not matched to the CampusVal catalog)
                                 </span>

@@ -382,6 +382,17 @@ export const ParsedProgressReportGroupsItemRequirementsItemUnit = {
   upper_division: "upper_division",
 } as const;
 
+/**
+ * "core" for University Core rows ("Core: LSB: CTW 1"), "college" for a school's own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set ("Core: CAS: ...").
+ */
+export type ParsedProgressReportGroupsItemRequirementsItemCategory =
+  (typeof ParsedProgressReportGroupsItemRequirementsItemCategory)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemCategory];
+
+export const ParsedProgressReportGroupsItemRequirementsItemCategory = {
+  core: "core",
+  college: "college",
+} as const;
+
 export type ParsedProgressReportGroupsItemRequirementsItemStatus =
   (typeof ParsedProgressReportGroupsItemRequirementsItemStatus)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemStatus];
 
@@ -400,6 +411,12 @@ export type ParsedProgressReportGroupsItemRequirementsItemCoursesItem = {
   /** @nullable */
   grade: string | null;
   inCatalog: boolean;
+  /** The row said "(In Progress)". */
+  inProgress?: boolean;
+  /** The row said "(Transfer Credit)". */
+  transfer?: boolean;
+  /** Workday's "Academic Period" text (for example "Fall 2025"), when the row has one. */
+  period?: string;
 };
 
 export type ParsedProgressReportGroupsItemRequirementsItem = {
@@ -417,6 +434,10 @@ export type ParsedProgressReportGroupsItemRequirementsItem = {
    * @nullable
    */
   detail?: string | null;
+  /** The row's "Remaining" column, verbatim (for example "Minimum 1 Course(s)", "Minimum 44 Unit(s)", "Minimum Combination Required"). Present only when Workday printed one; never computed. */
+  remaining?: string;
+  /** "core" for University Core rows ("Core: LSB: CTW 1"), "college" for a school's own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set ("Core: CAS: ..."). */
+  category?: ParsedProgressReportGroupsItemRequirementsItemCategory;
   /** The source line this row was read from. Omitted from the planning view. */
   sourceText?: string;
   status: ParsedProgressReportGroupsItemRequirementsItemStatus;
@@ -480,6 +501,14 @@ export interface ParsedProgressReport {
   reportStudentId?: string | null;
   /** Requirement-group hierarchy derived from the document's own structure (e.g. "<Program> Requirements"); absent when the document doesn't support it or predates this field. */
   groups?: ParsedProgressReportGroupsItem[];
+  /** Majors named in the report header, exactly as Workday lists them. Never inferred. */
+  declaredMajors?: string[];
+  /** Minors named in the report header, exactly as Workday lists them. Never inferred. */
+  declaredMinors?: string[];
+  /** The date printed on the report pages (YYYY-MM-DD). */
+  reportDate?: string;
+  /** The most recent "Last Evaluated" date across the program blocks (YYYY-MM-DD). */
+  lastEvaluated?: string;
   /** Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one. */
   summary?: ParsedProgressReportSummary;
   /** Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read). */

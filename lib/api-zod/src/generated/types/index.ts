@@ -96,6 +96,7 @@ export * from "./parsedProgressReportCompletedCoursesItemConfidence";
 export * from "./parsedProgressReportGroupsItem";
 export * from "./parsedProgressReportGroupsItemKind";
 export * from "./parsedProgressReportGroupsItemRequirementsItem";
+export * from "./parsedProgressReportGroupsItemRequirementsItemCategory";
 export * from "./parsedProgressReportGroupsItemRequirementsItemCoursesItem";
 export * from "./parsedProgressReportGroupsItemRequirementsItemScope";
 export * from "./parsedProgressReportGroupsItemRequirementsItemStatus";

@@ -20,20 +20,25 @@ import type {
 export type AprGroup = ParsedProgressReportGroupsItem;
 export type AprRequirement = ParsedProgressReportGroupsItemRequirementsItem;
 export type AprStatus = AprRequirement["status"];
-export type AprSectionKind = "core" | "major" | "minor" | "other";
+export type AprSectionKind = "core" | "college" | "major" | "minor" | "other";
 
 /** Display order — the order most useful for course planning. Names inside stay the document's own. */
-export const SECTION_ORDER: readonly AprSectionKind[] = ["core", "major", "minor", "other"];
+export const SECTION_ORDER: readonly AprSectionKind[] = ["core", "college", "major", "minor", "other"];
 
 export const SECTION_LABEL: Record<AprSectionKind, string> = {
   core: "University Core",
+  college: "School / College Core",
   major: "Major",
   minor: "Minor",
   other: "Other requirements",
 };
 
+/** A group as displayed: the parser's group, or a section assembled by `regroupForDisplay`. */
+export type DisplayGroup = AprGroup & { section?: AprSectionKind };
+
 /** Same rule as the server's classifyGroupKind — used only for reports stored before `kind` existed. */
-export function kindOfGroup(group: AprGroup): AprSectionKind {
+export function kindOfGroup(group: DisplayGroup): AprSectionKind {
+  if (group.section) return group.section;
   if (group.kind) return group.kind;
   if (/\bcore\b/i.test(group.name)) return "core";
   if (/\bminor\b/i.test(group.name)) return "minor";
@@ -52,7 +57,7 @@ export interface IndexedGroup {
  * Groups in display order: Core → Major → Minor → Other, and within each kind
  * in the order the document printed them.
  */
-export function orderGroups(groups: readonly AprGroup[]): IndexedGroup[] {
+export function orderGroups(groups: readonly DisplayGroup[]): IndexedGroup[] {
   const indexed = groups.map((group, index) => ({ group, index, kind: kindOfGroup(group) }));
   return SECTION_ORDER.flatMap((kind) =>
     indexed
@@ -70,7 +75,7 @@ export const isStillNeeded = (r: AprRequirement): boolean => r.status !== "compl
 export type StatusFilter = "all" | "needed";
 
 /** Program-scoped rows only: the university-wide rows are presented once, in their own section. */
-export function programRows(group: AprGroup): AprRequirement[] {
+export function programRows(group: DisplayGroup): AprRequirement[] {
   return group.requirements.filter((r) => !isUniversityRow(r));
 }
 
@@ -94,6 +99,101 @@ export function tallyGroups(groups: readonly AprGroup[]): Tally {
 }
 
 const normName = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * Workday prints the University Core rows ("Core: LSB: CTW 1") and a school's
+ * own Core rows ("Leavey School of Business Core Knowledge: ...") INSIDE a
+ * program block, not under a heading of their own. Two things follow, both
+ * seen on a real report:
+ *
+ *  - Blocks in the SAME school repeat the same rows, so a second major would
+ *    show (and tally) every Core row twice.
+ *  - A major in a DIFFERENT school brings that school's own Core rows
+ *    ("Core: CAS: CTW 1" beside "Core: LSB: CTW 1") — a different curriculum,
+ *    not a duplicate, so the two must never be merged.
+ *
+ * This pulls the Core rows out of the program blocks into one group per Core
+ * tag Workday printed (University Core (LSB), University Core (CAS)) and one
+ * group per school, each row once.
+ *
+ * Rows are de-duplicated on name AND status: if two blocks ever disagreed about
+ * the same row, both are kept rather than one being quietly chosen. Reports
+ * whose rows carry no `category` (older parses, simpler layouts) pass through
+ * untouched. Idempotent.
+ */
+export function regroupForDisplay(groups: readonly AprGroup[]): DisplayGroup[] {
+  if (!groups.some((g) => g.requirements.some((r) => r.category))) return [...groups];
+
+  const cores = new Map<string, { name: string; seen: Set<string>; rows: AprRequirement[]; order: number }>();
+  const colleges = new Map<string, { name: string; seen: Set<string>; rows: AprRequirement[] }>();
+  const rest: DisplayGroup[] = [];
+  const collegeOrder = new Map<string, number>();
+
+  for (const g of groups) {
+    const keep: AprRequirement[] = [];
+    for (const r of g.requirements) {
+      const key = `${normName(r.name)}|${r.status}`;
+      if (r.category === "core") {
+        // "Core: LSB: CTW 1" → tag "LSB". A row without a tag still gets a group.
+        const tag = /^Core:\s*([^:]+):/i.exec(r.name)?.[1]?.trim();
+        const ck = tag ? normName(tag) : "";
+        let entry = cores.get(ck);
+        if (!entry) {
+          entry = {
+            name: tag ? `University Core (${tag})` : "University Core",
+            seen: new Set(),
+            rows: [],
+            order: Number.POSITIVE_INFINITY,
+          };
+          cores.set(ck, entry);
+        }
+        entry.order = Math.min(entry.order, r.order ?? Number.POSITIVE_INFINITY);
+        if (!entry.seen.has(key)) {
+          entry.seen.add(key);
+          entry.rows.push(r);
+        }
+      } else if (r.category === "college") {
+        const school = /^(.*?\bCore)\b/.exec(r.name)?.[1]?.trim() ?? "School Core";
+        const sk = normName(school);
+        let entry = colleges.get(sk);
+        if (!entry) {
+          entry = { name: school, seen: new Set(), rows: [] };
+          colleges.set(sk, entry);
+        }
+        collegeOrder.set(sk, Math.min(collegeOrder.get(sk) ?? Number.POSITIVE_INFINITY, r.order ?? Number.POSITIVE_INFINITY));
+        if (!entry.seen.has(key)) {
+          entry.seen.add(key);
+          entry.rows.push(r);
+        }
+      } else {
+        keep.push(r);
+      }
+    }
+    if (keep.length > 0) rest.push({ ...g, requirements: keep });
+  }
+
+  const out: DisplayGroup[] = [];
+  for (const entry of cores.values()) {
+    out.push({
+      name: entry.name,
+      kind: "core",
+      section: "core",
+      order: Number.isFinite(entry.order) ? entry.order : undefined,
+      requirements: entry.rows,
+    });
+  }
+  for (const [sk, entry] of colleges) {
+    const order = collegeOrder.get(sk);
+    out.push({
+      name: entry.name,
+      kind: "other",
+      section: "college",
+      order: Number.isFinite(order) ? order : undefined,
+      requirements: entry.rows,
+    });
+  }
+  return [...out, ...rest];
+}
 
 /**
  * The university-wide rows, each ONCE (Workday repeats them under every
@@ -151,7 +251,8 @@ export interface ReviewSummary {
  */
 export function reviewSummary(parsed: ParsedProgressReport): ReviewSummary {
   const items: ReviewItem[] = [];
-  for (const g of parsed.groups ?? []) {
+  // Regrouped so a repeated Core row that needs review is listed once, not once per program.
+  for (const g of regroupForDisplay(parsed.groups ?? [])) {
     for (const r of g.requirements) {
       if (r.status === "needs_review") {
         items.push({ where: g.name, name: r.name, sourceText: (r as { sourceText?: string }).sourceText });

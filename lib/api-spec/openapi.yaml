@@ -1934,6 +1934,13 @@ components:
                     detail:
                       type: ["string", "null"]
                       description: Text Workday printed after the status word, kept verbatim and not interpreted.
+                    remaining:
+                      type: string
+                      description: 'The row''s "Remaining" column, verbatim (for example "Minimum 1 Course(s)", "Minimum 44 Unit(s)", "Minimum Combination Required"). Present only when Workday printed one; never computed.'
+                    category:
+                      type: string
+                      enum: [core, college]
+                      description: '"core" for University Core rows ("Core: LSB: CTW 1"), "college" for a school''s own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set ("Core: CAS: ...").'
                     sourceText:
                       type: string
                       description: The source line this row was read from. Omitted from the planning view.
@@ -1949,6 +1956,23 @@ components:
                           units: { type: ["number", "null"] }
                           grade: { type: ["string", "null"] }
                           inCatalog: { type: boolean }
+                          inProgress: { type: boolean, description: 'The row said "(In Progress)".' }
+                          transfer: { type: boolean, description: 'The row said "(Transfer Credit)".' }
+                          period: { type: string, description: 'Workday''s "Academic Period" text (for example "Fall 2025"), when the row has one.' }
+        declaredMajors:
+          type: array
+          items: { type: string }
+          description: Majors named in the report header, exactly as Workday lists them. Never inferred.
+        declaredMinors:
+          type: array
+          items: { type: string }
+          description: Minors named in the report header, exactly as Workday lists them. Never inferred.
+        reportDate:
+          type: string
+          description: The date printed on the report pages (YYYY-MM-DD).
+        lastEvaluated:
+          type: string
+          description: The most recent "Last Evaluated" date across the program blocks (YYYY-MM-DD).
         summary:
           type: object
           description: Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one.

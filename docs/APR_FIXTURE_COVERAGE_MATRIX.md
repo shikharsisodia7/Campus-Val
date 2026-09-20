@@ -50,6 +50,29 @@ All fixtures are synthetic or anonymized — none contain real student data
   code-like structure at all is silently skipped without throwing or
   fabricating a requirement.
 
+## Real Workday table layout (parser v4)
+
+`progress-report-parser.workday-table.test.ts` runs the whole text-to-report pipeline
+over `__fixtures__/progress-report/workday-apr-table-layout.txt` — a **synthetic** APR
+(invented student, terms and grades) that reproduces the layout of a real Workday PDF:
+
+| Layout feature | Asserted |
+| --- | --- |
+| Page furniture and "Page N of M" glued to the next cell | stripped; page breaks mid-block do not split rows |
+| Status word on the same line as the name and first course | row name, status and course all read |
+| "(In / Progress)" split across two lines | `inProgress`, clean title, no grade |
+| Title beginning on the next line (`ENVS 131 -`) | course read whole |
+| Remaining cell in all four shapes (Course(s), Unit(s), GPA, Combination Required, Activities) | verbatim, never swallows the next row |
+| Transfer-credit rows (no period) | `transfer`, never a "possible course" |
+| University Core rows repeated by blocks in the same school | present per block; shown once by `regroupForDisplay` (frontend test) |
+| A second school's Core (`Core: CAS: …` beside `Core: LSB: …`) | kept as its own group, never merged (frontend test) |
+| Header `(… Major/… Minor/…)` | `declaredMajors` / `declaredMinors`; a declared minor with no block still listed |
+| "a minimum 60 Upper Division Units" / "175 units. Limit of 20 units 198/199" | `unit`, `requiredUnits`, `remaining` |
+| Simple (non-table) reports | unchanged: still on the line-based reader |
+
+The parser was also run, locally and once, against a real student's APR while it was
+being written; nothing from that file is committed.
+
 ## Known gap, honestly stated
 
 CampusVal does not yet have an interactive "map this unrecognized item to a

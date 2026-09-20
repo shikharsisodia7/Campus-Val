@@ -287,6 +287,17 @@ export function ReportCard({ report, onDelete, onReplace, isDeleting }: ReportCa
   );
 }
 
+/** "2026-09-08" → "Sep 8, 2026" without a timezone shift (the date is a calendar date, not an instant). */
+function formatIsoDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function ParsedView({ parsed }: { parsed: NonNullable<ProgressReport["parsed"]> }) {
   // Grades stay in the stored record and the original file, but the default
   // view — like the planning sidebar — does not display them. Showing them is
@@ -298,13 +309,27 @@ function ParsedView({ parsed }: { parsed: NonNullable<ProgressReport["parsed"]> 
 
   return (
     <div className="space-y-4" data-testid="section-parsed">
-      {/* Program */}
+      {/* Program — Workday's own header list when the report has one */}
       {parsed.program && (
         <div data-testid="text-program" className="flex items-center gap-2 text-sm">
           <BookOpen className="h-4 w-4 text-primary" />
-          <span className="text-muted-foreground">Detected program:</span>
+          <span className="text-muted-foreground">
+            {parsed.declaredMajors?.length ? "Declared major(s) on your report:" : "Detected program:"}
+          </span>
           <strong className="text-foreground">{parsed.program}</strong>
         </div>
+      )}
+      {(parsed.declaredMinors?.length ?? 0) > 0 && (
+        <p className="text-sm text-muted-foreground" data-testid="text-declared-minors">
+          Declared minor(s):{" "}
+          <span className="font-medium text-foreground">{parsed.declaredMinors!.join(" / ")}</span>
+        </p>
+      )}
+      {(parsed.reportDate || parsed.lastEvaluated) && (
+        <p className="text-xs text-muted-foreground" data-testid="text-report-dates">
+          {parsed.reportDate && <>Report dated {formatIsoDate(parsed.reportDate)}. </>}
+          {parsed.lastEvaluated && <>Workday last evaluated the requirements on {formatIsoDate(parsed.lastEvaluated)}.</>}
+        </p>
       )}
 
       <Card className="p-5" data-testid="card-requirement-groups">

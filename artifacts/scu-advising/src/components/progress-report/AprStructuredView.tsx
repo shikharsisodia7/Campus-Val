@@ -5,6 +5,7 @@ import type { ParsedProgressReport } from "@workspace/api-client-react";
 import { RequirementGroupList, RequirementStatusBadge } from "./RequirementGroupList";
 import {
   courseLists,
+  regroupForDisplay,
   reviewSummary,
   tallyGroups,
   universityRows,
@@ -36,7 +37,8 @@ export function AprStructuredView({
   showGrades?: boolean;
 }) {
   const [filter, setFilter] = useState<StatusFilter>("all");
-  const groups = parsed.groups ?? [];
+  // Core rows sit inside program blocks (repeated by blocks in the same school); show each once.
+  const groups = regroupForDisplay(parsed.groups ?? []);
   const tally = tallyGroups(groups);
   const review = reviewSummary(parsed);
   const uni = universityRows(groups);
@@ -255,7 +257,9 @@ function UnitLine({
         <RequirementStatusBadge status={unit.status} />
       </div>
       {unit.detail && (
-        <p className="text-[11px] text-muted-foreground">Workday shows: {unit.detail}</p>
+        <p className="text-[11px] text-muted-foreground">
+          Remaining, as Workday prints it: <span className="font-medium text-foreground">{unit.detail}</span>
+        </p>
       )}
     </li>
   );

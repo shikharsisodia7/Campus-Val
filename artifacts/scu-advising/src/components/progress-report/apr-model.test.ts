@@ -7,6 +7,7 @@ import {
   filterGroupsForView,
   kindOfGroup,
   orderGroups,
+  regroupForDisplay,
   reviewSummary,
   tallyGroups,
   universityRows,
@@ -165,5 +166,132 @@ describe("deriveAprState — every state the professor asked for", () => {
     expect(errorStatus({ status: 403 })).toBe(403);
     expect(errorStatus({ status: "403" })).toBeUndefined();
     expect(errorStatus(null)).toBeUndefined();
+  });
+});
+
+describe("regroupForDisplay — Core rows live inside program blocks", () => {
+  const core = (name: string, status: any, order: number) =>
+    req(name, status, { category: "core", scope: "program", order });
+  const college = (name: string, status: any, order: number) =>
+    req(name, status, { category: "college", scope: "program", order });
+
+  const repeated: Groups = [
+    { name: "Finance Major Requirements", kind: "major", order: 0, requirements: [
+      req("University Requirement: Must have a minimum 2.000 Cumulative GPA", "completed", { scope: "university", order: 1 }),
+      core("Core: LSB: CTW 1", "completed", 2),
+      core("Core: LSB: C&I 2", "remaining", 3),
+      college("Leavey School of Business Core Knowledge: BUSN 70", "in_progress", 4),
+      college("Leavey School of Business Core: Writing for Business: BUSN 179", "remaining", 5),
+      req("Finance Major : FNCE 124", "remaining", { scope: "program", order: 6 }),
+    ] },
+    { name: "Mathematics Major Requirements", kind: "major", order: 7, requirements: [
+      req("University Requirement: Must have a minimum 2.000 Cumulative GPA", "completed", { scope: "university", order: 8 }),
+      core("Core: LSB: CTW 1", "completed", 9),
+      core("Core: LSB: C&I 2", "remaining", 10),
+      college("Leavey School of Business Core Knowledge: BUSN 70", "in_progress", 11),
+      req("Mathematics Major : MATH 13", "remaining", { scope: "program", order: 12 }),
+    ] },
+    { name: "Real Estate Minor Requirements", kind: "minor", order: 13, requirements: [
+      core("Core: LSB: CTW 1", "completed", 14),
+      req("Real Estate Minor: FNCE 118", "remaining", { scope: "program", order: 15 }),
+    ] },
+  ];
+
+  it("shows each Core row once when blocks in the same school repeat it", () => {
+    const out = regroupForDisplay(repeated);
+    const uc = out.find((g) => g.name === "University Core (LSB)")!;
+    expect(uc.requirements.map((r) => r.name)).toEqual(["Core: LSB: CTW 1", "Core: LSB: C&I 2"]);
+    expect(uc.section).toBe("core");
+    expect(uc.order).toBe(2);
+  });
+
+  it("gives the school's own Core rows one section named from the rows themselves", () => {
+    const out = regroupForDisplay(repeated);
+    const school = out.find((g) => g.section === "college")!;
+    expect(school.name).toBe("Leavey School of Business Core");
+    expect(school.requirements.map((r) => r.name)).toEqual([
+      "Leavey School of Business Core Knowledge: BUSN 70",
+      "Leavey School of Business Core: Writing for Business: BUSN 179",
+    ]);
+  });
+
+  it("leaves program rows in their own block and drops blocks left empty", () => {
+    const out = regroupForDisplay(repeated);
+    const finance = out.find((g) => g.name === "Finance Major Requirements")!;
+    expect(finance.requirements.map((r) => r.name)).toEqual([
+      "University Requirement: Must have a minimum 2.000 Cumulative GPA",
+      "Finance Major : FNCE 124",
+    ]);
+    expect(out.find((g) => g.name === "Real Estate Minor Requirements")!.requirements).toHaveLength(1);
+  });
+
+  it("makes tallies count each requirement once instead of once per program block", () => {
+    const flat = tallyGroups(repeated);
+    const regrouped = tallyGroups(regroupForDisplay(repeated));
+    // 2 core + 2 college + FNCE 124 + MATH 13 + FNCE 118 = 7 distinct program rows.
+    expect(regrouped.total).toBe(7);
+    expect(flat.total).toBeGreaterThan(regrouped.total);
+    expect(regrouped.completed).toBe(1);
+    expect(regrouped.in_progress).toBe(1);
+    expect(regrouped.remaining).toBe(5);
+  });
+
+  it("orders University Core → School Core → Major → Minor", () => {
+    const order = orderGroups(regroupForDisplay(repeated)).map((g) => g.kind);
+    expect(order).toEqual(["core", "college", "major", "major", "minor"]);
+  });
+
+  it("never merges different schools' Core curricula (LSB vs CAS) — each keeps its own group", () => {
+    const twoSchools: Groups = [
+      { name: "Finance Major Requirements", kind: "major", order: 0, requirements: [
+        core("Core: LSB: CTW 1", "completed", 1),
+        core("Core: LSB: Advanced Writing", "remaining", 2),
+      ] },
+      { name: "Mathematics Major Requirements", kind: "major", order: 3, requirements: [
+        core("Core: CAS: CTW 1", "completed", 4),
+        core("Core: CAS: Ethics", "completed", 5),
+        core("Core: CAS: Advanced Writing", "remaining", 6),
+      ] },
+    ];
+    const out = regroupForDisplay(twoSchools);
+    expect(out.map((g) => [g.name, g.requirements.length])).toEqual([
+      ["University Core (LSB)", 2],
+      ["University Core (CAS)", 3],
+    ]);
+    // Same-named rows in different schools are different requirements: both are tallied.
+    expect(tallyGroups(out).total).toBe(5);
+  });
+
+  it("keeps two rows that DISAGREE about the same requirement instead of quietly choosing one", () => {
+    const disagree: Groups = [
+      { name: "A Major Requirements", kind: "major", requirements: [core("Core: LSB: CTW 1", "completed", 1)] },
+      { name: "B Major Requirements", kind: "major", requirements: [core("Core: LSB: CTW 1", "remaining", 2)] },
+    ];
+    const uc = regroupForDisplay(disagree).find((g) => g.name === "University Core (LSB)")!;
+    expect(uc.requirements.map((r) => r.status)).toEqual(["completed", "remaining"]);
+  });
+
+  it("passes reports with no categories (older parses, simple layouts) through untouched", () => {
+    expect(regroupForDisplay(groups)).toEqual(groups);
+  });
+
+  it("is idempotent", () => {
+    const once = regroupForDisplay(repeated);
+    expect(regroupForDisplay(once).map((g) => [g.name, g.requirements.length])).toEqual(
+      once.map((g) => [g.name, g.requirements.length]),
+    );
+  });
+
+  it("lists a repeated needs-review Core row once in the review summary", () => {
+    const parsed = {
+      completedCourses: [],
+      possibleCourses: [],
+      notes: [],
+      groups: [
+        { name: "A Major Requirements", kind: "major", requirements: [core("Core: LSB: Mystery", "needs_review", 1)] },
+        { name: "B Major Requirements", kind: "major", requirements: [core("Core: LSB: Mystery", "needs_review", 2)] },
+      ],
+    } as unknown as ParsedProgressReport;
+    expect(reviewSummary(parsed).items).toHaveLength(1);
   });
 });

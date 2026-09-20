@@ -45,7 +45,7 @@ export function WorkdayAprPanel({
   const report = "report" in state ? state.report : undefined;
   const majorReconciliation =
     state.kind === "ready"
-      ? reconcileMajor(state.parsed.program, planningMajorTitle)
+      ? reconcileMajor(state.parsed.program, planningMajorTitle, state.parsed.declaredMajors)
       : "unknown";
 
   return (

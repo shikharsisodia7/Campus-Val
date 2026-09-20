@@ -8,6 +8,7 @@
  */
 
 import { COURSES } from "../data/courses";
+import { looksLikeWorkdayTable, parseWorkdayTable } from "./progress-report-workday-table";
 import {
   classifySectionHeader,
   classifyRowStatusText,
@@ -216,7 +217,7 @@ export async function parseXlsxBuffer(buf: Buffer): Promise<ParsedProgressReport
  * already-stored parse stale. The route layer reparses on read when a
  * stored report's version doesn't match this.
  */
-export const APR_PARSER_VERSION = "hierarchical-v3";
+export const APR_PARSER_VERSION = "hierarchical-v4";
 
 /** A single course row nested under a requirement. */
 export interface ParsedRequirementCourse {
@@ -226,6 +227,12 @@ export interface ParsedRequirementCourse {
   grade: string | null;
   /** false when the code doesn't match the SCU catalog — title/units are then the raw extracted text, never invented. */
   inCatalog: boolean;
+  /** The row said "(In Progress)": enrolled, not finished. */
+  inProgress?: boolean;
+  /** The row said "(Transfer Credit)": accepted credit, not an SCU term. */
+  transfer?: boolean;
+  /** Workday's "Academic Period" text (e.g. "Fall 2025"), when the row has one. */
+  period?: string;
 }
 
 /**
@@ -257,6 +264,20 @@ export interface ParsedRequirement {
    * Kept verbatim and NOT interpreted — its exact meaning is Workday's.
    */
   detail?: string | null;
+  /**
+   * The row's "Remaining" column, verbatim ("Minimum 1 Course(s)",
+   * "Minimum 44 Unit(s)", "Minimum Combination Required"). Present only when
+   * Workday printed one — never computed.
+   */
+  remaining?: string;
+  /**
+   * "core" for University Core rows ("Core: LSB: CTW 1"), "college" for a
+   * school's own Core rows ("Leavey School of Business Core Knowledge: ...").
+   * Workday places these rows inside a program block: blocks in the same school
+   * repeat them, and a major in another school brings that school's own set
+   * ("Core: CAS: ...").
+   */
+  category?: "core" | "college";
   /**
    * The source line this row was read from, whitespace-collapsed and length
    * capped. Present so a "Verify in Workday" item can be compared to the
@@ -499,10 +520,21 @@ export function extractRequirementGroups(text: string): ParsedRequirementGroup[]
 
 /** Shared assembly of a ParsedProgressReport from extracted text. */
 function buildParsedReport(text: string, emptyNote: string): ParsedProgressReport {
-  const { catalogMatches, nonCompletedMatches, unknownTokens } = extractCodesFromText(text);
-  const program = extractProgram(text);
+  // The real Workday table layout is read structurally; the line-based readers
+  // below handle simpler exports (and spreadsheets).
+  const table = looksLikeWorkdayTable(text)
+    ? parseWorkdayTable(text, { hasCatalogCode: (c) => catalogMap.has(normalizeCode(c)), classifyGroupKind })
+    : null;
+  const tableUsable = table !== null && table.groups.length > 0;
+
+  const { catalogMatches, nonCompletedMatches, unknownTokens } = tableUsable
+    ? extractCoursesFromGroups(table.groups)
+    : extractCodesFromText(text);
+  const program = tableUsable && table.declaredMajors.length > 0
+    ? table.declaredMajors.join(" / ")
+    : extractProgram(text);
   const reportStudentId = extractStudentId(text);
-  const groups = extractRequirementGroups(text);
+  const groups = tableUsable ? table.groups : extractRequirementGroups(text);
   const summary = buildReportSummary(groups, text);
 
   const notes: string[] = [];
@@ -517,6 +549,11 @@ function buildParsedReport(text: string, emptyNote: string): ParsedProgressRepor
   if (!reportStudentId) {
     notes.push("Identity could not be verified automatically (no student ID found in the document).");
   }
+  if (tableUsable && table.unreadCourseRows > 0) {
+    notes.push(
+      `${table.unreadCourseRows} course row(s) could not be read completely (no units or grade found); they are shown without them rather than guessed.`,
+    );
+  }
 
   return {
     completedCourses: catalogMatches,
@@ -526,9 +563,79 @@ function buildParsedReport(text: string, emptyNote: string): ParsedProgressRepor
     ...(reportStudentId ? { reportStudentId } : {}),
     ...(groups.length > 0 ? { groups } : {}),
     ...(summary ? { summary } : {}),
+    ...(tableUsable && table.declaredMajors.length > 0 ? { declaredMajors: table.declaredMajors } : {}),
+    ...(tableUsable && table.declaredMinors.length > 0 ? { declaredMinors: table.declaredMinors } : {}),
+    ...(tableUsable && table.reportDate ? { reportDate: table.reportDate } : {}),
+    ...(tableUsable && table.lastEvaluated ? { lastEvaluated: table.lastEvaluated } : {}),
     parserVersion: APR_PARSER_VERSION,
     notes,
   };
+}
+
+/**
+ * Course lists derived from the structured requirement rows of a Workday
+ * table report. Same central completion rule as the line-based reader
+ * (`classifyAcademicRecordCompletion`); a code is listed once, and a
+ * completed record wins over an in-progress repeat of the same code.
+ * Transfer-credit entries with no SCU catalog match (TRCR 1 ...) are accepted
+ * credit, not courses to plan, so they never become "possible courses".
+ */
+export function extractCoursesFromGroups(groups: ParsedRequirementGroup[]): {
+  catalogMatches: ParsedCompletedCourse[];
+  nonCompletedMatches: ParsedNonCompletedCourse[];
+  unknownTokens: ParsedPossibleCourse[];
+} {
+  const rank = (c: ParsedRequirementCourse) => (c.inProgress ? 0 : 1);
+  const best = new Map<string, ParsedRequirementCourse>();
+  for (const g of groups) {
+    for (const r of g.requirements) {
+      for (const c of r.courses) {
+        const prev = best.get(c.code);
+        if (!prev || rank(c) > rank(prev)) best.set(c.code, c);
+      }
+    }
+  }
+
+  const catalogMatches: ParsedCompletedCourse[] = [];
+  const nonCompletedMatches: ParsedNonCompletedCourse[] = [];
+  const unknownTokens: ParsedPossibleCourse[] = [];
+  for (const [code, c] of best) {
+    const catalogCourse = catalogMap.get(normalizeCode(code));
+    if (!catalogCourse) {
+      if (!c.transfer) unknownTokens.push({ raw: code });
+      continue;
+    }
+    const sectionStatus: ReportSectionStatus = c.inProgress
+      ? "in_progress"
+      : c.transfer
+        ? "transfer_credit"
+        : "unknown";
+    const completion = classifyAcademicRecordCompletion({ sectionStatus, grade: c.grade });
+    if (completion === "completed") {
+      catalogMatches.push({
+        code: catalogCourse.code,
+        title: catalogCourse.title,
+        units: catalogCourse.units,
+        confidence: "high",
+      });
+    } else {
+      nonCompletedMatches.push({
+        code: catalogCourse.code,
+        title: catalogCourse.title,
+        units: catalogCourse.units,
+        status: c.inProgress ? "in_progress" : completion === "not_completed" ? "not_completed" : "needs_review",
+      });
+    }
+  }
+  return { catalogMatches, nonCompletedMatches, unknownTokens };
+}
+
+/**
+ * Parse already-extracted report text. Exported so tests can exercise the
+ * whole text-to-report pipeline with anonymized fixtures, without a PDF.
+ */
+export function parseReportText(text: string): ParsedProgressReport {
+  return buildParsedReport(text, "No course codes were detected in the document.");
 }
 
 /** A catalog-matched course row that is NOT completed (or needs review). */
@@ -551,6 +658,13 @@ export interface ParsedProgressReport {
   groups?: ParsedRequirementGroup[];
   /** Unit totals, only when the APR states them. */
   summary?: ParsedReportSummary;
+  /** Majors and minors named in the report header - Workday's own list, never inferred. */
+  declaredMajors?: string[];
+  declaredMinors?: string[];
+  /** ISO date printed on the report page ("09/08/2026"). */
+  reportDate?: string;
+  /** Most recent "Last Evaluated" date across the program blocks (ISO). */
+  lastEvaluated?: string;
   /** Present once a report has been parsed by the hierarchical parser; absent on older stored reports. */
   parserVersion?: string;
   notes: string[];
