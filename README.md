@@ -95,16 +95,22 @@ storage, first-deployment checklist — see [docs/SCU_DEPLOYMENT.md](docs/SCU_DE
 ## Tests
 
 ```bash
+pnpm run lint
 pnpm run typecheck
-pnpm --filter @workspace/api-server run test       # 287 tests (needs DATABASE_URL)
-pnpm --filter @workspace/scu-advising run test     # 162 tests
+pnpm --filter @workspace/api-server run test       # needs DATABASE_URL
+pnpm --filter @workspace/scu-advising run test
 pnpm --filter @workspace/campusval-mobile run test #   9 smoke tests
 pnpm run vercel-build
 ```
 
-There is **no lint script** in this repository — that is deliberate, not an oversight.
+`pnpm run lint` (ESLint, `eslint.config.mjs`) checks **correctness only**: hooks called in a
+different order between renders, unused code, duplicate keys, stale `eslint-disable` comments.
+Formatting is Prettier's and types are `typecheck`'s, so neither is duplicated. It fails on any
+warning, and generated API clients and the design sandbox are excluded. (This repo previously had
+no lint step on purpose; it was added on 2026-09-20 after the first run found a real crash — a
+hook called after an early return in the mobile sign-in screens — plus a pile of dead code.)
 
-CI (`.github/workflows/ci.yml`) runs typecheck, all three suites and both builds against
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, all three suites and both builds against
 a Postgres 16 service on every push and PR to `main`.
 
 ## Deployment

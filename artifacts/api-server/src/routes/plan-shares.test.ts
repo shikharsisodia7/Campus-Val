@@ -51,8 +51,6 @@ const asStudentB = (r: request.Test) =>
   r.set("x-test-user", STUDENT_B).set("x-test-email", "student-b@scu.edu");
 const asAdvisorX = (r: request.Test) =>
   r.set("x-test-user", "advisor-x-uid").set("x-test-email", ADVISOR_X_EMAIL);
-const asAdvisorY = (r: request.Test) =>
-  r.set("x-test-user", "advisor-y-uid").set("x-test-email", ADVISOR_Y_EMAIL);
 const asRandomReviewer = (r: request.Test) =>
   r.set("x-test-user", "random-reviewer-uid").set("x-test-email", RANDOM_REVIEWER_EMAIL);
 

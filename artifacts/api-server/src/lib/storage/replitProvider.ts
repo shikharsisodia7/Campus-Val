@@ -7,12 +7,7 @@ import { Readable } from "stream";
 import type { File, Storage as StorageClient } from "@google-cloud/storage";
 
 import { uploadPathOwnerSegment, isUploadPathOwnedBy } from "../uploadPath";
-import {
-  canAccessObject,
-  getObjectAclPolicy,
-  ObjectPermission,
-  setObjectAclPolicy,
-} from "../objectAcl";
+import { canAccessObject, ObjectPermission, setObjectAclPolicy } from "../objectAcl";
 import type {
   DownloadedObject,
   PrivateObjectStorage,

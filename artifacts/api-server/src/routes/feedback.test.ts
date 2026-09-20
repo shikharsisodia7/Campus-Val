@@ -156,7 +156,7 @@ describe("GET /api/admin/feedback", () => {
     const res = await asAdmin(request(app).get("/api/admin/feedback")).expect(200);
     expect(Array.isArray(res.body.feedback)).toBe(true);
     const mine = res.body.feedback.filter((f: any) =>
-      TEST_USERS.some((u) => f.email === "student@scu.edu" || f.email === "reviewer@pdx.edu"),
+      TEST_USERS.some(() => f.email === "student@scu.edu" || f.email === "reviewer@pdx.edu"),
     );
     expect(mine.length).toBeGreaterThan(0);
     const reportRow = res.body.feedback.find((f: any) => f.type === "incorrect_info");

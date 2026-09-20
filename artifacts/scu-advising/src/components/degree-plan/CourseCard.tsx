@@ -54,18 +54,7 @@ import {
   type QuarterFitSuggestion,
 } from "./useQuarterFitSuggestions";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import {
-  Trash2,
-  GripVertical,
-  GraduationCap,
-  MoveRight,
-  BookOpen,
-  AlertCircle,
-  Loader2,
-  CalendarClock,
-  CheckCircle2,
-} from "lucide-react";
+import { Trash2, GripVertical, GraduationCap, MoveRight, AlertCircle, Loader2, CalendarClock, CheckCircle2 } from "lucide-react";
 import {
   COMPLETION_SOURCE_OPTIONS,
   COMPLETION_SOURCE_LABELS,
@@ -170,7 +159,6 @@ function CourseDetailDialog({
 export function CourseCard({
   item,
   isOverlay,
-  availableYears,
   offering,
   conflicts,
 }: {
@@ -180,7 +168,7 @@ export function CourseCard({
   offering?: OfferingResult;
   conflicts?: CourseConflictDetail[];
 }) {
-  const { activePlanId, catalog, profile, requirements } =
+  const { activePlanId, catalog, requirements } =
     useDegreePlanContext();
   const deletePlanItem = useOptimisticDeletePlanItem();
   const queryClient = useQueryClient();
@@ -196,7 +184,6 @@ export function CourseCard({
 
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isReplaceOpen, setIsReplaceOpen] = useState(false);
-  const [replaceSearch, setReplaceSearch] = useState("");
 
   const {
     attributes,
@@ -253,8 +240,6 @@ export function CourseCard({
       ? catalog.find((c) => c.code === item.courseCode)
       : null;
 
-  const terms = ["fall", "winter", "spring", "summer"];
-  const isInCompletedArea = isCompletedItem;
 
   const content = (
     <Card

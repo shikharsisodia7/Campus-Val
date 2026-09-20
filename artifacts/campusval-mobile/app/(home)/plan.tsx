@@ -648,7 +648,7 @@ function TermGroupCard({
 
 // ── styles ───────────────────────────────────────────────────────────────────
 
-function makeStyles(colors: ReturnType<typeof useColors>, insets: { top: number; bottom: number }) {
+function makeStyles(colors: ReturnType<typeof useColors>, _insets: { top: number; bottom: number }) {
   return StyleSheet.create({
     flex: { flex: 1, backgroundColor: colors.background },
     center: { alignItems: 'center', justifyContent: 'center', flex: 1, padding: 24 },

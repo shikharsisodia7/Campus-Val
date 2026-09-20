@@ -105,8 +105,8 @@ export default function Onboarding() {
     COLLEGE_OPTIONS[1],
   );
   const [major, setMajor] = useState("");
-  const [secondMajor, setSecondMajor] = useState<string>(NONE_VALUE);
-  const [minor, setMinor] = useState<string>(NONE_VALUE);
+  const [, setSecondMajor] = useState<string>(NONE_VALUE);
+  const [, setMinor] = useState<string>(NONE_VALUE);
   const [additionalMajors, setAdditionalMajors] = useState<string[]>([]);
   const [additionalMinors, setAdditionalMinors] = useState<string[]>([]);
   const [startTerm, setStartTerm] = useState<string>("fall");

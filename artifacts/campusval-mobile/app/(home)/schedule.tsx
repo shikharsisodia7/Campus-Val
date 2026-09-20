@@ -81,12 +81,13 @@ export default function ScheduleScreen() {
 
   const effectiveId = selectedId ?? schedules[0]?.id ?? null;
 
-  const { data: scheduleDetail, isLoading: detailLoading, isError: detailError, refetch: refetchDetail } =
+  const { data: scheduleDetail, isLoading: detailLoading, refetch: refetchDetail } =
     useGetSchedule(effectiveId ?? 0, {
       query: { queryKey: getGetScheduleQueryKey(effectiveId ?? 0), enabled: !!effectiveId, retry: 1 },
     });
 
-  const events = (scheduleDetail?.events ?? []) as ScheduleEvent[];
+  // Stable identity so the memoized groupings below only recompute when the data changes.
+  const events = useMemo(() => (scheduleDetail?.events ?? []) as ScheduleEvent[], [scheduleDetail?.events]);
   const selectedSchedule = schedules.find(s => s.id === effectiveId) ?? schedules[0];
 
   // ── add-section modal state ────────────────────────────────────────────────
@@ -560,7 +561,7 @@ export default function ScheduleScreen() {
   );
 }
 
-function EventCard({ event, colors, styles }: {
+function EventCard({ event, styles }: {
   event: ScheduleEvent;
   colors: ReturnType<typeof useColors>;
   styles: ReturnType<typeof makeStyles>;
@@ -581,7 +582,7 @@ function EventCard({ event, colors, styles }: {
   );
 }
 
-function makeStyles(colors: ReturnType<typeof useColors>, insets: { top: number; bottom: number }) {
+function makeStyles(colors: ReturnType<typeof useColors>, _insets: { top: number; bottom: number }) {
   return StyleSheet.create({
     flex: { flex: 1, backgroundColor: colors.background },
     center: { alignItems: 'center', justifyContent: 'center', padding: 24 },

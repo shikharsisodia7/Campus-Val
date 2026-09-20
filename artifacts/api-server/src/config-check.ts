@@ -16,7 +16,6 @@ import { ConfigError, assertStartupConfig, resolveStorageProvider } from "./lib/
 function fail(message: string, variables: string[]): never {
   logger.fatal({ problems: variables }, message);
   // The logger may be asynchronous; make sure the operator sees the reason.
-  // eslint-disable-next-line no-console
   console.error(message);
   process.exit(1);
 }

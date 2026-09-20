@@ -26,7 +26,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Separator } from "@/components/ui/separator";
 import type { ProgressReport } from "@workspace/api-client-react";
 import { formatBytes } from "./UploadZone";
 import { AprStructuredView } from "./AprStructuredView";

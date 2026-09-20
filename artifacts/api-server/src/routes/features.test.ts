@@ -399,7 +399,7 @@ describe("completed-area plan items", () => {
     expect([a.body.position, b.body.position, c.body.position]).toEqual([0, 1, 2]);
 
     // Move middle item out to get gap reindexing in source
-    const moved = await asA(request(plansApp).patch(`/api/plans/${planId}/items/${b.body.id}`))
+    await asA(request(plansApp).patch(`/api/plans/${planId}/items/${b.body.id}`))
       .send({ term: "fall", academicYear: 2028 })
       .expect(200);
 
@@ -721,7 +721,6 @@ describe("degree requirements: plan-scoped scenario programs", () => {
 
 describe("progress report: ownership and metadata protections", () => {
   const segA = uploadPathOwnerSegment(USER_A);
-  const segB = uploadPathOwnerSegment(USER_B);
 
   beforeEach(() => {
     mockStorage.file = null;
@@ -918,13 +917,9 @@ describe("progress report parser", () => {
   it("extracts catalog-matched courses from plain text via extractCodesFromText", async () => {
     // Access internal function through the xlsx path (simpler than PDF for test)
     // We directly test extractCodesFromText indirectly by parsing text as xlsx content
-    const { parseXlsxBuffer } = await import("../lib/progress-report-parser");
 
     // XLSX package parses buffers, so we can mock by just testing the extract logic directly.
     // Instead, test the exported parseProgressReport with text that contains known course codes.
-    // We use the COURSES list to get a real code.
-    const { COURSES: courses } = await import("../data/courses");
-    const realCode = courses[0].code; // e.g. "COEN 10"
 
     // Build a fake xlsx with the course code in it — hard to generate a real xlsx buffer in tests.
     // Instead test the internal logic by importing and calling extractCodesFromText via a known export.
@@ -1141,7 +1136,6 @@ describe("progress report: file download", () => {
 
 describe("storage: upload URL + object read routes", () => {
   const segA = uploadPathOwnerSegment(USER_A);
-  const segB = uploadPathOwnerSegment(USER_B);
 
   beforeEach(() => {
     mockStorage.file = null;

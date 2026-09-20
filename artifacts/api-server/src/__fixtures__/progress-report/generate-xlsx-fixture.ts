@@ -13,7 +13,6 @@
  */
 
 import * as XLSX from "xlsx";
-import { writeFileSync } from "fs";
 import { join } from "path";
 
 const rows: (string | number | null)[][] = [

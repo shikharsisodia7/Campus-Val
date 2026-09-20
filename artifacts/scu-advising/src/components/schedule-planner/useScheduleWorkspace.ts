@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetScheduleAvailability,
@@ -37,7 +37,6 @@ export function useScheduleWorkspace() {
   // quarter switch shows a loading gap instead of the wrong quarter's data.
   useEffect(() => {
     setActiveScheduleId(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTerm, activeYear]);
 
   const listParams = { term: activeTerm as Term, year: activeYear! };
@@ -46,7 +45,8 @@ export function useScheduleWorkspace() {
     { query: { enabled: !!activeTerm && !!activeYear, queryKey: getListSchedulesQueryKey(listParams) } }
   );
 
-  const schedules = listData?.schedules ?? [];
+  // Stable identity: a fresh `[]` every render made the effect below re-run on every render.
+  const schedules = useMemo(() => listData?.schedules ?? [], [listData?.schedules]);
 
   useEffect(() => {
     // Skip while a fetch is in flight: React Query keeps showing the last

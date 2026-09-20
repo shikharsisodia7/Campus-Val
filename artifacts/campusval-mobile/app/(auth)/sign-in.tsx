@@ -42,11 +42,6 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(false);
 
-  if (isSignedIn) {
-    router.replace('/(home)');
-    return null;
-  }
-
   const handleSignIn = async () => {
     const { error } = await signIn.password({ emailAddress: email, password });
     if (error) return;
@@ -70,7 +65,7 @@ export default function SignInPage() {
       if (createdSessionId) {
         setActive!({
           session: createdSessionId,
-          navigate: async ({ decorateUrl }) => {
+          navigate: async () => {
             router.replace('/(home)');
           },
         });
@@ -81,6 +76,14 @@ export default function SignInPage() {
       setSsoLoading(false);
     }
   }, [startSSOFlow, router]);
+
+  // Every hook above must run on every render. Returning before the hooks (as this used to)
+  // makes the render after Clerk flips `isSignedIn` call FEWER hooks than the one before,
+  // which React throws on ("Rendered fewer hooks than expected").
+  if (isSignedIn) {
+    router.replace('/(home)');
+    return null;
+  }
 
   const styles = makeStyles(colors, insets);
   const canSubmit = email.trim().length > 0 && password.length > 0 && fetchStatus !== 'fetching';

@@ -18,21 +18,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  Search,
-  Scale,
-  BookOpen,
-  AlertCircle,
-  Lock,
-  Star,
-  Users,
-  Clock,
-  MapPin,
-  CalendarPlus,
-  FlaskConical,
-  User,
-} from "lucide-react";
-import { termLabel } from "@/lib/api";
+import { Search, Scale, BookOpen, AlertCircle, Lock, Users, Clock, MapPin, CalendarPlus, FlaskConical, User } from "lucide-react";
 import { Link } from "wouter";
 
 const PAGE_SIZE = 60;

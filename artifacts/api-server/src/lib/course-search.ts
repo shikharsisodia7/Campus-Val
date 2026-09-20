@@ -127,7 +127,7 @@ export function searchCourses(
 
   let visible = matches;
   let totalWithSections: number | null = null;
-  let state: CourseSearchState = "results";
+  const state: CourseSearchState = "results";
   if (counts) {
     const withSections = matches.filter((c) => (sectionsOf(c) ?? 0) > 0);
     totalWithSections = withSections.length;

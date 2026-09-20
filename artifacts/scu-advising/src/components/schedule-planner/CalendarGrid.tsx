@@ -3,7 +3,7 @@ import { ScheduleEvent } from "@workspace/api-client-react";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Info } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { DAYS, toTimedEvent, format12, termColor, capitalize } from "./utils";
 import { findEventConflicts, timeToMinutes, layoutDayEvents } from "@/lib/conflicts";
 

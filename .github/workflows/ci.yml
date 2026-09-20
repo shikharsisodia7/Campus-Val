@@ -42,6 +42,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        # Correctness rules only (hooks order, unused code, duplicate keys...);
+        # formatting is Prettier's and types are the typecheck's. See eslint.config.mjs.
+        run: pnpm run lint
+
       - name: Typecheck
         run: pnpm run typecheck
 

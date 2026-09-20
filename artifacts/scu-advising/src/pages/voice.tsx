@@ -91,7 +91,6 @@ export default function VoiceAdvisor() {
       created.forEach((u) => URL.revokeObjectURL(u));
       created.clear();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function stopStream() {

@@ -37,7 +37,7 @@ vi.mock("@/hooks/use-track-usage", () => ({
 }));
 
 let mockSummary: any;
-let mockProfile: any = { name: "QA Tester" };
+const mockProfile: any = { name: "QA Tester" };
 
 vi.mock("@workspace/api-client-react", async () => {
   const actual = await vi.importActual<any>("@workspace/api-client-react");
