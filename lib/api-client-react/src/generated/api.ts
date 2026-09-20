@@ -77,6 +77,9 @@ import type {
   ProfessorList,
   ProgressReportEnvelope,
   ProgressReportInput,
+  ProgressReportMapping,
+  ProgressReportMappingInput,
+  ProgressReportMappingList,
   QuarterScheduleDetail,
   QuarterScheduleInput,
   QuarterScheduleList,
@@ -5967,3 +5970,268 @@ export function useDownloadProgressReportFile<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * A mapping is the STUDENT'S note that an item on their Workday APR corresponds to a
+CampusVal catalog course. It is an annotation beside the report: it never edits the
+uploaded file or its parse, never changes what counts as completed, and is never
+shared. Only ever the caller's own.
+
+ * @summary List the student's own mappings of unrecognized report items to catalog courses
+ */
+export const getListProgressReportMappingsUrl = () => {
+  return `/api/progress-report/mappings`;
+};
+
+export const listProgressReportMappings = async (
+  options?: RequestInit,
+): Promise<ProgressReportMappingList> => {
+  return customFetch<ProgressReportMappingList>(
+    getListProgressReportMappingsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListProgressReportMappingsQueryKey = () => {
+  return [`/api/progress-report/mappings`] as const;
+};
+
+export const getListProgressReportMappingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProgressReportMappings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProgressReportMappings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListProgressReportMappingsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listProgressReportMappings>>
+  > = ({ signal }) => listProgressReportMappings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProgressReportMappings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProgressReportMappingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProgressReportMappings>>
+>;
+export type ListProgressReportMappingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the student's own mappings of unrecognized report items to catalog courses
+ */
+
+export function useListProgressReportMappings<
+  TData = Awaited<ReturnType<typeof listProgressReportMappings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProgressReportMappings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProgressReportMappingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Accepted only for a code the student's CURRENT report lists as unmatched, onto a
+course that exists in the CampusVal catalog.
+
+ * @summary Map one unrecognized report item to a catalog course (or change that mapping)
+ */
+export const getUpsertProgressReportMappingUrl = (rawCode: string) => {
+  return `/api/progress-report/mappings/${rawCode}`;
+};
+
+export const upsertProgressReportMapping = async (
+  rawCode: string,
+  progressReportMappingInput: ProgressReportMappingInput,
+  options?: RequestInit,
+): Promise<ProgressReportMapping> => {
+  return customFetch<ProgressReportMapping>(
+    getUpsertProgressReportMappingUrl(rawCode),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(progressReportMappingInput),
+    },
+  );
+};
+
+export const getUpsertProgressReportMappingMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertProgressReportMapping>>,
+    TError,
+    { rawCode: string; data: BodyType<ProgressReportMappingInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof upsertProgressReportMapping>>,
+  TError,
+  { rawCode: string; data: BodyType<ProgressReportMappingInput> },
+  TContext
+> => {
+  const mutationKey = ["upsertProgressReportMapping"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof upsertProgressReportMapping>>,
+    { rawCode: string; data: BodyType<ProgressReportMappingInput> }
+  > = (props) => {
+    const { rawCode, data } = props ?? {};
+
+    return upsertProgressReportMapping(rawCode, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpsertProgressReportMappingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof upsertProgressReportMapping>>
+>;
+export type UpsertProgressReportMappingMutationBody =
+  BodyType<ProgressReportMappingInput>;
+export type UpsertProgressReportMappingMutationError = ErrorType<void>;
+
+/**
+ * @summary Map one unrecognized report item to a catalog course (or change that mapping)
+ */
+export const useUpsertProgressReportMapping = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof upsertProgressReportMapping>>,
+    TError,
+    { rawCode: string; data: BodyType<ProgressReportMappingInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof upsertProgressReportMapping>>,
+  TError,
+  { rawCode: string; data: BodyType<ProgressReportMappingInput> },
+  TContext
+> => {
+  return useMutation(getUpsertProgressReportMappingMutationOptions(options));
+};
+
+/**
+ * @summary Remove one of the student's mappings
+ */
+export const getDeleteProgressReportMappingUrl = (rawCode: string) => {
+  return `/api/progress-report/mappings/${rawCode}`;
+};
+
+export const deleteProgressReportMapping = async (
+  rawCode: string,
+  options?: RequestInit,
+): Promise<DeletedResponse> => {
+  return customFetch<DeletedResponse>(
+    getDeleteProgressReportMappingUrl(rawCode),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteProgressReportMappingMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProgressReportMapping>>,
+    TError,
+    { rawCode: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProgressReportMapping>>,
+  TError,
+  { rawCode: string },
+  TContext
+> => {
+  const mutationKey = ["deleteProgressReportMapping"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProgressReportMapping>>,
+    { rawCode: string }
+  > = (props) => {
+    const { rawCode } = props ?? {};
+
+    return deleteProgressReportMapping(rawCode, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteProgressReportMappingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteProgressReportMapping>>
+>;
+
+export type DeleteProgressReportMappingMutationError = ErrorType<void>;
+
+/**
+ * @summary Remove one of the student's mappings
+ */
+export const useDeleteProgressReportMapping = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProgressReportMapping>>,
+    TError,
+    { rawCode: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProgressReportMapping>>,
+  TError,
+  { rawCode: string },
+  TContext
+> => {
+  return useMutation(getDeleteProgressReportMappingMutationOptions(options));
+};

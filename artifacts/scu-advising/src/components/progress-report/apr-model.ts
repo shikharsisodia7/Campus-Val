@@ -237,19 +237,43 @@ export interface ReviewItem {
   sourceText?: string;
 }
 
+/** The student's own note that an unrecognized report item is a particular catalog course. */
+export interface CourseMapping {
+  rawCode: string;
+  courseCode: string;
+  courseTitle: string | null;
+}
+
+/** "engl2a" → "ENGL 2A": the same normalization the server applies to a report code. */
+export function normalizeReportCode(raw: string): string {
+  return raw
+    .toUpperCase()
+    .replace(/^([A-Z]{2,5})\s?(\d)/, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export interface ReviewSummary {
   items: ReviewItem[];
-  /** Course-like tokens the parser could not match to the catalog. */
+  /** Course-like tokens the parser could not match to the catalog AND the student has not matched. */
   unrecognized: string[];
+  /**
+   * Unrecognized tokens the student matched to a catalog course. Their own note:
+   * still not confirmed by Workday, so they are listed apart and never counted
+   * as completed — but they no longer raise a "verify" alarm.
+   */
+  mapped: CourseMapping[];
+  /** Items still needing the student's attention (rows to verify + unmatched, unmapped tokens). */
   count: number;
 }
 
 /**
  * Everything the student should verify against Workday: rows the parser could
  * not classify, courses it could not match to the catalog, and rows whose
- * nested course is not in the catalog.
+ * nested course is not in the catalog. Tokens the student has matched by hand
+ * (`mappings`) move from "verify" to "mapped".
  */
-export function reviewSummary(parsed: ParsedProgressReport): ReviewSummary {
+export function reviewSummary(parsed: ParsedProgressReport, mappings: readonly CourseMapping[] = []): ReviewSummary {
   const items: ReviewItem[] = [];
   // Regrouped so a repeated Core row that needs review is listed once, not once per program.
   for (const g of regroupForDisplay(parsed.groups ?? [])) {
@@ -259,8 +283,15 @@ export function reviewSummary(parsed: ParsedProgressReport): ReviewSummary {
       }
     }
   }
-  const unrecognized = parsed.possibleCourses.map((c) => c.raw);
-  return { items, unrecognized, count: items.length + unrecognized.length };
+  const byRaw = new Map(mappings.map((m) => [normalizeReportCode(m.rawCode), m]));
+  const unrecognized: string[] = [];
+  const mapped: CourseMapping[] = [];
+  for (const c of parsed.possibleCourses) {
+    const m = byRaw.get(normalizeReportCode(c.raw));
+    if (m) mapped.push(m);
+    else unrecognized.push(c.raw);
+  }
+  return { items, unrecognized, mapped, count: items.length + unrecognized.length };
 }
 
 export function filterGroupsForView(

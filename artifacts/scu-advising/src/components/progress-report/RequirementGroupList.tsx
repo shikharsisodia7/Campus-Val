@@ -11,10 +11,12 @@ import {
   SECTION_LABEL,
   filterGroupsForView,
   isStillNeeded,
+  normalizeReportCode,
   orderGroups,
   programRows,
   tallyRows,
   type AprSectionKind,
+  type CourseMapping,
   type IndexedGroup,
   type StatusFilter,
 } from "./apr-model";
@@ -82,6 +84,7 @@ export function RequirementGroupList({
   hideUniversityRows = false,
   statusFilter = "all",
   showSourceText = false,
+  mappings = [],
 }: {
   groups: ParsedProgressReportGroupsItem[];
   /**
@@ -105,8 +108,11 @@ export function RequirementGroupList({
   statusFilter?: StatusFilter;
   /** Show the report's own line for rows that need review (full view only). */
   showSourceText?: boolean;
+  /** The student's own matches of unrecognized course codes; shown beside the row, labelled as theirs. */
+  mappings?: readonly CourseMapping[];
 }) {
   if (groups.length === 0) return null;
+  const mappingByRaw = new Map(mappings.map((m) => [normalizeReportCode(m.rawCode), m]));
 
   const original: IndexedGroup[] = groups.map((group, index) => ({
     group,
@@ -205,6 +211,15 @@ export function RequirementGroupList({
                               {!course.inCatalog && !course.transfer && (
                                 <span className="text-[10px] italic text-amber-800">
                                   (not matched to the CampusVal catalog)
+                                </span>
+                              )}
+                              {!course.inCatalog && !course.transfer && mappingByRaw.has(normalizeReportCode(course.code)) && (
+                                <span
+                                  className="text-[10px] italic text-foreground/80"
+                                  data-testid={`requirement-course-mapped-${index}-${j}-${k}`}
+                                >
+                                  · matched by you to {mappingByRaw.get(normalizeReportCode(course.code))!.courseCode} (your
+                                  note, not Workday&rsquo;s)
                                 </span>
                               )}
                               {showGrades && (

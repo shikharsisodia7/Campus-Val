@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, ExternalLink, FileWarning } from "lucide-react";
 import { usePlanningProgressReport } from "@/hooks/use-planning-progress-report";
+import { useProgressReportMappings } from "@/hooks/use-progress-report-mappings";
 import { reconcileMajor } from "@/lib/apr-major-reconciliation";
 import { AprStructuredView } from "./AprStructuredView";
 import { AprStateNotice } from "./AprStateNotice";
@@ -33,6 +34,7 @@ export function WorkdayAprPanel({
   planningMajorTitle?: string | null;
 }) {
   const { data: envelope, isLoading, error, refetch } = usePlanningProgressReport();
+  const mappings = useProgressReportMappings(); // display only here; edited on the APR page
   // GET /progress-report 404s (not a 200 envelope) when nothing has been
   // uploaded yet — deriveAprState reads that as "none", not a failure.
   // (Query-wide retry/refetch defaults for this key are set centrally in
@@ -145,7 +147,7 @@ export function WorkdayAprPanel({
           )}
 
           {state.kind === "ready" && (
-            <AprStructuredView parsed={state.parsed} variant="sidebar" showGrades={false} />
+            <AprStructuredView parsed={state.parsed} variant="sidebar" showGrades={false} mappings={mappings} />
           )}
         </div>
       </div>

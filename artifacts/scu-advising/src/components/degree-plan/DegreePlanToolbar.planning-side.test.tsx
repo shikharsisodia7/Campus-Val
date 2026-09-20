@@ -26,6 +26,7 @@ vi.mock("@workspace/api-client-react", async () => {
     useListGraduationMajors: () => ({ data: { majors: [] } }),
     useListGraduationMinors: () => ({ data: { minors: [] } }),
     useGetProgressReport: () => mockReportQuery,
+    useListProgressReportMappings: () => ({ data: { mappings: [] } }),
     useGetDegreeRequirements: () => ({ data: { groups: [] } }),
     useGetProfile: () => ({
       data: { major: "CSE", startYear: 2026, college: "School of Engineering" },

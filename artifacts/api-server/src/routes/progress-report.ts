@@ -1,6 +1,12 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, progressReportsTable, studentProfilesTable, type ProgressReportRow } from "@workspace/db";
+import {
+  db,
+  progressReportsTable,
+  progressReportMappingsTable,
+  studentProfilesTable,
+  type ProgressReportRow,
+} from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { getPrivateObjectStorage, isPrivateStorageConfigured, ObjectNotFoundError } from "../lib/storage";
 import { parseProgressReport, APR_PARSER_VERSION } from "../lib/progress-report-parser";
@@ -67,7 +73,7 @@ async function probeSourceFile(row: ProgressReportRow): Promise<"available" | "m
   }
 }
 
-async function getUserReport(userId: string): Promise<ProgressReportRow | null> {
+export async function getUserReport(userId: string): Promise<ProgressReportRow | null> {
   const rows = await db
     .select()
     .from(progressReportsTable)
@@ -361,6 +367,10 @@ router.delete("/progress-report", requireAuth, async (req, res): Promise<void> =
   await db
     .delete(progressReportsTable)
     .where(eq(progressReportsTable.userId, userId));
+  // The student's own mappings describe THIS report's items; deleting the report deletes them.
+  await db
+    .delete(progressReportMappingsTable)
+    .where(eq(progressReportMappingsTable.userId, userId));
 
   // A 204 (empty body) response has been observed intermittently arriving at
   // the client as a platform-level 503 even though this handler completed

@@ -73,13 +73,23 @@ over `__fixtures__/progress-report/workday-apr-table-layout.txt` — a **synthet
 The parser was also run, locally and once, against a real student's APR while it was
 being written; nothing from that file is committed.
 
-## Known gap, honestly stated
+## Student mappings (the professor's optional "map this unrecognized item")
 
-CampusVal does not yet have an interactive "map this unrecognized item to a
-real course" UI — unrecognized/`possibleCourses` items are surfaced
-read-only today (`ReportCard.tsx`'s "Needs your review" section). The
-professor described this as an optional addition ("implement... only if it
-fits the existing APR architecture"); it has not been built in this pass.
-Any future implementation must store a correction as a separate
-"Student mapping" / "Needs verification" annotation, never mutate the
-uploaded file, and never be presented as Workday truth.
+Built: on the APR page each item the parser could not match to the catalog has a
+**Match to a catalog course** control (catalog search → pick one). See
+`APR_SIDEBAR_AND_RECONCILIATION.md` § "Student mappings" for behavior and
+`SECURITY_AND_PRIVACY.md` for the access rules. The constraints the professor set
+are enforced, not just documented:
+
+| Constraint | Where it is enforced / tested |
+| --- | --- |
+| Stored as a separate annotation, never in the uploaded file or its parse | own table `progress_report_mappings`; `progress-report.mappings.test.ts` asserts the stored report and its `updatedAt` are byte-identical after a mapping |
+| Never presented as Workday truth | every place it appears says "matched by you" / "your note, not Workday's"; `UnmatchedCourseMapper.test.tsx` |
+| Never changes what counts as completed | mapped items stay in `possibleCourses`; completed count and the completed list are asserted unchanged (server and UI) |
+| Only maps what the report actually lists as unmatched, onto a real catalog course | 400 otherwise (recognized course, code not on the report, non-catalog target, oversize/missing target) |
+| Owner-scoped, never shared | `requireAuth` + `req.userId` only; a second student's identical code is a separate row; not a share scope |
+| Deleted with the report | `DELETE /progress-report` removes the student's mappings; a re-upload keeps them |
+
+Still not done, on purpose: a mapping is **not** propagated into the Degree Plan
+or the completed-course list. Turning a student's guess into plan state is a
+different feature with different risks; this one is an honest annotation only.

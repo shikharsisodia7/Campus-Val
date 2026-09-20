@@ -3290,3 +3290,75 @@ export const RegisterProgressReportResponse = zod
 export const DeleteProgressReportResponse = zod.object({
   deleted: zod.boolean(),
 });
+
+/**
+ * A mapping is the STUDENT'S note that an item on their Workday APR corresponds to a
+CampusVal catalog course. It is an annotation beside the report: it never edits the
+uploaded file or its parse, never changes what counts as completed, and is never
+shared. Only ever the caller's own.
+
+ * @summary List the student's own mappings of unrecognized report items to catalog courses
+ */
+export const ListProgressReportMappingsResponse = zod.object({
+  mappings: zod.array(
+    zod.object({
+      rawCode: zod.string().describe("The code as the report printed it."),
+      courseCode: zod
+        .string()
+        .describe("The catalog course the student says it corresponds to."),
+      courseTitle: zod.string().nullable(),
+      courseUnits: zod.number().nullable(),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * Accepted only for a code the student's CURRENT report lists as unmatched, onto a
+course that exists in the CampusVal catalog.
+
+ * @summary Map one unrecognized report item to a catalog course (or change that mapping)
+ */
+export const UpsertProgressReportMappingParams = zod.object({
+  rawCode: zod.coerce
+    .string()
+    .describe(
+      'The code exactly as the report printed it (for example \"ENGL 2A\").',
+    ),
+});
+
+export const upsertProgressReportMappingBodyCourseCodeMax = 20;
+
+export const UpsertProgressReportMappingBody = zod.object({
+  courseCode: zod
+    .string()
+    .min(1)
+    .max(upsertProgressReportMappingBodyCourseCodeMax),
+});
+
+export const UpsertProgressReportMappingResponse = zod.object({
+  rawCode: zod.string().describe("The code as the report printed it."),
+  courseCode: zod
+    .string()
+    .describe("The catalog course the student says it corresponds to."),
+  courseTitle: zod.string().nullable(),
+  courseUnits: zod.number().nullable(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Remove one of the student's mappings
+ */
+export const DeleteProgressReportMappingParams = zod.object({
+  rawCode: zod.coerce
+    .string()
+    .describe(
+      'The code exactly as the report printed it (for example \"ENGL 2A\").',
+    ),
+});
+
+export const DeleteProgressReportMappingResponse = zod.object({
+  deleted: zod.boolean(),
+});

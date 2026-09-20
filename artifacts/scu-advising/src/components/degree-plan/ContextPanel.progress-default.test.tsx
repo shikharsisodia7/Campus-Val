@@ -26,6 +26,7 @@ vi.mock("@workspace/api-client-react", async () => {
     useListGraduationMajors: () => ({ data: { majors: [] } }),
     useListGraduationMinors: () => ({ data: { minors: [] } }),
     useGetProgressReport: () => ({ data: { available: false, report: null } }),
+    useListProgressReportMappings: () => ({ data: { mappings: [] } }),
     useGetDegreeRequirements: () => ({ data: { groups: [] } }),
   };
 });

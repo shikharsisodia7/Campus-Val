@@ -155,6 +155,35 @@ version is reparsed from its still-stored original file on the next read
 parse is served as-is and the UI degrades gracefully (all new fields optional). This
 is tested with a real upload, a doctored legacy row, and a deleted original.
 
+### Student mappings — matching an item CampusVal could not recognize
+
+Some real report items are simply not in CampusVal's catalog (for example a course the
+catalog does not carry). They appear under **items to verify in Workday**. On the APR
+page each one has **Match to a catalog course**: a labelled search over the CampusVal
+catalog (two characters to start, debounced, results only from the catalog), pick one,
+and it is saved. You can **Change** or **Remove** it later.
+
+What a mapping is: *your own note*. It is stored in its own table
+(`progress_report_mappings`, one row per student and report code), never inside the
+uploaded file or its parse, so re-uploading or reparsing does not disturb it and deleting
+the report deletes it. What it is not: Workday's record. It never changes what counts as
+completed, never touches the Degree Plan, and is never shared with advisors.
+
+How it shows: the item leaves the amber "verify" list (and its count) and appears under
+**Matched by you**, worded as "Workday has not confirmed them, and they do not count as
+completed"; the requirement row that lists that course says "matched by you to X (your
+note, not Workday's)". The Degree/Tentative/Quarter Plan sidebar shows the same section
+read-only; editing happens only on the APR page.
+
+API: `GET /progress-report/mappings`, `PUT|DELETE /progress-report/mappings/:rawCode`. The
+server accepts a mapping only for a code the student's *current* report lists as
+unmatched, onto a course that exists in the catalog; it normalizes both codes and derives
+the user from the session.
+
+**Deploying it needs migration `0001`** (adds the one table). It is purely additive, so
+per `SCU_DEPLOYMENT.md` run migrations before starting the new version; the previous app
+version keeps working against the new schema.
+
 ### States (every one renders something useful — never blank)
 
 None uploaded · loading · uploads not configured · processing (`pending`) · failed ·

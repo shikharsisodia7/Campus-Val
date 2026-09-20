@@ -1551,6 +1551,68 @@ paths:
         "404":
           description: No report found
 
+  /progress-report/mappings:
+    get:
+      operationId: listProgressReportMappings
+      tags: [progress-report]
+      summary: List the student's own mappings of unrecognized report items to catalog courses
+      description: |
+        A mapping is the STUDENT'S note that an item on their Workday APR corresponds to a
+        CampusVal catalog course. It is an annotation beside the report: it never edits the
+        uploaded file or its parse, never changes what counts as completed, and is never
+        shared. Only ever the caller's own.
+      responses:
+        "200":
+          description: The caller's mappings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressReportMappingList"
+  /progress-report/mappings/{rawCode}:
+    parameters:
+      - name: rawCode
+        in: path
+        required: true
+        description: The code exactly as the report printed it (for example "ENGL 2A").
+        schema: { type: string }
+    put:
+      operationId: upsertProgressReportMapping
+      tags: [progress-report]
+      summary: Map one unrecognized report item to a catalog course (or change that mapping)
+      description: |
+        Accepted only for a code the student's CURRENT report lists as unmatched, onto a
+        course that exists in the CampusVal catalog.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressReportMappingInput"
+      responses:
+        "200":
+          description: The saved mapping
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressReportMapping"
+        "400":
+          description: Not a course code, not a catalog course, or not an unmatched item on the report
+        "404":
+          description: No report uploaded
+    delete:
+      operationId: deleteProgressReportMapping
+      tags: [progress-report]
+      summary: Remove one of the student's mappings
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletedResponse"
+        "404":
+          description: No such mapping
+
 components:
   schemas:
     QuarterSchedule:
@@ -1988,6 +2050,29 @@ components:
         notes:
           type: array
           items: { type: string }
+
+    ProgressReportMapping:
+      type: object
+      required: [rawCode, courseCode, courseTitle, courseUnits, createdAt, updatedAt]
+      properties:
+        rawCode: { type: string, description: The code as the report printed it. }
+        courseCode: { type: string, description: The catalog course the student says it corresponds to. }
+        courseTitle: { type: ["string", "null"] }
+        courseUnits: { type: ["number", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ProgressReportMappingList:
+      type: object
+      required: [mappings]
+      properties:
+        mappings:
+          type: array
+          items: { $ref: "#/components/schemas/ProgressReportMapping" }
+    ProgressReportMappingInput:
+      type: object
+      required: [courseCode]
+      properties:
+        courseCode: { type: string, minLength: 1, maxLength: 20 }
 
     ParsedUnitRequirement:
       type: object

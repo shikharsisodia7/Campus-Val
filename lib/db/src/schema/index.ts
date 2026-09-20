@@ -26,5 +26,6 @@ export * from "./plans";
 export * from "./schedules";
 export * from "./requirement-completions";
 export * from "./progress-reports";
+export * from "./progress-report-mappings";
 export * from "./usage-events";
 export * from "./plan-shares";

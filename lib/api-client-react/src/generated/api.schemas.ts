@@ -516,6 +516,31 @@ export interface ParsedProgressReport {
   notes: string[];
 }
 
+export interface ProgressReportMapping {
+  /** The code as the report printed it. */
+  rawCode: string;
+  /** The catalog course the student says it corresponds to. */
+  courseCode: string;
+  /** @nullable */
+  courseTitle: string | null;
+  /** @nullable */
+  courseUnits: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProgressReportMappingList {
+  mappings: ProgressReportMapping[];
+}
+
+export interface ProgressReportMappingInput {
+  /**
+   * @minLength 1
+   * @maxLength 20
+   */
+  courseCode: string;
+}
+
 /**
  * Only present when checkSource=true. "missing" means the row exists but the stored original can no longer be read.
  */

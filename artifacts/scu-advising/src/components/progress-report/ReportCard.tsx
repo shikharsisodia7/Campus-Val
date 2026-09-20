@@ -30,6 +30,7 @@ import { Separator } from "@/components/ui/separator";
 import type { ProgressReport } from "@workspace/api-client-react";
 import { formatBytes } from "./UploadZone";
 import { AprStructuredView } from "./AprStructuredView";
+import { useProgressReportMappings } from "@/hooks/use-progress-report-mappings";
 import { AprStateNotice } from "./AprStateNotice";
 import { deriveAprState } from "./apr-model";
 
@@ -303,6 +304,8 @@ function ParsedView({ parsed }: { parsed: NonNullable<ProgressReport["parsed"]> 
   // view — like the planning sidebar — does not display them. Showing them is
   // an explicit, per-visit choice.
   const [showGrades, setShowGrades] = useState(false);
+  // The student's own matches of unrecognized items — editable here, on the APR page.
+  const mappings = useProgressReportMappings();
   const hasGrades = (parsed.groups ?? []).some((g) =>
     g.requirements.some((r) => r.courses.some((c) => c.grade)),
   );
@@ -356,7 +359,7 @@ function ParsedView({ parsed }: { parsed: NonNullable<ProgressReport["parsed"]> 
           )}
         </div>
         <div className="mt-4">
-          <AprStructuredView parsed={parsed} variant="page" showGrades={showGrades} />
+          <AprStructuredView parsed={parsed} variant="page" showGrades={showGrades} mappings={mappings} editableMappings />
         </div>
       </Card>
 

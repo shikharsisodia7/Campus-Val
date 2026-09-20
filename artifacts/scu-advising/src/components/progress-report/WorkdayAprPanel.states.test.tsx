@@ -20,6 +20,7 @@ vi.mock("@workspace/api-client-react", async () => {
       calls.push(args);
       return mockQuery;
     },
+    useListProgressReportMappings: () => ({ data: { mappings: [] } }),
   };
 });
 

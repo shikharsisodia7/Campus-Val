@@ -22,6 +22,7 @@ vi.mock("@workspace/api-client-react", async () => {
   return {
     ...actual,
     useGetProgressReport: () => mockReportQuery,
+    useListProgressReportMappings: () => ({ data: { mappings: [] } }),
     useGetDashboardSummary: () => ({ data: undefined }),
   };
 });

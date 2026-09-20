@@ -35,6 +35,8 @@ vi.mock("@workspace/api-client-react", async () => {
     useListGraduationMajors: () => ({ data: { majors: [] } }),
     useListGraduationMinors: () => ({ data: { minors: [] } }),
     useGetDegreeRequirements: () => ({ data: { groups: [] } }),
+    // The student's APR mappings are a separate request; this test counts the progress-report fetches.
+    useListProgressReportMappings: () => ({ data: { mappings: [] } }),
   };
 });
 

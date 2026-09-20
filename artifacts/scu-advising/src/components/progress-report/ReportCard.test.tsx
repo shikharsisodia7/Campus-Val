@@ -6,6 +6,13 @@
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+vi.mock("@workspace/api-client-react", async () => {
+  const actual = await vi.importActual<any>("@workspace/api-client-react");
+  return { ...actual, useListProgressReportMappings: () => ({ data: { mappings: [] } }), };
+});
+
 import { ReportCard } from "./ReportCard";
 
 afterEach(cleanup);
@@ -25,7 +32,11 @@ const base = {
 } as any;
 
 const renderCard = (report: any) =>
-  render(<ReportCard report={report} onDelete={vi.fn()} onReplace={vi.fn()} isDeleting={false} />);
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <ReportCard report={report} onDelete={vi.fn()} onReplace={vi.fn()} isDeleting={false} />
+    </QueryClientProvider>,
+  );
 
 describe("ReportCard (APR page)", () => {
   it("renders the shared structured view in its page variant with the processing notes", () => {

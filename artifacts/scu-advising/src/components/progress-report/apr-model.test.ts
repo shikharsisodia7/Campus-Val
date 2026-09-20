@@ -6,6 +6,7 @@ import {
   errorStatus,
   filterGroupsForView,
   kindOfGroup,
+  normalizeReportCode,
   orderGroups,
   regroupForDisplay,
   reviewSummary,
@@ -293,5 +294,49 @@ describe("regroupForDisplay — Core rows live inside program blocks", () => {
       ],
     } as unknown as ParsedProgressReport;
     expect(reviewSummary(parsed).items).toHaveLength(1);
+  });
+});
+
+describe("reviewSummary with the student's own mappings", () => {
+  const parsed = (raws: string[]) =>
+    ({ completedCourses: [], possibleCourses: raws.map((raw) => ({ raw })), notes: [], groups: [] }) as unknown as ParsedProgressReport;
+  const map = (rawCode: string, courseCode = "ENGL 1A") => ({ rawCode, courseCode, courseTitle: "Critical Thinking and Writing I" });
+
+  it("normalizes report codes the way the server does", () => {
+    expect(normalizeReportCode("engl2a")).toBe("ENGL 2A");
+    expect(normalizeReportCode("  ENGL   2A ")).toBe("ENGL 2A");
+    expect(normalizeReportCode("TESP4")).toBe("TESP 4");
+  });
+
+  it("without mappings every unrecognized token still needs verifying", () => {
+    const r = reviewSummary(parsed(["ENGL 2A", "TESP 4"]));
+    expect(r.unrecognized).toEqual(["ENGL 2A", "TESP 4"]);
+    expect(r.mapped).toEqual([]);
+    expect(r.count).toBe(2);
+  });
+
+  it("a mapped token leaves the verify list and the count, and appears under 'mapped'", () => {
+    const r = reviewSummary(parsed(["ENGL 2A", "TESP 4"]), [map("ENGL 2A")]);
+    expect(r.unrecognized).toEqual(["TESP 4"]);
+    expect(r.mapped.map((m) => m.rawCode)).toEqual(["ENGL 2A"]);
+    expect(r.count).toBe(1);
+  });
+
+  it("matches a mapping to a report token regardless of spacing or case", () => {
+    const r = reviewSummary(parsed(["ENGL2A"]), [map("engl 2a")]);
+    expect(r.unrecognized).toEqual([]);
+    expect(r.mapped).toHaveLength(1);
+  });
+
+  it("ignores a stale mapping for a code the current report no longer lists", () => {
+    const r = reviewSummary(parsed(["TESP 4"]), [map("PHYS 9")]);
+    expect(r.mapped).toEqual([]);
+    expect(r.unrecognized).toEqual(["TESP 4"]);
+  });
+
+  it("never turns a mapping into a completed course", () => {
+    const p = parsed(["ENGL 2A"]);
+    reviewSummary(p, [map("ENGL 2A")]);
+    expect(p.completedCourses).toEqual([]);
   });
 });

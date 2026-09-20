@@ -3,12 +3,15 @@ import { Link } from "wouter";
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import type { ParsedProgressReport } from "@workspace/api-client-react";
 import { RequirementGroupList, RequirementStatusBadge } from "./RequirementGroupList";
+import { UnmatchedCourseMapper } from "./UnmatchedCourseMapper";
 import {
   courseLists,
   regroupForDisplay,
   reviewSummary,
   tallyGroups,
   universityRows,
+  normalizeReportCode,
+  type CourseMapping,
   type StatusFilter,
 } from "./apr-model";
 
@@ -30,17 +33,27 @@ export function AprStructuredView({
   parsed,
   variant,
   showGrades = false,
+  mappings = [],
+  editableMappings = false,
 }: {
   parsed: ParsedProgressReport;
   /** "sidebar": compact, opens only what is still needed. "page": everything open, review lines shown. */
   variant: "sidebar" | "page";
   showGrades?: boolean;
+  /**
+   * The student's own matches of unrecognized items to catalog courses. Always
+   * labelled as theirs, never as Workday's, and they never change what counts
+   * as completed.
+   */
+  mappings?: readonly CourseMapping[];
+  /** Show the match / change / remove controls (the APR page); the sidebar only displays them. */
+  editableMappings?: boolean;
 }) {
   const [filter, setFilter] = useState<StatusFilter>("all");
   // Core rows sit inside program blocks (repeated by blocks in the same school); show each once.
   const groups = regroupForDisplay(parsed.groups ?? []);
   const tally = tallyGroups(groups);
-  const review = reviewSummary(parsed);
+  const review = reviewSummary(parsed, mappings);
   const uni = universityRows(groups);
   const summary = parsed.summary;
   const lists = courseLists(parsed);
@@ -104,6 +117,7 @@ export function AprStructuredView({
             hideUniversityRows
             statusFilter={filter}
             showSourceText={isPage}
+            mappings={mappings}
           />
           {filter === "needed" && tally.total > 0 && tally.completed === tally.total && (
             <p className="text-xs text-muted-foreground" data-testid="apr-nothing-needed">
@@ -222,6 +236,7 @@ export function AprStructuredView({
             {review.unrecognized.map((raw, i) => (
               <li key={`u-${i}`} className="font-mono">
                 {raw} <span className="font-sans italic">(not in the CampusVal catalog)</span>
+                {isPage && editableMappings && <UnmatchedCourseMapper raw={normalizeReportCode(raw)} />}
               </li>
             ))}
           </ul>
@@ -230,6 +245,40 @@ export function AprStructuredView({
               Review on the APR page
             </Link>
           )}
+        </section>
+      )}
+
+      {/* Items the student matched by hand: their note, not Workday's. */}
+      {review.mapped.length > 0 && (
+        <section
+          className="rounded-md border border-border bg-muted/20 p-2.5 text-xs"
+          aria-labelledby="apr-mapped-heading"
+          data-testid="apr-mapped"
+        >
+          <h3 id="apr-mapped-heading" className="font-semibold text-foreground">
+            Matched by you ({review.mapped.length})
+          </h3>
+          <p className="mt-1 text-muted-foreground">
+            These are your own notes about items CampusVal could not recognize. Workday has not
+            confirmed them, and they do not count as completed. Check with your advisor.
+          </p>
+          <ul className="mt-1.5 space-y-1.5">
+            {review.mapped.map((m) => (
+              <li key={m.rawCode} data-testid={`apr-mapped-${m.rawCode.replace(/\s+/g, "-")}`}>
+                <span className="font-mono font-semibold text-foreground">{m.rawCode}</span>
+                <span className="text-muted-foreground"> on your report → </span>
+                <span className="font-mono font-semibold text-foreground">{m.courseCode}</span>
+                {m.courseTitle ? <span className="text-muted-foreground"> {m.courseTitle}</span> : null}
+                {isPage && editableMappings && (
+                  <UnmatchedCourseMapper
+                    raw={m.rawCode}
+                    mappedTo={{ courseCode: m.courseCode, courseTitle: m.courseTitle }}
+                    showCurrent={false}
+                  />
+                )}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
     </div>

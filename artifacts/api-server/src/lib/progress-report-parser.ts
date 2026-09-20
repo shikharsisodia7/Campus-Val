@@ -926,6 +926,20 @@ export function extractCodesFromText(text: string): {
   return { catalogMatches, nonCompletedMatches, unknownTokens };
 }
 
+/** The catalog course for a code as an APR (or a student) typed it, or undefined. */
+export function findCatalogCourse(code: string): (typeof COURSES)[0] | undefined {
+  return catalogMap.get(normalizeCode(code));
+}
+
+/** Codes of the shape an APR prints: 2–5 letters, then digits with an optional letter suffix. */
+const REPORT_CODE_SHAPE = /^[A-Z]{2,5} \d{1,3}[A-Z]{0,2}$/;
+
+/** Normalized report code ("engl2a" → "ENGL 2A"), or null when it is not code-shaped. */
+export function normalizeReportCode(raw: string): string | null {
+  const code = normalizeCode(raw);
+  return REPORT_CODE_SHAPE.test(code) ? code : null;
+}
+
 function normalizeCode(raw: string): string {
   // Always insert exactly one space between the letter prefix and the digit
   // suffix. PDF text extraction sometimes omits the space (e.g. "ACTG11"),
