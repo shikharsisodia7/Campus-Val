@@ -188,12 +188,21 @@ export const CourseSearchState = {
   no_sections_this_quarter: "no_sections_this_quarter",
 } as const;
 
+/**
+ * Per Core area, whether the bulletin text states it or CampusVal inferred it from department/number.
+ */
+export type CourseSearchResultCoursesItemCoreAreaSources = {
+  [key: string]: "catalog_text" | "heuristic";
+};
+
 export type CourseSearchResultCoursesItem = {
   code: string;
   title: string;
   units: number;
   description?: string;
   coreAreas: string[];
+  /** Per Core area, whether the bulletin text states it or CampusVal inferred it from department/number. */
+  coreAreaSources?: CourseSearchResultCoursesItemCoreAreaSources;
   /**
    * Null when no quarter filter was applied.
    * @nullable
@@ -205,6 +214,14 @@ export interface CourseSearchResult {
   state: CourseSearchState;
   /** Courses matching the criteria regardless of quarter sections. */
   totalMatching: number;
+  /**
+   * Of totalMatching, how many have a section in the selected quarter. Null when no quarter was given.
+   * @nullable
+   */
+  totalWithSections?: number | null;
+  offset?: number;
+  /** True when more results exist beyond this page. */
+  hasMore?: boolean;
   courses: CourseSearchResultCoursesItem[];
 }
 
@@ -274,7 +291,7 @@ export interface UploadUrlRequest {
 }
 
 export interface UploadUrlResponse {
-  /** Presigned GCS URL for PUT upload. */
+  /** URL the client PUTs the file bytes to. Cloud providers return an absolute presigned URL; the local-filesystem provider returns a same-origin path (/api/storage/local-upload/...), which always resolves against the page the student is on. */
   uploadURL: string;
   /** Normalized object path (e.g. /objects/uploads/uuid). Store this in your database. */
   objectPath: string;
@@ -330,6 +347,41 @@ export type ParsedProgressReportPossibleCoursesItem = {
   raw: string;
 };
 
+/**
+ * Classified from the heading, for display order only. `name` stays the document's own wording.
+ */
+export type ParsedProgressReportGroupsItemKind =
+  (typeof ParsedProgressReportGroupsItemKind)[keyof typeof ParsedProgressReportGroupsItemKind];
+
+export const ParsedProgressReportGroupsItemKind = {
+  core: "core",
+  major: "major",
+  minor: "minor",
+  other: "other",
+} as const;
+
+/**
+ * "university" for the university-wide rows Workday repeats under every program.
+ */
+export type ParsedProgressReportGroupsItemRequirementsItemScope =
+  (typeof ParsedProgressReportGroupsItemRequirementsItemScope)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemScope];
+
+export const ParsedProgressReportGroupsItemRequirementsItemScope = {
+  university: "university",
+  program: "program",
+} as const;
+
+/**
+ * Set only when the row itself states a unit requirement.
+ */
+export type ParsedProgressReportGroupsItemRequirementsItemUnit =
+  (typeof ParsedProgressReportGroupsItemRequirementsItemUnit)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemUnit];
+
+export const ParsedProgressReportGroupsItemRequirementsItemUnit = {
+  total: "total",
+  upper_division: "upper_division",
+} as const;
+
 export type ParsedProgressReportGroupsItemRequirementsItemStatus =
   (typeof ParsedProgressReportGroupsItemRequirementsItemStatus)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemStatus];
 
@@ -352,13 +404,62 @@ export type ParsedProgressReportGroupsItemRequirementsItemCoursesItem = {
 
 export type ParsedProgressReportGroupsItemRequirementsItem = {
   name: string;
+  /** Position of this row in the source document. */
+  order?: number;
+  /** "university" for the university-wide rows Workday repeats under every program. */
+  scope?: ParsedProgressReportGroupsItemRequirementsItemScope;
+  /** Set only when the row itself states a unit requirement. */
+  unit?: ParsedProgressReportGroupsItemRequirementsItemUnit;
+  /** @nullable */
+  requiredUnits?: number | null;
+  /**
+   * Text Workday printed after the status word, kept verbatim and not interpreted.
+   * @nullable
+   */
+  detail?: string | null;
+  /** The source line this row was read from. Omitted from the planning view. */
+  sourceText?: string;
   status: ParsedProgressReportGroupsItemRequirementsItemStatus;
   courses: ParsedProgressReportGroupsItemRequirementsItemCoursesItem[];
 };
 
 export type ParsedProgressReportGroupsItem = {
   name: string;
+  /** Classified from the heading, for display order only. `name` stays the document's own wording. */
+  kind?: ParsedProgressReportGroupsItemKind;
+  /** Position of the heading in the source document. */
+  order?: number;
   requirements: ParsedProgressReportGroupsItemRequirementsItem[];
+};
+
+export type ParsedUnitRequirementStatus =
+  (typeof ParsedUnitRequirementStatus)[keyof typeof ParsedUnitRequirementStatus];
+
+export const ParsedUnitRequirementStatus = {
+  completed: "completed",
+  in_progress: "in_progress",
+  remaining: "remaining",
+  needs_review: "needs_review",
+} as const;
+
+export interface ParsedUnitRequirement {
+  name: string;
+  status: ParsedUnitRequirementStatus;
+  /** @nullable */
+  requiredUnits: number | null;
+  /** @nullable */
+  detail: string | null;
+  order: number;
+}
+
+/**
+ * Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one.
+ */
+export type ParsedProgressReportSummary = {
+  totalUnits?: ParsedUnitRequirement;
+  upperDivisionUnits?: ParsedUnitRequirement;
+  /** The number printed after "Cumulative Credits Earned", when the report prints exactly that label. */
+  creditsEarned?: number;
 };
 
 export interface ParsedProgressReport {
@@ -379,10 +480,24 @@ export interface ParsedProgressReport {
   reportStudentId?: string | null;
   /** Requirement-group hierarchy derived from the document's own structure (e.g. "<Program> Requirements"); absent when the document doesn't support it or predates this field. */
   groups?: ParsedProgressReportGroupsItem[];
+  /** Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one. */
+  summary?: ParsedProgressReportSummary;
   /** Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read). */
   parserVersion?: string;
   notes: string[];
 }
+
+/**
+ * Only present when checkSource=true. "missing" means the row exists but the stored original can no longer be read.
+ */
+export type ProgressReportSourceFile =
+  (typeof ProgressReportSourceFile)[keyof typeof ProgressReportSourceFile];
+
+export const ProgressReportSourceFile = {
+  available: "available",
+  missing: "missing",
+  unknown: "unknown",
+} as const;
 
 export type ProgressReportParseStatus =
   (typeof ProgressReportParseStatus)[keyof typeof ProgressReportParseStatus];
@@ -396,11 +511,11 @@ export const ProgressReportParseStatus = {
 
 export interface ProgressReport {
   id: number;
-  userId: string;
   fileName: string;
   fileSize: number;
   contentType: string;
-  objectPath: string;
+  /** Only present when checkSource=true. "missing" means the row exists but the stored original can no longer be read. */
+  sourceFile?: ProgressReportSourceFile;
   uploadedAt: string;
   parsed?: ParsedProgressReport | null;
   parseStatus: ProgressReportParseStatus;
@@ -1073,6 +1188,16 @@ export interface ProfessorList {
 }
 
 /**
+ * The canonical Core area whose catalog courses satisfy this requirement, when CampusVal has a mapping for it. Null for requirements with no mapping (e.g. Pathways) — the UI must say so rather than offer an empty or invented list.
+ */
+export type RequirementItemCoreArea = {
+  tag: string;
+  code?: string;
+  courseCount: number;
+  catalogStatedCount: number;
+} | null;
+
+/**
  * completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither.
  */
 export type RequirementItemStatus =
@@ -1096,6 +1221,8 @@ export interface RequirementItem {
   autoTracked: boolean;
   /** True when SCU defines this as "choose from an approved list" — the student tracks it manually rather than the app inventing a course list. */
   needsVerification: boolean;
+  /** The canonical Core area whose catalog courses satisfy this requirement, when CampusVal has a mapping for it. Null for requirements with no mapping (e.g. Pathways) — the UI must say so rather than offer an empty or invented list. */
+  coreArea?: RequirementItemCoreArea;
   /** Completed course codes that satisfy this item. */
   satisfiedBy: string[];
   /** Planned-but-not-yet-completed course codes that would satisfy this item. Present so the UI can show "Planned in Schedule" — a planned course is never reported as completed. */
@@ -1249,14 +1376,29 @@ export const CourseSectionAvailabilityStatus = {
 } as const;
 
 /**
- * Where this section's data currently comes from — never a scraped or shared feed. See docs/SECTION_AVAILABILITY.md.
+ * Where this section's availability comes from. workday_live only for a real authorized upstream feed; workday_self_paste is a manual snapshot by the data steward (never live); fixture is development sample data (never served in production); registrar_schedule means no seat data at all. See docs/SECTION_AVAILABILITY.md.
  */
 export type CourseSectionSourceType =
   (typeof CourseSectionSourceType)[keyof typeof CourseSectionSourceType];
 
 export const CourseSectionSourceType = {
+  workday_live: "workday_live",
   workday_self_paste: "workday_self_paste",
   registrar_schedule: "registrar_schedule",
+  fixture: "fixture",
+} as const;
+
+/**
+ * How far the timestamp can be trusted. "stale" and "unavailable" always come with availabilityStatus "unknown" — an old "open" is never presented as open.
+ */
+export type CourseSectionFreshness =
+  (typeof CourseSectionFreshness)[keyof typeof CourseSectionFreshness];
+
+export const CourseSectionFreshness = {
+  live: "live",
+  cached: "cached",
+  stale: "stale",
+  unavailable: "unavailable",
 } as const;
 
 export interface CourseSection {
@@ -1286,12 +1428,50 @@ export interface CourseSection {
   componentInferred?: boolean;
   /** Derived from seatsKnown/seatsOpen/waitlist, never fabricated. "unknown" whenever seatsKnown is false (including every tentative Winter/Spring term, which never carries seat data). CampusVal has no source that distinguishes an instructor-closed section from a merely-full one, so both collapse to "full" rather than inventing a fifth state without evidence — see docs/SECTION_AVAILABILITY.md. */
   availabilityStatus: CourseSectionAvailabilityStatus;
-  /** When this section's seat counts were last refreshed. Set from the student's own Workday paste-in timestamp when seatsKnown is true; null otherwise (the official Registrar schedule has no live seat refresh cadence to report). */
+  /** When the SOURCE says this section's seat data was true (the live feed's own timestamp, or the data steward's paste time). Null when no source has said anything (the official Registrar schedule has no seat data). */
   lastUpdatedAt: string | null;
-  /** Where this section's data currently comes from — never a scraped or shared feed. See docs/SECTION_AVAILABILITY.md. */
+  /** Where this section's availability comes from. workday_live only for a real authorized upstream feed; workday_self_paste is a manual snapshot by the data steward (never live); fixture is development sample data (never served in production); registrar_schedule means no seat data at all. See docs/SECTION_AVAILABILITY.md. */
   sourceType: CourseSectionSourceType;
   /** Human-readable source label to render next to lastUpdatedAt. */
   sourceLabel: string;
+  /** True ONLY for a real, authorized, recently refreshed live feed. The UI must show a "Live" badge iff this is true. */
+  isLive: boolean;
+  /** How far the timestamp can be trusted. "stale" and "unavailable" always come with availabilityStatus "unknown" — an old "open" is never presented as open. */
+  freshness: CourseSectionFreshness;
+}
+
+/**
+ * What the section picker may say about seat data for this term: live/cached/stale = a live feed is connected (cached and stale mean serving an older answer); unavailable = a live feed is configured but cannot be reached; not_connected = no live feed and no seat data; manual_snapshot = only the data steward's paste; sample = development fixture data.
+ */
+export type SectionAvailabilityStatusState =
+  (typeof SectionAvailabilityStatusState)[keyof typeof SectionAvailabilityStatusState];
+
+export const SectionAvailabilityStatusState = {
+  live: "live",
+  cached: "cached",
+  stale: "stale",
+  unavailable: "unavailable",
+  not_connected: "not_connected",
+  sample: "sample",
+  manual_snapshot: "manual_snapshot",
+} as const;
+
+export type SectionAvailabilityStatusCounts = {
+  open: number;
+  waitlist: number;
+  full: number;
+  unknown: number;
+};
+
+export interface SectionAvailabilityStatus {
+  term: string;
+  year: number;
+  /** What the section picker may say about seat data for this term: live/cached/stale = a live feed is connected (cached and stale mean serving an older answer); unavailable = a live feed is configured but cannot be reached; not_connected = no live feed and no seat data; manual_snapshot = only the data steward's paste; sample = development fixture data. */
+  state: SectionAvailabilityStatusState;
+  liveConfigured: boolean;
+  lastUpdatedAt: string | null;
+  sectionsWithKnownAvailability: number;
+  counts: SectionAvailabilityStatusCounts;
 }
 
 export type ArticulationEntrySourceUnitSystem =
@@ -1564,6 +1744,11 @@ export type ListCourseSectionsParams = {
   year?: number;
 };
 
+export type GetSectionAvailabilityStatusParams = {
+  term: Term;
+  year: number;
+};
+
 export type LookupArticulationParams = {
   /**
    * e.g. "De Anza College"
@@ -1672,7 +1857,17 @@ export type DuplicateScheduleBody = {
 
 export type ListCoreAreas200CoreAreasItem = {
   name: string;
+  /**
+   * Short code students use ("CTW", "C&I", "AW").
+   * @nullable
+   */
+  code?: string | null;
+  /** Catalog courses carrying this Core area (0 when the catalog has no tagging for it). */
   courseCount: number;
+  /** Of courseCount, how many are stated outright in the bulletin text (the rest are department/number heuristics). */
+  catalogStatedCount?: number;
+  /** Degree-requirement item ids this area satisfies. */
+  requirementIds?: string[];
 };
 
 export type ListCoreAreas200 = {
@@ -1695,6 +1890,15 @@ export type SearchCoursesParams = {
    * @maximum 100
    */
   limit?: number;
+  /**
+   * Skip this many results (paging through a large Core-area result set).
+   * @minimum 0
+   */
+  offset?: number;
+  /**
+   * With term+year, true (default) hides courses with no sections that quarter; false returns every matching catalog course, offered ones first, with the per-course section count.
+   */
+  offeredOnly?: boolean;
 };
 
 export type SearchCoursesMatchMode =
@@ -1713,4 +1917,26 @@ export const SearchCoursesTerm = {
   winter: "winter",
   spring: "spring",
   summer: "summer",
+} as const;
+
+export type GetProgressReportParams = {
+  /**
+ * "planning" returns a minimized projection for the Degree Plan /
+Tentative Degree Plan / Quarter Plan reference panel: no grades,
+no raw source text. "full" (default) is for the private APR page.
+
+ */
+  view?: GetProgressReportView;
+  /**
+   * When true, also reports whether the original uploaded file can still be read from storage (sourceFile).
+   */
+  checkSource?: boolean;
+};
+
+export type GetProgressReportView =
+  (typeof GetProgressReportView)[keyof typeof GetProgressReportView];
+
+export const GetProgressReportView = {
+  full: "full",
+  planning: "planning",
 } as const;

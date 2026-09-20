@@ -7,6 +7,7 @@
  */
 import type { CourseSectionAvailabilityStatus } from "./courseSectionAvailabilityStatus";
 import type { CourseSectionComponentType } from "./courseSectionComponentType";
+import type { CourseSectionFreshness } from "./courseSectionFreshness";
 import type { CourseSectionMeetingDaysItem } from "./courseSectionMeetingDaysItem";
 import type { CourseSectionSourceType } from "./courseSectionSourceType";
 import type { Term } from "./term";
@@ -38,10 +39,14 @@ export interface CourseSection {
   componentInferred?: boolean;
   /** Derived from seatsKnown/seatsOpen/waitlist, never fabricated. "unknown" whenever seatsKnown is false (including every tentative Winter/Spring term, which never carries seat data). CampusVal has no source that distinguishes an instructor-closed section from a merely-full one, so both collapse to "full" rather than inventing a fifth state without evidence — see docs/SECTION_AVAILABILITY.md. */
   availabilityStatus: CourseSectionAvailabilityStatus;
-  /** When this section's seat counts were last refreshed. Set from the student's own Workday paste-in timestamp when seatsKnown is true; null otherwise (the official Registrar schedule has no live seat refresh cadence to report). */
+  /** When the SOURCE says this section's seat data was true (the live feed's own timestamp, or the data steward's paste time). Null when no source has said anything (the official Registrar schedule has no seat data). */
   lastUpdatedAt: Date | null;
-  /** Where this section's data currently comes from — never a scraped or shared feed. See docs/SECTION_AVAILABILITY.md. */
+  /** Where this section's availability comes from. workday_live only for a real authorized upstream feed; workday_self_paste is a manual snapshot by the data steward (never live); fixture is development sample data (never served in production); registrar_schedule means no seat data at all. See docs/SECTION_AVAILABILITY.md. */
   sourceType: CourseSectionSourceType;
   /** Human-readable source label to render next to lastUpdatedAt. */
   sourceLabel: string;
+  /** True ONLY for a real, authorized, recently refreshed live feed. The UI must show a "Live" badge iff this is true. */
+  isLive: boolean;
+  /** How far the timestamp can be trusted. "stale" and "unavailable" always come with availabilityStatus "unknown" — an old "open" is never presented as open. */
+  freshness: CourseSectionFreshness;
 }

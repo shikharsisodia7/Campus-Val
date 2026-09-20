@@ -22,4 +22,13 @@ export type SearchCoursesParams = {
    * @maximum 100
    */
   limit?: number;
+  /**
+   * Skip this many results (paging through a large Core-area result set).
+   * @minimum 0
+   */
+  offset?: number;
+  /**
+   * With term+year, true (default) hides courses with no sections that quarter; false returns every matching catalog course, offered ones first, with the per-course section count.
+   */
+  offeredOnly?: boolean;
 };

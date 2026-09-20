@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { RequirementItemCoreArea } from "./requirementItemCoreArea";
 import type { RequirementItemStatus } from "./requirementItemStatus";
 
 export interface RequirementItem {
@@ -19,6 +20,8 @@ export interface RequirementItem {
   autoTracked: boolean;
   /** True when SCU defines this as "choose from an approved list" — the student tracks it manually rather than the app inventing a course list. */
   needsVerification: boolean;
+  /** The canonical Core area whose catalog courses satisfy this requirement, when CampusVal has a mapping for it. Null for requirements with no mapping (e.g. Pathways) — the UI must say so rather than offer an empty or invented list. */
+  coreArea?: RequirementItemCoreArea;
   /** Completed course codes that satisfy this item. */
   satisfiedBy: string[];
   /** Planned-but-not-yet-completed course codes that would satisfy this item. Present so the UI can show "Planned in Schedule" — a planned course is never reported as completed. */

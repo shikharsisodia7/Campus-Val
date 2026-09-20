@@ -20,9 +20,12 @@ async function buildAll() {
     // vercel.ts: bare Express app export (no listen), used by the Vercel
     //   Function entry at /api/index.ts — see artifacts/api-server/README
     //   or docs/DEPLOYMENT.md for how the two are wired up.
+    // migrate.ts: the database migration runner (`node dist/migrate.mjs`), so a
+    //   production host needs only Node + DATABASE_URL to apply schema changes.
     entryPoints: [
       path.resolve(artifactDir, "src/index.ts"),
       path.resolve(artifactDir, "src/vercel.ts"),
+      path.resolve(artifactDir, "src/migrate.ts"),
     ],
     platform: "node",
     bundle: true,

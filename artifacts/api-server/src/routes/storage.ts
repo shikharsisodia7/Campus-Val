@@ -4,7 +4,9 @@ import {
 } from '@workspace/api-zod';
 import { Router, type IRouter, type Request, type Response } from 'express';
 
-import { ObjectNotFoundError, getPrivateObjectStorage } from '../lib/storage';
+import { ObjectNotFoundError, getPrivateObjectStorage, isPrivateStorageConfigured } from '../lib/storage';
+import { resolveStorageProvider } from '../lib/config';
+import { sendPrivateFile } from '../lib/private-file-response';
 
 import { requireAuth } from '../middlewares/requireAuth';
 
@@ -27,6 +29,10 @@ router.post(
   '/storage/uploads/request-url',
   requireAuth,
   async (req: Request, res: Response) => {
+    if (!isPrivateStorageConfigured()) {
+      res.status(503).json({ error: 'Object storage is not configured.' });
+      return;
+    }
     const parsed = RequestUploadUrlBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: 'Missing or invalid required fields' });
@@ -45,6 +51,11 @@ router.post(
         { contentType, maxSizeBytes: MAX_UPLOAD_SIZE_BYTES },
       );
 
+      // Cloud providers return an absolute presigned URL; the local provider
+      // returns a same-origin path. It is deliberately NOT made absolute from
+      // PUBLIC_APP_URL: a relative path always resolves against the origin the
+      // student is actually using, so an alias host or proxy misconfiguration
+      // can never point the upload somewhere else.
       res.json(
         RequestUploadUrlResponse.parse({
           uploadURL,
@@ -80,11 +91,10 @@ router.get(
         return;
       }
 
-      const { stream, contentType, size } = await storage.downloadObject(objectPath);
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'private, max-age=3600');
-      if (size) res.setHeader('Content-Length', String(size));
-      stream.pipe(res);
+      const obj = await storage.downloadObject(objectPath);
+      sendPrivateFile(res, obj, (err) =>
+        req.log.error({ err }, 'Error streaming private object'),
+      );
     } catch (error) {
       if (error instanceof ObjectNotFoundError) {
         req.log.warn({ err: error }, 'Object not found');
@@ -93,6 +103,45 @@ router.get(
       }
       req.log.error({ err: error }, 'Error serving object');
       res.status(500).json({ error: 'Failed to serve object' });
+    }
+  },
+);
+
+/**
+ * PUT /storage/local-upload/:token
+ *
+ * Receiving end of the signed upload link minted by the local-filesystem
+ * storage provider. Deliberately NOT behind requireAuth: like a presigned
+ * cloud URL, possession of the unexpired, HMAC-signed token IS the
+ * authorization (the token is only ever minted for an authenticated user
+ * by /storage/uploads/request-url, is bound to one objectPath, one size cap
+ * and one content type, and expires in 15 minutes). Returns 404 unless the
+ * local provider is the one in use, so it is inert on other platforms.
+ */
+router.put(
+  '/storage/local-upload/:token',
+  async (req: Request, res: Response) => {
+    if (resolveStorageProvider() !== 'local' || !isPrivateStorageConfigured()) {
+      res.status(404).json({ error: 'Not Found' });
+      return;
+    }
+    try {
+      const storage = await getPrivateObjectStorage();
+      const { LocalFilesystemObjectStorageProvider } = await import('../lib/storage/localProvider');
+      if (!(storage instanceof LocalFilesystemObjectStorageProvider)) {
+        res.status(404).json({ error: 'Not Found' });
+        return;
+      }
+      const token = String(req.params.token ?? '');
+      const result = await storage.receiveUpload(token, req);
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error });
+        return;
+      }
+      res.status(200).json({ ok: true });
+    } catch (error) {
+      req.log.error({ err: error }, 'Error receiving local upload');
+      res.status(500).json({ error: 'Failed to store upload' });
     }
   },
 );

@@ -10,11 +10,14 @@ export function SidebarPanels({
   workspace,
   initialCourse,
   onInitialCourseConsumed,
+  onFindSections,
 }: {
   workspace: ReturnType<typeof useScheduleWorkspace>;
   /** Pre-select a course in Quick Add (from intentions panel) */
   initialCourse?: string | null;
   onInitialCourseConsumed?: () => void;
+  /** Jump to a course's sections in the Find tab (from a Filter result). */
+  onFindSections?: (courseCode: string) => void;
 }) {
   const [activeTab, setActiveTab] = useState("quick-add");
 
@@ -45,7 +48,10 @@ export function SidebarPanels({
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* The tab body is the ONE scroll container. Panels inside flow at their
+            natural height (no h-full), so tall controls can never squeeze the
+            results into a sliver. */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <TabsContent value="quick-add" className="m-0 h-full focus-visible:outline-none">
             <QuickAddSearch
               workspace={workspace}
@@ -53,8 +59,8 @@ export function SidebarPanels({
               onInitialCourseConsumed={onInitialCourseConsumed}
             />
           </TabsContent>
-          <TabsContent value="advanced" className="m-0 h-full focus-visible:outline-none">
-            <AdvancedSearchPanel workspace={workspace} />
+          <TabsContent value="advanced" className="m-0 focus-visible:outline-none">
+            <AdvancedSearchPanel workspace={workspace} onFindSections={onFindSections} />
           </TabsContent>
           <TabsContent value="commitments" className="m-0 h-full focus-visible:outline-none">
             <CommitmentsPanel workspace={workspace} />

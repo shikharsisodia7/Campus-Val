@@ -296,6 +296,32 @@ paths:
                 items:
                   $ref: "#/components/schemas/CourseSection"
 
+  /section-availability/status:
+    get:
+      operationId: getSectionAvailabilityStatus
+      tags: [courses]
+      summary: How trustworthy seat availability currently is for a term (live / cached / not connected)
+      parameters:
+        - name: term
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/Term"
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Availability status for the term
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SectionAvailabilityStatus"
+        "400":
+          description: Missing or invalid term/year
+
   /sections/sync:
     post:
       operationId: syncWorkdaySections
@@ -1273,7 +1299,19 @@ paths:
                       required: [name, courseCount]
                       properties:
                         name: { type: string }
-                        courseCount: { type: integer }
+                        code:
+                          type: ["string", "null"]
+                          description: Short code students use ("CTW", "C&I", "AW").
+                        courseCount:
+                          type: integer
+                          description: Catalog courses carrying this Core area (0 when the catalog has no tagging for it).
+                        catalogStatedCount:
+                          type: integer
+                          description: Of courseCount, how many are stated outright in the bulletin text (the rest are department/number heuristics).
+                        requirementIds:
+                          type: array
+                          items: { type: string }
+                          description: Degree-requirement item ids this area satisfies.
                   pathwaysAvailable:
                     type: boolean
                     description: False until an authoritative Pathway-to-course mapping exists.
@@ -1308,6 +1346,19 @@ paths:
           in: query
           required: false
           schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        - name: offset
+          in: query
+          required: false
+          description: Skip this many results (paging through a large Core-area result set).
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: offeredOnly
+          in: query
+          required: false
+          description: >-
+            With term+year, true (default) hides courses with no sections that
+            quarter; false returns every matching catalog course, offered
+            ones first, with the per-course section count.
+          schema: { type: boolean, default: true }
       responses:
         "200":
           description: Search results with an explicit zero-result state
@@ -1428,6 +1479,21 @@ paths:
       description: |
         Returns 200 with the report if one exists, or 404 if none.
         If object storage is not configured, returns 200 with { available: false }.
+        Only ever the CALLER's own report — there is no way to address another user's.
+      parameters:
+        - name: view
+          in: query
+          required: false
+          description: |
+            "planning" returns a minimized projection for the Degree Plan /
+            Tentative Degree Plan / Quarter Plan reference panel: no grades,
+            no raw source text. "full" (default) is for the private APR page.
+          schema: { type: string, enum: [full, planning], default: full }
+        - name: checkSource
+          in: query
+          required: false
+          description: When true, also reports whether the original uploaded file can still be read from storage (sourceFile).
+          schema: { type: boolean, default: false }
       responses:
         "200":
           description: Progress report or unavailability indicator
@@ -1625,6 +1691,13 @@ components:
         totalMatching:
           type: integer
           description: Courses matching the criteria regardless of quarter sections.
+        totalWithSections:
+          type: ["integer", "null"]
+          description: Of totalMatching, how many have a section in the selected quarter. Null when no quarter was given.
+        offset: { type: integer }
+        hasMore:
+          type: boolean
+          description: True when more results exist beyond this page.
         courses:
           type: array
           items:
@@ -1638,6 +1711,12 @@ components:
               coreAreas:
                 type: array
                 items: { type: string }
+              coreAreaSources:
+                type: object
+                additionalProperties:
+                  type: string
+                  enum: [catalog_text, heuristic]
+                description: Per Core area, whether the bulletin text states it or CampusVal inferred it from department/number.
               sectionsThisQuarter:
                 type: ["integer", "null"]
                 description: Null when no quarter filter was applied.
@@ -1746,8 +1825,11 @@ components:
       properties:
         uploadURL:
           type: string
-          format: uri
-          description: Presigned GCS URL for PUT upload.
+          description: >-
+            URL the client PUTs the file bytes to. Cloud providers return an
+            absolute presigned URL; the local-filesystem provider returns a
+            same-origin path (/api/storage/local-upload/...), which always
+            resolves against the page the student is on.
         objectPath:
           type: string
           description: Normalized object path (e.g. /objects/uploads/uuid). Store this in your database.
@@ -1824,6 +1906,13 @@ components:
             required: [name, requirements]
             properties:
               name: { type: string }
+              kind:
+                type: string
+                enum: [core, major, minor, other]
+                description: Classified from the heading, for display order only. `name` stays the document's own wording.
+              order:
+                type: integer
+                description: Position of the heading in the source document.
               requirements:
                 type: array
                 items:
@@ -1831,6 +1920,23 @@ components:
                   required: [name, status, courses]
                   properties:
                     name: { type: string }
+                    order: { type: integer, description: Position of this row in the source document. }
+                    scope:
+                      type: string
+                      enum: [university, program]
+                      description: '"university" for the university-wide rows Workday repeats under every program.'
+                    unit:
+                      type: string
+                      enum: [total, upper_division]
+                      description: Set only when the row itself states a unit requirement.
+                    requiredUnits:
+                      type: ["number", "null"]
+                    detail:
+                      type: ["string", "null"]
+                      description: Text Workday printed after the status word, kept verbatim and not interpreted.
+                    sourceText:
+                      type: string
+                      description: The source line this row was read from. Omitted from the planning view.
                     status: { type: string, enum: [completed, in_progress, remaining, needs_review] }
                     courses:
                       type: array
@@ -1843,6 +1949,15 @@ components:
                           units: { type: ["number", "null"] }
                           grade: { type: ["string", "null"] }
                           inCatalog: { type: boolean }
+        summary:
+          type: object
+          description: Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one.
+          properties:
+            totalUnits: { $ref: "#/components/schemas/ParsedUnitRequirement" }
+            upperDivisionUnits: { $ref: "#/components/schemas/ParsedUnitRequirement" }
+            creditsEarned:
+              type: number
+              description: 'The number printed after "Cumulative Credits Earned", when the report prints exactly that label.'
         parserVersion:
           type: string
           description: Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read).
@@ -1850,16 +1965,28 @@ components:
           type: array
           items: { type: string }
 
+    ParsedUnitRequirement:
+      type: object
+      required: [name, status, requiredUnits, detail, order]
+      properties:
+        name: { type: string }
+        status: { type: string, enum: [completed, in_progress, remaining, needs_review] }
+        requiredUnits: { type: ["number", "null"] }
+        detail: { type: ["string", "null"] }
+        order: { type: integer }
+
     ProgressReport:
       type: object
-      required: [id, userId, fileName, fileSize, contentType, objectPath, uploadedAt, parseStatus, createdAt, updatedAt]
+      required: [id, fileName, fileSize, contentType, uploadedAt, parseStatus, createdAt, updatedAt]
       properties:
         id: { type: integer }
-        userId: { type: string }
         fileName: { type: string }
         fileSize: { type: integer }
         contentType: { type: string }
-        objectPath: { type: string }
+        sourceFile:
+          type: string
+          enum: [available, missing, unknown]
+          description: Only present when checkSource=true. "missing" means the row exists but the stored original can no longer be read.
         uploadedAt: { type: string, format: date-time }
         parsed:
           oneOf:
@@ -2914,6 +3041,20 @@ components:
         needsVerification:
           type: boolean
           description: True when SCU defines this as "choose from an approved list" — the student tracks it manually rather than the app inventing a course list.
+        coreArea:
+          type: object
+          nullable: true
+          description: >-
+            The canonical Core area whose catalog courses satisfy this
+            requirement, when CampusVal has a mapping for it. Null for
+            requirements with no mapping (e.g. Pathways) — the UI must say so
+            rather than offer an empty or invented list.
+          required: [tag, courseCount, catalogStatedCount]
+          properties:
+            tag: { type: string }
+            code: { type: string }
+            courseCount: { type: integer }
+            catalogStatedCount: { type: integer }
         satisfiedBy:
           type: array
           items:
@@ -3221,17 +3362,33 @@ components:
           format: date-time
           nullable: true
           description: >-
-            When this section's seat counts were last refreshed. Set from the
-            student's own Workday paste-in timestamp when seatsKnown is true;
-            null otherwise (the official Registrar schedule has no live seat
-            refresh cadence to report).
+            When the SOURCE says this section's seat data was true (the live
+            feed's own timestamp, or the data steward's paste time). Null when
+            no source has said anything (the official Registrar schedule has
+            no seat data).
         sourceType:
           type: string
-          enum: [workday_self_paste, registrar_schedule]
-          description: Where this section's data currently comes from — never a scraped or shared feed. See docs/SECTION_AVAILABILITY.md.
+          enum: [workday_live, workday_self_paste, registrar_schedule, fixture]
+          description: >-
+            Where this section's availability comes from. workday_live only
+            for a real authorized upstream feed; workday_self_paste is a
+            manual snapshot by the data steward (never live); fixture is
+            development sample data (never served in production);
+            registrar_schedule means no seat data at all. See
+            docs/SECTION_AVAILABILITY.md.
         sourceLabel:
           type: string
           description: Human-readable source label to render next to lastUpdatedAt.
+        isLive:
+          type: boolean
+          description: True ONLY for a real, authorized, recently refreshed live feed. The UI must show a "Live" badge iff this is true.
+        freshness:
+          type: string
+          enum: [live, cached, stale, unavailable]
+          description: >-
+            How far the timestamp can be trusted. "stale" and "unavailable"
+            always come with availabilityStatus "unknown" — an old "open" is
+            never presented as open.
       required:
         - id
         - courseCode
@@ -3250,6 +3407,39 @@ components:
         - lastUpdatedAt
         - sourceType
         - sourceLabel
+        - isLive
+        - freshness
+
+    SectionAvailabilityStatus:
+      type: object
+      required: [term, year, state, liveConfigured, lastUpdatedAt, sectionsWithKnownAvailability, counts]
+      properties:
+        term: { type: string }
+        year: { type: integer }
+        state:
+          type: string
+          enum: [live, cached, stale, unavailable, not_connected, sample, manual_snapshot]
+          description: >-
+            What the section picker may say about seat data for this term:
+            live/cached/stale = a live feed is connected (cached and stale
+            mean serving an older answer); unavailable = a live feed is
+            configured but cannot be reached; not_connected = no live feed
+            and no seat data; manual_snapshot = only the data steward's paste;
+            sample = development fixture data.
+        liveConfigured: { type: boolean }
+        lastUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        sectionsWithKnownAvailability: { type: integer }
+        counts:
+          type: object
+          required: [open, waitlist, full, unknown]
+          properties:
+            open: { type: integer }
+            waitlist: { type: integer }
+            full: { type: integer }
+            unknown: { type: integer }
 
     ArticulationEntry:
       type: object

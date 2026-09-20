@@ -1,4 +1,5 @@
 import { findCourse } from "../data/courses";
+import { CORE_AREA_BY_REQUIREMENT } from "../data/core-areas";
 
 /**
  * University Core / major cross-satisfaction.
@@ -27,27 +28,6 @@ import { findCourse } from "../data/courses";
  * take reports status "planned", and only verified completion provenance
  * yields "completed".
  */
-
-/** Core requirement id -> the catalog Core-area tag it corresponds to. */
-const CORE_AREA_BY_ITEM_ID: Record<string, string> = {
-  math: "Mathematics",
-  natsci: "Natural Science",
-  socsci: "Social Science",
-  arts: "Arts",
-  ethics: "Ethics",
-  diversity: "Diversity",
-  civic: "Civic Engagement",
-  lang: "Second Language",
-  sts: "Science, Technology & Society",
-  ctw1: "Critical Thinking & Writing",
-  ctw2: "Critical Thinking & Writing",
-  advwriting: "Advanced Writing",
-  ci1: "Cultures & Ideas",
-  ci2: "Cultures & Ideas",
-  rtc1: "Religion, Theology & Culture",
-  rtc2: "Religion, Theology & Culture",
-  rtc3: "Religion, Theology & Culture",
-};
 
 export type RequirementStatus = "completed" | "planned" | "open";
 
@@ -98,7 +78,7 @@ export function resolveCrossSatisfaction(
 
   // 2. Derived Core-area match, only for requirements that have one and only
   //    for courses not already accounted for by the explicit list.
-  const area = CORE_AREA_BY_ITEM_ID[itemId];
+  const area = CORE_AREA_BY_REQUIREMENT.get(itemId)?.tag;
   const crossSatisfiedBy: string[] = [];
   let crossCompleted = false;
   let crossPlanned = false;

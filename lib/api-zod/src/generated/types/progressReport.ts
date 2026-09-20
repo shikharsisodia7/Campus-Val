@@ -7,14 +7,15 @@
  */
 import type { ParsedProgressReport } from "./parsedProgressReport";
 import type { ProgressReportParseStatus } from "./progressReportParseStatus";
+import type { ProgressReportSourceFile } from "./progressReportSourceFile";
 
 export interface ProgressReport {
   id: number;
-  userId: string;
   fileName: string;
   fileSize: number;
   contentType: string;
-  objectPath: string;
+  /** Only present when checkSource=true. "missing" means the row exists but the stored original can no longer be read. */
+  sourceFile?: ProgressReportSourceFile;
   uploadedAt: Date;
   parsed?: ParsedProgressReport | null;
   parseStatus: ProgressReportParseStatus;

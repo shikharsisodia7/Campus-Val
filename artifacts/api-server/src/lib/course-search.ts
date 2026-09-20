@@ -5,6 +5,7 @@
  * Pure logic (no Express, no DB) so it can be unit-tested directly.
  */
 import type { CourseEntry } from "../data/courses";
+import type { CoreAreaTagSource } from "../data/core-areas";
 
 export type MatchMode = "all" | "any";
 
@@ -15,11 +16,20 @@ export type CourseSearchState =
 
 export interface CourseSearchArgs {
   q?: string;
+  /** Canonical Core-area tags (callers resolve aliases via data/core-areas). */
   coreAreas?: string[];
   matchMode?: MatchMode;
-  /** courseCode -> section count for the selected quarter (omit = no quarter filter) */
+  /** courseCode -> section count for the selected quarter (omit = no quarter data) */
   sectionCounts?: Map<string, number>;
+  /**
+   * When section counts are supplied: true (the historical behaviour) hides
+   * courses with no sections that quarter; false keeps EVERY matching catalog
+   * course, lists offered ones first, and reports the count on each so the UI
+   * can still say "no sections this quarter" without hiding the course.
+   */
+  offeredOnly?: boolean;
   limit?: number;
+  offset?: number;
 }
 
 export interface CourseSearchHit {
@@ -28,12 +38,20 @@ export interface CourseSearchHit {
   units: number;
   description: string;
   coreAreas: string[];
+  /** Per Core area: "catalog_text" (stated in the bulletin) or "heuristic" (inferred). */
+  coreAreaSources: Record<string, CoreAreaTagSource>;
   sectionsThisQuarter: number | null;
 }
 
 export interface CourseSearchOutcome {
   state: CourseSearchState;
+  /** Catalog courses matching the text/Core criteria, regardless of quarter sections. */
   totalMatching: number;
+  /** Of those, how many have at least one section in the selected quarter (null = no quarter data). */
+  totalWithSections: number | null;
+  offset: number;
+  /** True when more results exist past `offset + courses.length`. */
+  hasMore: boolean;
   courses: CourseSearchHit[];
 }
 
@@ -90,36 +108,58 @@ export function searchCourses(
   }
 
   const totalMatching = matches.length;
+  const offset = Math.max(args.offset ?? 0, 0);
   if (totalMatching === 0) {
-    return { state: "no_matching_courses", totalMatching: 0, courses: [] };
+    return {
+      state: "no_matching_courses",
+      totalMatching: 0,
+      totalWithSections: args.sectionCounts ? 0 : null,
+      offset,
+      hasMore: false,
+      courses: [],
+    };
   }
 
   const counts = args.sectionCounts;
+  const offeredOnly = args.offeredOnly ?? true;
+  const sectionsOf = (c: CourseEntry) =>
+    counts ? (counts.get(c.code.toUpperCase()) ?? 0) : null;
+
   let visible = matches;
+  let totalWithSections: number | null = null;
   let state: CourseSearchState = "results";
   if (counts) {
-    const withSections = matches.filter(
-      (c) => (counts.get(c.code.toUpperCase()) ?? 0) > 0,
-    );
-    if (withSections.length === 0) {
-      // Matching courses exist, but none has sections in the selected quarter.
-      return {
-        state: "no_sections_this_quarter",
-        totalMatching,
-        courses: matches.slice(0, limit).map((c) => hit(c, 0)),
-      };
+    const withSections = matches.filter((c) => (sectionsOf(c) ?? 0) > 0);
+    totalWithSections = withSections.length;
+    if (offeredOnly) {
+      if (withSections.length === 0) {
+        // Matching courses exist, but none has sections in the selected quarter.
+        return {
+          state: "no_sections_this_quarter",
+          totalMatching,
+          totalWithSections,
+          offset,
+          hasMore: totalMatching > offset + limit,
+          courses: matches.slice(offset, offset + limit).map((c) => hit(c, 0)),
+        };
+      }
+      visible = withSections;
+    } else {
+      // Complete catalog result set, offered courses first (stable within each group).
+      visible = [
+        ...withSections,
+        ...matches.filter((c) => (sectionsOf(c) ?? 0) === 0),
+      ];
     }
-    visible = withSections;
   }
 
   return {
     state,
     totalMatching,
-    courses: visible
-      .slice(0, limit)
-      .map((c) =>
-        hit(c, counts ? (counts.get(c.code.toUpperCase()) ?? 0) : null),
-      ),
+    totalWithSections,
+    offset,
+    hasMore: visible.length > offset + limit,
+    courses: visible.slice(offset, offset + limit).map((c) => hit(c, sectionsOf(c))),
   };
 }
 
@@ -130,6 +170,7 @@ function hit(c: CourseEntry, sections: number | null): CourseSearchHit {
     units: c.units,
     description: c.description,
     coreAreas: c.coreAreas ?? [],
+    coreAreaSources: c.coreAreaSources ?? {},
     sectionsThisQuarter: sections,
   };
 }

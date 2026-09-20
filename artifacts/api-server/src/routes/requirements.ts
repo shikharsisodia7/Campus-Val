@@ -15,7 +15,8 @@ import {
   getMajorTitle,
   type College,
 } from "../data/graduation-paths";
-import { findCourse } from "../data/courses";
+import { COURSES, findCourse } from "../data/courses";
+import { CORE_AREA_BY_REQUIREMENT } from "../data/core-areas";
 import {
   resolveCrossSatisfaction,
   type RequirementStatus,
@@ -37,6 +38,8 @@ interface ResolvedRequirementItem {
   satisfiedBy: string[];
   plannedBy: string[];
   crossSatisfiedBy: string[];
+  /** Canonical Core area whose catalog courses satisfy this item, when one is mapped. */
+  coreArea?: { tag: string; code: string; courseCount: number; catalogStatedCount: number } | null;
   status: RequirementStatus;
   complete: boolean;
 }
@@ -70,6 +73,31 @@ function normalize(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, " ");
 }
 
+/**
+ * How many catalog courses carry the Core area a requirement maps to — or
+ * null when the requirement has no mapping (e.g. Pathways), so the UI can say
+ * so instead of offering an empty or invented list. Counts are computed once,
+ * lazily, from the same derived tags course search filters on.
+ */
+let coreAreaCounts: Map<string, { total: number; stated: number }> | null = null;
+function coreAreaSummaryFor(itemId: string) {
+  const def = CORE_AREA_BY_REQUIREMENT.get(itemId);
+  if (!def) return null;
+  if (!coreAreaCounts) {
+    coreAreaCounts = new Map();
+    for (const c of COURSES) {
+      for (const tag of c.coreAreas ?? []) {
+        const e = coreAreaCounts.get(tag) ?? { total: 0, stated: 0 };
+        e.total += 1;
+        if (c.coreAreaSources?.[tag] === "catalog_text") e.stated += 1;
+        coreAreaCounts.set(tag, e);
+      }
+    }
+  }
+  const c = coreAreaCounts.get(def.tag) ?? { total: 0, stated: 0 };
+  return { tag: def.tag, code: def.code, courseCount: c.total, catalogStatedCount: c.stated };
+}
+
 function resolveGroup(
   group: RequirementGroupDef,
   completed: Set<string>,
@@ -87,6 +115,7 @@ function resolveGroup(
     // designation — that is what makes a major course count for Core.
     const autoTracked =
       item.courses.length > 0 || cross.crossSatisfiedBy.length > 0;
+    const coreArea = coreAreaSummaryFor(item.id);
     return {
       id: item.id,
       label: item.label,
@@ -101,6 +130,7 @@ function resolveGroup(
       // Planned courses are NEVER reported as completed.
       plannedBy: cross.plannedBy,
       crossSatisfiedBy: cross.crossSatisfiedBy,
+      coreArea,
       status: cross.status,
       complete: cross.status === "completed",
     };

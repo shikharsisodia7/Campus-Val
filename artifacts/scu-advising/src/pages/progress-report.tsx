@@ -25,6 +25,11 @@ import { useTrackUsage } from "@/hooks/use-track-usage";
 
 type UploadPhase = "idle" | "requesting-url" | "uploading" | "registering";
 
+// The private APR page is the one place that reads the FULL report (grades
+// behind a toggle, source lines for review items) and asks the server whether
+// the stored original can still be read.
+const FULL_VIEW_PARAMS = { view: "full", checkSource: true } as const;
+
 export default function ProgressReportPage() {
   useTrackUsage("apr_upload");
   const qc = useQueryClient();
@@ -41,10 +46,10 @@ export default function ProgressReportPage() {
     isLoading: envelopeLoading,
     isError: envelopeError,
     error: envelopeRawError,
-  } = useGetProgressReport({
+  } = useGetProgressReport(FULL_VIEW_PARAMS, {
     query: {
-      queryKey: getGetProgressReportQueryKey(),
-      retry: (failCount, err) => {
+      queryKey: getGetProgressReportQueryKey(FULL_VIEW_PARAMS),
+      retry: (failCount: number, err: unknown) => {
         // 404 = no report yet (not a network error) — don't retry
         const status = (err as { status?: number })?.status;
         if (status === 404) return false;

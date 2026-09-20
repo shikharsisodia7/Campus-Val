@@ -31,8 +31,10 @@ import {
   requirementCategoryKindFor,
   REQUIREMENT_CATEGORY_STYLE,
 } from "@/lib/requirement-category";
+import { RequirementCourseDiscovery } from "./RequirementCourseDiscovery";
 
 const COMPLETED_DESTINATION = "0:completed";
+
 export function Palette() {
   const { requirements, activePlan, catalog, profile, scheduleAvailability } =
     useDegreePlanContext();
@@ -417,6 +419,13 @@ export function Palette() {
                                   </div>
                                 </div>
                               )}
+
+                              <RequirementCourseDiscovery
+                                req={req}
+                                group={group}
+                                onAdd={(code) => handleAddCourse(code, group, req)}
+                                disabled={addPlanItem.isPending}
+                              />
                             </div>
                           )}
 

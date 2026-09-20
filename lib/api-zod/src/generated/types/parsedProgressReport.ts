@@ -9,6 +9,7 @@ import type { ParsedProgressReportCompletedCoursesItem } from "./parsedProgressR
 import type { ParsedProgressReportGroupsItem } from "./parsedProgressReportGroupsItem";
 import type { ParsedProgressReportNonCompletedCoursesItem } from "./parsedProgressReportNonCompletedCoursesItem";
 import type { ParsedProgressReportPossibleCoursesItem } from "./parsedProgressReportPossibleCoursesItem";
+import type { ParsedProgressReportSummary } from "./parsedProgressReportSummary";
 
 export interface ParsedProgressReport {
   completedCourses: ParsedProgressReportCompletedCoursesItem[];
@@ -28,6 +29,8 @@ export interface ParsedProgressReport {
   reportStudentId?: string | null;
   /** Requirement-group hierarchy derived from the document's own structure (e.g. "<Program> Requirements"); absent when the document doesn't support it or predates this field. */
   groups?: ParsedProgressReportGroupsItem[];
+  /** Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one. */
+  summary?: ParsedProgressReportSummary;
   /** Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read). */
   parserVersion?: string;
   notes: string[];

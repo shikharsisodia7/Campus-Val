@@ -8,7 +8,7 @@
 import type { UploadUrlRequest } from "./uploadUrlRequest";
 
 export interface UploadUrlResponse {
-  /** Presigned GCS URL for PUT upload. */
+  /** URL the client PUTs the file bytes to. Cloud providers return an absolute presigned URL; the local-filesystem provider returns a same-origin path (/api/storage/local-upload/...), which always resolves against the page the student is on. */
   uploadURL: string;
   /** Normalized object path (e.g. /objects/uploads/uuid). Store this in your database. */
   objectPath: string;

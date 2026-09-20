@@ -4,6 +4,8 @@ import { db, progressReportsTable, studentProfilesTable, type ProgressReportRow 
 import { requireAuth } from "../middlewares/requireAuth";
 import { getPrivateObjectStorage, isPrivateStorageConfigured, ObjectNotFoundError } from "../lib/storage";
 import { parseProgressReport, APR_PARSER_VERSION } from "../lib/progress-report-parser";
+import { sendPrivateFile } from "../lib/private-file-response";
+import { planningProjection } from "../lib/progress-report-view";
 
 const router: IRouter = Router();
 
@@ -18,16 +20,21 @@ function isStorageAvailable(): boolean {
   return isPrivateStorageConfigured();
 }
 
-function reportDto(row: ProgressReportRow) {
+type ReportView = "full" | "planning";
+
+/**
+ * The client DTO. Deliberately omits `userId` (always the caller) and
+ * `objectPath` (an internal storage location): neither is needed by any
+ * client and neither should ever appear in a response body or log.
+ */
+function reportDto(row: ProgressReportRow, view: ReportView = "full") {
   return {
     id: row.id,
-    userId: row.userId,
     fileName: row.fileName,
     fileSize: row.fileSize,
     contentType: row.contentType,
-    objectPath: row.objectPath,
     uploadedAt: row.uploadedAt.toISOString(),
-    parsed: row.parsed ?? null,
+    parsed: view === "planning" ? planningProjection(row.parsed) ?? null : row.parsed ?? null,
     parseStatus: row.parseStatus,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -38,11 +45,26 @@ function unavailableEnvelope() {
   return { available: false, report: null };
 }
 
-function reportEnvelope(row: ProgressReportRow | null | undefined) {
+function reportEnvelope(
+  row: ProgressReportRow | null | undefined,
+  view: ReportView = "full",
+  sourceFile?: "available" | "missing" | "unknown",
+) {
   return {
     available: true,
-    report: row ? reportDto(row) : null,
+    report: row ? { ...reportDto(row, view), ...(sourceFile ? { sourceFile } : {}) } : null,
   };
+}
+
+/** Can the stored original still be read? Never throws, never reads the bytes. */
+async function probeSourceFile(row: ProgressReportRow): Promise<"available" | "missing" | "unknown"> {
+  try {
+    const storage = await getPrivateObjectStorage();
+    await storage.getMetadata(row.objectPath);
+    return "available";
+  } catch (err) {
+    return err instanceof ObjectNotFoundError ? "missing" : "unknown";
+  }
 }
 
 async function getUserReport(userId: string): Promise<ProgressReportRow | null> {
@@ -61,7 +83,10 @@ async function getUserReport(userId: string): Promise<ProgressReportRow | null> 
  * with stale flat output. Best-effort: on any failure, the stale row is
  * returned as-is rather than surfacing an error for what is just a read.
  */
-async function reparseIfStale(row: ProgressReportRow): Promise<ProgressReportRow> {
+async function reparseIfStale(
+  row: ProgressReportRow,
+  log?: { warn: (obj: object, msg: string) => void },
+): Promise<ProgressReportRow> {
   if (row.parseStatus !== "parsed") return row;
   const parsedVersion = (row.parsed as { parserVersion?: string } | null)?.parserVersion;
   if (parsedVersion === APR_PARSER_VERSION) return row;
@@ -82,7 +107,12 @@ async function reparseIfStale(row: ProgressReportRow): Promise<ProgressReportRow
       .where(eq(progressReportsTable.userId, row.userId))
       .returning();
     return rows[0] ?? row;
-  } catch {
+  } catch (err) {
+    // Reason only — never file contents, parsed data, or the object path.
+    log?.warn(
+      { reason: err instanceof ObjectNotFoundError ? "source_missing" : "reparse_failed" },
+      "Could not reparse stored progress report; serving previous parse",
+    );
     return row;
   }
 }
@@ -104,7 +134,10 @@ router.get("/progress-report", requireAuth, async (req, res): Promise<void> => {
     res.status(404).json({ error: "No progress report found." });
     return;
   }
-  res.json(reportEnvelope(await reparseIfStale(report)));
+  const view: ReportView = req.query["view"] === "planning" ? "planning" : "full";
+  const current = await reparseIfStale(report, req.log);
+  const sourceFile = req.query["checkSource"] === "true" ? await probeSourceFile(current) : undefined;
+  res.json(reportEnvelope(current, view, sourceFile));
 });
 
 /**
@@ -363,11 +396,10 @@ router.get("/progress-report/file", requireAuth, async (req, res): Promise<void>
       return;
     }
 
-    const { stream, contentType, size } = await storage.downloadObject(report.objectPath);
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "private, max-age=3600");
-    if (size) res.setHeader("Content-Length", String(size));
-    stream.pipe(res);
+    const obj = await storage.downloadObject(report.objectPath);
+    sendPrivateFile(res, obj, (err) =>
+      req.log.error({ err }, "Failed to stream progress report file"),
+    );
   } catch (err) {
     if (err instanceof ObjectNotFoundError) {
       res.status(404).json({ error: "File not found in storage." });

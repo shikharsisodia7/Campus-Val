@@ -608,20 +608,70 @@ export const ListCourseSectionsResponseItem = zod.object({
     .date()
     .nullable()
     .describe(
-      "When this section's seat counts were last refreshed. Set from the student's own Workday paste-in timestamp when seatsKnown is true; null otherwise (the official Registrar schedule has no live seat refresh cadence to report).",
+      "When the SOURCE says this section's seat data was true (the live feed's own timestamp, or the data steward's paste time). Null when no source has said anything (the official Registrar schedule has no seat data).",
     ),
   sourceType: zod
-    .enum(["workday_self_paste", "registrar_schedule"])
+    .enum([
+      "workday_live",
+      "workday_self_paste",
+      "registrar_schedule",
+      "fixture",
+    ])
     .describe(
-      "Where this section's data currently comes from — never a scraped or shared feed. See docs\/SECTION_AVAILABILITY.md.",
+      "Where this section's availability comes from. workday_live only for a real authorized upstream feed; workday_self_paste is a manual snapshot by the data steward (never live); fixture is development sample data (never served in production); registrar_schedule means no seat data at all. See docs\/SECTION_AVAILABILITY.md.",
     ),
   sourceLabel: zod
     .string()
     .describe("Human-readable source label to render next to lastUpdatedAt."),
+  isLive: zod
+    .boolean()
+    .describe(
+      'True ONLY for a real, authorized, recently refreshed live feed. The UI must show a \"Live\" badge iff this is true.',
+    ),
+  freshness: zod
+    .enum(["live", "cached", "stale", "unavailable"])
+    .describe(
+      'How far the timestamp can be trusted. \"stale\" and \"unavailable\" always come with availabilityStatus \"unknown\" — an old \"open\" is never presented as open.',
+    ),
 });
 export const ListCourseSectionsResponse = zod.array(
   ListCourseSectionsResponseItem,
 );
+
+/**
+ * @summary How trustworthy seat availability currently is for a term (live / cached / not connected)
+ */
+export const GetSectionAvailabilityStatusQueryParams = zod.object({
+  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  year: zod.coerce.number(),
+});
+
+export const GetSectionAvailabilityStatusResponse = zod.object({
+  term: zod.string(),
+  year: zod.number(),
+  state: zod
+    .enum([
+      "live",
+      "cached",
+      "stale",
+      "unavailable",
+      "not_connected",
+      "sample",
+      "manual_snapshot",
+    ])
+    .describe(
+      "What the section picker may say about seat data for this term: live\/cached\/stale = a live feed is connected (cached and stale mean serving an older answer); unavailable = a live feed is configured but cannot be reached; not_connected = no live feed and no seat data; manual_snapshot = only the data steward's paste; sample = development fixture data.",
+    ),
+  liveConfigured: zod.boolean(),
+  lastUpdatedAt: zod.coerce.date().nullable(),
+  sectionsWithKnownAvailability: zod.number(),
+  counts: zod.object({
+    open: zod.number(),
+    waitlist: zod.number(),
+    full: zod.number(),
+    unknown: zod.number(),
+  }),
+});
 
 /**
  * Accepts text copied from SCU's Workday "Find Course Sections" view.
@@ -708,17 +758,32 @@ export const SyncWorkdaySectionsResponse = zod.object({
           .date()
           .nullable()
           .describe(
-            "When this section's seat counts were last refreshed. Set from the student's own Workday paste-in timestamp when seatsKnown is true; null otherwise (the official Registrar schedule has no live seat refresh cadence to report).",
+            "When the SOURCE says this section's seat data was true (the live feed's own timestamp, or the data steward's paste time). Null when no source has said anything (the official Registrar schedule has no seat data).",
           ),
         sourceType: zod
-          .enum(["workday_self_paste", "registrar_schedule"])
+          .enum([
+            "workday_live",
+            "workday_self_paste",
+            "registrar_schedule",
+            "fixture",
+          ])
           .describe(
-            "Where this section's data currently comes from — never a scraped or shared feed. See docs\/SECTION_AVAILABILITY.md.",
+            "Where this section's availability comes from. workday_live only for a real authorized upstream feed; workday_self_paste is a manual snapshot by the data steward (never live); fixture is development sample data (never served in production); registrar_schedule means no seat data at all. See docs\/SECTION_AVAILABILITY.md.",
           ),
         sourceLabel: zod
           .string()
           .describe(
             "Human-readable source label to render next to lastUpdatedAt.",
+          ),
+        isLive: zod
+          .boolean()
+          .describe(
+            'True ONLY for a real, authorized, recently refreshed live feed. The UI must show a \"Live\" badge iff this is true.',
+          ),
+        freshness: zod
+          .enum(["live", "cached", "stale", "unavailable"])
+          .describe(
+            'How far the timestamp can be trusted. \"stale\" and \"unavailable\" always come with availabilityStatus \"unknown\" — an old \"open\" is never presented as open.',
           ),
       }),
     )
@@ -1024,6 +1089,17 @@ export const GetDegreeRequirementsResponse = zod.object({
             .boolean()
             .describe(
               'True when SCU defines this as \"choose from an approved list\" — the student tracks it manually rather than the app inventing a course list.',
+            ),
+          coreArea: zod
+            .object({
+              tag: zod.string(),
+              code: zod.string().optional(),
+              courseCount: zod.number(),
+              catalogStatedCount: zod.number(),
+            })
+            .nullish()
+            .describe(
+              "The canonical Core area whose catalog courses satisfy this requirement, when CampusVal has a mapping for it. Null for requirements with no mapping (e.g. Pathways) — the UI must say so rather than offer an empty or invented list.",
             ),
           satisfiedBy: zod
             .array(zod.string())
@@ -2480,7 +2556,25 @@ export const ListCoreAreasResponse = zod.object({
   coreAreas: zod.array(
     zod.object({
       name: zod.string(),
-      courseCount: zod.number(),
+      code: zod
+        .string()
+        .nullish()
+        .describe('Short code students use (\"CTW\", \"C&I\", \"AW\").'),
+      courseCount: zod
+        .number()
+        .describe(
+          "Catalog courses carrying this Core area (0 when the catalog has no tagging for it).",
+        ),
+      catalogStatedCount: zod
+        .number()
+        .optional()
+        .describe(
+          "Of courseCount, how many are stated outright in the bulletin text (the rest are department\/number heuristics).",
+        ),
+      requirementIds: zod
+        .array(zod.string())
+        .optional()
+        .describe("Degree-requirement item ids this area satisfies."),
     }),
   ),
   pathwaysAvailable: zod
@@ -2494,6 +2588,11 @@ export const ListCoreAreasResponse = zod.object({
 export const searchCoursesQueryMatchModeDefault = `all`;
 export const searchCoursesQueryLimitDefault = 30;
 export const searchCoursesQueryLimitMax = 100;
+
+export const searchCoursesQueryOffsetDefault = 0;
+export const searchCoursesQueryOffsetMin = 0;
+
+export const searchCoursesQueryOfferedOnlyDefault = true;
 
 export const SearchCoursesQueryParams = zod.object({
   q: zod.coerce.string().optional(),
@@ -2511,6 +2610,19 @@ export const SearchCoursesQueryParams = zod.object({
     .min(1)
     .max(searchCoursesQueryLimitMax)
     .default(searchCoursesQueryLimitDefault),
+  offset: zod.coerce
+    .number()
+    .min(searchCoursesQueryOffsetMin)
+    .default(searchCoursesQueryOffsetDefault)
+    .describe(
+      "Skip this many results (paging through a large Core-area result set).",
+    ),
+  offeredOnly: zod.coerce
+    .boolean()
+    .default(searchCoursesQueryOfferedOnlyDefault)
+    .describe(
+      "With term+year, true (default) hides courses with no sections that quarter; false returns every matching catalog course, offered ones first, with the per-course section count.",
+    ),
 });
 
 export const SearchCoursesResponse = zod.object({
@@ -2522,6 +2634,17 @@ export const SearchCoursesResponse = zod.object({
   totalMatching: zod
     .number()
     .describe("Courses matching the criteria regardless of quarter sections."),
+  totalWithSections: zod
+    .number()
+    .nullish()
+    .describe(
+      "Of totalMatching, how many have a section in the selected quarter. Null when no quarter was given.",
+    ),
+  offset: zod.number().optional(),
+  hasMore: zod
+    .boolean()
+    .optional()
+    .describe("True when more results exist beyond this page."),
   courses: zod.array(
     zod.object({
       code: zod.string(),
@@ -2529,6 +2652,12 @@ export const SearchCoursesResponse = zod.object({
       units: zod.number(),
       description: zod.string().optional(),
       coreAreas: zod.array(zod.string()),
+      coreAreaSources: zod
+        .record(zod.string(), zod.enum(["catalog_text", "heuristic"]))
+        .optional()
+        .describe(
+          "Per Core area, whether the bulletin text states it or CampusVal inferred it from department\/number.",
+        ),
       sectionsThisQuarter: zod
         .number()
         .nullable()
@@ -2555,7 +2684,11 @@ export const RequestUploadUrlBody = zod.object({
 });
 
 export const RequestUploadUrlResponse = zod.object({
-  uploadURL: zod.string().url().describe("Presigned GCS URL for PUT upload."),
+  uploadURL: zod
+    .string()
+    .describe(
+      "URL the client PUTs the file bytes to. Cloud providers return an absolute presigned URL; the local-filesystem provider returns a same-origin path (\/api\/storage\/local-upload\/...), which always resolves against the page the student is on.",
+    ),
   objectPath: zod
     .string()
     .describe(
@@ -2599,9 +2732,28 @@ export const GetStorageObjectParams = zod.object({
 /**
  * Returns 200 with the report if one exists, or 404 if none.
 If object storage is not configured, returns 200 with { available: false }.
+Only ever the CALLER's own report — there is no way to address another user's.
 
  * @summary Get the authenticated student's current progress report (metadata + parsed payload)
  */
+export const getProgressReportQueryViewDefault = `full`;
+export const getProgressReportQueryCheckSourceDefault = false;
+
+export const GetProgressReportQueryParams = zod.object({
+  view: zod
+    .enum(["full", "planning"])
+    .default(getProgressReportQueryViewDefault)
+    .describe(
+      '\"planning\" returns a minimized projection for the Degree Plan \/\nTentative Degree Plan \/ Quarter Plan reference panel: no grades,\nno raw source text. \"full\" (default) is for the private APR page.\n',
+    ),
+  checkSource: zod.coerce
+    .boolean()
+    .default(getProgressReportQueryCheckSourceDefault)
+    .describe(
+      "When true, also reports whether the original uploaded file can still be read from storage (sourceFile).",
+    ),
+});
+
 export const GetProgressReportResponse = zod
   .object({
     available: zod.boolean(),
@@ -2609,11 +2761,15 @@ export const GetProgressReportResponse = zod
       .union([
         zod.object({
           id: zod.number(),
-          userId: zod.string(),
           fileName: zod.string(),
           fileSize: zod.number(),
           contentType: zod.string(),
-          objectPath: zod.string(),
+          sourceFile: zod
+            .enum(["available", "missing", "unknown"])
+            .optional()
+            .describe(
+              'Only present when checkSource=true. \"missing\" means the row exists but the stored original can no longer be read.',
+            ),
           uploadedAt: zod.coerce.date(),
           parsed: zod
             .union([
@@ -2668,9 +2824,52 @@ export const GetProgressReportResponse = zod
                   .array(
                     zod.object({
                       name: zod.string(),
+                      kind: zod
+                        .enum(["core", "major", "minor", "other"])
+                        .optional()
+                        .describe(
+                          "Classified from the heading, for display order only. `name` stays the document's own wording.",
+                        ),
+                      order: zod
+                        .number()
+                        .optional()
+                        .describe(
+                          "Position of the heading in the source document.",
+                        ),
                       requirements: zod.array(
                         zod.object({
                           name: zod.string(),
+                          order: zod
+                            .number()
+                            .optional()
+                            .describe(
+                              "Position of this row in the source document.",
+                            ),
+                          scope: zod
+                            .enum(["university", "program"])
+                            .optional()
+                            .describe(
+                              '\"university\" for the university-wide rows Workday repeats under every program.',
+                            ),
+                          unit: zod
+                            .enum(["total", "upper_division"])
+                            .optional()
+                            .describe(
+                              "Set only when the row itself states a unit requirement.",
+                            ),
+                          requiredUnits: zod.number().nullish(),
+                          detail: zod
+                            .string()
+                            .nullish()
+                            .describe(
+                              "Text Workday printed after the status word, kept verbatim and not interpreted.",
+                            ),
+                          sourceText: zod
+                            .string()
+                            .optional()
+                            .describe(
+                              "The source line this row was read from. Omitted from the planning view.",
+                            ),
                           status: zod.enum([
                             "completed",
                             "in_progress",
@@ -2693,6 +2892,47 @@ export const GetProgressReportResponse = zod
                   .optional()
                   .describe(
                     "Requirement-group hierarchy derived from the document's own structure (e.g. \"<Program> Requirements\"); absent when the document doesn't support it or predates this field.",
+                  ),
+                summary: zod
+                  .object({
+                    totalUnits: zod
+                      .object({
+                        name: zod.string(),
+                        status: zod.enum([
+                          "completed",
+                          "in_progress",
+                          "remaining",
+                          "needs_review",
+                        ]),
+                        requiredUnits: zod.number().nullable(),
+                        detail: zod.string().nullable(),
+                        order: zod.number(),
+                      })
+                      .optional(),
+                    upperDivisionUnits: zod
+                      .object({
+                        name: zod.string(),
+                        status: zod.enum([
+                          "completed",
+                          "in_progress",
+                          "remaining",
+                          "needs_review",
+                        ]),
+                        requiredUnits: zod.number().nullable(),
+                        detail: zod.string().nullable(),
+                        order: zod.number(),
+                      })
+                      .optional(),
+                    creditsEarned: zod
+                      .number()
+                      .optional()
+                      .describe(
+                        'The number printed after \"Cumulative Credits Earned\", when the report prints exactly that label.',
+                      ),
+                  })
+                  .optional()
+                  .describe(
+                    "Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one.",
                   ),
                 parserVersion: zod
                   .string()
@@ -2744,11 +2984,15 @@ export const RegisterProgressReportResponse = zod
       .union([
         zod.object({
           id: zod.number(),
-          userId: zod.string(),
           fileName: zod.string(),
           fileSize: zod.number(),
           contentType: zod.string(),
-          objectPath: zod.string(),
+          sourceFile: zod
+            .enum(["available", "missing", "unknown"])
+            .optional()
+            .describe(
+              'Only present when checkSource=true. \"missing\" means the row exists but the stored original can no longer be read.',
+            ),
           uploadedAt: zod.coerce.date(),
           parsed: zod
             .union([
@@ -2803,9 +3047,52 @@ export const RegisterProgressReportResponse = zod
                   .array(
                     zod.object({
                       name: zod.string(),
+                      kind: zod
+                        .enum(["core", "major", "minor", "other"])
+                        .optional()
+                        .describe(
+                          "Classified from the heading, for display order only. `name` stays the document's own wording.",
+                        ),
+                      order: zod
+                        .number()
+                        .optional()
+                        .describe(
+                          "Position of the heading in the source document.",
+                        ),
                       requirements: zod.array(
                         zod.object({
                           name: zod.string(),
+                          order: zod
+                            .number()
+                            .optional()
+                            .describe(
+                              "Position of this row in the source document.",
+                            ),
+                          scope: zod
+                            .enum(["university", "program"])
+                            .optional()
+                            .describe(
+                              '\"university\" for the university-wide rows Workday repeats under every program.',
+                            ),
+                          unit: zod
+                            .enum(["total", "upper_division"])
+                            .optional()
+                            .describe(
+                              "Set only when the row itself states a unit requirement.",
+                            ),
+                          requiredUnits: zod.number().nullish(),
+                          detail: zod
+                            .string()
+                            .nullish()
+                            .describe(
+                              "Text Workday printed after the status word, kept verbatim and not interpreted.",
+                            ),
+                          sourceText: zod
+                            .string()
+                            .optional()
+                            .describe(
+                              "The source line this row was read from. Omitted from the planning view.",
+                            ),
                           status: zod.enum([
                             "completed",
                             "in_progress",
@@ -2828,6 +3115,47 @@ export const RegisterProgressReportResponse = zod
                   .optional()
                   .describe(
                     "Requirement-group hierarchy derived from the document's own structure (e.g. \"<Program> Requirements\"); absent when the document doesn't support it or predates this field.",
+                  ),
+                summary: zod
+                  .object({
+                    totalUnits: zod
+                      .object({
+                        name: zod.string(),
+                        status: zod.enum([
+                          "completed",
+                          "in_progress",
+                          "remaining",
+                          "needs_review",
+                        ]),
+                        requiredUnits: zod.number().nullable(),
+                        detail: zod.string().nullable(),
+                        order: zod.number(),
+                      })
+                      .optional(),
+                    upperDivisionUnits: zod
+                      .object({
+                        name: zod.string(),
+                        status: zod.enum([
+                          "completed",
+                          "in_progress",
+                          "remaining",
+                          "needs_review",
+                        ]),
+                        requiredUnits: zod.number().nullable(),
+                        detail: zod.string().nullable(),
+                        order: zod.number(),
+                      })
+                      .optional(),
+                    creditsEarned: zod
+                      .number()
+                      .optional()
+                      .describe(
+                        'The number printed after \"Cumulative Credits Earned\", when the report prints exactly that label.',
+                      ),
+                  })
+                  .optional()
+                  .describe(
+                    "Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one.",
                   ),
                 parserVersion: zod
                   .string()

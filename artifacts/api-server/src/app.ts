@@ -13,8 +13,37 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { isOriginAllowed, resolveTrustProxy } from "./lib/config";
+import { publicOrigin } from "./lib/public-origin";
 
 const app: Express = express();
+
+// Behind a university reverse proxy / load balancer the socket peer is the
+// proxy, so req.protocol / req.ip / secure-cookie decisions are only correct
+// when Express is told how many proxy hops to trust. Off unless TRUST_PROXY
+// is set (see docs/SCU_DEPLOYMENT.md) — trusting X-Forwarded-* from an
+// untrusted network would let any client spoof its IP and protocol.
+app.set("trust proxy", resolveTrustProxy());
+app.disable("x-powered-by");
+
+/**
+ * Baseline response hardening that is safe for every route (API and SPA).
+ * A full Content-Security-Policy is deliberately NOT set here: the SPA loads
+ * Clerk's hosted scripts/frames, and a wrong CSP would break sign-in. The
+ * private-file route sets its own strict CSP (see private-file-response.ts).
+ */
+app.use((req: Request, res: Response, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), geolocation=(), payment=()");
+  if (req.secure) {
+    // Only advertised over TLS (req.secure honours trust proxy), so a plain-
+    // http local run never pins browsers to https.
+    res.setHeader("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
+  }
+  next();
+});
 
 app.use(
   pinoHttp({
@@ -39,7 +68,16 @@ app.use(
 // Clerk proxy must be mounted BEFORE body parsers (it streams raw bytes).
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
-app.use(cors({ credentials: true, origin: true }));
+// Credentialed CORS is an allowlist, not a reflection of any Origin. The
+// bundled frontend is same-origin (no CORS needed); PUBLIC_APP_URL and
+// CORS_ALLOWED_ORIGINS name any extra browser origins. Disallowed origins get
+// no CORS headers (the browser blocks the read) rather than an error.
+app.use(
+  cors({
+    credentials: true,
+    origin: (origin, cb) => cb(null, isOriginAllowed(origin)),
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -88,7 +126,9 @@ const SPA_ROUTES = new Set([
   "/evaluation",
   "/feedback",
   "/progress-report",
+  "/shared-with-me",
   "/admin/usage",
+  "/admin/feedback",
 ]);
 
 // Static prerendered landing HTML injected for crawlers that don't execute JS.
@@ -222,7 +262,7 @@ if (staticDir) {
         res.status(500).send("Internal Server Error");
         return;
       }
-      const origin = `${req.protocol}://${req.get("host")}`;
+      const origin = publicOrigin(req);
       const html = buildLandingHtml(data, origin);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.send(html);
@@ -251,7 +291,7 @@ if (staticDir) {
         res.status(500).end();
         return;
       }
-      const origin = `${req.protocol}://${req.get("host")}`;
+      const origin = publicOrigin(req);
       const contentType = req.path === "/sitemap.xml" ? "application/xml" : "text/plain";
       res.setHeader("Content-Type", `${contentType}; charset=utf-8`);
       res.send(data.split(INDEX_HTML_FALLBACK_ORIGIN).join(origin));
@@ -267,7 +307,7 @@ if (staticDir) {
         res.status(500).send("Internal Server Error");
         return;
       }
-      const origin = `${req.protocol}://${req.get("host")}`;
+      const origin = publicOrigin(req);
       const html = data.split(INDEX_HTML_FALLBACK_ORIGIN).join(origin);
       res.status(status).setHeader("Content-Type", "text/html; charset=utf-8").send(html);
     });

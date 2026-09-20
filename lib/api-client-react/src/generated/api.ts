@@ -45,6 +45,8 @@ import type {
   GetDegreeRequirementsParams,
   GetGraduationPathParams,
   GetMajorRequirementsParams,
+  GetProgressReportParams,
+  GetSectionAvailabilityStatusParams,
   GpaResult,
   GpaSimulationResult,
   GraduationPath,
@@ -87,6 +89,7 @@ import type {
   ScheduleEventInput,
   ScheduleEventUpdate,
   SearchCoursesParams,
+  SectionAvailabilityStatus,
   SectionsSyncStatus,
   SendOpenaiMessageBody,
   SetRequirementCompletionBody,
@@ -1307,6 +1310,115 @@ export function useListCourseSections<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListCourseSectionsQueryOptions(code, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary How trustworthy seat availability currently is for a term (live / cached / not connected)
+ */
+export const getGetSectionAvailabilityStatusUrl = (
+  params: GetSectionAvailabilityStatusParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/section-availability/status?${stringifiedParams}`
+    : `/api/section-availability/status`;
+};
+
+export const getSectionAvailabilityStatus = async (
+  params: GetSectionAvailabilityStatusParams,
+  options?: RequestInit,
+): Promise<SectionAvailabilityStatus> => {
+  return customFetch<SectionAvailabilityStatus>(
+    getGetSectionAvailabilityStatusUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSectionAvailabilityStatusQueryKey = (
+  params?: GetSectionAvailabilityStatusParams,
+) => {
+  return [
+    `/api/section-availability/status`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetSectionAvailabilityStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSectionAvailabilityStatus>>,
+  TError = ErrorType<void>,
+>(
+  params: GetSectionAvailabilityStatusParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSectionAvailabilityStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSectionAvailabilityStatusQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSectionAvailabilityStatus>>
+  > = ({ signal }) =>
+    getSectionAvailabilityStatus(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSectionAvailabilityStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSectionAvailabilityStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSectionAvailabilityStatus>>
+>;
+export type GetSectionAvailabilityStatusQueryError = ErrorType<void>;
+
+/**
+ * @summary How trustworthy seat availability currently is for a term (live / cached / not connected)
+ */
+
+export function useGetSectionAvailabilityStatus<
+  TData = Awaited<ReturnType<typeof getSectionAvailabilityStatus>>,
+  TError = ErrorType<void>,
+>(
+  params: GetSectionAvailabilityStatusParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSectionAvailabilityStatus>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSectionAvailabilityStatusQueryOptions(
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -5515,44 +5627,64 @@ export function useGetStorageObject<
 /**
  * Returns 200 with the report if one exists, or 404 if none.
 If object storage is not configured, returns 200 with { available: false }.
+Only ever the CALLER's own report — there is no way to address another user's.
 
  * @summary Get the authenticated student's current progress report (metadata + parsed payload)
  */
-export const getGetProgressReportUrl = () => {
-  return `/api/progress-report`;
+export const getGetProgressReportUrl = (params?: GetProgressReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/progress-report?${stringifiedParams}`
+    : `/api/progress-report`;
 };
 
 export const getProgressReport = async (
+  params?: GetProgressReportParams,
   options?: RequestInit,
 ): Promise<ProgressReportEnvelope> => {
-  return customFetch<ProgressReportEnvelope>(getGetProgressReportUrl(), {
+  return customFetch<ProgressReportEnvelope>(getGetProgressReportUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetProgressReportQueryKey = () => {
-  return [`/api/progress-report`] as const;
+export const getGetProgressReportQueryKey = (
+  params?: GetProgressReportParams,
+) => {
+  return [`/api/progress-report`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetProgressReportQueryOptions = <
   TData = Awaited<ReturnType<typeof getProgressReport>>,
   TError = ErrorType<void>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getProgressReport>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetProgressReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProgressReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetProgressReportQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getGetProgressReportQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getProgressReport>>
-  > = ({ signal }) => getProgressReport({ signal, ...requestOptions });
+  > = ({ signal }) => getProgressReport(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getProgressReport>>,
@@ -5573,15 +5705,18 @@ export type GetProgressReportQueryError = ErrorType<void>;
 export function useGetProgressReport<
   TData = Awaited<ReturnType<typeof getProgressReport>>,
   TError = ErrorType<void>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getProgressReport>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetProgressReportQueryOptions(options);
+>(
+  params?: GetProgressReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProgressReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProgressReportQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

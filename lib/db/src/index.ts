@@ -20,9 +20,13 @@ if (!process.env.DATABASE_URL) {
  * function instance holds its own pool and Neon's pooled endpoint already
  * multiplexes connections upstream.
  */
+// DATABASE_POOL_MAX lets a long-running server (VM/container) use a larger
+// pool than the deliberately small serverless default.
+const poolMax = Number(process.env.DATABASE_POOL_MAX);
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 5,
+  max: Number.isInteger(poolMax) && poolMax > 0 ? poolMax : 5,
   connectionTimeoutMillis: 10_000,
   idleTimeoutMillis: 30_000,
 });

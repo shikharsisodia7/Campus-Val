@@ -1,0 +1,14 @@
+{
+  "asOf": "2026-09-19T20:00:00Z",
+  "sections": [
+    { "course": "CSCI 10", "section": "01", "term": "fall", "year": 2026, "instructor": "A. Instructor", "capacity": 30, "enrolled": 21, "waitlist": 0, "updatedAt": "2026-09-19T20:00:00Z" },
+    { "course": "csci  10", "section": "02", "term": "fall", "year": 2026, "capacity": 30, "enrolled": 30, "waitlist": 0 },
+    { "course": "MATH 11", "section": "01", "term": "fall", "year": 2026, "capacity": 25, "enrolled": 25, "waitlist": 4 },
+    { "course": "MATH 12", "section": "01", "term": "fall", "year": 2026, "seatsAvailable": 3 },
+    { "course": "ENGL 1A", "section": "05", "term": "fall", "year": 2026, "capacity": 20, "enrolled": 12, "status": "closed" },
+    { "course": "PHYS 31", "section": "01", "term": "fall", "year": 2026 },
+    { "course": "BIOL 1A", "section": "01", "term": "fall", "year": 2026, "capacity": 40, "enrolled": 35, "status": "Open", "updatedAt": "2026-09-19T19:59:00Z" },
+    { "course": "", "section": "99", "term": "fall", "year": 2026 },
+    { "course": "CHEM 11", "section": "01", "term": "not-a-term", "year": 2026 }
+  ]
+}

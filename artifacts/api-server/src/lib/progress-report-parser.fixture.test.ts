@@ -164,10 +164,14 @@ describe("progress-report-parser fixture: golden text — multi-term Workday APR
    * and the non-catalog transfer-credit codes ("XFER NNN").
    */
   const GOLDEN_POSSIBLE_PREFIXES = [
-    "PAGE",  // from "Page 1 of 2" / "Page 2 of 2" — multi-page artifact
-    "OF",    // from "Page 1 of 2" — "of 2" → "OF 2" matches pattern
     "XFER",  // transfer credit codes not in the SCU catalog
   ];
+  /**
+   * These match the code SHAPE but are not courses. They used to be reported as
+   * "possible courses", which put a false "verify in Workday" alarm on nearly
+   * every report ("Page 1 of 2", "Cumulative GPA 3.412").
+   */
+  const GOLDEN_NOT_COURSES = ["PAGE", "OF", "GPA"];
 
   it("extracts all golden catalog courses from the committed text fixture", () => {
     const text = loadTextFixture("workday-apr-anonymized.txt");
@@ -228,6 +232,19 @@ describe("progress-report-parser fixture: golden text — multi-term Workday APR
         `Expected a possibleCourse starting with '${prefix}'`,
       ).toBe(true);
     }
+    for (const prefix of GOLDEN_NOT_COURSES) {
+      expect(
+        raws.some((r) => r.startsWith(prefix)),
+        `'${prefix} …' is not a course and must not be flagged for review`,
+      ).toBe(false);
+    }
+  });
+
+  it("a GPA line ('Cumulative GPA 3.412') is not flagged as a course, but a genuinely unknown code still is", () => {
+    const { unknownTokens } = extractCodesFromText(
+      ["Cumulative GPA Including Transfer 3.412", "Program of Study GPA 3.820", "ZXQW 999 Mystery Course A"].join("\n"),
+    );
+    expect(unknownTokens.map((t) => t.raw)).toEqual(["ZXQW 999"]);
   });
 
   it("transfer-credit codes (XFER NNN) never appear in completedCourses", () => {

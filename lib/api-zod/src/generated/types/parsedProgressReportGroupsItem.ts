@@ -5,9 +5,14 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { ParsedProgressReportGroupsItemKind } from "./parsedProgressReportGroupsItemKind";
 import type { ParsedProgressReportGroupsItemRequirementsItem } from "./parsedProgressReportGroupsItemRequirementsItem";
 
 export type ParsedProgressReportGroupsItem = {
   name: string;
+  /** Classified from the heading, for display order only. `name` stays the document's own wording. */
+  kind?: ParsedProgressReportGroupsItemKind;
+  /** Position of the heading in the source document. */
+  order?: number;
   requirements: ParsedProgressReportGroupsItemRequirementsItem[];
 };

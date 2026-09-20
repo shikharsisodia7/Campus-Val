@@ -216,7 +216,7 @@ export async function parseXlsxBuffer(buf: Buffer): Promise<ParsedProgressReport
  * already-stored parse stale. The route layer reparses on read when a
  * stored report's version doesn't match this.
  */
-export const APR_PARSER_VERSION = "hierarchical-v2";
+export const APR_PARSER_VERSION = "hierarchical-v3";
 
 /** A single course row nested under a requirement. */
 export interface ParsedRequirementCourse {
@@ -238,7 +238,35 @@ export interface ParsedRequirement {
   name: string;
   status: "completed" | "in_progress" | "remaining" | "needs_review";
   courses: ParsedRequirementCourse[];
+  /** Position in the source document (0-based, increasing across the whole report). */
+  order?: number;
+  /**
+   * "university" for the university-wide rows Workday repeats under every
+   * program ("University Requirement: ..."), "program" for the program's own.
+   */
+  scope?: "university" | "program";
+  /**
+   * Set only when the row itself states a unit requirement: a total-units
+   * row or an upper-division-units row. Never inferred from anything else.
+   */
+  unit?: "total" | "upper_division";
+  /** The number in "Must complete N units", when the row states one. */
+  requiredUnits?: number | null;
+  /**
+   * Text Workday printed after the status word (e.g. "Minimum 40.0 Unit(s)").
+   * Kept verbatim and NOT interpreted — its exact meaning is Workday's.
+   */
+  detail?: string | null;
+  /**
+   * The source line this row was read from, whitespace-collapsed and length
+   * capped. Present so a "Verify in Workday" item can be compared to the
+   * original. Stripped from planning-view projections.
+   */
+  sourceText?: string;
 }
+
+/** What kind of program a group's heading names. Drives display order only. */
+export type ParsedGroupKind = "core" | "major" | "minor" | "other";
 
 /**
  * A top-level requirement group. Real Workday APRs group by the student's
@@ -250,6 +278,31 @@ export interface ParsedRequirement {
 export interface ParsedRequirementGroup {
   name: string;
   requirements: ParsedRequirement[];
+  /** Classified from the heading text; `name` stays the document's own wording. */
+  kind?: ParsedGroupKind;
+  /** Position of the heading in the source document (0-based). */
+  order?: number;
+}
+
+/** A unit-based requirement the APR states explicitly, in Workday's own words. */
+export interface ParsedUnitRequirement {
+  name: string;
+  status: ParsedRequirement["status"];
+  requiredUnits: number | null;
+  detail: string | null;
+  order: number;
+}
+
+/**
+ * Totals the APR itself states. Every field is optional: a report that does
+ * not print a total-units or upper-division row simply has no such summary —
+ * CampusVal never computes one.
+ */
+export interface ParsedReportSummary {
+  totalUnits?: ParsedUnitRequirement;
+  upperDivisionUnits?: ParsedUnitRequirement;
+  /** "Cumulative Credits Earned: N" when the report prints exactly that label. */
+  creditsEarned?: number;
 }
 
 /** A line that is itself a group heading: "<Program Name> Requirements". */
@@ -262,11 +315,84 @@ const IN_PROGRESS_WORD_RE = /\bIn Progress\b/i;
 const SATISFIED_WORD_RE = /(?:^|\s)Satisfied(?:\s|$)/i;
 const REQUIREMENT_PREFIX_RE = /^(University|College|School|Major|Minor|Program)\s+Requirement:/i;
 
+/**
+ * Classify a group heading for DISPLAY ORDER ONLY (Core → Major → Minor →
+ * Other). The heading text itself is never rewritten. "Minor" is checked
+ * before "Major" so "Mathematics Minor Requirements" can't be misread.
+ */
+export function classifyGroupKind(heading: string): ParsedGroupKind {
+  if (/\bcore\b/i.test(heading)) return "core";
+  if (/\bminor\b/i.test(heading)) return "minor";
+  if (/\bmajor\b/i.test(heading)) return "major";
+  return "other";
+}
+
+const UNIVERSITY_ROW_RE = /^University\s+Requirement:/i;
+const UPPER_DIVISION_RE = /\bupper[\s-]?division\b/i;
+const MUST_COMPLETE_UNITS_RE = /\b(?:must\s+complete|minimum\s+of|at\s+least)\s+(\d+(?:\.\d+)?)\s+(?:upper[\s-]?division\s+)?units?\b/i;
+const UNITS_WORD_RE = /\bunits?\b/i;
+/** Whatever Workday printed after the status word, e.g. "Minimum 40.0 Unit(s)". */
+const AFTER_STATUS_RE = /\b(?:Satisfied|In Progress|Not Satisfied|Not Started)\b\s*(.*)$/i;
+
+function collapse(line: string, max = 200): string {
+  const one = line.replace(/\s+/g, " ").trim();
+  return one.length > max ? `${one.slice(0, max - 1)}…` : one;
+}
+
 function classifyRequirementStatus(line: string): ParsedRequirement["status"] {
   if (NOT_SATISFIED_RE.test(line) || NOT_STARTED_RE.test(line)) return "remaining";
   if (IN_PROGRESS_WORD_RE.test(line)) return "in_progress";
   if (SATISFIED_WORD_RE.test(line)) return "completed";
   return "needs_review";
+}
+
+/**
+ * Unit fields for a requirement row — only when the ROW ITSELF is about
+ * units. An upper-division row must say "upper division" and "unit(s)"; a
+ * total row must state a "Must complete N units" quantity. Anything else
+ * (GPA rows, course rows, vague rows) gets no unit fields.
+ */
+function unitFieldsFor(
+  line: string,
+  detail: string | null,
+): Pick<ParsedRequirement, "unit" | "requiredUnits" | "detail"> | Record<string, never> {
+  if (!UNITS_WORD_RE.test(line)) return {};
+  const m = MUST_COMPLETE_UNITS_RE.exec(line);
+  const requiredUnits = m ? Number(m[1]) : null;
+  if (UPPER_DIVISION_RE.test(line)) {
+    return { unit: "upper_division", requiredUnits, detail };
+  }
+  if (m) return { unit: "total", requiredUnits, detail };
+  return {};
+}
+
+/** Lift the unit rows the APR states into a small summary — first row of each kind wins. */
+export function buildReportSummary(
+  groups: ParsedRequirementGroup[],
+  text: string,
+): ParsedReportSummary | undefined {
+  const summary: ParsedReportSummary = {};
+  for (const g of groups) {
+    for (const r of g.requirements) {
+      if (!r.unit) continue;
+      // Label = the row's own words BEFORE the status word (the words after it
+      // are kept separately in `detail`).
+      const src = r.sourceText ?? r.name;
+      const at = src.search(STATUS_WORD_RE);
+      const unitReq: ParsedUnitRequirement = {
+        name: at > 0 ? src.slice(0, at).trim() : r.name,
+        status: r.status,
+        requiredUnits: r.requiredUnits ?? null,
+        detail: r.detail ?? null,
+        order: r.order ?? 0,
+      };
+      if (r.unit === "total" && !summary.totalUnits) summary.totalUnits = unitReq;
+      if (r.unit === "upper_division" && !summary.upperDivisionUnits) summary.upperDivisionUnits = unitReq;
+    }
+  }
+  const earned = /Cumulative\s+Credits?\s+Earned:?\s*(\d+(?:\.\d+)?)/i.exec(text);
+  if (earned) summary.creditsEarned = Number(earned[1]);
+  return Object.keys(summary).length > 0 ? summary : undefined;
 }
 
 /**
@@ -283,6 +409,7 @@ export function extractRequirementGroups(text: string): ParsedRequirementGroup[]
   let currentRequirement: ParsedRequirement | null = null;
 
   const codeRe = new RegExp(SCU_CODE_PATTERN.source);
+  let order = 0; // document position of each heading / requirement row
 
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -301,7 +428,7 @@ export function extractRequirementGroups(text: string): ParsedRequirementGroup[]
       !hasStatusWord &&
       !startsWithCode
     ) {
-      currentGroup = { name: line, requirements: [] };
+      currentGroup = { name: line, requirements: [], kind: classifyGroupKind(line), order: order++ };
       groups.push(currentGroup);
       currentRequirement = null;
       continue;
@@ -312,10 +439,15 @@ export function extractRequirementGroups(text: string): ParsedRequirementGroup[]
     // Requirement row: carries a status word, or an explicit "X Requirement:" prefix.
     if ((hasStatusWord && !startsWithCode) || REQUIREMENT_PREFIX_RE.test(line)) {
       const name = line.replace(STATUS_WORD_RE, "").trim().replace(/\s{2,}/g, " ");
+      const detailRaw = AFTER_STATUS_RE.exec(line)?.[1]?.trim() || null;
       currentRequirement = {
         name: name || line,
         status: classifyRequirementStatus(line),
         courses: [],
+        order: order++,
+        scope: UNIVERSITY_ROW_RE.test(line) ? "university" : "program",
+        sourceText: collapse(line),
+        ...unitFieldsFor(line, detailRaw),
       };
       currentGroup.requirements.push(currentRequirement);
       continue;
@@ -353,6 +485,8 @@ export function extractRequirementGroups(text: string): ParsedRequirementGroup[]
           name: "Other courses in this section",
           status: "needs_review",
           courses: [],
+          order: order++,
+          scope: "program",
         };
         currentGroup.requirements.push(currentRequirement);
       }
@@ -369,6 +503,7 @@ function buildParsedReport(text: string, emptyNote: string): ParsedProgressRepor
   const program = extractProgram(text);
   const reportStudentId = extractStudentId(text);
   const groups = extractRequirementGroups(text);
+  const summary = buildReportSummary(groups, text);
 
   const notes: string[] = [];
   if (catalogMatches.length === 0 && unknownTokens.length === 0 && nonCompletedMatches.length === 0) {
@@ -390,6 +525,7 @@ function buildParsedReport(text: string, emptyNote: string): ParsedProgressRepor
     ...(program ? { program } : {}),
     ...(reportStudentId ? { reportStudentId } : {}),
     ...(groups.length > 0 ? { groups } : {}),
+    ...(summary ? { summary } : {}),
     parserVersion: APR_PARSER_VERSION,
     notes,
   };
@@ -413,6 +549,8 @@ export interface ParsedProgressReport {
   reportStudentId?: string;
   /** Requirement-group hierarchy, when the document's structure supports it. */
   groups?: ParsedRequirementGroup[];
+  /** Unit totals, only when the APR states them. */
+  summary?: ParsedReportSummary;
   /** Present once a report has been parsed by the hierarchical parser; absent on older stored reports. */
   parserVersion?: string;
   notes: string[];
@@ -548,6 +686,12 @@ export function extractStudentId(text: string): string | undefined {
  * Exported for direct testing with anonymized golden-text fixtures that
  * represent actual pdf-parse / xlsx extraction output from Workday APR files.
  */
+/** Words that match the course-code shape on an APR but are never course subjects. */
+const NON_COURSE_SUBJECTS = new Set([
+  "OF", "GPA", "CGPA", "UNIT", "UNITS", "TERM", "PAGE", "YEAR", "ID", "SCU", "PDF",
+  "TOTAL", "MIN", "MAX", "AVG", "CUM", "GRADE", "CREDIT", "CREDITS",
+]);
+
 export function extractCodesFromText(text: string): {
   catalogMatches: ParsedCompletedCourse[];
   nonCompletedMatches: ParsedNonCompletedCourse[];
@@ -604,6 +748,12 @@ export function extractCodesFromText(text: string): {
     let match: RegExpExecArray | null;
     while ((match = re.exec(normalizedLine)) !== null) {
       const raw = match[0];
+      // "Cumulative GPA 3.412" matches the code pattern as "GPA 3" — a decimal
+      // is never a course number, and GPA/UNIT/TERM… are never subjects.
+      // Flagging them would put a false "verify in Workday" alarm on almost
+      // every report and teach students to ignore the real ones.
+      if (/^\.\d/.test(normalizedLine.slice(match.index + raw.length))) continue;
+      if (NON_COURSE_SUBJECTS.has(raw.match(/^[A-Z]+/)?.[0] ?? "")) continue;
       const normalized = normalizeCode(raw);
       if (seenCodes.has(normalized)) continue;
       seenCodes.add(normalized);

@@ -6,10 +6,27 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ParsedProgressReportGroupsItemRequirementsItemCoursesItem } from "./parsedProgressReportGroupsItemRequirementsItemCoursesItem";
+import type { ParsedProgressReportGroupsItemRequirementsItemScope } from "./parsedProgressReportGroupsItemRequirementsItemScope";
 import type { ParsedProgressReportGroupsItemRequirementsItemStatus } from "./parsedProgressReportGroupsItemRequirementsItemStatus";
+import type { ParsedProgressReportGroupsItemRequirementsItemUnit } from "./parsedProgressReportGroupsItemRequirementsItemUnit";
 
 export type ParsedProgressReportGroupsItemRequirementsItem = {
   name: string;
+  /** Position of this row in the source document. */
+  order?: number;
+  /** "university" for the university-wide rows Workday repeats under every program. */
+  scope?: ParsedProgressReportGroupsItemRequirementsItemScope;
+  /** Set only when the row itself states a unit requirement. */
+  unit?: ParsedProgressReportGroupsItemRequirementsItemUnit;
+  /** @nullable */
+  requiredUnits?: number | null;
+  /**
+   * Text Workday printed after the status word, kept verbatim and not interpreted.
+   * @nullable
+   */
+  detail?: string | null;
+  /** The source line this row was read from. Omitted from the planning view. */
+  sourceText?: string;
   status: ParsedProgressReportGroupsItemRequirementsItemStatus;
   courses: ParsedProgressReportGroupsItemRequirementsItemCoursesItem[];
 };

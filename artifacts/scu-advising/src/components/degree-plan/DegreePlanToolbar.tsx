@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AcademicPlan, useGetProgressReport } from "@workspace/api-client-react";
+import { AcademicPlan } from "@workspace/api-client-react";
+import { usePlanningProgressReport } from "@/hooks/use-planning-progress-report";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -43,7 +44,7 @@ export function DegreePlanToolbar({
   const [controlsOpen, setControlsOpen] = useState(false);
   const [sharingOpen, setSharingOpen] = useState(false);
   useTrackUsage("plan_controls", controlsOpen);
-  const { data: reportEnvelope } = useGetProgressReport();
+  const { data: reportEnvelope } = usePlanningProgressReport();
   const hasReport = !!reportEnvelope?.report;
 
   const degreePlan = plans.find((p) => p.planType === "degree") ?? null;

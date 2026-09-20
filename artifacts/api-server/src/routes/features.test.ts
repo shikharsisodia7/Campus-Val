@@ -808,7 +808,10 @@ describe("progress report: user scoping", () => {
     const resA = await asA(request(reportApp).get("/api/progress-report")).expect(200);
     expect(resA.body.available).toBe(true);
     expect(resA.body.report).not.toBeNull();
-    expect(resA.body.report.userId).toBe(USER_A);
+    expect(resA.body.report.fileName).toBe("test.pdf");
+    // The DTO never exposes the owner id or the internal storage location.
+    expect(resA.body.report).not.toHaveProperty("userId");
+    expect(resA.body.report).not.toHaveProperty("objectPath");
 
     // USER_B should get 404 (different user, no report)
     await asB(request(reportApp).get("/api/progress-report")).expect(404);
