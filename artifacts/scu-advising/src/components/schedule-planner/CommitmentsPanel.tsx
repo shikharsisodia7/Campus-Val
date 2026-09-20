@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, Trash2, Plus, Clock, MapPin } from "lucide-react";
 import { useScheduleWorkspace } from "./useScheduleWorkspace";
-import { DAYS, capitalize, format12 } from "./utils";
+import { DAYS, format12 } from "./utils";
 import { useToast } from "@/hooks/use-toast";
 
 const CATEGORIES = [

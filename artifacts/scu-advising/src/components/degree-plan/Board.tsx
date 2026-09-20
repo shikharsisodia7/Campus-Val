@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import {
   DndContext,
@@ -11,10 +11,6 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { TermColumn } from "./TermColumn";
 import { CompletedArea, COMPLETED_DROPZONE_ID } from "./CompletedArea";
 import { CourseCard } from "./CourseCard";
@@ -44,7 +40,7 @@ const collisionDetection: CollisionDetection = (args) => {
   return pointerCollisions.length > 0 ? pointerCollisions : closestCorners(args);
 };
 
-export function Board({ plans }: { plans: any[] }) {
+export function Board(_props: { plans: any[] }) {
   const {
     activePlan,
     activePlanId,
@@ -115,7 +111,9 @@ export function Board({ plans }: { plans: any[] }) {
     );
   };
 
-  const displayYears = useMemo(() => {
+  // Not memoized on purpose: `yearsWithItems` is rebuilt on every render, so a
+  // memo keyed on it could never hit (and always handed back a fresh array anyway).
+  const displayYears = (() => {
     let base = Array.from(yearsWithItems);
     addedYears.forEach((y) => {
       if (!base.includes(y)) base.push(y);
@@ -127,12 +125,7 @@ export function Board({ plans }: { plans: any[] }) {
           new Date().getFullYear(),
       ];
     return base.sort();
-  }, [
-    yearsWithItems,
-    addedYears,
-    profile?.currentYear,
-    scheduleAvailability?.terms,
-  ]);
+  })();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

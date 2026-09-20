@@ -10,13 +10,7 @@ import {
 import { getMajorCollege, type College } from "../data/graduation-paths";
 import { overloadEligibility, probationNotice } from "../lib/academic-status";
 import { requireAuth } from "../middlewares/requireAuth";
-import {
-  pickCurrentWindow,
-  audienceFor,
-  termTitle,
-  todayInPacific,
-  type RegistrationTermWindow,
-} from "../data/registration-windows";
+import { pickCurrentWindow, audienceFor, termTitle, todayInPacific } from "../data/registration-windows";
 
 const router: IRouter = Router();
 

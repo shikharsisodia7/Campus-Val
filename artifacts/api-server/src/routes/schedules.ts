@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import {
   db,
   quarterSchedulesTable,
@@ -16,6 +16,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 import { COURSES, findCourse } from "../data/courses";
+import { CORE_AREAS, coreAreaDefForTag, resolveCoreAreaTag } from "../data/core-areas";
 import { offeredSectionsFor } from "../data/offered-sections";
 import { searchCourses } from "../lib/course-search";
 import { classifySection } from "../lib/course-components";
@@ -495,33 +496,74 @@ router.delete(
 // ---------- advanced search + core taxonomy ----------
 
 router.get("/core-areas", (_req, res) => {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { total: number; stated: number }>();
   for (const c of COURSES) {
     for (const area of c.coreAreas ?? []) {
-      counts.set(area, (counts.get(area) ?? 0) + 1);
+      const entry = counts.get(area) ?? { total: 0, stated: 0 };
+      entry.total += 1;
+      if (c.coreAreaSources?.[area] === "catalog_text") entry.stated += 1;
+      counts.set(area, entry);
     }
   }
-  const coreAreas = Array.from(counts.entries())
-    .map(([name, courseCount]) => ({ name, courseCount }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  // Canonical order (data/core-areas.ts) first — every defined area is listed
+  // even at zero courses so the UI can say "no catalog tagging" instead of
+  // silently omitting a requirement — then any legacy tag not in the table.
+  const known = CORE_AREAS.map((a) => a.tag);
+  const extra = [...counts.keys()].filter((t) => !known.includes(t)).sort();
+  const coreAreas = [...known, ...extra].map((name) => {
+    const def = coreAreaDefForTag(name);
+    const c = counts.get(name) ?? { total: 0, stated: 0 };
+    return {
+      name,
+      code: def?.code ?? null,
+      courseCount: c.total,
+      catalogStatedCount: c.stated,
+      requirementIds: def?.requirementIds ?? [],
+    };
+  });
   // No authoritative SCU Pathway → course mapping dataset exists in
   // CampusVal yet; we say so honestly instead of inventing one.
   res.json({ coreAreas, pathwaysAvailable: false });
 });
 
+/**
+ * Aliases that, typed alone into the free-text box, unambiguously mean a Core
+ * area and not a department ("ctw", "cni", "aw"…). Deliberately NOT every
+ * alias: "math", "arts" and "lang" are also department searches.
+ */
+const IMPLICIT_QUERY_ALIASES = new Set(["ctw", "c&i", "cni", "aw", "elsj", "rtc", "sts"]);
+
 router.get("/course-search", (req, res) => {
-  const q = (req.query.q as string | undefined)?.trim();
+  let q = (req.query.q as string | undefined)?.trim();
   const coreAreasRaw = (req.query.coreAreas as string | undefined) ?? "";
+  // Resolve every alias ("CTW", "CNI", "C&I 3") to its canonical tag through
+  // the ONE definition table. An unrecognised name is kept as-is so it
+  // matches nothing (an honest empty result) instead of being dropped, which
+  // would silently widen the search to the whole catalog.
   const coreAreas = coreAreasRaw
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((s) => resolveCoreAreaTag(s) ?? s);
+  if (q && coreAreas.length === 0 && IMPLICIT_QUERY_ALIASES.has(q.toLowerCase())) {
+    const tag = resolveCoreAreaTag(q);
+    if (tag) {
+      coreAreas.push(tag);
+      q = undefined;
+    }
+  }
   const matchMode = req.query.matchMode === "any" ? "any" : "all";
   const limitRaw = Number(req.query.limit);
   const limit =
     Number.isInteger(limitRaw) && limitRaw >= 1 && limitRaw <= 100
       ? limitRaw
       : 30;
+  const offsetRaw = Number(req.query.offset);
+  const offset = Number.isInteger(offsetRaw) && offsetRaw > 0 ? offsetRaw : 0;
+  // Historical behaviour: a quarter hides courses with no sections. The
+  // Filter/requirement UIs pass offeredOnly=false to get the COMPLETE catalog
+  // result set with offered courses first.
+  const offeredOnly = req.query.offeredOnly !== "false";
 
   const term = req.query.term as string | undefined;
   const yearRaw = req.query.year as string | undefined;
@@ -537,9 +579,18 @@ router.get("/course-search", (req, res) => {
   }
 
   if (!q && coreAreas.length === 0) {
-    return res.json({ state: "results", totalMatching: 0, courses: [] });
+    return res.json({
+      state: "results",
+      totalMatching: 0,
+      totalWithSections: null,
+      offset: 0,
+      hasMore: false,
+      courses: [],
+    });
   }
-  res.json(searchCourses(COURSES, { q, coreAreas, matchMode, sectionCounts, limit }));
+  res.json(
+    searchCourses(COURSES, { q, coreAreas, matchMode, sectionCounts, offeredOnly, limit, offset }),
+  );
 });
 
 export default router;

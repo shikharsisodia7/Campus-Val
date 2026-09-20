@@ -5,12 +5,7 @@ import {
 } from "@dnd-kit/sortable";
 import { PlanItem } from "@workspace/api-client-react";
 import { CourseCard } from "./CourseCard";
-import {
-  termOfferingLabel,
-  courseOffering,
-  isOfferingWarning,
-  PROJECTED_TERM_EXPLANATION,
-} from "@/lib/course-offering";
+import { termOfferingLabel, courseOffering, PROJECTED_TERM_EXPLANATION } from "@/lib/course-offering";
 import { calendarYearFor } from "@/lib/academic-year";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { useTermCourseConflicts } from "./useTermCourseConflicts";

@@ -9,6 +9,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getGetProgressReportQueryKey } from "@workspace/api-client-react";
+import { PLANNING_APR_PARAMS } from "@/hooks/use-planning-progress-report";
 import { WorkdayAprPanel } from "./WorkdayAprPanel";
 
 afterEach(cleanup);
@@ -18,6 +19,7 @@ function makeReportEnvelope(program: string, overrides: Partial<any> = {}) {
     available: true,
     report: {
       fileName: "apr.pdf",
+      parseStatus: "parsed",
       uploadedAt: new Date().toISOString(),
       parsed: {
         completedCourses: [],
@@ -46,7 +48,8 @@ function makeReportEnvelope(program: string, overrides: Partial<any> = {}) {
 
 function renderPanel(reportEnvelope: any, planningMajorTitle?: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  client.setQueryData(getGetProgressReportQueryKey(), reportEnvelope);
+  // The sidebar reads the grade-free PLANNING projection, a distinct query key.
+  client.setQueryData(getGetProgressReportQueryKey(PLANNING_APR_PARAMS), reportEnvelope);
   return render(
     <QueryClientProvider client={client}>
       <WorkdayAprPanel planningMajorTitle={planningMajorTitle} />
@@ -82,7 +85,7 @@ describe("WorkdayAprPanel", () => {
 
   it("never claims a mismatch when no report has been uploaded", () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(getGetProgressReportQueryKey(), { available: true, report: null });
+    client.setQueryData(getGetProgressReportQueryKey(PLANNING_APR_PARAMS), { available: true, report: null });
     render(
       <QueryClientProvider client={client}>
         <WorkdayAprPanel planningMajorTitle="Computer Science & Engineering" />

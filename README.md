@@ -52,7 +52,8 @@ lib/db                     Drizzle schema + Postgres client
 lib/api-spec               OpenAPI spec (source of truth for the generated clients)
 lib/api-client-react       Generated React Query client
 lib/api-zod                Generated Zod schemas
-docs/                      Deployment and Workday-integration docs
+docs/                      Deployment (Vercel + SCU hosting), Workday, APR, Core-area and security docs
+Dockerfile                 Production image (Node process, no cloud dependency)
 ```
 
 Notable modules worth knowing about:
@@ -87,21 +88,29 @@ pnpm --filter @workspace/api-server run dev:all   # build frontend + API, then s
 ```
 
 Environment variables are documented in `.env.example` and
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). To host CampusVal on a university server or
+container instead of Vercel — build, start, migrations, health checks, reverse proxy,
+storage, first-deployment checklist — see [docs/SCU_DEPLOYMENT.md](docs/SCU_DEPLOYMENT.md).
 
 ## Tests
 
 ```bash
+pnpm run lint
 pnpm run typecheck
-pnpm --filter @workspace/api-server run test       # 287 tests (needs DATABASE_URL)
-pnpm --filter @workspace/scu-advising run test     # 162 tests
+pnpm --filter @workspace/api-server run test       # needs DATABASE_URL
+pnpm --filter @workspace/scu-advising run test
 pnpm --filter @workspace/campusval-mobile run test #   9 smoke tests
 pnpm run vercel-build
 ```
 
-There is **no lint script** in this repository — that is deliberate, not an oversight.
+`pnpm run lint` (ESLint, `eslint.config.mjs`) checks **correctness only**: hooks called in a
+different order between renders, unused code, duplicate keys, stale `eslint-disable` comments.
+Formatting is Prettier's and types are `typecheck`'s, so neither is duplicated. It fails on any
+warning, and generated API clients and the design sandbox are excluded. (This repo previously had
+no lint step on purpose; it was added on 2026-09-20 after the first run found a real crash — a
+hook called after an early return in the mobile sign-in screens — plus a pile of dead code.)
 
-CI (`.github/workflows/ci.yml`) runs typecheck, all three suites and both builds against
+CI (`.github/workflows/ci.yml`) runs lint, typecheck, all three suites and both builds against
 a Postgres 16 service on every push and PR to `main`.
 
 ## Deployment
@@ -138,7 +147,10 @@ live. A 500 there means the deployment is missing production environment variabl
 Sign-in is restricted to `@scu.edu` accounts. Invited external reviewers can be allowed
 individually through the server-side `GUEST_REVIEWER_EMAILS` allowlist — see
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Uploaded Academic Progress Reports live in
-private object storage behind owner checks; they are never publicly addressable.
+private object storage behind owner checks; they are never publicly addressable, and
+planning pages receive a grade-free projection of them
+([docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md),
+[docs/APR_SIDEBAR_AND_RECONCILIATION.md](docs/APR_SIDEBAR_AND_RECONCILIATION.md)).
 
 ## Workday integration
 
@@ -148,7 +160,11 @@ Workday password. Academic-record data comes from the report a student uploads
 themselves; schedule data comes from the Registrar's published and tentative schedules.
 
 [docs/WORKDAY_INTEGRATION.md](docs/WORKDAY_INTEGRATION.md) documents what SCU would need
-to provide before a real read-only integration could exist.
+to provide before a real read-only integration could exist. Live seat availability
+(Open Sections / All Sections) has a complete provider layer that is switched off until
+SCU names a supported source: [docs/SECTION_AVAILABILITY.md](docs/SECTION_AVAILABILITY.md).
+How Core areas (CTW, Advanced Writing, C&I…) are defined and traced to the bulletin:
+[docs/CORE_AREAS.md](docs/CORE_AREAS.md).
 
 ## Planning major vs. university record
 

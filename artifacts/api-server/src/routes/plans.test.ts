@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import express from "express";
 import request from "supertest";
-import { inArray, eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 
 vi.mock("../middlewares/requireAuth", () => ({
   requireAuth: (req: any, res: any, next: any) => {

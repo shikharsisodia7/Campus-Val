@@ -62,6 +62,147 @@ never flagged. Quarter Plan compares against the student's declared
 `profile.major` (it has no single "active plan" concept the way Degree Plan
 does).
 
+## 2026-09-19 pass — the APR as a verifiable text copy, beside the plan
+
+The professor's follow-up: the APR should be **readily visible while planning**
+(Degree Plan, Tentative Degree Plan, Quarter Plan), presented as a conservative,
+structured *copy of what Workday says* the student can check against the
+original — not an opaque CampusVal verdict — and never with grades by default.
+
+### What the student sees (`AprStructuredView`, one component for the sidebar AND the APR page)
+
+1. A four-number tally — **Completed · In progress · Remaining · Verify in Workday** —
+   and an **All / Still needed** toggle (the "what do I still need?" view).
+2. Requirements in planning order: **University Core → School / College Core → Major →
+   Minor → Other requirements**, each group under Workday's *own* heading (the kind is only used to
+   order them; names are never rewritten). The sidebar opens only groups that still
+   have something outstanding.
+3. **Other university requirements** — the GPA/etc. rows Workday repeats under every
+   program, shown once.
+4. **Units** — the total-units and upper-division-units rows *when the report states
+   them*, in Workday's words ("Workday requires 175", "Remaining, as Workday prints it:
+   Minimum 44.5 Unit(s)" — the Remaining text is quoted, not interpreted). If the report prints
+   none, the panel says so instead of inventing a figure.
+5. **Courses listed on your report** — completed and in-progress, code + title only.
+6. **N items to verify in Workday** — anything the parser could not classify, and
+   course-like tokens not in the catalog. These are *not* treated as completed or
+   remaining. The APR page also shows the line as Workday printed it.
+
+Status is always an icon **and** a text label; color only reinforces it.
+Grades: absent from the sidebar, absent by default on the APR page (explicit "Show
+grades" toggle). See `SECURITY_AND_PRIVACY.md` for why the sidebar cannot receive them.
+
+### Data model (parser `hierarchical-v4`)
+
+Additive and backward compatible; every new field is optional.
+
+| Field | Meaning |
+| --- | --- |
+| `groups[].kind` | `core \| major \| minor \| other`, from the heading (display order only) |
+| `groups[].order`, `requirements[].order` | Position in the source document |
+| `requirements[].scope` | `university` (repeated under every program) or `program` |
+| `requirements[].unit`, `requiredUnits`, `detail` | Only when the row itself states a units requirement |
+| `requirements[].sourceText` | The source line (full view only; stripped from the planning view) |
+| `summary.totalUnits` / `upperDivisionUnits` / `creditsEarned` | Lifted from those rows / an exact "Cumulative Credits Earned" label; **absent when the report does not print them** |
+| `requirements[].remaining` | The row's **Remaining** column, verbatim ("Minimum 1 Course(s)", "Minimum 44 Unit(s)", "Minimum Combination Required", "Minimum Activities: 1"); never computed |
+| `requirements[].category` | `core` (University Core rows, "Core: LSB: CTW 1") or `college` (a school's own Core rows) — regrouped for display, see below |
+| `courses[].period`, `inProgress`, `transfer` | The row's Academic Period text; "(In Progress)" / "(Transfer Credit)" flags |
+| `declaredMajors`, `declaredMinors` | The list in the report header, exactly as Workday prints it — used to reconcile against the planning major (match on **any** declared major) |
+| `reportDate`, `lastEvaluated` | ISO dates printed on the report |
+
+### The real Workday layout (v4) — what the first parser could not read
+
+The original parser was built against a simplified export. A real Workday APR, once its
+PDF text is extracted, is a **wrapped table flattened to one cell per line**, and reading
+it needs a small state machine (`lib/progress-report-workday-table.ts`), not a line
+classifier:
+
+- Requirement names, course titles and the Remaining cell wrap across several lines, and
+  "(In Progress)" itself can split across two lines.
+- The status word sits after the name — sometimes on the same line as both the name and
+  the first course (`Core: LSB: CTW 1 Satisfied ENGL 1A - Critical`).
+- **University Core rows live inside a major's block**, not under a heading of their own.
+  Blocks in the same school repeat the same rows; a major in a *different* school brings
+  that school's own set (a real two-major report showed `Core: LSB: …` in one major's block and a
+  different `Core: CAS: …` set in the other's). The view model
+  (`regroupForDisplay`) lifts them into one group per Core tag Workday printed —
+  *University Core (LSB)*, *University Core (CAS)* — plus one group per school's own
+  Core section, each row once, and tallies count each once. Different schools' Core is
+  **never merged**, and two rows that ever disagreed about the same requirement are both
+  kept — one is never silently chosen.
+- Every page repeats furniture (`View My Academic Progress 12:37 PM`, the column headers);
+  it is stripped before reading.
+- The Remaining cell is recognised by its exact shapes rather than "up to the next
+  keyword", so a wrapped cell can never swallow the next row.
+
+The layout is only used when the text carries Workday's `Requirement Status Remaining`
+header **and** `Program of Study GPA`; anything else (including spreadsheets) stays on the
+line-based reader. Validated against a real SCU APR: 9 program blocks, 118 requirement
+rows, both majors and all six minors declared in the header, 175-unit and 60-upper-division
+rows with their Remaining text, and no unit, grade or period lost. The committed fixture
+(`__fixtures__/progress-report/workday-apr-table-layout.txt`) is **synthetic** — invented
+student, terms and grades, same layout — so no real record is in the repo.
+
+Known limit, stated rather than hidden: a few real SCU courses (for example ENGL 2A,
+TESP 4) are simply not in CampusVal's catalog. They are listed under "verify in Workday
+— not in the CampusVal catalog" instead of being counted or guessed at. Transfer credit
+with no SCU course (TRCR 1 …) is shown on its requirement but never becomes a "possible
+course".
+
+**Existing uploads need no migration script.** A record stored by an older parser
+version is reparsed from its still-stored original file on the next read
+(`reparseIfStale`), transparently and best-effort; if the original is gone the old
+parse is served as-is and the UI degrades gracefully (all new fields optional). This
+is tested with a real upload, a doctored legacy row, and a deleted original.
+
+### Student mappings — matching an item CampusVal could not recognize
+
+Some real report items are simply not in CampusVal's catalog (for example a course the
+catalog does not carry). They appear under **items to verify in Workday**. On the APR
+page each one has **Match to a catalog course**: a labelled search over the CampusVal
+catalog (two characters to start, debounced, results only from the catalog), pick one,
+and it is saved. You can **Change** or **Remove** it later.
+
+What a mapping is: *your own note*. It is stored in its own table
+(`progress_report_mappings`, one row per student and report code), never inside the
+uploaded file or its parse, so re-uploading or reparsing does not disturb it and deleting
+the report deletes it. What it is not: Workday's record. It never changes what counts as
+completed, never touches the Degree Plan, and is never shared with advisors.
+
+How it shows: the item leaves the amber "verify" list (and its count) and appears under
+**Matched by you**, worded as "Workday has not confirmed them, and they do not count as
+completed"; the requirement row that lists that course says "matched by you to X (your
+note, not Workday's)". The Degree/Tentative/Quarter Plan sidebar shows the same section
+read-only; editing happens only on the APR page.
+
+API: `GET /progress-report/mappings`, `PUT|DELETE /progress-report/mappings/:rawCode`. The
+server accepts a mapping only for a code the student's *current* report lists as
+unmatched, onto a course that exists in the catalog; it normalizes both codes and derives
+the user from the session.
+
+**Deploying it needs migration `0001`** (adds the one table). It is purely additive, so
+per `SCU_DEPLOYMENT.md` run migrations before starting the new version; the previous app
+version keeps working against the new schema.
+
+### States (every one renders something useful — never blank)
+
+None uploaded · loading · uploads not configured · processing (`pending`) · failed ·
+unsupported format · read but nothing recognizable · ready · ready **with items to
+verify** · ready but **the original file is no longer readable** (server-checked with
+`?checkSource=true`) · load error (retry + link to the APR page) · unauthorized viewer.
+Replace is confirmed before it discards the old report, and the page shows the upload
+phases ("Preparing… Uploading… Processing…").
+
+### Where it lives
+
+- Desktop (`xl` and up): a permanent right-hand column on all three planning pages.
+- Below `xl`: one shared drawer, `AprReferenceSheet` (Radix dialog: labelled trigger,
+  focus trap, Escape closes, focus returns to the trigger, scrolls inside the drawer so
+  the plan behind it is untouched). Degree Plan, Tentative Degree Plan and Quarter Plan
+  all use this same component and the same `WorkdayAprPanel`.
+- Both the panel and the page derive their state from `deriveAprState`
+  (`apr-model.ts`), so they cannot disagree about what "processed" means.
+
 ## What was already correct and untouched
 
 - The parser (`progress-report-parser.ts`) already never fabricates: unknown

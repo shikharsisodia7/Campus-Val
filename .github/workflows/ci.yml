@@ -42,11 +42,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        # Correctness rules only (hooks order, unused code, duplicate keys...);
+        # formatting is Prettier's and types are the typecheck's. See eslint.config.mjs.
+        run: pnpm run lint
+
       - name: Typecheck
         run: pnpm run typecheck
 
+      - name: Schema changes must ship with a migration
+        # Regenerates migrations from lib/db/src/schema; if that produces any
+        # new file or diff, the schema was changed without `pnpm db:generate`.
+        run: |
+          pnpm --filter @workspace/db run generate
+          git diff --exit-code -- lib/db/drizzle
+          test -z "$(git ls-files --others --exclude-standard -- lib/db/drizzle)"
+
       - name: Push DB schema
         run: pnpm --filter @workspace/db run push
+
+      - name: Migrations apply cleanly to an empty database
+        run: |
+          pnpm --filter @workspace/api-server run build
+          PGPASSWORD=campusval psql -h localhost -U campusval -d postgres -c "create database migration_check"
+          DATABASE_URL=postgresql://campusval:campusval@localhost:5432/migration_check node artifacts/api-server/dist/migrate.mjs
 
       - name: API server tests
         run: pnpm --filter @workspace/api-server run test
@@ -64,3 +83,19 @@ jobs:
 
       - name: Build API server
         run: pnpm --filter @workspace/api-server run build
+
+      - name: Boot the production bundle and check health/readiness
+        # The same start command SCU would use. Proves the bundle starts with a
+        # valid environment, serves the web app, and reports DB readiness.
+        run: |
+          NODE_ENV=production PORT=18080             CLERK_SECRET_KEY=sk_test_ci_placeholder             CLERK_PUBLISHABLE_KEY=pk_test_ZHVtbXkuY2xlcmsuYWNjb3VudHMuZGV2JA             node artifacts/api-server/dist/index.mjs > /tmp/server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:18080/api/healthz && break; sleep 1; done
+          curl -fsS http://127.0.0.1:18080/api/healthz
+          curl -fsS http://127.0.0.1:18080/api/readyz
+          curl -fsS http://127.0.0.1:18080/ | grep -q 'id="root"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/progress-report)" = "401"
+
+      - name: A misconfigured server refuses to start, naming the variable
+        run: |
+          ! env -i PATH="$PATH" NODE_ENV=production node artifacts/api-server/dist/index.mjs 2> /tmp/cfg.err
+          grep -q "DATABASE_URL" /tmp/cfg.err

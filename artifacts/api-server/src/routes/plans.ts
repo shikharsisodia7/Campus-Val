@@ -26,7 +26,6 @@ import { buildRequirementsResponse } from "./requirements";
 
 const router: IRouter = Router();
 
-const TERMS = new Set(["fall", "winter", "spring", "summer"]);
 const PLAN_TERMS = new Set(["fall", "winter", "spring", "summer", "completed"]);
 const MIN_ACADEMIC_YEAR = 2000;
 const MAX_ACADEMIC_YEAR = 2100;

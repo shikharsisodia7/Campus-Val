@@ -1,4 +1,5 @@
 import type { PrivateObjectStorage } from "./types";
+import { isStorageProviderConfigured, resolveStorageProvider } from "../config";
 
 export { ObjectNotFoundError } from "./types";
 export type { PrivateObjectStorage, UploadTarget, StorageMetadata, DownloadedObject } from "./types";
@@ -12,18 +13,24 @@ let cached: PrivateObjectStorage | null = null;
  * checkout with no storage provisioned.
  */
 export function isPrivateStorageConfigured(): boolean {
-  if (process.env.VERCEL) {
-    return !!process.env.BLOB_READ_WRITE_TOKEN;
-  }
-  return !!process.env.PRIVATE_OBJECT_DIR;
+  return isStorageProviderConfigured();
+}
+
+/** Test seam: drop the memoised provider so a changed environment is re-read. */
+export function resetPrivateObjectStorageForTests(): void {
+  cached = null;
 }
 
 /**
- * Selects the private object storage provider for the current runtime.
- * - Vercel (process.env.VERCEL is set automatically by the platform):
- *   Vercel Blob, private access, signed per-pathname URLs.
- * - Everything else (local dev, Replit): the Replit object-storage sidecar,
- *   unchanged from before the Vercel migration.
+ * Selects the private object storage provider for the current runtime
+ * (see `resolveStorageProvider` in ../config for the exact rules):
+ *   - "vercel-blob": Vercel Blob, private access, signed per-pathname URLs.
+ *   - "local": a private directory on the host's filesystem (universities,
+ *     VMs, containers with a persistent volume) — no cloud dependency.
+ *   - "replit": the original Replit object-storage sidecar.
+ * An explicit PRIVATE_STORAGE_PROVIDER always wins; otherwise the platform
+ * is inferred (VERCEL → blob, PRIVATE_STORAGE_DIR → local, PRIVATE_OBJECT_DIR
+ * → replit), which is exactly the pre-existing behaviour.
  *
  * Providers are loaded via dynamic import (not a static top-level import) so
  * that only the provider actually selected pulls in its dependencies —
@@ -33,9 +40,17 @@ export function isPrivateStorageConfigured(): boolean {
 export async function getPrivateObjectStorage(): Promise<PrivateObjectStorage> {
   if (cached) return cached;
 
-  if (process.env.VERCEL) {
+  const provider = resolveStorageProvider();
+
+  if (provider === "vercel-blob") {
     const { VercelBlobObjectStorageProvider } = await import("./vercelBlobProvider");
     cached = new VercelBlobObjectStorageProvider();
+    return cached;
+  }
+
+  if (provider === "local") {
+    const { LocalFilesystemObjectStorageProvider } = await import("./localProvider");
+    cached = new LocalFilesystemObjectStorageProvider();
     return cached;
   }
 

@@ -6,14 +6,15 @@ import {
   useGetDegreeRequirements,
   useGetScheduleAvailability,
   useListCourses,
-  useGetProgressReport,
   useCreatePlan,
   getGetPlanQueryKey,
 } from "@workspace/api-client-react";
 import { DegreePlanProvider } from "./DegreePlanContext";
+import { usePlanningProgressReport } from "@/hooks/use-planning-progress-report";
 import { Palette } from "./Palette";
 import { Board } from "./Board";
 import { ContextPanel } from "./ContextPanel";
+import { AprReferenceSheet } from "@/components/progress-report/AprReferenceSheet";
 import { DegreePlanToolbar } from "./DegreePlanToolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,6 @@ import {
 import {
   AlertTriangle,
   Menu,
-  Settings2,
   FlaskConical,
   Plus,
 } from "lucide-react";
@@ -42,7 +42,6 @@ export function DegreePlanWorkspace({
   const queryClient = useQueryClient();
 
   const [leftOpen, setLeftOpen] = useState(false);
-  const [rightOpen, setRightOpen] = useState(false);
 
   const createPlan = useCreatePlan();
   const [creating, setCreating] = useState(false);
@@ -174,7 +173,7 @@ export function DegreePlanWorkspace({
   );
   const { data: scheduleAvailability } = useGetScheduleAvailability();
   const { data: catalog } = useListCourses({});
-  const { data: reportData } = useGetProgressReport();
+  const { data: reportData } = usePlanningProgressReport();
 
   const degreePlan = plansList?.plans.find((p) => p.planType === "degree");
 
@@ -306,28 +305,10 @@ export function DegreePlanWorkspace({
           {activePlan?.name}
         </div>
 
-        <Sheet open={rightOpen} onOpenChange={setRightOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Settings2 className="mr-2 h-4 w-4" /> Progress Report
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side="right"
-            className="flex w-[min(20rem,90vw)] flex-col p-0"
-            onEscapeKeyDown={() => setRightOpen(false)}
-            onPointerDownOutside={() => setRightOpen(false)}
-          >
-            <SheetTitle className="sr-only">Academic Progress</SheetTitle>
-            {/* pt-9 keeps ContextPanel's own heading clear of the Sheet's
-                built-in close (X) button at top-4 right-4. Plan Controls no
-                longer lives in this column, but the heading still needs the
-                offset so the close button stays clickable. */}
-            <div className="min-h-0 flex-1 pt-9">
-              <ContextPanel />
-            </div>
-          </SheetContent>
-        </Sheet>
+        {/* The same shared drawer Quarter Plan uses — see AprReferenceSheet. */}
+        <AprReferenceSheet>
+          <ContextPanel />
+        </AprReferenceSheet>
       </div>
 
       <DegreePlanToolbar plans={plansList?.plans ?? []} mode={mode} />

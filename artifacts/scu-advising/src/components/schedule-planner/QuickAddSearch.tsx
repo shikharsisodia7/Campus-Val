@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useSearchCourses, useListCourseSections, useAddScheduleEvent, useUpdateScheduleEvent, getSearchCoursesQueryKey, getListCourseSectionsQueryKey } from "@workspace/api-client-react";
+import { useSearchCourses, useListCourseSections, useAddScheduleEvent, useUpdateScheduleEvent, useGetSectionAvailabilityStatus, getSearchCoursesQueryKey, getListCourseSectionsQueryKey, getGetSectionAvailabilityStatusQueryKey } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,15 @@ import { Loader2, Search, Plus, Calendar, MapPin, Users, AlertCircle, ArrowLeftR
 import { useDebounce } from "@/hooks/use-debounce";
 import { useScheduleWorkspace } from "./useScheduleWorkspace";
 import { format12 } from "./utils";
+import {
+  bannerFor,
+  countByStatus,
+  freshnessLine,
+  passesAvailabilityView,
+  sourceChip,
+  type AvailabilityView,
+  type BannerState,
+} from "./availability-ui";
 import { useToast } from "@/hooks/use-toast";
 
 /**
@@ -40,24 +49,6 @@ const AVAILABILITY_BADGE: Record<
   unknown: { label: "UNKNOWN", classes: "border-border text-muted-foreground bg-muted/30" },
 };
 
-type AvailabilityFilter = "all" | "open" | "open_waitlist";
-
-const AVAILABILITY_FILTER_OPTIONS: { value: AvailabilityFilter; label: string }[] = [
-  { value: "all", label: "Show all sections" },
-  { value: "open_waitlist", label: "Show open + waitlist" },
-  { value: "open", label: "Show open only" },
-];
-
-function passesAvailabilityFilter(
-  status: "open" | "waitlist" | "full" | "unknown",
-  filter: AvailabilityFilter,
-): boolean {
-  if (filter === "all") return true;
-  if (filter === "open") return status === "open" || status === "unknown";
-  // open_waitlist
-  return status !== "full";
-}
-
 function groupByComponent<T extends { componentType?: string | null }>(
   sections: T[],
 ): Array<{ component: string; sections: T[] }> {
@@ -90,8 +81,8 @@ export function QuickAddSearch({
   const debouncedQuery = useDebounce(query, 250);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   // Conservative default: never hide a section from a student by default —
-  // "all" is the only choice that can't cause a student to miss an option.
-  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>("all");
+  // "All Sections" is the only choice that can't cause a student to miss an option.
+  const [availabilityView, setAvailabilityView] = useState<AvailabilityView>("all");
 
   // Apply initialCourse the first time it arrives or changes
   const prevInitialCourse = useRef<string | null | undefined>(undefined);
@@ -126,6 +117,21 @@ export function QuickAddSearch({
     sectionsParams,
     { query: { enabled: !!selectedCourse && !!workspace.activeTerm && !!workspace.activeYear, queryKey: getListCourseSectionsQueryKey(selectedCourse!, sectionsParams) } }
   );
+
+  // What the header may say about seat data for this quarter (live / cached /
+  // not connected …). Failure to load it must never affect planning: the
+  // banner simply falls back to the conservative "not connected" wording.
+  const statusParams: any = {
+    term: workspace.activeTerm!,
+    year: workspace.activeYear!,
+  };
+  const { data: availabilityStatus } = useGetSectionAvailabilityStatus(statusParams, {
+    query: {
+      enabled: !!selectedCourse && !!workspace.activeTerm && !!workspace.activeYear,
+      queryKey: getGetSectionAvailabilityStatusQueryKey(statusParams),
+      refetchInterval: 60_000,
+    },
+  });
 
   const addMut = useAddScheduleEvent();
   const updateMut = useUpdateScheduleEvent();
@@ -212,7 +218,10 @@ export function QuickAddSearch({
   };
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    // No fixed height: the tab body (SidebarPanels) is the single scroll
+    // container, so the results are as tall as they need to be instead of the
+    // sliver left over beneath the controls.
+    <div className="flex flex-col gap-4" data-testid="quick-add-search">
       <div>
         <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
           <Search className="h-4 w-4 text-primary" />
@@ -235,7 +244,7 @@ export function QuickAddSearch({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1">
         {!debouncedQuery ? (
           <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground p-4">
             <Search className="h-8 w-8 mb-2 opacity-20" />
@@ -291,36 +300,93 @@ export function QuickAddSearch({
               </div>
             ) : (
               <div className="space-y-5">
-                <div className="flex items-center justify-between gap-2">
-                  <label htmlFor="availability-filter" className="text-[11px] text-muted-foreground">
-                    Availability
-                  </label>
-                  <select
-                    id="availability-filter"
-                    data-testid="select-availability-filter"
-                    value={availabilityFilter}
-                    onChange={(e) => setAvailabilityFilter(e.target.value as AvailabilityFilter)}
-                    className="h-7 rounded-md border border-input bg-background px-2 text-[11px]"
-                  >
-                    {AVAILABILITY_FILTER_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {sections.filter((s) => passesAvailabilityFilter(s.availabilityStatus, availabilityFilter)).length === 0 && (
-                  <div
-                    className="text-center p-3 text-xs text-muted-foreground bg-muted/30 rounded-md"
-                    data-testid="availability-filter-empty"
-                  >
-                    No sections match this filter. Closed/full sections stay
-                    listed under "Show all sections" — CampusVal never hides
-                    them permanently.
-                  </div>
-                )}
+                {(() => {
+                  const banner = bannerFor(
+                    ((availabilityStatus?.state as BannerState | undefined) ?? "not_connected"),
+                    availabilityStatus?.lastUpdatedAt,
+                  );
+                  const counts = countByStatus(sections);
+                  const known = counts.open + counts.waitlist + counts.full;
+                  const openDisabled = known === 0;
+                  const shown = sections.filter((x) => passesAvailabilityView(x.availabilityStatus, availabilityView));
+                  return (
+                    <>
+                      <div
+                        className={`rounded-md border px-2.5 py-2 text-[11px] ${
+                          banner.tone === "good"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                            : banner.tone === "warn"
+                              ? "border-amber-200 bg-amber-50 text-amber-900"
+                              : "border-border bg-muted/30 text-muted-foreground"
+                        }`}
+                        role="status"
+                        data-testid="availability-banner"
+                        data-state={availabilityStatus?.state ?? "not_connected"}
+                      >
+                        {banner.text}
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span id="availability-view-label" className="text-[11px] text-muted-foreground">
+                            Section availability
+                          </span>
+                          <div
+                            role="group"
+                            aria-labelledby="availability-view-label"
+                            className="inline-flex rounded-md border border-border p-0.5 text-[11px]"
+                            data-testid="availability-view"
+                          >
+                            {(
+                              [
+                                ["all", "All Sections"],
+                                ["open", "Open Sections"],
+                              ] as const
+                            ).map(([value, label]) => {
+                              const disabled = value === "open" && openDisabled;
+                              return (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  aria-pressed={availabilityView === value}
+                                  disabled={disabled}
+                                  onClick={() => setAvailabilityView(value)}
+                                  data-testid={`availability-view-${value}`}
+                                  className={`rounded px-2.5 py-1 font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 ${
+                                    availabilityView === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        {openDisabled && (
+                          <p className="text-[10px] text-muted-foreground" data-testid="open-sections-unavailable">
+                            Open Sections needs seat data for this quarter, which isn't available yet — all sections are shown.
+                          </p>
+                        )}
+                        {!openDisabled && availabilityView === "open" && counts.unknown > 0 && (
+                          <p className="text-[10px] text-muted-foreground" data-testid="open-sections-unknown-note">
+                            {counts.unknown} section{counts.unknown === 1 ? " has" : "s have"} unknown availability and
+                            {counts.unknown === 1 ? " is" : " are"} still shown — CampusVal only hides sections it knows are full or waitlisted.
+                          </p>
+                        )}
+                      </div>
+                      {shown.length === 0 && (
+                        <div
+                          className="text-center p-3 text-xs text-muted-foreground bg-muted/30 rounded-md"
+                          data-testid="availability-filter-empty"
+                        >
+                          No open sections right now. Full and waitlisted sections stay listed under "All Sections" —
+                          CampusVal never hides them permanently.
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                 {groupByComponent(
-                  sections.filter((s) => passesAvailabilityFilter(s.availabilityStatus, availabilityFilter)),
+                  sections.filter((x) => passesAvailabilityView(x.availabilityStatus, availabilityView)),
                 ).map(({ component, sections: group }) => (
                   <div key={component} data-testid={`section-group-${component}`}>
                     <div className="mb-2 flex items-baseline gap-2">
@@ -350,6 +416,24 @@ export function QuickAddSearch({
                         {sec.tentative && (
                           <Badge variant="secondary" className="text-[10px]">Tentative</Badge>
                         )}
+                        {(() => {
+                          const chip = sourceChip(sec);
+                          return chip ? (
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] font-semibold ${
+                                chip.tone === "good"
+                                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                                  : chip.tone === "warn"
+                                    ? "border-amber-300 bg-amber-50 text-amber-900"
+                                    : "border-border text-muted-foreground"
+                              }`}
+                              data-testid={`availability-source-${sec.sectionNumber}`}
+                            >
+                              {chip.label}
+                            </Badge>
+                          ) : null;
+                        })()}
                         <Badge
                           variant="outline"
                           className={`text-[10px] font-semibold ${AVAILABILITY_BADGE[sec.availabilityStatus].classes}`}
@@ -389,9 +473,7 @@ export function QuickAddSearch({
                         </div>
                       )}
                       <div className="text-[10px] opacity-70" data-testid={`freshness-${sec.sectionNumber}`}>
-                        {sec.lastUpdatedAt
-                          ? `Updated ${new Date(sec.lastUpdatedAt).toLocaleDateString()} (${sec.sourceLabel})`
-                          : sec.sourceLabel}
+                        {freshnessLine(sec)}
                       </div>
                     </div>
                     {(sec.availabilityStatus === "waitlist" || sec.availabilityStatus === "full") && (

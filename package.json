@@ -6,14 +6,24 @@
   "scripts": {
     "preinstall": "node scripts/ensure-pnpm.mjs",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "lint": "eslint . --max-warnings 0",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "db:generate": "pnpm --filter @workspace/db run generate",
+    "db:migrate": "node artifacts/api-server/dist/migrate.mjs",
+    "start": "node --enable-source-maps artifacts/api-server/dist/index.mjs",
+    "build:server": "pnpm --filter @workspace/scu-advising run build && pnpm --filter @workspace/api-server run build",
     "vercel-build": "pnpm --filter @workspace/scu-advising run build && node artifacts/scu-advising/scripts/postbuild-seo.mjs && pnpm --filter @workspace/api-server run build"
   },
   "private": true,
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.12.0",
     "prettier": "^3.8.1",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.70.0"
   },
   "pnpm": {
     "overrides": {

@@ -44,6 +44,7 @@ import { useScheduleAvailabilityWarnings } from "@/components/schedule-planner/u
 import { SidebarPanels } from "@/components/schedule-planner/SidebarPanels";
 import { CourseDetailsDialog } from "@/components/schedule-planner/CourseDetailsDialog";
 import { WorkdayAprPanel } from "@/components/progress-report/WorkdayAprPanel";
+import { AprReferenceSheet } from "@/components/progress-report/AprReferenceSheet";
 import { ScheduleEvent } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTrackUsage } from "@/hooks/use-track-usage";
@@ -273,6 +274,15 @@ export default function Planner() {
           showQuarterSelect={false}
         />
 
+        {/* Below `xl` the APR has no room beside the plan, so it opens in the
+            same shared drawer Degree Plan uses (AprReferenceSheet) instead of
+            stacking above the planning content. */}
+        <div className="flex justify-end xl:hidden" data-testid="quarter-plan-apr-drawer-bar">
+          <AprReferenceSheet>
+            <WorkdayAprPanel planningMajorTitle={planningMajorTitle} />
+          </AprReferenceSheet>
+        </div>
+
         {/* Three columns at laptop width and up:
               Find Courses | weekly calendar | Academic Progress Report.
             The professor asked for Find Courses to be immediately visible
@@ -295,7 +305,7 @@ export default function Planner() {
               simply stacks with the page (no height cap), which is what
               keeps this safe down to 768px-tall and mobile viewports. */}
           <div
-            className="order-2 flex min-w-0 flex-col gap-3 xl:order-1 xl:h-[calc(100vh-18rem)]"
+            className="order-2 flex min-w-0 flex-col gap-3 xl:order-1 xl:h-[calc(100vh-8rem)] xl:min-h-[34rem]"
             data-testid="quarter-plan-search-column"
           >
             <div className="shrink-0">
@@ -314,6 +324,7 @@ export default function Planner() {
                   workspace={workspace}
                   initialCourse={intentionCourse}
                   onInitialCourseConsumed={() => setIntentionCourse(null)}
+                  onFindSections={handleFindSections}
                 />
               </div>
             ) : (
@@ -498,7 +509,7 @@ export default function Planner() {
               Plan — "this window should look just like the same window
               each time." Carries nothing else. */}
           <div
-            className="order-1 flex min-w-0 flex-col gap-3 xl:order-3 xl:h-[calc(100vh-18rem)]"
+            className="hidden min-w-0 flex-col gap-3 xl:order-3 xl:flex xl:h-[calc(100vh-8rem)] xl:min-h-[34rem]"
             data-testid="quarter-plan-apr-column"
           >
             <WorkdayAprPanel planningMajorTitle={planningMajorTitle} />

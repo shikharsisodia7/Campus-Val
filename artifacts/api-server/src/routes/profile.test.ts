@@ -1,7 +1,7 @@
 /**
  * Profile route validation: invalid bodies must return 400, not 500.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, afterAll, vi } from "vitest";
 import express from "express";
 import request from "supertest";
 import { eq } from "drizzle-orm";

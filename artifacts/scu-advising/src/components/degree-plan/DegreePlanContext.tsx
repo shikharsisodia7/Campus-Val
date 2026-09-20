@@ -1,13 +1,5 @@
-import { createContext, useContext, ReactNode, useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { 
-  AcademicPlanDetail, 
-  PlanItem, 
-  StudentProfile, 
-  RequirementGroup, 
-  ScheduleAvailability,
-  Course
-} from "@workspace/api-client-react";
+import { createContext, useContext, ReactNode } from "react";
+import { AcademicPlanDetail, StudentProfile, RequirementGroup, ScheduleAvailability, Course } from "@workspace/api-client-react";
 
 type DegreePlanContextType = {
   activePlan: AcademicPlanDetail | undefined;

@@ -671,9 +671,9 @@ const CORE_CIV: CoreSlot = "Core: Civic Engagement";
 
 // LSB curriculum substitutions
 const LSB_ETHICS: CoreSlot = "MGMT 6";          // satisfies Ethics
-const LSB_CIVIC: CoreSlot = "MGMT 162";          // satisfies Civic Engagement (capstone)
+// (MGMT 162 satisfies Civic Engagement and ECON 1 satisfies Social Science in the LSB curriculum;
+// neither is currently used as a slot substitution in the four-year template below.)
 const LSB_STS: CoreSlot = "OMIS 34";              // satisfies STS
-const LSB_SS: CoreSlot = "ECON 1";                // satisfies Social Science
 const LSB_ADVWR: CoreSlot = "BUSN 179";          // Advanced Writing
 
 // SOE curriculum: typically uses general Core slots + ENGR 1 series.

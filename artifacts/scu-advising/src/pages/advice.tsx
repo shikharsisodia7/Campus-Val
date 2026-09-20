@@ -16,12 +16,7 @@ import {
   Search,
 } from "lucide-react";
 
-import {
-  ADVICE_TIPS,
-  TIP_SOURCE_META,
-  type AdviceTip,
-  type TipCategory,
-} from "@/data/advice-tips";
+import { ADVICE_TIPS, TIP_SOURCE_META, type TipCategory } from "@/data/advice-tips";
 
 const CATEGORY_META: Record<
   TipCategory,

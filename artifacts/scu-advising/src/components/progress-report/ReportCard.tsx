@@ -26,10 +26,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Separator } from "@/components/ui/separator";
 import type { ProgressReport } from "@workspace/api-client-react";
 import { formatBytes } from "./UploadZone";
-import { RequirementGroupList } from "./RequirementGroupList";
+import { AprStructuredView } from "./AprStructuredView";
+import { useProgressReportMappings } from "@/hooks/use-progress-report-mappings";
+import { AprStateNotice } from "./AprStateNotice";
+import { deriveAprState } from "./apr-model";
 
 interface ReportCardProps {
   report: ProgressReport;
@@ -96,6 +98,15 @@ export function ReportCard({ report, onDelete, onReplace, isDeleting }: ReportCa
     timeStyle: "short",
   });
 
+  // The same state derivation the planning sidebar uses, so both agree on
+  // what "processed", "failed", "still processing" and "nothing readable" mean.
+  const state = deriveAprState({
+    isLoading: false,
+    envelope: { available: true, report },
+    error: null,
+  });
+  const sourceMissing = report.sourceFile === "missing";
+
   return (
     <div className="space-y-4">
       {/* Read-only banner */}
@@ -128,16 +139,32 @@ export function ReportCard({ report, onDelete, onReplace, isDeleting }: ReportCa
           <ParseStatusBadge status={report.parseStatus} />
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid="link-view-file"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+        {sourceMissing && (
+          <div
+            role="alert"
+            data-testid="alert-source-missing"
+            className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
           >
-            <ExternalLink className="h-4 w-4" /> View original file
-          </a>
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>
+              The original file can no longer be read from storage. The summary below is what
+              CampusVal already extracted; replace the report to view the original again.
+            </span>
+          </div>
+        )}
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {!sourceMissing && (
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-view-file"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" /> View original file
+            </a>
+          )}
 
           <AlertDialog open={confirmReplace} onOpenChange={setConfirmReplace}>
             <AlertDialogTrigger asChild>
@@ -205,9 +232,21 @@ export function ReportCard({ report, onDelete, onReplace, isDeleting }: ReportCa
         </div>
       </Card>
 
-      {/* Parsed view */}
-      {report.parseStatus === "parsed" && report.parsed && (
-        <ParsedView parsed={report.parsed} />
+      {/* Structured, verifiable text representation of the report */}
+      {state.kind === "ready" && <ParsedView parsed={state.parsed} />}
+
+      {/* Still processing, or read but nothing recognizable */}
+      {(state.kind === "pending" || state.kind === "no_structure") && (
+        <Card className="p-5 text-sm" data-testid="card-apr-state">
+          <AprStateNotice state={state} onAprPage />
+          {report.parsed?.notes && report.parsed.notes.length > 0 && (
+            <ul className="mt-2 list-disc pl-5 space-y-0.5 text-xs text-muted-foreground" data-testid="list-parse-notes">
+              {report.parsed.notes.map((note, i) => (
+                <li key={i}>{note}</li>
+              ))}
+            </ul>
+          )}
+        </Card>
       )}
 
       {/* Unsupported / failed view */}
@@ -248,91 +287,93 @@ export function ReportCard({ report, onDelete, onReplace, isDeleting }: ReportCa
   );
 }
 
+/** "2026-09-08" → "Sep 8, 2026" without a timezone shift (the date is a calendar date, not an instant). */
+function formatIsoDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function ParsedView({ parsed }: { parsed: NonNullable<ProgressReport["parsed"]> }) {
+  // Grades stay in the stored record and the original file, but the default
+  // view — like the planning sidebar — does not display them. Showing them is
+  // an explicit, per-visit choice.
+  const [showGrades, setShowGrades] = useState(false);
+  // The student's own matches of unrecognized items — editable here, on the APR page.
+  const mappings = useProgressReportMappings();
+  const hasGrades = (parsed.groups ?? []).some((g) =>
+    g.requirements.some((r) => r.courses.some((c) => c.grade)),
+  );
+
   return (
     <div className="space-y-4" data-testid="section-parsed">
-      {/* Program */}
+      {/* Program — Workday's own header list when the report has one */}
       {parsed.program && (
         <div data-testid="text-program" className="flex items-center gap-2 text-sm">
           <BookOpen className="h-4 w-4 text-primary" />
-          <span className="text-muted-foreground">Detected program:</span>
+          <span className="text-muted-foreground">
+            {parsed.declaredMajors?.length ? "Declared major(s) on your report:" : "Detected program:"}
+          </span>
           <strong className="text-foreground">{parsed.program}</strong>
         </div>
       )}
-
-      {/* Requirement hierarchy — the primary APR experience when the document supports it */}
-      {parsed.groups && parsed.groups.length > 0 ? (
-        <Card className="p-5" data-testid="card-requirement-groups">
-          <h3 className="font-serif text-lg font-semibold mb-1">Academic requirements</h3>
-          <p className="text-xs text-muted-foreground mb-3">
-            Grouped and named the way your Workday report presents them.
-          </p>
-          <RequirementGroupList groups={parsed.groups} defaultOpen="all" />
-        </Card>
-      ) : (
-        <Card className="p-5" data-testid="card-completed-courses">
-          <h3 className="font-serif text-lg font-semibold mb-3">
-            Recognized completed courses ({parsed.completedCourses.length})
-          </h3>
-          {parsed.completedCourses.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No completed courses detected.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {parsed.completedCourses.map((course, i) => (
-                <div
-                  key={i}
-                  data-testid={`badge-course-${i}`}
-                  className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 py-1.5"
-                >
-                  <span className="font-mono text-xs font-bold text-primary">{course.code}</span>
-                  <Separator orientation="vertical" className="h-3.5" />
-                  <span className="text-xs text-foreground">{course.title}</span>
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                    {course.units}u
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+      {(parsed.declaredMinors?.length ?? 0) > 0 && (
+        <p className="text-sm text-muted-foreground" data-testid="text-declared-minors">
+          Declared minor(s):{" "}
+          <span className="font-medium text-foreground">{parsed.declaredMinors!.join(" / ")}</span>
+        </p>
+      )}
+      {(parsed.reportDate || parsed.lastEvaluated) && (
+        <p className="text-xs text-muted-foreground" data-testid="text-report-dates">
+          {parsed.reportDate && <>Report dated {formatIsoDate(parsed.reportDate)}. </>}
+          {parsed.lastEvaluated && <>Workday last evaluated the requirements on {formatIsoDate(parsed.lastEvaluated)}.</>}
+        </p>
       )}
 
-      {/* Needs review section */}
-      {(parsed.possibleCourses.length > 0 || parsed.notes.length > 0) && (
-        <Card className="p-5 border-amber-200 bg-amber-50/60" data-testid="card-needs-review">
-          <div className="flex items-center gap-2 mb-3">
-            <HelpCircle className="h-4 w-4 text-amber-700" />
-            <h3 className="font-serif text-base font-semibold text-amber-900">
-              Needs your review
-            </h3>
+      <Card className="p-5" data-testid="card-requirement-groups">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="font-serif text-lg font-semibold">Academic requirements</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              A text copy of your Workday report, grouped and named the way Workday presents it, so
+              you can check it against the original. Workday remains the official record.
+            </p>
           </div>
-          <p className="text-xs text-amber-800 mb-3">
-            These are course-like tokens the parser found but couldn't confidently match to the
-            catalog. Please verify them in Workday.
-          </p>
-
-          {parsed.possibleCourses.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3" data-testid="list-possible-courses">
-              {parsed.possibleCourses.map((c, i) => (
-                <Badge
-                  key={i}
-                  data-testid={`badge-possible-${i}`}
-                  variant="outline"
-                  className="font-mono text-xs bg-white border-amber-300 text-amber-900"
-                >
-                  {c.raw}
-                </Badge>
-              ))}
-            </div>
+          {hasGrades && (
+            <label className="flex items-center gap-2 text-xs text-muted-foreground" htmlFor="apr-show-grades">
+              <input
+                id="apr-show-grades"
+                type="checkbox"
+                checked={showGrades}
+                onChange={(e) => setShowGrades(e.target.checked)}
+                data-testid="toggle-show-grades"
+                className="h-4 w-4 rounded border-border"
+              />
+              Show grades
+            </label>
           )}
+        </div>
+        <div className="mt-4">
+          <AprStructuredView parsed={parsed} variant="page" showGrades={showGrades} mappings={mappings} editableMappings />
+        </div>
+      </Card>
 
-          {parsed.notes.length > 0 && (
-            <ul data-testid="list-parsed-notes" className="list-disc pl-5 space-y-0.5 text-xs text-amber-900/80">
-              {parsed.notes.map((note, i) => (
-                <li key={i}>{note}</li>
-              ))}
-            </ul>
-          )}
+      {/* Processing notes — what the parser left out and why */}
+      {parsed.notes.length > 0 && (
+        <Card className="p-4" data-testid="card-parse-notes">
+          <div className="mb-2 flex items-center gap-2">
+            <HelpCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <h3 className="font-serif text-sm font-semibold">Processing notes</h3>
+          </div>
+          <ul data-testid="list-parsed-notes" className="list-disc pl-5 space-y-0.5 text-xs text-muted-foreground">
+            {parsed.notes.map((note, i) => (
+              <li key={i}>{note}</li>
+            ))}
+          </ul>
         </Card>
       )}
     </div>

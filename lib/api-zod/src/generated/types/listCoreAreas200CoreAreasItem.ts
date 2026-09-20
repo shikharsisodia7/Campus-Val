@@ -8,5 +8,15 @@
 
 export type ListCoreAreas200CoreAreasItem = {
   name: string;
+  /**
+   * Short code students use ("CTW", "C&I", "AW").
+   * @nullable
+   */
+  code?: string | null;
+  /** Catalog courses carrying this Core area (0 when the catalog has no tagging for it). */
   courseCount: number;
+  /** Of courseCount, how many are stated outright in the bulletin text (the rest are department/number heuristics). */
+  catalogStatedCount?: number;
+  /** Degree-requirement item ids this area satisfies. */
+  requirementIds?: string[];
 };

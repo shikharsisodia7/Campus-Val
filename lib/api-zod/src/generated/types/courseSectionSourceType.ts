@@ -7,12 +7,14 @@
  */
 
 /**
- * Where this section's data currently comes from — never a scraped or shared feed. See docs/SECTION_AVAILABILITY.md.
+ * Where this section's availability comes from. workday_live only for a real authorized upstream feed; workday_self_paste is a manual snapshot by the data steward (never live); fixture is development sample data (never served in production); registrar_schedule means no seat data at all. See docs/SECTION_AVAILABILITY.md.
  */
 export type CourseSectionSourceType =
   (typeof CourseSectionSourceType)[keyof typeof CourseSectionSourceType];
 
 export const CourseSectionSourceType = {
+  workday_live: "workday_live",
   workday_self_paste: "workday_self_paste",
   registrar_schedule: "registrar_schedule",
+  fixture: "fixture",
 } as const;

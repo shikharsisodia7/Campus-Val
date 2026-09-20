@@ -1,4 +1,5 @@
 import rawCourses from "./courses-data.json";
+import { deriveCoreAreas, type CoreAreaTagSource } from "./core-areas";
 
 export type Term = "fall" | "winter" | "spring" | "summer";
 
@@ -10,6 +11,15 @@ export interface CourseEntry {
   units: number;
   description: string;
   coreAreas: string[];
+  /**
+   * Where each `coreAreas` tag came from: "catalog_text" (the bulletin text
+   * states it — see `coreAreaEvidence`) or "heuristic" (department/number
+   * inference; students are told to confirm). Derived at load; see
+   * data/core-areas.ts for the canonical definitions.
+   */
+  coreAreaSources?: Record<string, CoreAreaTagSource>;
+  /** For catalog_text tags, the bulletin sentence that states the designation. */
+  coreAreaEvidence?: Record<string, string>;
   offeredTerms: Term[];
   difficulty?: "easy" | "moderate" | "hard" | "very_hard";
   prereqLogic: string;
@@ -47,71 +57,11 @@ export interface CourseEntry {
 const ENGR_PREFIXES = new Set(["CSEN", "ECEN", "MECH", "CENG", "BIOE", "ENGR", "AMTH"]);
 
 /**
- * SCU Core Curriculum tagging heuristic.
- *
- * SCU's bulletin lists Core designations on individual course pages but the
- * tags weren't captured during the bulk HTML scrape. Until we re-scrape with
- * the right selector, this heuristic maps department + course-number ranges
- * to the most common Core areas based on SCU's published Core matrix:
- *   https://www.scu.edu/provost/core/courses/
- *
- * It's deliberately conservative — when in doubt we leave the tag off rather
- * than over-claim. Roughly ~25% of the catalog gets a Core tag here, which
- * matches the real proportion of Core-bearing courses at SCU. Hand-curated
- * overrides can be layered on later via a separate JSON overlay.
+ * SCU Core Curriculum tagging now lives in data/core-areas.ts (the canonical
+ * definitions, aliases, and the evidence + heuristic derivation). It combines
+ * designations the bulletin text states outright with the original
+ * department/number heuristic, and records which is which.
  */
-function inferCoreAreas(c: CourseEntry): string[] {
-  if (c.coreAreas && c.coreAreas.length > 0) return c.coreAreas;
-  const dept = c.department.toUpperCase();
-  const numMatch = c.code.match(/(\d+)/);
-  const num = numMatch ? parseInt(numMatch[1]!, 10) : 0;
-  const lower = num > 0 && num < 100;
-  const upper = num >= 100;
-  const title = c.title.toLowerCase();
-  const tags: string[] = [];
-
-  // Critical Thinking & Writing: ENGL 1A-2A
-  if (dept === "ENGL" && num >= 1 && num <= 2) tags.push("Critical Thinking & Writing");
-  // Advanced Writing: ENGL 100-level writing-tagged
-  if (dept === "ENGL" && num >= 100 && /writing|composition|rhetoric/.test(title))
-    tags.push("Advanced Writing");
-  // Cultures & Ideas 1/2: HIST, CLAS, MDVL, ARTH, MUSC history, RSOC
-  if (lower && ["HIST", "CLAS", "MDVL", "ARTH"].includes(dept))
-    tags.push("Cultures & Ideas");
-  // Religion, Theology & Culture: RSOC, SCTR, TESP all levels
-  if (["RSOC", "SCTR", "TESP"].includes(dept))
-    tags.push("Religion, Theology & Culture");
-  // Ethics: PHIL ethics-tagged or any "ethics" in title
-  if (dept === "PHIL" && /ethic/.test(title)) tags.push("Ethics");
-  if (dept !== "PHIL" && /\bethics?\b/.test(title) && upper) tags.push("Ethics");
-  // Civic Engagement: POLI 1-99, courses with "civic" or "community"
-  if (dept === "POLI" && lower) tags.push("Civic Engagement");
-  // Diversity: ETHN, WGST, courses with diversity/race/gender in title
-  if (["ETHN", "WGST"].includes(dept)) tags.push("Diversity");
-  if (/\b(diversity|race|racial|gender|queer|indigenous)\b/.test(title))
-    tags.push("Diversity");
-  // Global Cultures: foreign-language depts, anthro upper division
-  if (["CHIN", "FREN", "GERM", "ITAL", "JAPN", "SPAN", "ARAB"].includes(dept))
-    tags.push("Second Language");
-  if (dept === "ANTH" && upper) tags.push("Global Cultures");
-  // Natural Science: lower-div BIOL/CHEM/PHYS/ENVS
-  if (lower && ["BIOL", "CHEM", "PHYS", "ENVS"].includes(dept))
-    tags.push("Natural Science");
-  // Social Science: lower-div ECON/PSYC/SOCI/ANTH/POLI
-  if (lower && ["ECON", "PSYC", "SOCI", "ANTH"].includes(dept))
-    tags.push("Social Science");
-  // Arts: THTR, MUSC, ARTS, DANC
-  if (["THTR", "MUSC", "ARTS", "DANC"].includes(dept)) tags.push("Arts");
-  // Math: MATH 1-99 except linear-algebra-only
-  if (dept === "MATH" && num >= 6 && num <= 53) tags.push("Mathematics");
-  // Science, Tech & Society: ENVS upper, STS-tagged titles
-  if (/\b(science.*society|technology.*society|sustainability)\b/.test(title))
-    tags.push("Science, Technology & Society");
-  // Pathways are too varied to infer — left to manual curation.
-
-  return Array.from(new Set(tags));
-}
-
 export const COURSES: CourseEntry[] = (rawCourses as CourseEntry[]).map((c) => {
   const enriched: CourseEntry = {
     ...c,
@@ -123,7 +73,10 @@ export const COURSES: CourseEntry[] = (rawCourses as CourseEntry[]).map((c) => {
         ? ["School of Engineering"]
         : undefined,
   };
-  enriched.coreAreas = inferCoreAreas(enriched);
+  const derived = deriveCoreAreas(enriched);
+  enriched.coreAreas = derived.areas;
+  enriched.coreAreaSources = derived.sources;
+  enriched.coreAreaEvidence = derived.evidence;
   return enriched;
 });
 

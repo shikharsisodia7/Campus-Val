@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { CourseSearchResultCoursesItemCoreAreaSources } from "./courseSearchResultCoursesItemCoreAreaSources";
 
 export type CourseSearchResultCoursesItem = {
   code: string;
@@ -12,6 +13,8 @@ export type CourseSearchResultCoursesItem = {
   units: number;
   description?: string;
   coreAreas: string[];
+  /** Per Core area, whether the bulletin text states it or CampusVal inferred it from department/number. */
+  coreAreaSources?: CourseSearchResultCoursesItemCoreAreaSources;
   /**
    * Null when no quarter filter was applied.
    * @nullable

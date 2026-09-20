@@ -50,7 +50,14 @@ describe("DegreePlanWorkspace mobile sheet close controls", () => {
     // directly under the Sheet's built-in close (X) button and intercepts
     // clicks meant for it — confirmed live via a real pointer-interception
     // error during Playwright QA at 1024px.
-    expect(source).toMatch(/pt-9[\s\S]{0,40}<ContextPanel/);
+    // The drawer is the shared AprReferenceSheet (also used by Quarter Plan);
+    // it owns the top clearance, and the workspace renders ContextPanel in it.
+    const sheet = readFileSync(
+      resolve(__dirname, "../progress-report/AprReferenceSheet.tsx"),
+      "utf8",
+    );
+    expect(sheet).toMatch(/pt-9/);
+    expect(source).toMatch(/<AprReferenceSheet>\s*<ContextPanel \/>/);
   });
 });
 

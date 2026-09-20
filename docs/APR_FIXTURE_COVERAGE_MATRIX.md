@@ -50,13 +50,46 @@ All fixtures are synthetic or anonymized — none contain real student data
   code-like structure at all is silently skipped without throwing or
   fabricating a requirement.
 
-## Known gap, honestly stated
+## Real Workday table layout (parser v4)
 
-CampusVal does not yet have an interactive "map this unrecognized item to a
-real course" UI — unrecognized/`possibleCourses` items are surfaced
-read-only today (`ReportCard.tsx`'s "Needs your review" section). The
-professor described this as an optional addition ("implement... only if it
-fits the existing APR architecture"); it has not been built in this pass.
-Any future implementation must store a correction as a separate
-"Student mapping" / "Needs verification" annotation, never mutate the
-uploaded file, and never be presented as Workday truth.
+`progress-report-parser.workday-table.test.ts` runs the whole text-to-report pipeline
+over `__fixtures__/progress-report/workday-apr-table-layout.txt` — a **synthetic** APR
+(invented student, terms and grades) that reproduces the layout of a real Workday PDF:
+
+| Layout feature | Asserted |
+| --- | --- |
+| Page furniture and "Page N of M" glued to the next cell | stripped; page breaks mid-block do not split rows |
+| Status word on the same line as the name and first course | row name, status and course all read |
+| "(In / Progress)" split across two lines | `inProgress`, clean title, no grade |
+| Title beginning on the next line (`ENVS 131 -`) | course read whole |
+| Remaining cell in all four shapes (Course(s), Unit(s), GPA, Combination Required, Activities) | verbatim, never swallows the next row |
+| Transfer-credit rows (no period) | `transfer`, never a "possible course" |
+| University Core rows repeated by blocks in the same school | present per block; shown once by `regroupForDisplay` (frontend test) |
+| A second school's Core (`Core: CAS: …` beside `Core: LSB: …`) | kept as its own group, never merged (frontend test) |
+| Header `(… Major/… Minor/…)` | `declaredMajors` / `declaredMinors`; a declared minor with no block still listed |
+| "a minimum 60 Upper Division Units" / "175 units. Limit of 20 units 198/199" | `unit`, `requiredUnits`, `remaining` |
+| Simple (non-table) reports | unchanged: still on the line-based reader |
+
+The parser was also run, locally and once, against a real student's APR while it was
+being written; nothing from that file is committed.
+
+## Student mappings (the professor's optional "map this unrecognized item")
+
+Built: on the APR page each item the parser could not match to the catalog has a
+**Match to a catalog course** control (catalog search → pick one). See
+`APR_SIDEBAR_AND_RECONCILIATION.md` § "Student mappings" for behavior and
+`SECURITY_AND_PRIVACY.md` for the access rules. The constraints the professor set
+are enforced, not just documented:
+
+| Constraint | Where it is enforced / tested |
+| --- | --- |
+| Stored as a separate annotation, never in the uploaded file or its parse | own table `progress_report_mappings`; `progress-report.mappings.test.ts` asserts the stored report and its `updatedAt` are byte-identical after a mapping |
+| Never presented as Workday truth | every place it appears says "matched by you" / "your note, not Workday's"; `UnmatchedCourseMapper.test.tsx` |
+| Never changes what counts as completed | mapped items stay in `possibleCourses`; completed count and the completed list are asserted unchanged (server and UI) |
+| Only maps what the report actually lists as unmatched, onto a real catalog course | 400 otherwise (recognized course, code not on the report, non-catalog target, oversize/missing target) |
+| Owner-scoped, never shared | `requireAuth` + `req.userId` only; a second student's identical code is a separate row; not a share scope |
+| Deleted with the report | `DELETE /progress-report` removes the student's mappings; a re-upload keeps them |
+
+Still not done, on purpose: a mapping is **not** propagated into the Degree Plan
+or the completed-course list. Turning a student's guess into plan state is a
+different feature with different risks; this one is an honest annotation only.

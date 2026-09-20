@@ -14,4 +14,10 @@ export type ParsedProgressReportGroupsItemRequirementsItemCoursesItem = {
   /** @nullable */
   grade: string | null;
   inCatalog: boolean;
+  /** The row said "(In Progress)". */
+  inProgress?: boolean;
+  /** The row said "(Transfer Credit)". */
+  transfer?: boolean;
+  /** Workday's "Academic Period" text (for example "Fall 2025"), when the row has one. */
+  period?: string;
 };

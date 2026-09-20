@@ -43,11 +43,6 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(false);
 
-  if (isSignedIn) {
-    router.replace('/(home)');
-    return null;
-  }
-
   const handleSignUp = async () => {
     const { error } = await signUp.password({ emailAddress: email, password });
     if (error) return;
@@ -58,7 +53,7 @@ export default function SignUpPage() {
     await signUp.verifications.verifyEmailCode({ code });
     if (signUp.status === 'complete') {
       await signUp.finalize({
-        navigate: ({ decorateUrl }) => {
+        navigate: () => {
           router.replace('/(home)');
         },
       });
@@ -84,6 +79,14 @@ export default function SignUpPage() {
       setSsoLoading(false);
     }
   }, [startSSOFlow, router]);
+
+  // Every hook above must run on every render. Returning before the hooks (as this used to)
+  // makes the render after Clerk flips `isSignedIn` call FEWER hooks than the one before,
+  // which React throws on ("Rendered fewer hooks than expected").
+  if (isSignedIn) {
+    router.replace('/(home)');
+    return null;
+  }
 
   const styles = makeStyles(colors, insets);
 

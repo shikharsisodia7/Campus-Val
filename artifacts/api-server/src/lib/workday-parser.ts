@@ -41,7 +41,7 @@ const COURSE_CODE_RE =
 // Match a meeting-pattern segment that precedes a time, allowing spaces
 // between day letters ("M W F", "T R") and SCU's "Th" for Thursday.
 const MEETING_PATTERN_RE =
-  /((?:Th|Tu|Sa|Su|[MTWRFSU])(?:\s*(?:Th|Tu|Sa|Su|[MTWRFSU]))*)\s*[\|\-,–]?\s*(?=\d{1,2}:\d{2})/;
+  /((?:Th|Tu|Sa|Su|[MTWRFSU])(?:\s*(?:Th|Tu|Sa|Su|[MTWRFSU]))*)\s*[|\-,–]?\s*(?=\d{1,2}:\d{2})/;
 const TIME_RE =
   /(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-–to]+\s*(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)/;
 const SEATS_SLASH_RE = /\b(\d{1,3})\s*\/\s*(\d{1,3})\b/;

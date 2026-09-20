@@ -35,3 +35,30 @@ describe("reconcileMajor", () => {
     expect(reconcileMajor("BS", "Computer Science & Engineering")).toBe("unknown");
   });
 });
+
+describe("reconcileMajor with Workday's declared majors", () => {
+  it("matches on ANY declared major (a student can have two)", () => {
+    expect(reconcileMajor("Finance / Mathematics", "Finance", ["Finance", "Mathematics"])).toBe("match");
+    expect(reconcileMajor("Finance / Mathematics", "Mathematics", ["Finance", "Mathematics"])).toBe("match");
+  });
+
+  it("reports a mismatch only when NONE of them matches", () => {
+    expect(reconcileMajor("Finance / Mathematics", "Computer Science & Engineering", ["Finance", "Mathematics"])).toBe(
+      "mismatch",
+    );
+  });
+
+  it("stays unknown when there is no planning major to compare with", () => {
+    expect(reconcileMajor("Finance / Mathematics", null, ["Finance", "Mathematics"])).toBe("unknown");
+  });
+
+  it("falls back to the program text when no majors are declared", () => {
+    expect(reconcileMajor("Finance Major", "Finance", [])).toBe("match");
+    expect(reconcileMajor("Finance Major", "Finance", undefined)).toBe("match");
+  });
+
+  it("does not let a long 'Finance / Mathematics' program line trip the noisy-text guard", () => {
+    const long = "Finance / Mathematics / Economics / Physics / Chemistry / Biology / History / Philosophy / Art";
+    expect(reconcileMajor(long, "Finance", ["Finance", "Mathematics"])).toBe("match");
+  });
+});

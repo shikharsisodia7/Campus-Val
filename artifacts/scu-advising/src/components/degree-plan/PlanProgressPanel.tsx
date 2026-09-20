@@ -1,4 +1,4 @@
-import { useGetProgressReport, getGetProgressReportQueryKey } from "@workspace/api-client-react";
+import { usePlanningProgressReport } from "@/hooks/use-planning-progress-report";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { useOptimisticUpdatePlanItem, useBulkImportReportCourses } from "./usePlanItemMutations";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +21,7 @@ export function PlanProgressPanel() {
     data: reportEnvelope,
     isLoading: isReportLoading,
     error: reportError,
-  } = useGetProgressReport({
-    query: { queryKey: getGetProgressReportQueryKey() }
-  });
+  } = usePlanningProgressReport();
   // GET /progress-report 404s (not a 200 envelope) when no report has been
   // uploaded yet — that's the expected "none uploaded" signal here, not a
   // failure to surface as an error.

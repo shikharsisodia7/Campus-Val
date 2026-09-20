@@ -12,5 +12,13 @@ export interface CourseSearchResult {
   state: CourseSearchState;
   /** Courses matching the criteria regardless of quarter sections. */
   totalMatching: number;
+  /**
+   * Of totalMatching, how many have a section in the selected quarter. Null when no quarter was given.
+   * @nullable
+   */
+  totalWithSections?: number | null;
+  offset?: number;
+  /** True when more results exist beyond this page. */
+  hasMore?: boolean;
   courses: CourseSearchResultCoursesItem[];
 }

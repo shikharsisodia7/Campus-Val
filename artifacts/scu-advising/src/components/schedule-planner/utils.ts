@@ -1,4 +1,4 @@
-import { ScheduleEvent, Term } from "@workspace/api-client-react";
+import { ScheduleEvent } from "@workspace/api-client-react";
 import { TimedEvent } from "@/lib/conflicts";
 
 /**
