@@ -5,11 +5,17 @@
  *
  *   node dist/migrate.mjs            apply every pending migration (idempotent)
  *   node dist/migrate.mjs --status   print applied / pending, change nothing
- *   node dist/migrate.mjs --baseline mark ALL current migrations as applied
- *                                    WITHOUT running them — ONLY for a database
- *                                    whose schema already matches (e.g. the
- *                                    existing production DB created by
- *                                    `drizzle-kit push` before migrations existed)
+ *   node dist/migrate.mjs --baseline mark ONLY THE FIRST (baseline) migration as
+ *                                    applied WITHOUT running it — for a database
+ *                                    created by `drizzle-kit push` before
+ *                                    migrations existed. Later migrations stay
+ *                                    pending, so the next plain run applies them.
+ *   node dist/migrate.mjs --baseline-all
+ *                                    mark EVERY current migration as applied
+ *                                    without running any — ONLY for a database that
+ *                                    was pushed from the CURRENT schema (rare).
+ *                                    Use it on an older database and the newer
+ *                                    migrations' tables are silently never created.
  *
  * Migration files live in lib/db/drizzle (MIGRATIONS_DIR overrides). Applied
  * migrations are recorded in drizzle.__drizzle_migrations, so re-running is a
@@ -24,6 +30,7 @@ import { sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { db, pool } from "@workspace/db";
+import { baselineTargets } from "./lib/baseline-targets";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,8 +66,8 @@ async function status(folder: string): Promise<void> {
   console.log(`migrations: ${files.length} total, ${files.length - pending.length} applied, ${pending.length} pending`);
 }
 
-async function baseline(folder: string): Promise<void> {
-  const files = readMigrationFiles({ migrationsFolder: folder });
+async function baseline(folder: string, all: boolean): Promise<void> {
+  const files = baselineTargets(readMigrationFiles({ migrationsFolder: folder }), all);
   const existing = await appliedHashes();
   if (existing && existing.length > 0) {
     throw new Error("Refusing to baseline: this database already has recorded migrations. Run without --baseline.");
@@ -81,13 +88,15 @@ async function baseline(folder: string): Promise<void> {
     );
   }
   console.log(`baselined ${files.length} migration(s); nothing was executed against your tables`);
+  if (!all) console.log("run without arguments next to apply any later migrations");
 }
 
 async function main(): Promise<void> {
   const folder = resolveMigrationsFolder();
   const args = new Set(process.argv.slice(2));
   if (args.has("--status")) return status(folder);
-  if (args.has("--baseline")) return baseline(folder);
+  if (args.has("--baseline-all")) return baseline(folder, true);
+  if (args.has("--baseline")) return baseline(folder, false);
   await migrate(db, { migrationsFolder: folder });
   await status(folder);
 }

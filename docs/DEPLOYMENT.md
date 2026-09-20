@@ -63,7 +63,7 @@ Optional features that degrade gracefully when unset: the AI advisor chat (needs
 Drizzle ORM against Postgres. Schema lives in `lib/db/src/schema/*`. **Versioned SQL
 migrations** live in `lib/db/drizzle/` (`pnpm db:generate` after a schema change;
 `node artifacts/api-server/dist/migrate.mjs` applies them — see `SCU_DEPLOYMENT.md#3-database`;
-the existing production database, created by `push`, needs `--baseline` once). The
+the existing production database, created by `push`, needs `--baseline` once, then a plain run). The
 live-`push` workflow below still works for local development:
 
 ```bash

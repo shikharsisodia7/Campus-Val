@@ -69,9 +69,19 @@ node artifacts/api-server/dist/migrate.mjs --status   # applied / pending, chang
 - **New (empty) database**: run the command above. It creates the whole schema.
   This was verified to produce a schema byte-identical to `drizzle-kit push`.
 - **Existing database that was created by `drizzle-kit push`** (the current Vercel/
-  Neon production database): run `node dist/migrate.mjs --baseline` **once**. It
-  records the baseline migration as applied *without executing it*. It refuses to
-  run on an empty database or one that already has migration records.
+  Neon production database): run `node dist/migrate.mjs --baseline` **once**, then
+  run `node dist/migrate.mjs` again. `--baseline` records ONLY the first (baseline)
+  migration as applied *without executing it*, because a push-created database matches
+  the schema as of that migration and nothing later; every later migration stays
+  pending and the plain run applies it. It refuses to run on an empty database or one
+  that already has migration records. Check with `--status` in between: right after
+  `--baseline` it should say `N total, 1 applied, N-1 pending`.
+  - `--baseline-all` records *every* migration as applied without running any. Use it
+    **only** for a database that was pushed from the *current* schema. On an older
+    database it is a trap: the newer migrations' tables are never created, yet
+    `--status` reports `0 pending`. (This happened once, on the production database,
+    with an earlier version of `--baseline` that recorded everything; it was caught
+    and repaired before the code that needed the table went live.)
 - **Changing the schema**: edit `lib/db/src/schema/*`, run `pnpm db:generate`,
   commit the new file in `lib/db/drizzle/`. CI fails if the schema and the
   migrations disagree, and CI applies the migrations to an empty database.
@@ -211,7 +221,7 @@ errors are printed once, in plain text, then the process exits with status 1.
 3. Create the Clerk instance (or reuse) and add the SCU domain; note the keys.
 4. Fill in the environment (§2); generate `STORAGE_SIGNING_SECRET`.
 5. Build (or pull) the image with `VITE_CLERK_PUBLISHABLE_KEY`.
-6. Run migrations (`--baseline` first if adopting the existing database).
+6. Run migrations (`--baseline`, then a plain run, if adopting the existing database).
 7. Start the app; check `/api/healthz` then `/api/readyz`.
 8. Configure the reverse proxy + TLS; set `PUBLIC_APP_URL` and `TRUST_PROXY=1`.
 9. Add `GUEST_REVIEWER_EMAILS` / `ADMIN_EMAILS` as needed.
