@@ -25,8 +25,10 @@ export interface ProgressReportDocument {
   importErrorCode: string | null;
   /** @nullable */
   importErrorMessage: string | null;
-  /** Worksheets in the stored workbook (0 for a PDF). */
+  /** Sheets in the stored structural copy (0 when there is none). */
   sheetCount: number;
+  /** True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy. */
+  tableFromPdf?: boolean;
   /**
    * First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.
    * @nullable

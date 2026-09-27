@@ -52,8 +52,10 @@ support sessions, MILS leadership labs), the once-a-week sections are shown as
 ## Winter and Spring (tentative schedules)
 
 The Registrar's tentative schedules for Winter and Spring 2027 **list lecture
-sections only**. There are no lab rows in the source workbooks — this was checked
-against the files, not assumed.
+sections only**. There are no lab rows in the source — this was checked against
+the files, not assumed, and re-checked on 2026-09-27 against the files the
+Registrar currently publishes (last modified 2026-07-31; 1,415 and 1,351 rows,
+matching what CampusVal holds).
 
 So for a tentative term CampusVal:
 
@@ -120,15 +122,38 @@ classify. Current results for the bundled Registrar data:
 | --- | --- | --- |
 | `all_sections_one_component` | 0 | the bug this pass fixed |
 | `conflicting_published_label` | 0 | |
-| `lab_required_none_listed` | 64 | lab courses in tentative terms |
+| `lab_required_none_listed` | 65 | lab courses in tentative terms |
 | `mixed_pattern_no_evidence` | 31 | once-a-week sections shown as "Other" |
-| `truncated_description` | 1 | |
+| `truncated_description` | 0 | |
 
-### Known data limitation
+### Catalog descriptions that were cut off
 
-572 of 2,333 catalog descriptions are cut off ("…") in `courses-data.json`. A
-lab sentence at the end of such a description is lost. PHYS 12 was affected; its
-description was restored from the published SCU Undergraduate Bulletin 2026-27.
-Courses titled "L&L" are unaffected. A lab course that has neither an L&L title
-nor an intact description would be under-reported as lecture-only until the
-catalog is re-imported.
+572 of 2,333 catalog descriptions in `courses-data.json` ended in "…", which
+could hide a closing sentence such as "Laboratory 15 hours." **468 have been
+restored** from the published SCU Undergraduate Bulletin 2026-27 (PHYS 12 first,
+by hand; then 467 by script).
+
+A description was restored only when both of these held for exactly one bulletin
+entry: the text CampusVal already had is the beginning of the bulletin's text,
+and the bulletin entry's course number is the course's number. The existing text
+was kept byte for byte; only the missing ending was appended. 18 of the restored
+endings name a laboratory (BIOL 1A, BIOL 1C, BIOL 5, ENVS 23, PHYS 70 …).
+
+104 remain cut off: the bulletin has no entry whose text begins the same way
+(the course was reworded or dropped for 2026-27), or more than one entry
+matched. They were left alone rather than guessed at. Courses titled "L&L" are
+unaffected either way.
+
+Only the stored `description` was changed; `prereqLogic` and `prereqGroups`
+were not touched.
+
+Two things CampusVal derives from the description when it loads the catalog
+changed as a result, both toward what the bulletin states:
+
+- **Lab detection:** PHYS 70 is now known to have a lab (12 other restored
+  lab sentences belong to courses already known through their L&L title).
+- **Core tags:** 17 courses. 14 gained a designation the bulletin states in the
+  restored text (for example CHEM 112 Advanced Writing, PHIL 31 ELSJ). 3 lost
+  one: CHIN 125, CHIN 126 and ITAL 187 had been tagged Second Language by
+  department, and their restored text says they are taught in English and do
+  not fulfill that requirement.

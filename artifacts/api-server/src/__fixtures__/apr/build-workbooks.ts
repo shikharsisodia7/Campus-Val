@@ -132,6 +132,27 @@ const SPECIAL_ROWS: Row[] = [
   ["Special Interest Program: Sample Center Program", "Satisfied", null, "ENGR 110 - Community Based Engineering Design", "Winter 2026 Quarter", 3, "B+"],
 ];
 
+export interface FixtureProgram {
+  title: string;
+  gpa: string;
+  effective: string;
+  notAssigned?: number;
+  rows: Row[];
+}
+
+/** The programs of the combined report, shared by the Excel and the PDF fixture. */
+export const FIXTURE_PROGRAMS: FixtureProgram[] = [
+  { title: "Finance Major Requirements", gpa: "3.000", effective: "3", notAssigned: 2, rows: FINANCE_ROWS },
+  { title: "Mathematics Major Requirements", gpa: "2.800", effective: "3", notAssigned: 1, rows: MATH_ROWS },
+  {
+    title: "Healthcare Innovation and Design Minor Requirements",
+    gpa: "0.000",
+    effective: "09/10/2025",
+    rows: HEALTH_MINOR_ROWS,
+  },
+  { title: "Sample Center Requirements", gpa: "4.000", effective: "09/10/2025", rows: SPECIAL_ROWS },
+];
+
 /** One program block, laid out as Workday prints it. */
 function addProgramBlock(
   ws: ExcelJS.Worksheet,
@@ -218,15 +239,14 @@ export async function buildAprFixture(name: AprFixtureName): Promise<Buffer> {
       ]);
       ws.addRow(["Cumulative GPA", "3.100"]);
       ws.addRow(["Unused Registrations", 0]);
-      addProgramBlock(ws, "Finance Major Requirements", { gpa: "3.000", effective: "3", notAssigned: 2 }, FINANCE_ROWS);
-      addProgramBlock(ws, "Mathematics Major Requirements", { gpa: "2.800", effective: "3", notAssigned: 1 }, MATH_ROWS);
-      addProgramBlock(
-        ws,
-        "Healthcare Innovation and Design Minor Requirements",
-        { gpa: "0.000", effective: "09/10/2025" },
-        HEALTH_MINOR_ROWS,
-      );
-      addProgramBlock(ws, "Sample Center Requirements", { gpa: "4.000", effective: "09/10/2025" }, SPECIAL_ROWS);
+      for (const program of FIXTURE_PROGRAMS) {
+        addProgramBlock(
+          ws,
+          program.title,
+          { gpa: program.gpa, effective: program.effective, notAssigned: program.notAssigned },
+          program.rows,
+        );
+      }
       ws.columns = [{ width: 46 }, { width: 14 }, { width: 22 }, { width: 46 }, { width: 20 }, { width: 8 }, { width: 8 }];
       break;
     }

@@ -173,9 +173,15 @@ function SidebarDocument({ doc, defaultOpen }: { doc: ProgressReportSidebarDocum
             )}
             {doc.state === "original_only" && (
               <Notice tone="info" testId="apr-sidebar-pdf">
-                Uploaded as a PDF, so it can't be shown here. Export the report from Workday to Excel
-                (.xlsx) to compare while planning. <FullLink>Open it on the APR page</FullLink>
+                CampusVal couldn't find the Academic Progress table in this PDF, so it isn't shown
+                here. The original is on the APR page; the Workday Excel (.xlsx) export also works.{" "}
+                <FullLink>Open it on the APR page</FullLink>
               </Notice>
+            )}
+            {doc.state === "ready" && report.tableFromPdf && (
+              <p className="px-1 text-[10px] leading-snug text-muted-foreground" data-testid="apr-sidebar-from-pdf">
+                Read from the table in your PDF. The original PDF is on the APR page.
+              </p>
             )}
             {doc.state === "unrecognized_layout" && (
               <Notice tone="warn" testId="apr-sidebar-unrecognized">

@@ -2935,7 +2935,15 @@ export const ListProgressReportsResponse = zod.object({
       importErrorMessage: zod.string().nullable(),
       sheetCount: zod
         .number()
-        .describe("Worksheets in the stored workbook (0 for a PDF)."),
+        .describe(
+          "Sheets in the stored structural copy (0 when there is none).",
+        ),
+      tableFromPdf: zod
+        .boolean()
+        .optional()
+        .describe(
+          "True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy.",
+        ),
       fileFingerprint: zod
         .string()
         .nullish()
@@ -3048,7 +3056,15 @@ export const GetProgressReportSidebarResponse = zod.object({
         importErrorMessage: zod.string().nullable(),
         sheetCount: zod
           .number()
-          .describe("Worksheets in the stored workbook (0 for a PDF)."),
+          .describe(
+            "Sheets in the stored structural copy (0 when there is none).",
+          ),
+        tableFromPdf: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy.",
+          ),
         fileFingerprint: zod
           .string()
           .nullish()
@@ -3067,7 +3083,7 @@ export const GetProgressReportSidebarResponse = zod.object({
           "processing",
         ])
         .describe(
-          "ready: grouped rows are included. unrecognized_layout: the file was read but its\ntable was not recognised, so no rows are sent (open the full APR). original_only:\na PDF, viewable as the original file. import_failed \/ processing: the file state.\n",
+          "ready: grouped rows are included. unrecognized_layout: the file was read but its\ntable was not recognised, so no rows are sent (open the full APR). original_only:\na PDF whose table could not be read; viewable as the original file. import_failed \/\nprocessing: the file state.\n",
         ),
       sheets: zod.array(
         zod.object({
@@ -3170,7 +3186,13 @@ export const GetProgressReportDocumentResponse = zod.object({
   importErrorMessage: zod.string().nullable(),
   sheetCount: zod
     .number()
-    .describe("Worksheets in the stored workbook (0 for a PDF)."),
+    .describe("Sheets in the stored structural copy (0 when there is none)."),
+  tableFromPdf: zod
+    .boolean()
+    .optional()
+    .describe(
+      "True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy.",
+    ),
   fileFingerprint: zod
     .string()
     .nullish()
@@ -3254,7 +3276,13 @@ export const UpdateProgressReportDocumentResponse = zod.object({
   importErrorMessage: zod.string().nullable(),
   sheetCount: zod
     .number()
-    .describe("Worksheets in the stored workbook (0 for a PDF)."),
+    .describe("Sheets in the stored structural copy (0 when there is none)."),
+  tableFromPdf: zod
+    .boolean()
+    .optional()
+    .describe(
+      "True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy.",
+    ),
   fileFingerprint: zod
     .string()
     .nullish()
@@ -3351,7 +3379,13 @@ export const ReplaceProgressReportFileResponse = zod.object({
   importErrorMessage: zod.string().nullable(),
   sheetCount: zod
     .number()
-    .describe("Worksheets in the stored workbook (0 for a PDF)."),
+    .describe("Sheets in the stored structural copy (0 when there is none)."),
+  tableFromPdf: zod
+    .boolean()
+    .optional()
+    .describe(
+      "True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy.",
+    ),
   fileFingerprint: zod
     .string()
     .nullish()
@@ -3408,7 +3442,13 @@ export const GetProgressReportWorkbookResponse = zod.object({
     importErrorMessage: zod.string().nullable(),
     sheetCount: zod
       .number()
-      .describe("Worksheets in the stored workbook (0 for a PDF)."),
+      .describe("Sheets in the stored structural copy (0 when there is none)."),
+    tableFromPdf: zod
+      .boolean()
+      .optional()
+      .describe(
+        "True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy.",
+      ),
     fileFingerprint: zod
       .string()
       .nullish()
@@ -3422,7 +3462,7 @@ export const GetProgressReportWorkbookResponse = zod.object({
     .union([
       zod.object({
         version: zod.number(),
-        sourceFormat: zod.enum(["xlsx"]),
+        sourceFormat: zod.enum(["xlsx", "pdf"]),
         sheets: zod.array(
           zod.object({
             name: zod.string(),
@@ -3466,6 +3506,6 @@ export const GetProgressReportWorkbookResponse = zod.object({
       zod.null(),
     ])
     .describe(
-      "Null for a PDF (shown from the original file) and for a document whose import failed.",
+      "Null for a PDF whose table could not be read (it is shown from the original file) and for a document whose import failed.",
     ),
 });

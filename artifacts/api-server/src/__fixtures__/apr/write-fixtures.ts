@@ -6,6 +6,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { buildAprFixture, type AprFixtureName } from "./build-workbooks";
+import { buildAprPdf } from "./build-pdf";
 
 const NAMES: AprFixtureName[] = [
   "finance-major",
@@ -23,4 +24,5 @@ await mkdir(outDir, { recursive: true });
 for (const name of NAMES) {
   await writeFile(join(outDir, `synthetic-apr-${name}.xlsx`), await buildAprFixture(name));
 }
-console.log(`Wrote ${NAMES.length} synthetic APR workbooks to ${outDir}`);
+await writeFile(join(outDir, "synthetic-apr-workday-combined.pdf"), buildAprPdf({ fuseFirstStatus: true }));
+console.log(`Wrote ${NAMES.length} synthetic APR workbooks and 1 PDF to ${outDir}`);

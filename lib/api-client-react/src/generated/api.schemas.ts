@@ -453,8 +453,10 @@ export interface ProgressReportDocument {
   importErrorCode: string | null;
   /** @nullable */
   importErrorMessage: string | null;
-  /** Worksheets in the stored workbook (0 for a PDF). */
+  /** Sheets in the stored structural copy (0 when there is none). */
   sheetCount: number;
+  /** True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy. */
+  tableFromPdf?: boolean;
   /**
    * First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.
    * @nullable
@@ -534,6 +536,7 @@ export type AprWorkbookSourceFormat =
 
 export const AprWorkbookSourceFormat = {
   xlsx: "xlsx",
+  pdf: "pdf",
 } as const;
 
 export interface AprWorkbook {
@@ -545,7 +548,7 @@ export interface AprWorkbook {
 
 export interface ProgressReportWorkbookEnvelope {
   report: ProgressReportDocument;
-  /** Null for a PDF (shown from the original file) and for a document whose import failed. */
+  /** Null for a PDF whose table could not be read (it is shown from the original file) and for a document whose import failed. */
   workbook: AprWorkbook | null;
 }
 
@@ -603,7 +606,8 @@ export interface AprSidebarSheet {
 /**
  * ready: grouped rows are included. unrecognized_layout: the file was read but its
 table was not recognised, so no rows are sent (open the full APR). original_only:
-a PDF, viewable as the original file. import_failed / processing: the file state.
+a PDF whose table could not be read; viewable as the original file. import_failed /
+processing: the file state.
 
  */
 export type ProgressReportSidebarDocumentState =
@@ -621,7 +625,8 @@ export interface ProgressReportSidebarDocument {
   report: ProgressReportDocument;
   /** ready: grouped rows are included. unrecognized_layout: the file was read but its
 table was not recognised, so no rows are sent (open the full APR). original_only:
-a PDF, viewable as the original file. import_failed / processing: the file state.
+a PDF whose table could not be read; viewable as the original file. import_failed /
+processing: the file state.
  */
   state: ProgressReportSidebarDocumentState;
   sheets: AprSidebarSheet[];

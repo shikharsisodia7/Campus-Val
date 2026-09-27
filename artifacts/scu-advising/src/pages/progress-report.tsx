@@ -73,7 +73,7 @@ export default function ProgressReportPage() {
               <p className="font-semibold">Your files are private and under your control.</p>
               <ul className="list-disc space-y-0.5 pl-5">
                 <li>Only you can see your APRs. Sharing a plan with an advisor does <strong>not</strong> share them.</li>
-                <li>Upload one file per major or minor — no need to combine Excel files.</li>
+                <li>Upload the Workday export as it is — Excel or PDF, one file or several. Nothing needs combining.</li>
                 <li>Uploading an APR does <strong>not</strong> change your plans or your Workday record.</li>
               </ul>
               <p className="mt-1 text-xs text-emerald-800">
@@ -186,9 +186,9 @@ function UploadForm({
           {first ? "Upload a Workday APR" : "Upload another APR"}
         </h2>
         <p className="text-sm text-muted-foreground">
-          In Workday, open <strong>View My Academic Progress</strong>, export the report to{" "}
-          <strong>Excel (.xlsx)</strong>, and upload that file here. Have more than one major or a
-          minor? Upload each export separately.
+          In Workday, open <strong>View My Academic Progress</strong> and export the report — to{" "}
+          <strong>Excel (.xlsx)</strong> or to <strong>PDF</strong> — then upload that file here. A
+          single export can cover all of your majors and minors; separate files work too.
         </p>
       </div>
 

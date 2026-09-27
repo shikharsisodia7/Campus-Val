@@ -36,6 +36,7 @@ import {
 import { sendPrivateFile } from "../lib/private-file-response";
 import { aprMaxUploadBytes, aprMaxUploadLabel, APR_MAX_DOCUMENTS_PER_USER } from "../lib/apr/limits";
 import { readAprWorkbook, workbookPlainText } from "../lib/apr/workbook-reader";
+import { readAprPdf } from "../lib/apr/pdf-table-reader";
 import { projectForSidebar, projectionStats } from "../lib/apr/sidebar-projection";
 import { extractStudentId } from "../lib/apr/identity";
 import {
@@ -128,6 +129,8 @@ function documentDto(row: MetaRow) {
       ? APR_IMPORT_ERROR_MESSAGE[isImportErrorCode(errorCode) ? errorCode : "processing_failed"]
       : null,
     sheetCount: Number(row.sheetCount) || 0,
+    /** The structural copy was recovered from a PDF's text positions. */
+    tableFromPdf: row.sourceFormat !== "xlsx" && row.hasWorkbook,
     fileFingerprint: row.fileHash ? row.fileHash.slice(0, 12) : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -192,6 +195,8 @@ type Intake =
       size: number;
       hash: string;
       workbook: AprWorkbook | null;
+      /** Why there is no structural copy, when the file itself was accepted. */
+      note: AprImportErrorCode | null;
     }
   | { ok: false; status: number; error: string; code?: string };
 
@@ -305,13 +310,18 @@ async function intake(req: Request, userId: string, input: FileInput): Promise<I
   }
 
   let workbook: AprWorkbook | null = null;
+  let note: AprImportErrorCode | null = null;
   let plainText = "";
   try {
     if (sourceFormat === "xlsx") {
       workbook = await readAprWorkbook(bytes);
       plainText = workbookPlainText(workbook);
-    } else if (bytes.subarray(0, 5).toString("latin1") !== "%PDF-") {
-      throw new AprImportError("unsupported_type");
+    } else {
+      const read = await readPdfTable(bytes);
+      workbook = read.workbook;
+      note = read.note;
+      if (workbook) plainText = workbookPlainText(workbook);
+      if (note) req.log.warn({ event: "apr_structure_warning", warning: note, sourceFormat }, "PDF kept as an original only");
     }
   } catch (err) {
     const code: AprImportErrorCode = err instanceof AprImportError ? err.code : "processing_failed";
@@ -353,7 +363,23 @@ async function intake(req: Request, userId: string, input: FileInput): Promise<I
     size: actualSize,
     hash: createHash("sha256").update(bytes).digest("hex"),
     workbook,
+    note,
   };
+}
+
+/**
+ * A PDF is always kept as an original. Its table is read when it can be
+ * (pdf-table-reader.ts); when it cannot, the PDF is still accepted and simply
+ * has no structural copy. Only bytes that are not a PDF at all are refused.
+ */
+async function readPdfTable(bytes: Buffer): Promise<{ workbook: AprWorkbook | null; note: AprImportErrorCode | null }> {
+  if (bytes.subarray(0, 5).toString("latin1") !== "%PDF-") throw new AprImportError("unsupported_type");
+  try {
+    return { workbook: await readAprPdf(bytes), note: null };
+  } catch (err) {
+    if (err instanceof AprImportError && err.code === "too_large") throw err;
+    return { workbook: null, note: "unrecognized_pdf" };
+  }
 }
 
 /**
@@ -363,21 +389,23 @@ async function intake(req: Request, userId: string, input: FileInput): Promise<I
  * failed and the others are unaffected.
  */
 async function importIfNeeded(req: Request, row: MetaRow): Promise<MetaRow> {
-  if (row.sourceFormat !== "xlsx" || row.hasWorkbook) return row;
+  if (row.hasWorkbook) return row;
   if (row.parseStatus === "failed" || row.parseStatus === "unsupported") return row;
+  // A PDF whose table could not be read has been tried already.
+  if (row.sourceFormat !== "xlsx" && row.importError === "unrecognized_pdf") return row;
 
   let outcome: { workbook: AprWorkbook | null; status: string; error: string | null; hash: string | null };
   try {
     const storage = await getPrivateObjectStorage();
     const { stream } = await storage.downloadObject(row.objectPath);
     const bytes = await readAll(stream, aprMaxUploadBytes());
-    const workbook = await readAprWorkbook(bytes);
-    outcome = {
-      workbook,
-      status: "parsed",
-      error: null,
-      hash: createHash("sha256").update(bytes).digest("hex"),
-    };
+    const hash = createHash("sha256").update(bytes).digest("hex");
+    if (row.sourceFormat === "xlsx") {
+      outcome = { workbook: await readAprWorkbook(bytes), status: "parsed", error: null, hash };
+    } else {
+      const read = await readPdfTable(bytes);
+      outcome = { workbook: read.workbook, status: "parsed", error: read.note, hash };
+    }
   } catch (err) {
     const code: AprImportErrorCode =
       err instanceof AprImportError
@@ -471,7 +499,7 @@ router.post("/progress-reports", requireAuth, async (req, res): Promise<void> =>
       objectPath: parsed.data.objectPath.trim(),
       workbook: result.workbook,
       parseStatus: "parsed",
-      importError: null,
+      importError: result.note,
     })
     .returning({ id: progressReportsTable.id });
 
@@ -511,13 +539,11 @@ router.get("/progress-reports/sidebar", requireAuth, async (req, res): Promise<v
         documents.push({ report, state: "processing" as const, sheets: [] });
         continue;
       }
-      if (report.sourceFormat === "pdf") {
-        documents.push({ report, state: "original_only" as const, sheets: [] });
-        continue;
-      }
       const workbook = await workbookOf(userId, row.id);
       if (!workbook) {
-        documents.push({ report, state: "import_failed" as const, sheets: [] });
+        // A PDF whose table could not be read is still a good original.
+        const state = report.sourceFormat === "pdf" ? ("original_only" as const) : ("import_failed" as const);
+        documents.push({ report, state, sheets: [] });
         continue;
       }
       const projection = projectForSidebar(workbook);
@@ -633,7 +659,7 @@ router.put("/progress-reports/:id/file", requireAuth, async (req, res): Promise<
       workbook: result.workbook,
       parsed: null,
       parseStatus: "parsed",
-      importError: null,
+      importError: result.note,
       uploadedAt: new Date(),
     })
     .where(and(eq(progressReportsTable.id, row.id), eq(progressReportsTable.userId, userId)));

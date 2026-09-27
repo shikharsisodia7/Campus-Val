@@ -60,11 +60,13 @@ export type AprStructureWarning =
   | "empty_sheet"
   | "formula_without_cached_value"
   | "cell_text_truncated"
-  | "macros_ignored";
+  | "macros_ignored"
+  /** The table was recovered from a PDF's text positions, not read from cells. */
+  | "reconstructed_from_pdf";
 
 export interface AprWorkbook {
   version: typeof APR_WORKBOOK_VERSION;
-  sourceFormat: "xlsx";
+  sourceFormat: "xlsx" | "pdf";
   sheets: AprSheet[];
   warnings: AprStructureWarning[];
 }
@@ -77,6 +79,7 @@ export type AprImportErrorCode =
   | "malformed_workbook"
   | "empty_workbook"
   | "too_large"
+  | "unrecognized_pdf"
   | "storage_failure"
   | "processing_failed";
 
@@ -89,6 +92,8 @@ export const APR_IMPORT_ERROR_MESSAGE: Record<AprImportErrorCode, string> = {
   malformed_workbook: "This workbook is damaged and could not be opened. Export it from Workday again and re-upload.",
   empty_workbook: "This workbook has no content. Export your Academic Progress report from Workday again.",
   too_large: "This workbook is larger than CampusVal can display.",
+  unrecognized_pdf:
+    "CampusVal could not find the Academic Progress table in this PDF. It is kept as an original file; upload the Excel (.xlsx) export to compare while planning.",
   storage_failure: "The file could not be read from storage. Try uploading it again.",
   processing_failed: "The workbook could not be processed. Your file is stored safely — try again, or re-export it from Workday.",
 };
