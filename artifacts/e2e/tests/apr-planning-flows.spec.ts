@@ -563,6 +563,13 @@ test("F. APR stays private under advisor sharing", async ({ browser }: { browser
   const ap = await advisor.newPage();
   await sp.goto(base + "/");
   await ap.goto(base + "/");
+  // A stored session token is short-lived; wait until each page has refreshed
+  // it before calling the API directly.
+  for (const p of [sp, ap]) {
+    await expect
+      .poll(async () => (await p.request.get(base + "/api/progress-reports")).status(), { timeout: 30_000 })
+      .toBe(200);
+  }
 
   // Student has APRs (from test A).
   const mine = (await (await sp.request.get(base + "/api/progress-reports")).json()).reports as Array<{ id: number }>;
