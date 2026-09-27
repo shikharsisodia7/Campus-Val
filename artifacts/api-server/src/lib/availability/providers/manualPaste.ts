@@ -51,6 +51,7 @@ export class ManualPasteAvailabilityProvider implements CourseAvailabilityProvid
         startTime: r.startTime || null,
         endTime: r.endTime || null,
         location: r.location || null,
+        component: r.component ?? null,
         capacity: known ? r.seatsTotal : null,
         enrolled: known ? Math.max(r.seatsTotal - r.seatsOpen, 0) : null,
         seatsAvailable: known ? r.seatsOpen : null,

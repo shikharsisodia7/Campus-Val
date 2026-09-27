@@ -53,6 +53,12 @@ export interface SectionAvailabilityRecord {
   startTime?: string | null;
   endTime?: string | null;
   location?: string | null;
+  /**
+   * Instructional format as the source states it ("Lecture", "Laboratory", ...).
+   * Each component section is its own record with its own seats, so a course
+   * can be "lecture open, lab 03 full, lab 04 open".
+   */
+  component?: string | null;
   capacity?: number | null;
   enrolled?: number | null;
   seatsAvailable?: number | null;

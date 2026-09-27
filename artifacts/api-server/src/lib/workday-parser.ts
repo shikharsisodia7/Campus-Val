@@ -28,6 +28,8 @@ export interface ParsedSection {
   seatsTotal: number;
   seatsOpen: number;
   waitlist: number;
+  /** Instructional format as printed ("Lecture", "Laboratory", ...), or null. */
+  component: string | null;
   sourceLine: string;
 }
 
@@ -50,6 +52,22 @@ const WAITLIST_RE = /waitlist[^\d]*(\d{1,3})/i;
 const INSTRUCTOR_LASTFIRST_RE = /\b([A-Z][a-zA-Z\-']+),\s*([A-Z][a-zA-Z\-'.]+)/;
 
 
+
+/**
+ * Workday prints the instructional format as a cell of its own ("Lecture",
+ * "Laboratory", "Discussion"). Only a WHOLE cell that is exactly such a label
+ * counts, so a room called "Physics Lab 204" is never mistaken for one.
+ */
+const COMPONENT_CELL_RE =
+  /^(lecture|laboratory|lab|discussion|recitation|seminar|studio|lecture\s*\/\s*discussion)$/i;
+
+export function extractComponent(line: string): string | null {
+  for (const field of line.split(/\t+|\s{2,}|\s\|\s/)) {
+    const t = field.trim();
+    if (COMPONENT_CELL_RE.test(t)) return t;
+  }
+  return null;
+}
 
 function extractInstructor(line: string): string {
   // Try "Last, First" first
@@ -210,6 +228,7 @@ function parseUnits(units: string[]): ParseResult {
       seatsTotal,
       seatsOpen,
       waitlist,
+      component: extractComponent(line),
       sourceLine: line,
     });
   }

@@ -7,7 +7,7 @@
  */
 
 /**
- * Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin's laboratory/recitation text. Always treat it as a planning aid; "unknown" means CampusVal could not tell.
+ * Which course component this section is. When the source states an instructional format it is used as-is; otherwise it is derived from how the course's own sections meet in that term. "unknown" means CampusVal could not tell.
  */
 export type CourseSectionComponentType =
   (typeof CourseSectionComponentType)[keyof typeof CourseSectionComponentType];
@@ -15,6 +15,7 @@ export type CourseSectionComponentType =
 export const CourseSectionComponentType = {
   lecture: "lecture",
   lab: "lab",
+  discussion: "discussion",
   recitation: "recitation",
   unknown: "unknown",
 } as const;

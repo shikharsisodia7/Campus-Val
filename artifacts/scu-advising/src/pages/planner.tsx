@@ -8,9 +8,9 @@ import {
   useGetPlan,
   getGetPlanQueryKey,
   useCreateSchedule,
-  useListGraduationMajors,
   PlanItem,
   Term,
+  type CourseScheduleStatus,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
@@ -34,6 +34,7 @@ import { Link } from "wouter";
 import { creditedCourses, loadStoredExams } from "@/lib/apib";
 import { useScheduleWorkspace } from "@/components/schedule-planner/useScheduleWorkspace";
 import { capitalize } from "@/components/schedule-planner/utils";
+import { courseStatusText } from "@/components/schedule-planner/course-components";
 import { anchorYearFor } from "@/lib/academic-year";
 import { TermAndScheduleHeader } from "@/components/schedule-planner/TermAndScheduleHeader";
 import { AcademicYearOverview } from "@/components/schedule-planner/AcademicYearOverview";
@@ -122,14 +123,6 @@ export default function Planner() {
   const { data: profile } = useGetProfile({
     query: { retry: false, queryKey: getGetProfileQueryKey() },
   });
-  // Resolved for the APR reconciliation warning only — comparison, never
-  // written back to the profile or any plan.
-  const { data: majorsList } = useListGraduationMajors();
-  const planningMajorTitle = profile?.major
-    ? (majorsList?.majors.find(
-        (m) => m.code.toLowerCase() === profile.major!.toLowerCase(),
-      )?.title ?? profile.major)
-    : undefined;
 
   // Degree plan (find the 'degree' type plan)
   const { data: plansList } = useListPlans();
@@ -164,6 +157,10 @@ export default function Planner() {
     workspace.activeSchedule?.events.filter((e) => e.kind === "section") ?? [];
   const selectedCourseCodes = new Set(
     selectedSections.map((e) => e.courseCode?.toUpperCase() ?? ""),
+  );
+  // Per course: which components are chosen and which are still needed.
+  const courseStatusByCode = new Map(
+    (workspace.activeSchedule?.courseStatus ?? []).map((c) => [c.courseCode.toUpperCase(), c]),
   );
 
   // Run load check against scheduled courses
@@ -279,7 +276,7 @@ export default function Planner() {
             stacking above the planning content. */}
         <div className="flex justify-end xl:hidden" data-testid="quarter-plan-apr-drawer-bar">
           <AprReferenceSheet>
-            <WorkdayAprPanel planningMajorTitle={planningMajorTitle} />
+            <WorkdayAprPanel />
           </AprReferenceSheet>
         </div>
 
@@ -290,7 +287,7 @@ export default function Planner() {
             right-hand column starting near the top — conceptually the same
             place it occupies on Degree Plan. */}
         <div
-          className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)_minmax(260px,300px)] 2xl:grid-cols-[minmax(330px,380px)_minmax(0,1fr)_minmax(280px,320px)]"
+          className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(280px,320px)_minmax(0,1fr)_minmax(330px,380px)] 2xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)_minmax(400px,460px)]"
           data-testid="quarter-plan-layout"
         >
           {/* Left: section search — the main action on this page.
@@ -312,6 +309,7 @@ export default function Planner() {
               <PlannedThisQuarterChips
                 items={degreeItems}
                 selectedCourseCodes={selectedCourseCodes}
+                courseStatusByCode={courseStatusByCode}
                 activeTerm={workspace.activeTerm}
                 activeYear={workspace.activeYear}
                 isLoadingAvailability={workspace.isLoadingAvailability}
@@ -512,7 +510,7 @@ export default function Planner() {
             className="hidden min-w-0 flex-col gap-3 xl:order-3 xl:flex xl:h-[calc(100vh-8rem)] xl:min-h-[34rem]"
             data-testid="quarter-plan-apr-column"
           >
-            <WorkdayAprPanel planningMajorTitle={planningMajorTitle} />
+            <WorkdayAprPanel />
           </div>
         </div>
       </PageContent>
@@ -541,6 +539,7 @@ export default function Planner() {
 function PlannedThisQuarterChips({
   items,
   selectedCourseCodes,
+  courseStatusByCode,
   activeTerm,
   activeYear,
   isLoadingAvailability,
@@ -548,6 +547,7 @@ function PlannedThisQuarterChips({
 }: {
   items: PlanItem[];
   selectedCourseCodes: Set<string>;
+  courseStatusByCode: Map<string, CourseScheduleStatus>;
   activeTerm: string | null;
   activeYear: number | null;
   isLoadingAvailability: boolean;
@@ -588,16 +588,41 @@ function PlannedThisQuarterChips({
           {courses.map((item) => {
             const code = item.courseCode!;
             const isSelected = selectedCourseCodes.has(code.toUpperCase());
+            const status = courseStatusByCode.get(code.toUpperCase());
+            // A lecture without its lab is NOT a scheduled course: keep it a
+            // button, say what is missing, and jump back to its sections.
+            if (isSelected && status && status.missing.length > 0) {
+              return (
+                <Button
+                  key={item.id}
+                  variant="outline"
+                  size="sm"
+                  className="h-6 border-amber-300 bg-amber-50 px-2 font-mono text-[10px] text-amber-900 hover:bg-amber-100"
+                  onClick={() => onFindSections(code)}
+                  data-testid={`intention-incomplete-${item.id}`}
+                  title={`${code}: ${courseStatusText(status)}`}
+                >
+                  <AlertTriangle className="mr-1 h-3 w-3" aria-hidden="true" />
+                  {code}
+                  <span className="ml-1 font-sans font-medium">· {courseStatusText(status)}</span>
+                </Button>
+              );
+            }
             return isSelected ? (
               <Badge
                 key={item.id}
                 variant="secondary"
                 className="border-emerald-200 bg-emerald-100 text-[10px] font-mono text-emerald-800"
                 data-testid={`intention-scheduled-${item.id}`}
-                title={`${code} already has a section on this schedule`}
+                title={
+                  status ? `${code}: ${courseStatusText(status)}` : `${code} already has a section on this schedule`
+                }
               >
-                <CheckCircle2 className="mr-1 h-3 w-3" />
+                <CheckCircle2 className="mr-1 h-3 w-3" aria-hidden="true" />
                 {code}
+                {status && status.notYetPublished.length > 0 && (
+                  <span className="ml-1 font-sans font-medium">· {courseStatusText(status)}</span>
+                )}
               </Badge>
             ) : (
               <Button

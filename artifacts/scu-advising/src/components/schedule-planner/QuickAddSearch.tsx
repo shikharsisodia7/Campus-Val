@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { useSearchCourses, useListCourseSections, useAddScheduleEvent, useUpdateScheduleEvent, useGetSectionAvailabilityStatus, getSearchCoursesQueryKey, getListCourseSectionsQueryKey, getGetSectionAvailabilityStatusQueryKey } from "@workspace/api-client-react";
+import { useSearchCourses, useListCourseSections, useGetCourseComponents, useAddScheduleEvent, useUpdateScheduleEvent, useGetSectionAvailabilityStatus, getSearchCoursesQueryKey, getListCourseSectionsQueryKey, getGetCourseComponentsQueryKey, getGetSectionAvailabilityStatusQueryKey } from "@workspace/api-client-react";
+import { COMPONENT_LABEL, COMPONENT_ORDER, componentLabel } from "./course-components";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,19 +20,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * Course components. SCU publishes no component column, so `componentType`
- * arrives from the API derived from the published meeting pattern and the
- * bulletin's laboratory/recitation text — it is a planning aid, never a
- * Registrar field, and the UI says so.
+ * Course components (lecture / lab / discussion / recitation) arrive from the
+ * API, which classifies every course with the same rule. When the source
+ * published the component it is shown as such; when it was derived from the
+ * meeting pattern the UI says "verify in Workday".
  */
-const COMPONENT_LABEL: Record<string, string> = {
-  lecture: "Lecture",
-  lab: "Lab",
-  recitation: "Recitation",
-  unknown: "Section",
-};
-
-const COMPONENT_ORDER = ["lecture", "lab", "recitation", "unknown"];
 
 /**
  * Text always carries the meaning — color is additive only (professor
@@ -133,6 +126,19 @@ export function QuickAddSearch({
     },
   });
 
+  // What this course needs in THIS term — including a component the term's
+  // schedule has not published sections for yet.
+  const componentParams: any = {
+    term: workspace.activeTerm!,
+    year: workspace.activeYear!,
+  };
+  const { data: componentPlan } = useGetCourseComponents(selectedCourse!, componentParams, {
+    query: {
+      enabled: !!selectedCourse && !!workspace.activeTerm && !!workspace.activeYear,
+      queryKey: getGetCourseComponentsQueryKey(selectedCourse!, componentParams),
+    },
+  });
+
   const addMut = useAddScheduleEvent();
   const updateMut = useUpdateScheduleEvent();
 
@@ -154,16 +160,21 @@ export function QuickAddSearch({
   // section is only classified "lab" when SCU's bulletin says the course has
   // one, so this is a consistent view of what still needs scheduling.
   const offeredComponents = Array.from(
-    new Set((sections ?? []).map((s) => s.componentType ?? "unknown")),
+    new Set<string>((sections ?? []).map((s) => s.componentType ?? "unknown")),
   );
-  const scheduledComponents = new Set(
+  const scheduledComponents = new Set<string>(
     eventsForCourse.map((e) => e.componentType ?? "unknown"),
   );
-  const missingComponents = offeredComponents.filter(
-    (c) => c !== "unknown" && !scheduledComponents.has(c),
+  const missingComponents = COMPONENT_ORDER.filter(
+    (c) => c !== "unknown" && offeredComponents.includes(c) && !scheduledComponents.has(c),
   );
+  // Needed by the course, but no section is listed for this term yet.
+  const unpublishedComponents = (componentPlan?.components ?? [])
+    .filter((c) => c.required && !c.sectionsPublished)
+    .map((c) => c.componentType as string);
   const isMultiComponentCourse =
-    offeredComponents.filter((c) => c !== "unknown").length > 1;
+    offeredComponents.filter((c) => c !== "unknown").length > 1 ||
+    (componentPlan?.multiComponent ?? false);
 
   const handleAddOrSwap = (sectionNumber: string, component: string | null | undefined) => {
     if (!workspace.activeScheduleId || !selectedCourse) return;
@@ -187,7 +198,14 @@ export function QuickAddSearch({
                 "Your other scheduled components for this course were left in place.",
             });
           },
-          onError: () => toast({ title: "Failed to swap section", variant: "destructive" }),
+          onError: (err: any) =>
+            toast({
+              title: "Section not swapped",
+              description:
+                err?.data?.error ??
+                "Your schedule was not changed. Try again, or add the section as a separate component.",
+              variant: "destructive",
+            }),
         }
       );
     } else {
@@ -209,7 +227,7 @@ export function QuickAddSearch({
             if (err?.status === 409) {
               toast({ title: "Section already on schedule", variant: "destructive" });
             } else {
-              toast({ title: err?.body?.error || "Failed to add section", variant: "destructive" });
+              toast({ title: err?.data?.error || err?.body?.error || "Failed to add section", variant: "destructive" });
             }
           },
         }
@@ -268,18 +286,40 @@ export function QuickAddSearch({
                   className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900"
                   data-testid="multi-component-notice"
                 >
-                  {missingComponents.length > 0 ? (
-                    <p data-testid="missing-components">
-                      <strong>Still to schedule:</strong>{" "}
-                      {missingComponents
-                        .map((c) => COMPONENT_LABEL[c] ?? c)
-                        .join(" + ")}
-                      . Adding one part does not complete this course.
+                  <p className="font-semibold" data-testid="component-requirement">
+                    This course requires{" "}
+                    {(componentPlan?.components ?? offeredComponents.filter((c) => c !== "unknown").map((c) => ({ componentType: c as string })))
+                      .map((c) => componentLabel(c.componentType))
+                      .join(" + ")}
+                    .
+                  </p>
+                  {scheduledComponents.size > 0 && (
+                    <p className="mt-1" data-testid="scheduled-components">
+                      <strong>Selected:</strong>{" "}
+                      {COMPONENT_ORDER.filter((c) => scheduledComponents.has(c)).map(componentLabel).join(" + ")}
                     </p>
-                  ) : (
-                    <p data-testid="all-components-scheduled">
+                  )}
+                  {missingComponents.length > 0 ? (
+                    <p className="mt-1" data-testid="missing-components">
+                      <strong>Still to schedule:</strong>{" "}
+                      {missingComponents.map(componentLabel).join(" + ")}
+                      {" "}required. Adding one part does not complete this course.
+                    </p>
+                  ) : scheduledComponents.size > 0 && unpublishedComponents.length === 0 ? (
+                    <p className="mt-1" data-testid="all-components-scheduled">
                       <strong>All parts scheduled.</strong> You have a section
                       for each part of this course.
+                    </p>
+                  ) : null}
+                  {unpublishedComponents.length > 0 && (
+                    <p className="mt-1" data-testid="unpublished-components">
+                      <strong>
+                        {unpublishedComponents.map(componentLabel).join(" + ")} times are not
+                        published yet
+                      </strong>{" "}
+                      for this quarter. The Registrar's tentative schedule lists the lecture only, so
+                      CampusVal cannot check this course's lab for conflicts yet — it does not invent
+                      a time. Add the lab here once Workday posts its sections.
                     </p>
                   )}
                   <p className="mt-1.5 opacity-90">
@@ -395,7 +435,11 @@ export function QuickAddSearch({
                       </h5>
                       <span className="text-[10px] text-muted-foreground">
                         {group.length}
-                        {component !== "unknown" && " · grouping inferred, verify in Workday"}
+                        {component === "unknown"
+                          ? " · CampusVal could not tell what these are; check Workday"
+                          : group.some((g) => g.componentInferred)
+                            ? " · grouping inferred from meeting times, verify in Workday"
+                            : " · as published"}
                       </span>
                     </div>
                     <div className="space-y-3">

@@ -19,7 +19,14 @@ import { COURSES, findCourse } from "../data/courses";
 import { CORE_AREAS, coreAreaDefForTag, resolveCoreAreaTag } from "../data/core-areas";
 import { offeredSectionsFor } from "../data/offered-sections";
 import { searchCourses } from "../lib/course-search";
-import { classifySection } from "../lib/course-components";
+import {
+  classifySection,
+  courseScheduleStatus,
+  type ComponentType,
+  type CourseScheduleStatus,
+} from "../lib/course-components";
+import { courseTermSections, type CourseTermSections } from "../lib/term-sections";
+import type { Term } from "../lib/availability";
 
 const router: IRouter = Router();
 
@@ -44,7 +51,7 @@ function scheduleDto(row: QuarterScheduleRow, eventCount: number) {
   };
 }
 
-function eventDto(row: ScheduleEventRow) {
+function eventDto(row: ScheduleEventRow, componentType: ComponentType | null) {
   return {
     id: row.id,
     scheduleId: row.scheduleId,
@@ -63,19 +70,57 @@ function eventDto(row: ScheduleEventRow) {
     startTime: row.startTime,
     endTime: row.endTime,
     location: row.location ?? null,
-    // Derived at read time from the meeting snapshot already stored on the
-    // row, so multi-component scheduling needs no migration and every
-    // schedule saved before this feature keeps working unchanged.
-    componentType:
-      row.kind === "section" && row.courseCode
-        ? classifySection({
-            courseCode: row.courseCode,
-            meetingDays: (row.meetingDays ?? []) as string[],
-            startTime: row.startTime,
-            endTime: row.endTime,
-          }).componentType
-        : null,
+    // Derived at read time, so multi-component scheduling needs no migration
+    // and every schedule saved before this feature keeps working unchanged.
+    componentType,
   };
+}
+
+/**
+ * Components for a schedule's section events, classified against the sections
+ * the course offers in THE SCHEDULE'S OWN term (a Fall section is never used to
+ * classify a Winter one). One lookup per course.
+ */
+async function scheduleContext(schedule: QuarterScheduleRow, events: ScheduleEventRow[]) {
+  const codes = Array.from(
+    new Set(events.filter((e) => e.kind === "section" && e.courseCode).map((e) => e.courseCode!)),
+  );
+  const byCourse = new Map<string, CourseTermSections>(
+    await Promise.all(
+      codes.map(
+        async (code) => [code, await courseTermSections(code, schedule.term as Term, schedule.year)] as const,
+      ),
+    ),
+  );
+
+  const componentOf = (e: ScheduleEventRow): ComponentType | null => {
+    if (e.kind !== "section" || !e.courseCode) return null;
+    const term = byCourse.get(e.courseCode);
+    const listed = term?.sections.find((x) => x.sectionNumber === e.sectionNumber);
+    if (listed) return listed.classification.componentType;
+    // The section is no longer in the schedule data: classify its snapshot
+    // against what the course offers now.
+    return classifySection(
+      {
+        courseCode: e.courseCode,
+        meetingDays: (e.meetingDays ?? []) as string[],
+        startTime: e.startTime,
+        endTime: e.endTime,
+      },
+      term?.sections ?? [],
+    ).componentType;
+  };
+
+  const courseStatus: CourseScheduleStatus[] = codes.map((code) =>
+    courseScheduleStatus(
+      code,
+      byCourse.get(code)?.sections ?? [],
+      events
+        .filter((e) => e.kind === "section" && e.courseCode === code)
+        .map((e) => componentOf(e) ?? "unknown"),
+    ),
+  );
+  return { componentOf, courseStatus, byCourse };
 }
 
 async function ownedSchedule(
@@ -101,46 +146,64 @@ async function detailDto(row: QuarterScheduleRow) {
     .from(scheduleEventsTable)
     .where(eq(scheduleEventsTable.scheduleId, row.id))
     .orderBy(asc(scheduleEventsTable.id));
+  const { componentOf, courseStatus } = await scheduleContext(row, events);
   return {
     id: row.id,
     name: row.name,
     term: row.term,
     year: row.year,
-    events: events.map(eventDto),
+    events: events.map((e) => eventDto(e, componentOf(e))),
+    // Per course: what is scheduled, what is still to choose, and what the
+    // term's schedule has not published yet.
+    courseStatus,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-/** Resolve + validate a real section from the official Registrar schedule. */
-function resolveSection(
+/**
+ * Resolve + validate a real section for THIS term: from the Registrar's
+ * schedule, or one an availability source lists for the term (for example lab
+ * sections Workday posts while the Registrar's schedule is still tentative).
+ * Meeting details are snapshotted from that source — never invented.
+ */
+async function resolveSection(
   courseCode: string,
   sectionNumber: string,
   term: string,
   year: number,
-):
-  | { ok: true; snapshot: Partial<typeof scheduleEventsTable.$inferInsert> }
-  | { ok: false; error: string } {
+): Promise<
+  | { ok: true; snapshot: Partial<typeof scheduleEventsTable.$inferInsert>; componentType: ComponentType }
+  | { ok: false; error: string }
+> {
   const course = findCourse(courseCode);
   if (!course) return { ok: false, error: `Unknown course: ${courseCode}` };
-  const sections = offeredSectionsFor(course.code, term, year);
+  const { sections } = await courseTermSections(course.code, term as Term, year);
   if (sections.length === 0) {
     return {
       ok: false,
       error: `${course.code} has no sections in the official ${term} ${year} schedule`,
     };
   }
-  const section = sections.find(
-    (s) => s.sectionNumber === String(sectionNumber).trim(),
-  );
+  const section = sections.find((s) => s.sectionNumber === String(sectionNumber).trim());
   if (!section) {
     return {
       ok: false,
       error: `Section ${sectionNumber} of ${course.code} not found in ${term} ${year}`,
     };
   }
+  if (section.meetingDays.length === 0 || !section.startTime || !section.endTime) {
+    // schedule_events needs real times; a section with none cannot be placed.
+    if (section.origin === "availability_source") {
+      return {
+        ok: false,
+        error: `Section ${sectionNumber} of ${course.code} has no meeting time published yet`,
+      };
+    }
+  }
   return {
     ok: true,
+    componentType: section.classification.componentType,
     snapshot: {
       kind: "section",
       courseCode: course.code,
@@ -309,7 +372,7 @@ router.post("/schedules/:id/events", requireAuth, async (req, res) => {
       return res
         .status(400)
         .json({ error: "courseCode and sectionNumber are required" });
-    const resolved = resolveSection(
+    const resolved = await resolveSection(
       body.courseCode,
       body.sectionNumber,
       row.term,
@@ -344,7 +407,7 @@ router.post("/schedules/:id/events", requireAuth, async (req, res) => {
         ...(resolved.snapshot as object),
       } as typeof scheduleEventsTable.$inferInsert)
       .returning();
-    return res.status(201).json(eventDto(created!));
+    return res.status(201).json(eventDto(created!, resolved.componentType));
   }
 
   // commitment
@@ -368,7 +431,7 @@ router.post("/schedules/:id/events", requireAuth, async (req, res) => {
       location: body.location?.trim() || null,
     })
     .returning();
-  res.status(201).json(eventDto(created!));
+  res.status(201).json(eventDto(created!, null));
 });
 
 router.patch(
@@ -402,7 +465,7 @@ router.patch(
         return res
           .status(400)
           .json({ error: "sectionNumber is required to change a section" });
-      const resolved = resolveSection(
+      const resolved = await resolveSection(
         courseCode,
         sectionNumber,
         row.term,
@@ -410,6 +473,24 @@ router.patch(
       );
       if (!resolved.ok)
         return res.status(400).json({ error: resolved.error });
+      // A swap changes ONE component. Swapping a lecture for a lab section would
+      // silently drop the lecture, so a section of a different component must be
+      // ADDED instead. (When either side could not be classified there is
+      // nothing to compare, and the swap is allowed.)
+      if (courseCode === event.courseCode) {
+        const current = (await scheduleContext(row, [event])).componentOf(event);
+        if (
+          current &&
+          current !== "unknown" &&
+          resolved.componentType !== "unknown" &&
+          current !== resolved.componentType
+        ) {
+          return res.status(409).json({
+            error: `Section ${sectionNumber} is a ${resolved.componentType} section, not a ${current}. Add it as a separate component instead of replacing your ${current}.`,
+            code: "component_mismatch",
+          });
+        }
+      }
       // Prevent swapping into a section that's already on this schedule.
       const dup = await db
         .select({ id: scheduleEventsTable.id })
@@ -431,7 +512,7 @@ router.patch(
         .set(resolved.snapshot as never)
         .where(eq(scheduleEventsTable.id, event.id))
         .returning();
-      return res.json(eventDto(updated!));
+      return res.json(eventDto(updated!, resolved.componentType));
     }
 
     // commitment edit
@@ -467,7 +548,7 @@ router.patch(
       })
       .where(eq(scheduleEventsTable.id, event.id))
       .returning();
-    res.json(eventDto(updated!));
+    res.json(eventDto(updated!, null));
   },
 );
 
@@ -490,6 +571,35 @@ router.delete(
     if (deleted.length === 0)
       return res.status(404).json({ error: "Event not found" });
     res.status(204).end();
+  },
+);
+
+/**
+ * Remove a WHOLE course from a schedule: its lecture, its lab and any other
+ * component section, in one step. (Removing a single event removes only that
+ * component and leaves the rest of the course in place.)
+ */
+router.delete(
+  "/schedules/:id/courses/:courseCode",
+  requireAuth,
+  async (req, res) => {
+    const row = await ownedSchedule(Number(req.params.id), req.userId!);
+    if (!row) return res.status(404).json({ error: "Schedule not found" });
+    const course = findCourse(String(req.params.courseCode));
+    const courseCode = course?.code ?? String(req.params.courseCode).toUpperCase().replace(/\s+/g, " ").trim();
+    const deleted = await db
+      .delete(scheduleEventsTable)
+      .where(
+        and(
+          eq(scheduleEventsTable.scheduleId, row.id),
+          eq(scheduleEventsTable.kind, "section"),
+          eq(scheduleEventsTable.courseCode, courseCode),
+        ),
+      )
+      .returning({ id: scheduleEventsTable.id });
+    if (deleted.length === 0)
+      return res.status(404).json({ error: "That course is not on this schedule" });
+    res.json({ removed: deleted.length });
   },
 );
 

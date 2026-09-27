@@ -588,16 +588,22 @@ export const ListCourseSectionsResponseItem = zod.object({
       "True for tentative-schedule terms (Winter\/Spring 2027) where section numbers and instructors are not yet finalized.",
     ),
   componentType: zod
-    .enum(["lecture", "lab", "recitation", "unknown"])
+    .enum(["lecture", "lab", "discussion", "recitation", "unknown"])
     .optional()
     .describe(
-      'Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin\'s laboratory\/recitation text. Always treat it as a planning aid; \"unknown\" means CampusVal could not tell.',
+      'Which course component this section is. When the source states an instructional format it is used as-is; otherwise it is derived from how the course\'s own sections meet in that term. \"unknown\" means CampusVal could not tell.',
     ),
   componentInferred: zod
     .boolean()
     .optional()
     .describe(
-      "Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official.",
+      "True when componentType was derived from the meeting pattern; false when the source published it.",
+    ),
+  componentSourceLabel: zod
+    .string()
+    .nullish()
+    .describe(
+      "The instructional format exactly as the source printed it, when it did.",
     ),
   availabilityStatus: zod
     .enum(["open", "waitlist", "full", "unknown"])
@@ -637,6 +643,50 @@ export const ListCourseSectionsResponseItem = zod.object({
 export const ListCourseSectionsResponse = zod.array(
   ListCourseSectionsResponseItem,
 );
+
+/**
+ * The same rule for every course. `sectionsPublished: false` means the course needs
+that component but the term's schedule lists no section for it yet — for example a
+tentative Registrar schedule that lists lectures only. CampusVal never invents one.
+
+ * @summary Which components (lecture, lab, discussion…) a course needs in one term
+ */
+export const GetCourseComponentsParams = zod.object({
+  code: zod.coerce.string(),
+});
+
+export const GetCourseComponentsQueryParams = zod.object({
+  term: zod.enum(["fall", "winter", "spring", "summer"]),
+  year: zod.coerce.number(),
+});
+
+export const GetCourseComponentsResponse = zod.object({
+  courseCode: zod.string(),
+  term: zod.string(),
+  year: zod.number(),
+  tentative: zod.boolean(),
+  offered: zod.boolean(),
+  multiComponent: zod.boolean(),
+  components: zod.array(
+    zod.object({
+      componentType: zod
+        .enum(["lecture", "lab", "discussion", "recitation", "unknown"])
+        .describe(
+          'The normalized component of a section. \"unknown\" means CampusVal could not tell; it is never guessed from a section number.',
+        ),
+      required: zod.boolean(),
+      sectionCount: zod.number(),
+      sectionsPublished: zod
+        .boolean()
+        .describe(
+          "False when the component is needed but no section for it is listed for the term yet.",
+        ),
+      evidence: zod
+        .array(zod.string())
+        .describe("The published SCU text the requirement comes from."),
+    }),
+  ),
+});
 
 /**
  * @summary How trustworthy seat availability currently is for a term (live / cached / not connected)
@@ -738,16 +788,22 @@ export const SyncWorkdaySectionsResponse = zod.object({
             "True for tentative-schedule terms (Winter\/Spring 2027) where section numbers and instructors are not yet finalized.",
           ),
         componentType: zod
-          .enum(["lecture", "lab", "recitation", "unknown"])
+          .enum(["lecture", "lab", "discussion", "recitation", "unknown"])
           .optional()
           .describe(
-            'Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin\'s laboratory\/recitation text. Always treat it as a planning aid; \"unknown\" means CampusVal could not tell.',
+            'Which course component this section is. When the source states an instructional format it is used as-is; otherwise it is derived from how the course\'s own sections meet in that term. \"unknown\" means CampusVal could not tell.',
           ),
         componentInferred: zod
           .boolean()
           .optional()
           .describe(
-            "Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official.",
+            "True when componentType was derived from the meeting pattern; false when the source published it.",
+          ),
+        componentSourceLabel: zod
+          .string()
+          .nullish()
+          .describe(
+            "The instructional format exactly as the source printed it, when it did.",
           ),
         availabilityStatus: zod
           .enum(["open", "waitlist", "full", "unknown"])
@@ -2307,15 +2363,57 @@ export const GetScheduleResponse = zod.object({
       location: zod.string().nullish(),
       componentType: zod
         .union([
-          zod.enum(["lecture", "lab", "recitation", "unknown"]),
+          zod.enum(["lecture", "lab", "discussion", "recitation", "unknown"]),
           zod.null(),
         ])
         .optional()
         .describe(
-          "Which component of the course this scheduled section is (lecture \/ lab \/ recitation), derived from the meeting snapshot on the event. Null for commitments and for sections CampusVal cannot classify.",
+          "Which component of the course this scheduled section is, classified against the sections the course offers in the schedule's own term. Null for commitments.",
         ),
     }),
   ),
+  courseStatus: zod
+    .array(
+      zod.object({
+        courseCode: zod.string(),
+        scheduled: zod.array(
+          zod
+            .enum(["lecture", "lab", "discussion", "recitation", "unknown"])
+            .describe(
+              'The normalized component of a section. \"unknown\" means CampusVal could not tell; it is never guessed from a section number.',
+            ),
+        ),
+        missing: zod
+          .array(
+            zod
+              .enum(["lecture", "lab", "discussion", "recitation", "unknown"])
+              .describe(
+                'The normalized component of a section. \"unknown\" means CampusVal could not tell; it is never guessed from a section number.',
+              ),
+          )
+          .describe("Needed, sections exist for the term, none chosen yet."),
+        notYetPublished: zod
+          .array(
+            zod
+              .enum(["lecture", "lab", "discussion", "recitation", "unknown"])
+              .describe(
+                'The normalized component of a section. \"unknown\" means CampusVal could not tell; it is never guessed from a section number.',
+              ),
+          )
+          .describe(
+            "Needed, but the term's schedule lists no section for it yet.",
+          ),
+        complete: zod
+          .boolean()
+          .describe(
+            "Every component that can be scheduled for the term has been.",
+          ),
+      }),
+    )
+    .optional()
+    .describe(
+      "Per course on this schedule, which components are chosen and which are still needed.",
+    ),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -2372,15 +2470,57 @@ export const UpdateScheduleResponse = zod.object({
       location: zod.string().nullish(),
       componentType: zod
         .union([
-          zod.enum(["lecture", "lab", "recitation", "unknown"]),
+          zod.enum(["lecture", "lab", "discussion", "recitation", "unknown"]),
           zod.null(),
         ])
         .optional()
         .describe(
-          "Which component of the course this scheduled section is (lecture \/ lab \/ recitation), derived from the meeting snapshot on the event. Null for commitments and for sections CampusVal cannot classify.",
+          "Which component of the course this scheduled section is, classified against the sections the course offers in the schedule's own term. Null for commitments.",
         ),
     }),
   ),
+  courseStatus: zod
+    .array(
+      zod.object({
+        courseCode: zod.string(),
+        scheduled: zod.array(
+          zod
+            .enum(["lecture", "lab", "discussion", "recitation", "unknown"])
+            .describe(
+              'The normalized component of a section. \"unknown\" means CampusVal could not tell; it is never guessed from a section number.',
+            ),
+        ),
+        missing: zod
+          .array(
+            zod
+              .enum(["lecture", "lab", "discussion", "recitation", "unknown"])
+              .describe(
+                'The normalized component of a section. \"unknown\" means CampusVal could not tell; it is never guessed from a section number.',
+              ),
+          )
+          .describe("Needed, sections exist for the term, none chosen yet."),
+        notYetPublished: zod
+          .array(
+            zod
+              .enum(["lecture", "lab", "discussion", "recitation", "unknown"])
+              .describe(
+                'The normalized component of a section. \"unknown\" means CampusVal could not tell; it is never guessed from a section number.',
+              ),
+          )
+          .describe(
+            "Needed, but the term's schedule lists no section for it yet.",
+          ),
+        complete: zod
+          .boolean()
+          .describe(
+            "Every component that can be scheduled for the term has been.",
+          ),
+      }),
+    )
+    .optional()
+    .describe(
+      "Per course on this schedule, which components are chosen and which are still needed.",
+    ),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -2534,10 +2674,13 @@ export const UpdateScheduleEventResponse = zod.object({
   endTime: zod.string(),
   location: zod.string().nullish(),
   componentType: zod
-    .union([zod.enum(["lecture", "lab", "recitation", "unknown"]), zod.null()])
+    .union([
+      zod.enum(["lecture", "lab", "discussion", "recitation", "unknown"]),
+      zod.null(),
+    ])
     .optional()
     .describe(
-      "Which component of the course this scheduled section is (lecture \/ lab \/ recitation), derived from the meeting snapshot on the event. Null for commitments and for sections CampusVal cannot classify.",
+      "Which component of the course this scheduled section is, classified against the sections the course offers in the schedule's own term. Null for commitments.",
     ),
 });
 
@@ -2547,6 +2690,18 @@ export const UpdateScheduleEventResponse = zod.object({
 export const DeleteScheduleEventParams = zod.object({
   id: zod.coerce.number(),
   eventId: zod.coerce.number(),
+});
+
+/**
+ * @summary Remove a whole course (every component section) from a schedule
+ */
+export const RemoveCourseFromScheduleParams = zod.object({
+  id: zod.coerce.number(),
+  courseCode: zod.coerce.string(),
+});
+
+export const RemoveCourseFromScheduleResponse = zod.object({
+  removed: zod.number().describe("Number of component sections removed."),
 });
 
 /**
@@ -2730,584 +2885,63 @@ export const GetStorageObjectParams = zod.object({
 });
 
 /**
- * Returns 200 with the report if one exists, or 404 if none.
-If object storage is not configured, returns 200 with { available: false }.
-Only ever the CALLER's own report — there is no way to address another user's.
+ * A student may upload several Workday APR files (one per major / minor). This returns
+the metadata of every one the CALLER owns, in display order. Workbook contents are not
+included. There is no way to address another user's documents.
+If object storage is not configured, returns { available: false, reports: [] }.
 
- * @summary Get the authenticated student's current progress report (metadata + parsed payload)
+ * @summary List the authenticated student's Academic Progress Report documents
  */
-export const getProgressReportQueryViewDefault = `full`;
-export const getProgressReportQueryCheckSourceDefault = false;
-
-export const GetProgressReportQueryParams = zod.object({
-  view: zod
-    .enum(["full", "planning"])
-    .default(getProgressReportQueryViewDefault)
-    .describe(
-      '\"planning\" returns a minimized projection for the Degree Plan \/\nTentative Degree Plan \/ Quarter Plan reference panel: no grades,\nno raw source text. \"full\" (default) is for the private APR page.\n',
-    ),
-  checkSource: zod.coerce
+export const ListProgressReportsResponse = zod.object({
+  available: zod
     .boolean()
-    .default(getProgressReportQueryCheckSourceDefault)
     .describe(
-      "When true, also reports whether the original uploaded file can still be read from storage (sourceFile).",
+      "False when object storage is not configured for this deployment.",
     ),
-});
-
-export const GetProgressReportResponse = zod
-  .object({
-    available: zod.boolean(),
-    report: zod
-      .union([
-        zod.object({
-          id: zod.number(),
-          fileName: zod.string(),
-          fileSize: zod.number(),
-          contentType: zod.string(),
-          sourceFile: zod
-            .enum(["available", "missing", "unknown"])
-            .optional()
-            .describe(
-              'Only present when checkSource=true. \"missing\" means the row exists but the stored original can no longer be read.',
-            ),
-          uploadedAt: zod.coerce.date(),
-          parsed: zod
-            .union([
-              zod.object({
-                completedCourses: zod.array(
-                  zod.object({
-                    code: zod.string(),
-                    title: zod.string(),
-                    units: zod.number(),
-                    confidence: zod.enum(["high"]),
-                  }),
-                ),
-                nonCompletedCourses: zod
-                  .array(
-                    zod.object({
-                      code: zod.string(),
-                      title: zod.string(),
-                      units: zod.number(),
-                      status: zod.enum([
-                        "in_progress",
-                        "not_completed",
-                        "needs_review",
-                      ]),
-                    }),
-                  )
-                  .optional()
-                  .describe(
-                    "Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework.",
-                  ),
-                possibleCourses: zod
-                  .array(
-                    zod.object({
-                      raw: zod.string(),
-                    }),
-                  )
-                  .describe(
-                    "Code-like tokens not found in catalog; retained for user review.",
-                  ),
-                program: zod
-                  .string()
-                  .nullish()
-                  .describe(
-                    "Program\/major detected from the report, if clearly labeled.",
-                  ),
-                reportStudentId: zod
-                  .string()
-                  .nullish()
-                  .describe(
-                    "Student ID extracted from the document when confidently present.",
-                  ),
-                groups: zod
-                  .array(
-                    zod.object({
-                      name: zod.string(),
-                      kind: zod
-                        .enum(["core", "major", "minor", "other"])
-                        .optional()
-                        .describe(
-                          "Classified from the heading, for display order only. `name` stays the document's own wording.",
-                        ),
-                      order: zod
-                        .number()
-                        .optional()
-                        .describe(
-                          "Position of the heading in the source document.",
-                        ),
-                      requirements: zod.array(
-                        zod.object({
-                          name: zod.string(),
-                          order: zod
-                            .number()
-                            .optional()
-                            .describe(
-                              "Position of this row in the source document.",
-                            ),
-                          scope: zod
-                            .enum(["university", "program"])
-                            .optional()
-                            .describe(
-                              '\"university\" for the university-wide rows Workday repeats under every program.',
-                            ),
-                          unit: zod
-                            .enum(["total", "upper_division"])
-                            .optional()
-                            .describe(
-                              "Set only when the row itself states a unit requirement.",
-                            ),
-                          requiredUnits: zod.number().nullish(),
-                          detail: zod
-                            .string()
-                            .nullish()
-                            .describe(
-                              "Text Workday printed after the status word, kept verbatim and not interpreted.",
-                            ),
-                          remaining: zod
-                            .string()
-                            .optional()
-                            .describe(
-                              'The row\'s \"Remaining\" column, verbatim (for example \"Minimum 1 Course(s)\", \"Minimum 44 Unit(s)\", \"Minimum Combination Required\"). Present only when Workday printed one; never computed.',
-                            ),
-                          category: zod
-                            .enum(["core", "college"])
-                            .optional()
-                            .describe(
-                              '\"core\" for University Core rows (\"Core: LSB: CTW 1\"), \"college\" for a school\'s own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set (\"Core: CAS: ...\").',
-                            ),
-                          sourceText: zod
-                            .string()
-                            .optional()
-                            .describe(
-                              "The source line this row was read from. Omitted from the planning view.",
-                            ),
-                          status: zod.enum([
-                            "completed",
-                            "in_progress",
-                            "remaining",
-                            "needs_review",
-                          ]),
-                          courses: zod.array(
-                            zod.object({
-                              code: zod.string(),
-                              title: zod.string(),
-                              units: zod.number().nullable(),
-                              grade: zod.string().nullable(),
-                              inCatalog: zod.boolean(),
-                              inProgress: zod
-                                .boolean()
-                                .optional()
-                                .describe('The row said \"(In Progress)\".'),
-                              transfer: zod
-                                .boolean()
-                                .optional()
-                                .describe(
-                                  'The row said \"(Transfer Credit)\".',
-                                ),
-                              period: zod
-                                .string()
-                                .optional()
-                                .describe(
-                                  'Workday\'s \"Academic Period\" text (for example \"Fall 2025\"), when the row has one.',
-                                ),
-                            }),
-                          ),
-                        }),
-                      ),
-                    }),
-                  )
-                  .optional()
-                  .describe(
-                    "Requirement-group hierarchy derived from the document's own structure (e.g. \"<Program> Requirements\"); absent when the document doesn't support it or predates this field.",
-                  ),
-                declaredMajors: zod
-                  .array(zod.string())
-                  .optional()
-                  .describe(
-                    "Majors named in the report header, exactly as Workday lists them. Never inferred.",
-                  ),
-                declaredMinors: zod
-                  .array(zod.string())
-                  .optional()
-                  .describe(
-                    "Minors named in the report header, exactly as Workday lists them. Never inferred.",
-                  ),
-                reportDate: zod
-                  .string()
-                  .optional()
-                  .describe(
-                    "The date printed on the report pages (YYYY-MM-DD).",
-                  ),
-                lastEvaluated: zod
-                  .string()
-                  .optional()
-                  .describe(
-                    'The most recent \"Last Evaluated\" date across the program blocks (YYYY-MM-DD).',
-                  ),
-                summary: zod
-                  .object({
-                    totalUnits: zod
-                      .object({
-                        name: zod.string(),
-                        status: zod.enum([
-                          "completed",
-                          "in_progress",
-                          "remaining",
-                          "needs_review",
-                        ]),
-                        requiredUnits: zod.number().nullable(),
-                        detail: zod.string().nullable(),
-                        order: zod.number(),
-                      })
-                      .optional(),
-                    upperDivisionUnits: zod
-                      .object({
-                        name: zod.string(),
-                        status: zod.enum([
-                          "completed",
-                          "in_progress",
-                          "remaining",
-                          "needs_review",
-                        ]),
-                        requiredUnits: zod.number().nullable(),
-                        detail: zod.string().nullable(),
-                        order: zod.number(),
-                      })
-                      .optional(),
-                    creditsEarned: zod
-                      .number()
-                      .optional()
-                      .describe(
-                        'The number printed after \"Cumulative Credits Earned\", when the report prints exactly that label.',
-                      ),
-                  })
-                  .optional()
-                  .describe(
-                    "Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one.",
-                  ),
-                parserVersion: zod
-                  .string()
-                  .optional()
-                  .describe(
-                    "Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read).",
-                  ),
-                notes: zod.array(zod.string()),
-              }),
-              zod.null(),
-            ])
-            .optional(),
-          parseStatus: zod.enum(["pending", "parsed", "unsupported", "failed"]),
-          createdAt: zod.coerce.date(),
-          updatedAt: zod.coerce.date(),
-        }),
-        zod.null(),
-      ])
-      .optional(),
-  })
-  .describe(
-    "When available=false, object storage is not configured.\nWhen available=true, report may be null (no upload yet) or a full ProgressReport.\n",
-  );
-
-/**
- * @summary Register an uploaded progress report (PDF or Excel) after client PUT to presigned URL
- */
-export const RegisterProgressReportBody = zod.object({
-  objectPath: zod
-    .string()
-    .describe(
-      "Object path returned by the upload URL endpoint (must start with \/objects\/).",
-    ),
-  fileName: zod
-    .string()
-    .describe("Original file name (used to detect extension)."),
-  fileSize: zod.number().describe("File size in bytes (must be <= 10 MB)."),
-  contentType: zod
-    .string()
-    .describe(
-      "MIME type (must be application\/pdf or application\/vnd.openxmlformats-officedocument.spreadsheetml.sheet).",
-    ),
-});
-
-export const RegisterProgressReportResponse = zod
-  .object({
-    available: zod.boolean(),
-    report: zod
-      .union([
-        zod.object({
-          id: zod.number(),
-          fileName: zod.string(),
-          fileSize: zod.number(),
-          contentType: zod.string(),
-          sourceFile: zod
-            .enum(["available", "missing", "unknown"])
-            .optional()
-            .describe(
-              'Only present when checkSource=true. \"missing\" means the row exists but the stored original can no longer be read.',
-            ),
-          uploadedAt: zod.coerce.date(),
-          parsed: zod
-            .union([
-              zod.object({
-                completedCourses: zod.array(
-                  zod.object({
-                    code: zod.string(),
-                    title: zod.string(),
-                    units: zod.number(),
-                    confidence: zod.enum(["high"]),
-                  }),
-                ),
-                nonCompletedCourses: zod
-                  .array(
-                    zod.object({
-                      code: zod.string(),
-                      title: zod.string(),
-                      units: zod.number(),
-                      status: zod.enum([
-                        "in_progress",
-                        "not_completed",
-                        "needs_review",
-                      ]),
-                    }),
-                  )
-                  .optional()
-                  .describe(
-                    "Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework.",
-                  ),
-                possibleCourses: zod
-                  .array(
-                    zod.object({
-                      raw: zod.string(),
-                    }),
-                  )
-                  .describe(
-                    "Code-like tokens not found in catalog; retained for user review.",
-                  ),
-                program: zod
-                  .string()
-                  .nullish()
-                  .describe(
-                    "Program\/major detected from the report, if clearly labeled.",
-                  ),
-                reportStudentId: zod
-                  .string()
-                  .nullish()
-                  .describe(
-                    "Student ID extracted from the document when confidently present.",
-                  ),
-                groups: zod
-                  .array(
-                    zod.object({
-                      name: zod.string(),
-                      kind: zod
-                        .enum(["core", "major", "minor", "other"])
-                        .optional()
-                        .describe(
-                          "Classified from the heading, for display order only. `name` stays the document's own wording.",
-                        ),
-                      order: zod
-                        .number()
-                        .optional()
-                        .describe(
-                          "Position of the heading in the source document.",
-                        ),
-                      requirements: zod.array(
-                        zod.object({
-                          name: zod.string(),
-                          order: zod
-                            .number()
-                            .optional()
-                            .describe(
-                              "Position of this row in the source document.",
-                            ),
-                          scope: zod
-                            .enum(["university", "program"])
-                            .optional()
-                            .describe(
-                              '\"university\" for the university-wide rows Workday repeats under every program.',
-                            ),
-                          unit: zod
-                            .enum(["total", "upper_division"])
-                            .optional()
-                            .describe(
-                              "Set only when the row itself states a unit requirement.",
-                            ),
-                          requiredUnits: zod.number().nullish(),
-                          detail: zod
-                            .string()
-                            .nullish()
-                            .describe(
-                              "Text Workday printed after the status word, kept verbatim and not interpreted.",
-                            ),
-                          remaining: zod
-                            .string()
-                            .optional()
-                            .describe(
-                              'The row\'s \"Remaining\" column, verbatim (for example \"Minimum 1 Course(s)\", \"Minimum 44 Unit(s)\", \"Minimum Combination Required\"). Present only when Workday printed one; never computed.',
-                            ),
-                          category: zod
-                            .enum(["core", "college"])
-                            .optional()
-                            .describe(
-                              '\"core\" for University Core rows (\"Core: LSB: CTW 1\"), \"college\" for a school\'s own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set (\"Core: CAS: ...\").',
-                            ),
-                          sourceText: zod
-                            .string()
-                            .optional()
-                            .describe(
-                              "The source line this row was read from. Omitted from the planning view.",
-                            ),
-                          status: zod.enum([
-                            "completed",
-                            "in_progress",
-                            "remaining",
-                            "needs_review",
-                          ]),
-                          courses: zod.array(
-                            zod.object({
-                              code: zod.string(),
-                              title: zod.string(),
-                              units: zod.number().nullable(),
-                              grade: zod.string().nullable(),
-                              inCatalog: zod.boolean(),
-                              inProgress: zod
-                                .boolean()
-                                .optional()
-                                .describe('The row said \"(In Progress)\".'),
-                              transfer: zod
-                                .boolean()
-                                .optional()
-                                .describe(
-                                  'The row said \"(Transfer Credit)\".',
-                                ),
-                              period: zod
-                                .string()
-                                .optional()
-                                .describe(
-                                  'Workday\'s \"Academic Period\" text (for example \"Fall 2025\"), when the row has one.',
-                                ),
-                            }),
-                          ),
-                        }),
-                      ),
-                    }),
-                  )
-                  .optional()
-                  .describe(
-                    "Requirement-group hierarchy derived from the document's own structure (e.g. \"<Program> Requirements\"); absent when the document doesn't support it or predates this field.",
-                  ),
-                declaredMajors: zod
-                  .array(zod.string())
-                  .optional()
-                  .describe(
-                    "Majors named in the report header, exactly as Workday lists them. Never inferred.",
-                  ),
-                declaredMinors: zod
-                  .array(zod.string())
-                  .optional()
-                  .describe(
-                    "Minors named in the report header, exactly as Workday lists them. Never inferred.",
-                  ),
-                reportDate: zod
-                  .string()
-                  .optional()
-                  .describe(
-                    "The date printed on the report pages (YYYY-MM-DD).",
-                  ),
-                lastEvaluated: zod
-                  .string()
-                  .optional()
-                  .describe(
-                    'The most recent \"Last Evaluated\" date across the program blocks (YYYY-MM-DD).',
-                  ),
-                summary: zod
-                  .object({
-                    totalUnits: zod
-                      .object({
-                        name: zod.string(),
-                        status: zod.enum([
-                          "completed",
-                          "in_progress",
-                          "remaining",
-                          "needs_review",
-                        ]),
-                        requiredUnits: zod.number().nullable(),
-                        detail: zod.string().nullable(),
-                        order: zod.number(),
-                      })
-                      .optional(),
-                    upperDivisionUnits: zod
-                      .object({
-                        name: zod.string(),
-                        status: zod.enum([
-                          "completed",
-                          "in_progress",
-                          "remaining",
-                          "needs_review",
-                        ]),
-                        requiredUnits: zod.number().nullable(),
-                        detail: zod.string().nullable(),
-                        order: zod.number(),
-                      })
-                      .optional(),
-                    creditsEarned: zod
-                      .number()
-                      .optional()
-                      .describe(
-                        'The number printed after \"Cumulative Credits Earned\", when the report prints exactly that label.',
-                      ),
-                  })
-                  .optional()
-                  .describe(
-                    "Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one.",
-                  ),
-                parserVersion: zod
-                  .string()
-                  .optional()
-                  .describe(
-                    "Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read).",
-                  ),
-                notes: zod.array(zod.string()),
-              }),
-              zod.null(),
-            ])
-            .optional(),
-          parseStatus: zod.enum(["pending", "parsed", "unsupported", "failed"]),
-          createdAt: zod.coerce.date(),
-          updatedAt: zod.coerce.date(),
-        }),
-        zod.null(),
-      ])
-      .optional(),
-  })
-  .describe(
-    "When available=false, object storage is not configured.\nWhen available=true, report may be null (no upload yet) or a full ProgressReport.\n",
-  );
-
-/**
- * @summary Delete the authenticated student's progress report
- */
-export const DeleteProgressReportResponse = zod.object({
-  deleted: zod.boolean(),
-});
-
-/**
- * A mapping is the STUDENT'S note that an item on their Workday APR corresponds to a
-CampusVal catalog course. It is an annotation beside the report: it never edits the
-uploaded file or its parse, never changes what counts as completed, and is never
-shared. Only ever the caller's own.
-
- * @summary List the student's own mappings of unrecognized report items to catalog courses
- */
-export const ListProgressReportMappingsResponse = zod.object({
-  mappings: zod.array(
+  maxUploadBytes: zod.number(),
+  maxDocuments: zod.number(),
+  reports: zod.array(
     zod.object({
-      rawCode: zod.string().describe("The code as the report printed it."),
-      courseCode: zod
+      id: zod.number(),
+      label: zod.string(),
+      category: zod
+        .enum([
+          "primary_major",
+          "second_major",
+          "additional_major",
+          "minor",
+          "additional_minor",
+          "other",
+        ])
+        .describe(
+          "What the student says this APR is for. Any number of documents may share a category,\nso nothing limits how many majors or minors a student can have. Never inferred from\nthe file.\n",
+        ),
+      displayOrder: zod.number(),
+      fileName: zod.string(),
+      fileSize: zod.number(),
+      contentType: zod.string(),
+      sourceFormat: zod.enum(["xlsx", "pdf"]),
+      uploadedAt: zod.coerce
+        .date()
+        .describe(
+          "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a Workday timestamp.",
+        ),
+      importStatus: zod
+        .enum(["processing", "ready", "unsupported", "failed"])
+        .describe(
+          'The state of the FILE IMPORT. \"ready\" means the file was read and can be displayed —\nit says nothing about academic requirements.\n',
+        ),
+      importErrorCode: zod.string().nullable(),
+      importErrorMessage: zod.string().nullable(),
+      sheetCount: zod
+        .number()
+        .describe("Worksheets in the stored workbook (0 for a PDF)."),
+      fileFingerprint: zod
         .string()
-        .describe("The catalog course the student says it corresponds to."),
-      courseTitle: zod.string().nullable(),
-      courseUnits: zod.number().nullable(),
+        .nullish()
+        .describe(
+          "First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.",
+        ),
       createdAt: zod.coerce.date(),
       updatedAt: zod.coerce.date(),
     }),
@@ -3315,50 +2949,523 @@ export const ListProgressReportMappingsResponse = zod.object({
 });
 
 /**
- * Accepted only for a code the student's CURRENT report lists as unmatched, onto a
-course that exists in the CampusVal catalog.
+ * Called after the client PUT the file to the presigned upload URL. The file is
+validated and its structure copied before anything is saved; a file that cannot be
+read is rejected (422) and leaves no document behind.
 
- * @summary Map one unrecognized report item to a catalog course (or change that mapping)
+ * @summary Add an uploaded Workday APR file as a new document
  */
-export const UpsertProgressReportMappingParams = zod.object({
-  rawCode: zod.coerce
-    .string()
+export const createProgressReportBodyOneFileNameMax = 255;
+
+export const createProgressReportBodyTwoLabelMax = 80;
+
+export const CreateProgressReportBody = zod
+  .object({
+    objectPath: zod
+      .string()
+      .describe(
+        "Object path returned by the upload URL endpoint (must start with \/objects\/).",
+      ),
+    fileName: zod
+      .string()
+      .max(createProgressReportBodyOneFileNameMax)
+      .describe("Original file name (used to check the extension)."),
+    fileSize: zod.number().min(1).describe("File size in bytes."),
+    contentType: zod
+      .string()
+      .describe(
+        "MIME type. Excel (.xlsx) is the supported Workday export; PDF is accepted as a stored original.",
+      ),
+  })
+  .and(
+    zod.object({
+      label: zod
+        .string()
+        .min(1)
+        .max(createProgressReportBodyTwoLabelMax)
+        .describe(
+          'The student\'s own name for this APR, for example \"Finance Major\".',
+        ),
+      category: zod
+        .enum([
+          "primary_major",
+          "second_major",
+          "additional_major",
+          "minor",
+          "additional_minor",
+          "other",
+        ])
+        .optional()
+        .describe(
+          "What the student says this APR is for. Any number of documents may share a category,\nso nothing limits how many majors or minors a student can have. Never inferred from\nthe file.\n",
+        ),
+    }),
+  );
+
+/**
+ * Every document the caller owns, each with its rows grouped under Workday's own
+headings. The Academic Period, Units and Grade columns are left out ON THE SERVER, so
+a planning page never receives them. No course is matched and no requirement is
+judged: the status text is Workday's.
+
+ * @summary The compact APR reference for the planning pages
+ */
+export const GetProgressReportSidebarResponse = zod.object({
+  available: zod.boolean(),
+  documents: zod.array(
+    zod.object({
+      report: zod.object({
+        id: zod.number(),
+        label: zod.string(),
+        category: zod
+          .enum([
+            "primary_major",
+            "second_major",
+            "additional_major",
+            "minor",
+            "additional_minor",
+            "other",
+          ])
+          .describe(
+            "What the student says this APR is for. Any number of documents may share a category,\nso nothing limits how many majors or minors a student can have. Never inferred from\nthe file.\n",
+          ),
+        displayOrder: zod.number(),
+        fileName: zod.string(),
+        fileSize: zod.number(),
+        contentType: zod.string(),
+        sourceFormat: zod.enum(["xlsx", "pdf"]),
+        uploadedAt: zod.coerce
+          .date()
+          .describe(
+            "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a Workday timestamp.",
+          ),
+        importStatus: zod
+          .enum(["processing", "ready", "unsupported", "failed"])
+          .describe(
+            'The state of the FILE IMPORT. \"ready\" means the file was read and can be displayed —\nit says nothing about academic requirements.\n',
+          ),
+        importErrorCode: zod.string().nullable(),
+        importErrorMessage: zod.string().nullable(),
+        sheetCount: zod
+          .number()
+          .describe("Worksheets in the stored workbook (0 for a PDF)."),
+        fileFingerprint: zod
+          .string()
+          .nullish()
+          .describe(
+            "First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.",
+          ),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+      state: zod
+        .enum([
+          "ready",
+          "unrecognized_layout",
+          "original_only",
+          "import_failed",
+          "processing",
+        ])
+        .describe(
+          "ready: grouped rows are included. unrecognized_layout: the file was read but its\ntable was not recognised, so no rows are sent (open the full APR). original_only:\na PDF, viewable as the original file. import_failed \/ processing: the file state.\n",
+        ),
+      sheets: zod.array(
+        zod.object({
+          name: zod.string(),
+          index: zod.number(),
+          structured: zod
+            .boolean()
+            .describe(
+              "False when the table header was not recognised; no rows are sent for that sheet.",
+            ),
+          columns: zod.array(
+            zod.object({
+              index: zod.number(),
+              header: zod.string(),
+            }),
+          ),
+          omittedColumns: zod.array(zod.string()),
+          groups: zod.array(
+            zod.object({
+              key: zod.string(),
+              kind: zod.enum([
+                "university",
+                "core",
+                "major",
+                "minor",
+                "program",
+                "other",
+              ]),
+              label: zod.string(),
+              block: zod
+                .string()
+                .nullable()
+                .describe(
+                  'The program block this group sits in, as Workday titled it (\"Finance Major Requirements\"). Null when the export has no block title.',
+                ),
+              blockIndex: zod
+                .number()
+                .describe(
+                  "Position of that block in the sheet, so blocks stay in source order.",
+                ),
+              rows: zod.array(
+                zod.object({
+                  r: zod.number(),
+                  cells: zod
+                    .array(zod.string())
+                    .describe("One entry per kept column, in column order."),
+                  bold: zod.boolean().optional(),
+                  indent: zod.number().optional(),
+                }),
+              ),
+            }),
+          ),
+          preambleRowCount: zod.number(),
+          warnings: zod.array(zod.string()),
+        }),
+      ),
+    }),
+  ),
+});
+
+/**
+ * @summary Metadata of one of the caller's APR documents
+ */
+
+export const GetProgressReportDocumentParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const GetProgressReportDocumentResponse = zod.object({
+  id: zod.number(),
+  label: zod.string(),
+  category: zod
+    .enum([
+      "primary_major",
+      "second_major",
+      "additional_major",
+      "minor",
+      "additional_minor",
+      "other",
+    ])
     .describe(
-      'The code exactly as the report printed it (for example \"ENGL 2A\").',
+      "What the student says this APR is for. Any number of documents may share a category,\nso nothing limits how many majors or minors a student can have. Never inferred from\nthe file.\n",
     ),
-});
-
-export const upsertProgressReportMappingBodyCourseCodeMax = 20;
-
-export const UpsertProgressReportMappingBody = zod.object({
-  courseCode: zod
+  displayOrder: zod.number(),
+  fileName: zod.string(),
+  fileSize: zod.number(),
+  contentType: zod.string(),
+  sourceFormat: zod.enum(["xlsx", "pdf"]),
+  uploadedAt: zod.coerce
+    .date()
+    .describe(
+      "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a Workday timestamp.",
+    ),
+  importStatus: zod
+    .enum(["processing", "ready", "unsupported", "failed"])
+    .describe(
+      'The state of the FILE IMPORT. \"ready\" means the file was read and can be displayed —\nit says nothing about academic requirements.\n',
+    ),
+  importErrorCode: zod.string().nullable(),
+  importErrorMessage: zod.string().nullable(),
+  sheetCount: zod
+    .number()
+    .describe("Worksheets in the stored workbook (0 for a PDF)."),
+  fileFingerprint: zod
     .string()
-    .min(1)
-    .max(upsertProgressReportMappingBodyCourseCodeMax),
-});
-
-export const UpsertProgressReportMappingResponse = zod.object({
-  rawCode: zod.string().describe("The code as the report printed it."),
-  courseCode: zod
-    .string()
-    .describe("The catalog course the student says it corresponds to."),
-  courseTitle: zod.string().nullable(),
-  courseUnits: zod.number().nullable(),
+    .nullish()
+    .describe(
+      "First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.",
+    ),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
 
 /**
- * @summary Remove one of the student's mappings
+ * @summary Rename, re-categorise or reorder one document (the file is not touched)
  */
-export const DeleteProgressReportMappingParams = zod.object({
-  rawCode: zod.coerce
+
+export const UpdateProgressReportDocumentParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const updateProgressReportDocumentBodyLabelMax = 80;
+
+export const updateProgressReportDocumentBodyDisplayOrderMin = 0;
+export const updateProgressReportDocumentBodyDisplayOrderMax = 1000;
+
+export const UpdateProgressReportDocumentBody = zod.object({
+  label: zod
+    .string()
+    .min(1)
+    .max(updateProgressReportDocumentBodyLabelMax)
+    .optional(),
+  category: zod
+    .enum([
+      "primary_major",
+      "second_major",
+      "additional_major",
+      "minor",
+      "additional_minor",
+      "other",
+    ])
+    .optional()
+    .describe(
+      "What the student says this APR is for. Any number of documents may share a category,\nso nothing limits how many majors or minors a student can have. Never inferred from\nthe file.\n",
+    ),
+  displayOrder: zod
+    .number()
+    .min(updateProgressReportDocumentBodyDisplayOrderMin)
+    .max(updateProgressReportDocumentBodyDisplayOrderMax)
+    .optional(),
+});
+
+export const UpdateProgressReportDocumentResponse = zod.object({
+  id: zod.number(),
+  label: zod.string(),
+  category: zod
+    .enum([
+      "primary_major",
+      "second_major",
+      "additional_major",
+      "minor",
+      "additional_minor",
+      "other",
+    ])
+    .describe(
+      "What the student says this APR is for. Any number of documents may share a category,\nso nothing limits how many majors or minors a student can have. Never inferred from\nthe file.\n",
+    ),
+  displayOrder: zod.number(),
+  fileName: zod.string(),
+  fileSize: zod.number(),
+  contentType: zod.string(),
+  sourceFormat: zod.enum(["xlsx", "pdf"]),
+  uploadedAt: zod.coerce
+    .date()
+    .describe(
+      "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a Workday timestamp.",
+    ),
+  importStatus: zod
+    .enum(["processing", "ready", "unsupported", "failed"])
+    .describe(
+      'The state of the FILE IMPORT. \"ready\" means the file was read and can be displayed —\nit says nothing about academic requirements.\n',
+    ),
+  importErrorCode: zod.string().nullable(),
+  importErrorMessage: zod.string().nullable(),
+  sheetCount: zod
+    .number()
+    .describe("Worksheets in the stored workbook (0 for a PDF)."),
+  fileFingerprint: zod
+    .string()
+    .nullish()
+    .describe(
+      "First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.",
+    ),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Permanently delete one document and its stored file
+ */
+
+export const DeleteProgressReportDocumentParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const DeleteProgressReportDocumentResponse = zod.object({
+  deleted: zod.boolean(),
+});
+
+/**
+ * @summary Stream the original uploaded file of one of the caller's documents
+ */
+
+export const DownloadProgressReportFileParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+/**
+ * The new file is validated and processed first. Only if that succeeds is the document
+switched to it (and its upload date moved to now) and the old file removed. If it
+fails, the document keeps its previous file unchanged.
+
+ * @summary Replace the file of ONE document
+ */
+
+export const ReplaceProgressReportFileParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const replaceProgressReportFileBodyFileNameMax = 255;
+
+export const ReplaceProgressReportFileBody = zod.object({
+  objectPath: zod
     .string()
     .describe(
-      'The code exactly as the report printed it (for example \"ENGL 2A\").',
+      "Object path returned by the upload URL endpoint (must start with \/objects\/).",
+    ),
+  fileName: zod
+    .string()
+    .max(replaceProgressReportFileBodyFileNameMax)
+    .describe("Original file name (used to check the extension)."),
+  fileSize: zod.number().min(1).describe("File size in bytes."),
+  contentType: zod
+    .string()
+    .describe(
+      "MIME type. Excel (.xlsx) is the supported Workday export; PDF is accepted as a stored original.",
     ),
 });
 
-export const DeleteProgressReportMappingResponse = zod.object({
-  deleted: zod.boolean(),
+export const ReplaceProgressReportFileResponse = zod.object({
+  id: zod.number(),
+  label: zod.string(),
+  category: zod
+    .enum([
+      "primary_major",
+      "second_major",
+      "additional_major",
+      "minor",
+      "additional_minor",
+      "other",
+    ])
+    .describe(
+      "What the student says this APR is for. Any number of documents may share a category,\nso nothing limits how many majors or minors a student can have. Never inferred from\nthe file.\n",
+    ),
+  displayOrder: zod.number(),
+  fileName: zod.string(),
+  fileSize: zod.number(),
+  contentType: zod.string(),
+  sourceFormat: zod.enum(["xlsx", "pdf"]),
+  uploadedAt: zod.coerce
+    .date()
+    .describe(
+      "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a Workday timestamp.",
+    ),
+  importStatus: zod
+    .enum(["processing", "ready", "unsupported", "failed"])
+    .describe(
+      'The state of the FILE IMPORT. \"ready\" means the file was read and can be displayed —\nit says nothing about academic requirements.\n',
+    ),
+  importErrorCode: zod.string().nullable(),
+  importErrorMessage: zod.string().nullable(),
+  sheetCount: zod
+    .number()
+    .describe("Worksheets in the stored workbook (0 for a PDF)."),
+  fileFingerprint: zod
+    .string()
+    .nullish()
+    .describe(
+      "First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.",
+    ),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * For the private APR page only. Includes every column Workday exported, Academic
+Period, Units and Grade among them. Read-only: there is no endpoint that edits it.
+
+ * @summary The full structural copy of one document's workbook (every sheet, row and column)
+ */
+
+export const GetProgressReportWorkbookParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const GetProgressReportWorkbookResponse = zod.object({
+  report: zod.object({
+    id: zod.number(),
+    label: zod.string(),
+    category: zod
+      .enum([
+        "primary_major",
+        "second_major",
+        "additional_major",
+        "minor",
+        "additional_minor",
+        "other",
+      ])
+      .describe(
+        "What the student says this APR is for. Any number of documents may share a category,\nso nothing limits how many majors or minors a student can have. Never inferred from\nthe file.\n",
+      ),
+    displayOrder: zod.number(),
+    fileName: zod.string(),
+    fileSize: zod.number(),
+    contentType: zod.string(),
+    sourceFormat: zod.enum(["xlsx", "pdf"]),
+    uploadedAt: zod.coerce
+      .date()
+      .describe(
+        "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a Workday timestamp.",
+      ),
+    importStatus: zod
+      .enum(["processing", "ready", "unsupported", "failed"])
+      .describe(
+        'The state of the FILE IMPORT. \"ready\" means the file was read and can be displayed —\nit says nothing about academic requirements.\n',
+      ),
+    importErrorCode: zod.string().nullable(),
+    importErrorMessage: zod.string().nullable(),
+    sheetCount: zod
+      .number()
+      .describe("Worksheets in the stored workbook (0 for a PDF)."),
+    fileFingerprint: zod
+      .string()
+      .nullish()
+      .describe(
+        "First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+  workbook: zod
+    .union([
+      zod.object({
+        version: zod.number(),
+        sourceFormat: zod.enum(["xlsx"]),
+        sheets: zod.array(
+          zod.object({
+            name: zod.string(),
+            index: zod.number(),
+            visibility: zod.enum(["visible", "hidden"]),
+            rowCount: zod.number(),
+            columnCount: zod.number(),
+            columnWidths: zod.array(zod.number().nullable()),
+            rows: zod.array(
+              zod.object({
+                r: zod.number().describe("Source row index (0 = row 1)."),
+                cells: zod.array(
+                  zod.object({
+                    c: zod
+                      .number()
+                      .describe("Source column index (0 = column A)."),
+                    text: zod
+                      .string()
+                      .describe("The cell as Excel displayed it. Plain text"),
+                    bold: zod.boolean().optional(),
+                    italic: zod.boolean().optional(),
+                    indent: zod.number().optional(),
+                    align: zod.enum(["left", "center", "right"]).optional(),
+                    filled: zod.boolean().optional(),
+                  }),
+                ),
+              }),
+            ),
+            merges: zod.array(
+              zod.object({
+                r: zod.number(),
+                c: zod.number(),
+                rowSpan: zod.number(),
+                colSpan: zod.number(),
+              }),
+            ),
+          }),
+        ),
+        warnings: zod.array(zod.string()),
+      }),
+      zod.null(),
+    ])
+    .describe(
+      "Null for a PDF (shown from the original file) and for a document whose import failed.",
+    ),
 });

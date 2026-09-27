@@ -10,7 +10,6 @@ import {
   getGetPlanQueryKey,
 } from "@workspace/api-client-react";
 import { DegreePlanProvider } from "./DegreePlanContext";
-import { usePlanningProgressReport } from "@/hooks/use-planning-progress-report";
 import { Palette } from "./Palette";
 import { Board } from "./Board";
 import { ContextPanel } from "./ContextPanel";
@@ -173,7 +172,6 @@ export function DegreePlanWorkspace({
   );
   const { data: scheduleAvailability } = useGetScheduleAvailability();
   const { data: catalog } = useListCourses({});
-  const { data: reportData } = usePlanningProgressReport();
 
   const degreePlan = plansList?.plans.find((p) => p.planType === "degree");
 
@@ -182,9 +180,7 @@ export function DegreePlanWorkspace({
     createPlan.mutate(
       {
         data: {
-          name: copyFromPlanId
-            ? `${degreePlan?.name ?? "My Plan"} (Tentative)`
-            : "My Tentative Degree Plan",
+          name: "Tentative Degree Plan",
           copyFromPlanId: copyFromPlanId ?? null,
         },
       },
@@ -203,7 +199,7 @@ export function DegreePlanWorkspace({
 
   if (plansLoading || (activePlanId && planLoading)) {
     return (
-      <div className="grid h-[calc(100vh-14rem)] gap-3 xl:grid-cols-[minmax(210px,240px)_minmax(0,1fr)_minmax(250px,280px)] 2xl:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(280px,300px)]">
+      <div className="grid h-[calc(100vh-14rem)] gap-3 xl:grid-cols-[minmax(200px,230px)_minmax(0,1fr)_minmax(330px,380px)] 2xl:grid-cols-[minmax(230px,270px)_minmax(0,1fr)_minmax(400px,460px)]">
         <Skeleton className="hidden h-full rounded-md xl:block" />
         <Skeleton className="h-full min-w-0 rounded-md" />
         <Skeleton className="hidden h-full rounded-md xl:block" />
@@ -263,13 +259,6 @@ export function DegreePlanWorkspace({
     );
   }
 
-  // Build aprCompletedCodes from progress report parsed data (THEIRS envelope format)
-  const aprCompletedCodes = new Set<string>(
-    (reportData?.report?.parsed?.completedCourses ?? []).map((course: any) =>
-      course.code.toUpperCase(),
-    ),
-  );
-
   return (
     <DegreePlanProvider
       value={{
@@ -280,7 +269,6 @@ export function DegreePlanWorkspace({
         requirements: reqsData?.groups,
         scheduleAvailability,
         catalog,
-        aprCompletedCodes,
       }}
     >
       <div className="xl:hidden flex items-center justify-between mb-4 bg-card border border-border p-2 rounded-md shadow-sm">
@@ -314,7 +302,7 @@ export function DegreePlanWorkspace({
       <DegreePlanToolbar plans={plansList?.plans ?? []} mode={mode} />
 
       <div
-        className="flex h-[calc(100vh-19rem)] flex-col items-stretch gap-3 xl:grid xl:h-[calc(100vh-14rem)] xl:grid-cols-[minmax(210px,240px)_minmax(0,1fr)_minmax(250px,280px)] 2xl:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(280px,300px)]"
+        className="flex h-[calc(100vh-19rem)] flex-col items-stretch gap-3 xl:grid xl:h-[calc(100vh-14rem)] xl:grid-cols-[minmax(200px,230px)_minmax(0,1fr)_minmax(330px,380px)] 2xl:grid-cols-[minmax(230px,270px)_minmax(0,1fr)_minmax(400px,460px)]"
         data-testid="degree-plan-layout"
       >
         <div

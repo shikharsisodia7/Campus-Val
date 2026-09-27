@@ -6,14 +6,31 @@ import { TimedEvent } from "@/lib/conflicts";
  * SCU schedule yet — `sectionNumber` is a synthetic placeholder, not a real
  * Registrar section number, so it must never be shown as if it were one.
  */
+/** " (Lab)" / " (Lecture)" — so a conflict names WHICH part of the course clashes. */
+export function componentSuffix(event: Pick<ScheduleEvent, "kind" | "componentType">): string {
+  if (event.kind !== "section") return "";
+  switch (event.componentType) {
+    case "lecture":
+      return " (Lecture)";
+    case "lab":
+      return " (Lab)";
+    case "discussion":
+      return " (Discussion)";
+    case "recitation":
+      return " (Recitation)";
+    default:
+      return "";
+  }
+}
+
 export function toTimedEvent(event: ScheduleEvent, isTentativeSchedule = false): TimedEvent {
   return {
     id: event.id,
     label:
       event.kind === "section"
-        ? isTentativeSchedule
-          ? `${event.courseCode} — Tentative offering`
-          : `${event.courseCode}-${event.sectionNumber}`
+        ? (isTentativeSchedule
+            ? `${event.courseCode} — Tentative offering`
+            : `${event.courseCode}-${event.sectionNumber}`) + componentSuffix(event)
         : event.name || "Event",
     meetingDays: event.meetingDays,
     startTime: event.startTime,

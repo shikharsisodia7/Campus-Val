@@ -1,5 +1,12 @@
 # APR parser fixture coverage matrix
 
+> **Superseded (2026-09-26).** This document describes the earlier design, in which
+> CampusVal parsed the Academic Progress Report and interpreted it (matched courses,
+> requirement statuses, tallies, a major-mismatch warning, student course mappings).
+> That design was retired at the professor's direction: the Workday APR is now shown
+> as exported and is not re-evaluated. The code this document refers to has been
+> removed. See [APR_SOURCE_FIDELITY.md](APR_SOURCE_FIDELITY.md). Kept for history only.
+
 Professor feedback (2026-09 pass): the APR parser needs synthetic/redacted
 fixtures exercising a real spread of Workday shapes, not just one golden
 sample. This is the matrix of every case exercised, split across the two

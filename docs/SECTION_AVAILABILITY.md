@@ -158,3 +158,11 @@ For Tony/SCU (also: `docs/WORKDAY_INTEGRATION.md`):
 5. Whether it may be called from the **SCU-hosted CampusVal service** (`docs/SCU_DEPLOYMENT.md`).
 6. FERPA/data-handling expectations for anything student-specific (this feed is
    section-level, not student-level).
+
+## Components (lecture / lab / discussion)
+
+Availability is per **section**, and each component of a course is its own
+section: a course can be "lecture 01 open, lab 03 full, lab 04 open". A source
+may state each section's instructional format in the optional `component` field
+(`"Lecture"`, `"Laboratory"`, `"Discussion"`); when it does, that is used as
+published. See [COURSE_COMPONENTS.md](COURSE_COMPONENTS.md).

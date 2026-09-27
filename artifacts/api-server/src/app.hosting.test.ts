@@ -97,7 +97,7 @@ describe("public origin and SPA routes", () => {
 });
 
 describe("protected APIs need a session", () => {
-  it.each(["/api/progress-report", "/api/progress-report/file", "/api/plans", "/api/profile"])("%s → 401 signed out", async (p) => {
+  it.each(["/api/progress-reports", "/api/progress-reports/sidebar", "/api/progress-reports/1/workbook", "/api/progress-reports/1/file", "/api/plans", "/api/profile"])("%s → 401 signed out", async (p) => {
     expect((await request(app).get(p)).status).toBe(401);
   });
 });

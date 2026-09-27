@@ -145,12 +145,11 @@ test.describe.serial("multi-account plan isolation and advisor sharing", () => {
   });
 
   test("external reviewer identity (advisorY) cannot read A's progress report", async () => {
-    const res = await apiAdvisorY.get("/api/progress-report");
-    // Own account has no APR of its own uploaded -> 404, never A's data.
-    expect([404, 200]).toContain(res.status());
-    if (res.status() === 200) {
-      const body = await res.json();
-      expect(body.report).toBeNull();
-    }
+    const res = await apiAdvisorY.get("/api/progress-reports");
+    // Own account has no APR uploaded -> an empty list, never A's data.
+    expect(res.status()).toBe(200);
+    expect((await res.json()).reports).toEqual([]);
+    const sidebar = await apiAdvisorY.get("/api/progress-reports/sidebar");
+    expect((await sidebar.json()).documents).toEqual([]);
   });
 });

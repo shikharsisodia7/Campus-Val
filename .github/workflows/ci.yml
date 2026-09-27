@@ -93,7 +93,7 @@ jobs:
           curl -fsS http://127.0.0.1:18080/api/healthz
           curl -fsS http://127.0.0.1:18080/api/readyz
           curl -fsS http://127.0.0.1:18080/ | grep -q 'id="root"'
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/progress-report)" = "401"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/progress-reports)" = "401"
 
       - name: A misconfigured server refuses to start, naming the variable
         run: |

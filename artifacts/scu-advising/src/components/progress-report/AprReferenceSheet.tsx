@@ -42,17 +42,17 @@ export function AprReferenceSheet({
           data-testid="button-open-apr-reference"
         >
           <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
-          Academic Progress Report
+          Academic Progress Reports
         </Button>
       </SheetTrigger>
       <SheetContent
         side="right"
-        className="flex w-[min(24rem,92vw)] flex-col p-0"
+        className="flex w-[min(30rem,94vw)] flex-col p-0 sm:max-w-none"
         data-testid="apr-reference-sheet"
       >
-        <SheetTitle className="sr-only">Workday Academic Progress Report</SheetTitle>
+        <SheetTitle className="sr-only">Workday Academic Progress Reports</SheetTitle>
         <SheetDescription className="sr-only">
-          A read-only copy of your Workday Academic Progress Report to compare against your plan.
+          A read-only copy of your Workday Academic Progress Reports to compare against your plan.
         </SheetDescription>
         {/* pt-9 keeps the panel heading clear of the Sheet's built-in close (X)
             button at top-4 right-4. */}

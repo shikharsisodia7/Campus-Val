@@ -86,14 +86,20 @@ own boundaries, so adding a Workday source is an additional provider rather
 than a rewrite. The existing seams:
 
 **Academic record**
-- `artifacts/api-server/src/routes/progress-report.ts` — upload, parse,
-  owner-checked retrieval of the student-supplied APR.
-- `artifacts/api-server/src/lib/storage/` — a storage provider interface with
-  Vercel Blob and Replit implementations behind it. Private by default;
-  the frontend never receives a durable private URL.
-- `artifacts/api-server/src/lib/progress-report-parser.ts` — deterministic
-  parsing. A Workday provider would produce the same parsed shape, so
-  everything downstream is unchanged.
+- `artifacts/api-server/src/routes/progress-reports.ts` — upload and
+  owner-checked retrieval of the APR files a student exports from Workday
+  themselves (several per student). Manual upload; nothing is fetched from
+  Workday.
+- `artifacts/api-server/src/lib/storage/` — a storage provider interface
+  (local filesystem, Vercel Blob, Replit). Private by default; the frontend
+  never receives a durable private URL.
+- `artifacts/api-server/src/lib/apr/` — reads the workbook's STRUCTURE
+  (sheets, rows, cells) and renders it as exported. It does not interpret the
+  report. See `docs/APR_SOURCE_FIDELITY.md`.
+
+The APR upload and live section availability are **separate concerns**. Section
+availability is never derived from an APR, and an APR is never updated from
+section availability.
 
 **Course schedule**
 - `artifacts/api-server/src/data/offered-sections.ts` — published and

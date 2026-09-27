@@ -41,6 +41,12 @@ export const courseSectionsTable = pgTable(
       .notNull()
       .defaultNow(),
     sourceLine: text("source_line"),
+    /**
+     * The instructional format exactly as the source printed it ("Lecture",
+     * "Laboratory", "Discussion"). Null when the source did not say — the
+     * component is then derived from the meeting pattern and labelled inferred.
+     */
+    component: text("component"),
   },
   (t) => ({
     uniqSection: uniqueIndex("course_sections_unique").on(
