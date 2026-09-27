@@ -234,6 +234,17 @@ describe("states", () => {
     expect(within(doc(6)).getByTestId("apr-sidebar-pdf").textContent).toMatch(/Excel \(\.xlsx\)/);
   });
 
+  it("a PDF whose table was read is shown like any other APR, and says where it came from", () => {
+    query = {
+      ...query,
+      data: sidebar([financeSidebarDocument({ id: 7, label: "My PDF", sourceFormat: "pdf", tableFromPdf: true })]),
+    };
+    render(<WorkdayAprPanel />);
+    expect(within(doc(7)).getByTestId("apr-sidebar-from-pdf").textContent).toMatch(/Read from the table in your PDF/);
+    expect(groupToggle(doc(7), /^Core/)).toBeTruthy();
+    expect(within(doc(7)).queryByTestId("apr-sidebar-pdf")).toBeNull();
+  });
+
   it("a failed load offers a retry and does not claim there is no APR", () => {
     const refetch = vi.fn();
     query = { data: undefined, isLoading: false, isError: true, refetch };

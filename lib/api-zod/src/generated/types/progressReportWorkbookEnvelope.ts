@@ -10,6 +10,6 @@ import type { ProgressReportDocument } from "./progressReportDocument";
 
 export interface ProgressReportWorkbookEnvelope {
   report: ProgressReportDocument;
-  /** Null for a PDF (shown from the original file) and for a document whose import failed. */
+  /** Null for a PDF whose table could not be read (it is shown from the original file) and for a document whose import failed. */
   workbook: AprWorkbook | null;
 }

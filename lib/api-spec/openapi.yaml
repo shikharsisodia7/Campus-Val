@@ -2163,7 +2163,10 @@ components:
           $ref: "#/components/schemas/ProgressReportImportStatus"
         importErrorCode: { type: ["string", "null"] }
         importErrorMessage: { type: ["string", "null"] }
-        sheetCount: { type: integer, description: Worksheets in the stored workbook (0 for a PDF). }
+        sheetCount: { type: integer, description: Sheets in the stored structural copy (0 when there is none). }
+        tableFromPdf:
+          type: boolean
+          description: True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy.
         fileFingerprint:
           type: ["string", "null"]
           description: First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.
@@ -2244,7 +2247,7 @@ components:
       required: [version, sourceFormat, sheets, warnings]
       properties:
         version: { type: integer }
-        sourceFormat: { type: string, enum: [xlsx] }
+        sourceFormat: { type: string, enum: [xlsx, pdf] }
         sheets:
           type: array
           items: { $ref: "#/components/schemas/AprSheet" }
@@ -2262,7 +2265,7 @@ components:
           oneOf:
             - $ref: "#/components/schemas/AprWorkbook"
             - type: "null"
-          description: Null for a PDF (shown from the original file) and for a document whose import failed.
+          description: Null for a PDF whose table could not be read (it is shown from the original file) and for a document whose import failed.
 
     AprSidebarColumn:
       type: object
@@ -2335,7 +2338,8 @@ components:
           description: |
             ready: grouped rows are included. unrecognized_layout: the file was read but its
             table was not recognised, so no rows are sent (open the full APR). original_only:
-            a PDF, viewable as the original file. import_failed / processing: the file state.
+            a PDF whose table could not be read; viewable as the original file. import_failed /
+            processing: the file state.
         sheets:
           type: array
           items: { $ref: "#/components/schemas/AprSidebarSheet" }

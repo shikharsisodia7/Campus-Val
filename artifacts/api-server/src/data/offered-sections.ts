@@ -8,7 +8,9 @@ import rawOffered from "./offered-sections.json";
  *     section numbers and instructors.
  *   - Winter 2027 Tentative Schedule — tentative; subject/catalog/days/times
  *     only (no section numbers or instructors yet → numbered sequentially,
- *     instructor "TBA").
+ *     instructor "TBA"). It lists LECTURE rows only: lab sections are not in
+ *     the Registrar's file (re-checked against the live file on 2026-09-27,
+ *     last modified by the Registrar 2026-07-31).
  *   - Spring 2027 Tentative Schedule — same tentative shape as Winter.
  *
  * These rows describe WHICH courses are being offered and WHEN. They do NOT
@@ -109,7 +111,7 @@ export const OFFERED_TERMS: OfferedTermMetadata[] = [
     sourceUrl: REGISTRAR_SCHEDULE_URL,
     sourceLabel: "SCU Registrar Tentative Schedule",
     publishedDate: null,
-    lastVerified: "2026-05-07",
+    lastVerified: "2026-09-27",
     importedDate: "2026-05-07",
   },
   {
@@ -119,7 +121,7 @@ export const OFFERED_TERMS: OfferedTermMetadata[] = [
     sourceUrl: REGISTRAR_SCHEDULE_URL,
     sourceLabel: "SCU Registrar Tentative Schedule",
     publishedDate: null,
-    lastVerified: "2026-05-07",
+    lastVerified: "2026-09-27",
     importedDate: "2026-05-07",
   },
 ];

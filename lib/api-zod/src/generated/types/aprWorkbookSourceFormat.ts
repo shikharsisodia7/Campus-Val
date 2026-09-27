@@ -11,4 +11,5 @@ export type AprWorkbookSourceFormat =
 
 export const AprWorkbookSourceFormat = {
   xlsx: "xlsx",
+  pdf: "pdf",
 } as const;

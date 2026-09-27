@@ -264,10 +264,12 @@ function WorkbookView({ report }: { report: ProgressReportDocument }) {
 
   return (
     <div className="space-y-2" data-testid={`apr-workbook-${report.id}`}>
-      <p className="text-xs text-muted-foreground" data-testid="apr-full-notice">
-        Read-only copy of the uploaded Workday workbook — every row and column as exported, including
-        Academic Period, Units and Grade. CampusVal has not changed, matched or judged anything in it.
-      </p>
+      {report.sourceFormat === "xlsx" && (
+        <p className="text-xs text-muted-foreground" data-testid="apr-full-notice">
+          Read-only copy of the uploaded Workday workbook — every row and column as exported, including
+          Academic Period, Units and Grade. CampusVal has not changed, matched or judged anything in it.
+        </p>
+      )}
       {sheets.length > 1 && (
         <div role="tablist" aria-label="Worksheets" className="flex flex-wrap gap-1" data-testid="apr-sheet-tabs">
           {sheets.map((s, i) => (
@@ -297,17 +299,52 @@ function WorkbookView({ report }: { report: ProgressReportDocument }) {
 }
 
 function PdfView({ report }: { report: ProgressReportDocument }) {
+  const [showTable, setShowTable] = useState(false);
+  const panelId = useId();
   return (
     <div className="space-y-2" data-testid={`apr-pdf-${report.id}`}>
-      <p className="text-xs text-muted-foreground">
-        This APR was uploaded as a PDF, shown here exactly as uploaded. To compare it while planning,
-        export the report from Workday to Excel (.xlsx) and use Replace.
+      <p className="text-xs text-muted-foreground" data-testid="apr-pdf-notice">
+        Your PDF, exactly as uploaded — every page, including Academic Period, Units and Grade.
+        CampusVal has not changed, matched or judged anything in it.
+        {!report.tableFromPdf &&
+          " CampusVal could not find the Academic Progress table in this PDF, so it is not shown in the planning sidebar."}
       </p>
       <iframe
         title={`${report.label} — original PDF`}
         src={originalFileUrl(report.id)}
         className="h-[70vh] w-full rounded-md border border-border bg-background"
+        data-testid={`apr-pdf-frame-${report.id}`}
       />
+      {report.tableFromPdf && (
+        <div className="rounded-md border border-border">
+          <button
+            type="button"
+            className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-xs font-semibold hover:bg-muted/60 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+            aria-expanded={showTable}
+            aria-controls={panelId}
+            onClick={() => setShowTable((v) => !v)}
+            data-testid={`apr-pdf-table-toggle-${report.id}`}
+          >
+            {showTable ? (
+              <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            The table CampusVal read from this PDF
+          </button>
+          <div id={panelId} hidden={!showTable}>
+            {showTable && (
+              <div className="space-y-2 border-t border-border p-2">
+                <p className="text-xs text-muted-foreground">
+                  The planning sidebar is made from this table. It was read from where the text
+                  sits on the page; if anything differs, the PDF above is the record.
+                </p>
+                <WorkbookView report={report} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

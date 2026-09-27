@@ -33,7 +33,7 @@ export function validateAprFile(
     };
   }
   if (ext !== ".xlsx" && ext !== ".pdf") {
-    return { error: "Upload the Excel (.xlsx) file exported from Workday's Academic Progress report." };
+    return { error: "Upload the Excel (.xlsx) or PDF file exported from Workday's Academic Progress report." };
   }
   if (file.size === 0) return { error: "This file is empty." };
   if (file.size > maxBytes) {
@@ -131,7 +131,7 @@ export function UploadZone({ onFileSelected, disabled, maxBytes = DEFAULT_MAX_BY
             <span className="text-primary underline underline-offset-2">click to browse</span>
           </p>
           <p className="mt-1 text-xs text-muted-foreground" data-testid="upload-supported-format">
-            Workday Excel export (.xlsx) · max {Math.round(maxBytes / (1024 * 1024))} MB
+            Workday export: Excel (.xlsx) or PDF · max {Math.round(maxBytes / (1024 * 1024))} MB
           </p>
         </div>
         <input
@@ -168,8 +168,7 @@ export function UploadZone({ onFileSelected, disabled, maxBytes = DEFAULT_MAX_BY
             </p>
             <p data-testid="preview-file-size" className="text-xs text-muted-foreground">
               {formatBytes(preview.size)}
-              {preview.contentType === PDF_TYPE &&
-                " · PDF: kept as an original file only. The planning sidebar needs the Excel export."}
+              {preview.contentType === PDF_TYPE && " · PDF: shown as uploaded; its table is read for the planning sidebar."}
             </p>
           </div>
           <Button

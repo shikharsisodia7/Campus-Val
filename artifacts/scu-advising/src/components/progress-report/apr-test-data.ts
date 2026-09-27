@@ -26,6 +26,7 @@ export function testReport(over: Partial<ProgressReportDocument> = {}): Progress
     importErrorCode: null,
     importErrorMessage: null,
     sheetCount: 1,
+    tableFromPdf: false,
     fileFingerprint: "0123456789ab",
     createdAt: "2026-09-26T19:30:00.000Z",
     updatedAt: "2026-09-26T19:30:00.000Z",

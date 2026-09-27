@@ -49,9 +49,40 @@ upload date.
 
 | Format | Support |
 | --- | --- |
-| `.xlsx` (Workday Excel export) | **Primary.** Full APR and sidebar. |
-| `.pdf` | Accepted and kept as an original. Shown embedded on the APR page; **not** shown in the sidebar (a PDF's table cannot be reproduced faithfully from extracted text). |
-| `.xls`, `.xlsm`, `.csv`, anything else | Rejected with a message explaining how to export `.xlsx`. |
+| `.xlsx` (Workday Excel export) | Full APR and sidebar, read from the spreadsheet's cells. |
+| `.pdf` (Workday PDF export) | The original PDF is shown embedded on the APR page. Its table is read for the sidebar (see below). A PDF whose table cannot be read is still kept as an original. |
+| `.xls`, `.xlsm`, `.csv`, anything else | Rejected with a message explaining which exports work. |
+
+### Reading the table out of a PDF
+
+`lib/apr/pdf-table-reader.ts`. A PDF has no cells, only pieces of text at
+positions. Workday typesets the report as a strict table, so the table is
+recovered from **where the text sits**, without reading what it says:
+
+| | How it is found |
+| --- | --- |
+| Columns | Every cell is left-aligned, so all text in a column starts at the same x. The seven header labels say which x is which. |
+| Rows | Wrapped lines inside a cell are one line-height apart; between two rows there is cell padding too. A larger step starts a new row. |
+| Blocks | Text that does not start at a column's x is not in the table: it is a program title or a summary line. |
+| Page chrome | The title, clock, date and "Page 3 of 12" printed on every page are dropped; the header repeated on each page is kept once per block. |
+| Fused cells | When a requirement's text reaches the next column, the PDF stores both cells as one piece of text. It is cut at the word boundary nearest that column's x. |
+
+The result is the same structural workbook an Excel upload produces, so
+grouping and the omitted columns work identically.
+
+It refuses rather than guesses. If the header is not found, a column cannot be
+located, or the recovered Units column does not look like numbers (the sign of
+misaligned columns), the PDF is kept as an original only and the sidebar says so.
+
+**Checked against a real report.** A real 12-page Workday export was read by
+this code and, independently, by a different tool that uses the PDF's drawn
+cell borders. The two agreed on all 202 table rows and all 781 non-empty cells.
+The real file was never committed; `build-pdf.ts` writes synthetic PDFs with the
+same geometry for the tests.
+
+The original PDF remains the record. On the APR page the embedded PDF is what is
+shown; the table read from it can be opened beneath it to check, and the sidebar
+states that it was read from the PDF.
 
 Validation, in order (`lib/apr/file-guard.ts`, `routes/progress-reports.ts`):
 
@@ -271,8 +302,10 @@ the importer: all nine tabled program blocks were recognised, every requirement
 row was kept, and no Academic Period, Units, Grade or GPA value reached the
 sidebar.
 
-**Still not compared: a file produced by Workday's own "Export to Excel".** The
-check above used the PDF's tables. Workday's Excel export may place cells
+**Still not compared: a file produced by Workday's own "Export to Excel".**
+Workday requires an SCU sign-in, so no Excel export could be obtained. The PDF
+export is fully supported and was checked against a real report, so a student
+does not need the Excel export. Workday's Excel export may place cells
 differently (for example, where it puts the block title and summary lines). The
 importer is header-driven rather than position-driven for that reason: a
 different placement changes grouping at worst, and an unrecognised header fails

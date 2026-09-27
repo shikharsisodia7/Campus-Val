@@ -26,6 +26,7 @@ vi.mock("../middlewares/requireAuth", () => ({
 import { db, progressReportsTable, progressReportMappingsTable, studentProfilesTable } from "@workspace/db";
 import { resetPrivateObjectStorageForTests } from "../lib/storage";
 import { buildAprFixture, FIXTURE_PRIVATE_MARKERS, type AprFixtureName } from "../__fixtures__/apr/build-workbooks";
+import { buildAprPdf } from "../__fixtures__/apr/build-pdf";
 import storageRouter from "./storage";
 import progressReportsRouter, { resolveSourceFormat } from "./progress-reports";
 
@@ -36,9 +37,10 @@ const PDF_BYTES = Buffer.from("%PDF-1.7\n% synthetic test file, not a real repor
 const RUN = Date.now();
 const OWNER = `aprs-owner-${RUN}`;
 const FRESH = `aprs-fresh-${RUN}`;
+const PDFUSER = `aprs-pdf-${RUN}`;
 const LEGACY = `aprs-legacy-${RUN}`;
 const IDENT = `aprs-ident-${RUN}`;
-const USERS = [OWNER, FRESH, LEGACY, IDENT];
+const USERS = [OWNER, FRESH, LEGACY, IDENT, PDFUSER];
 
 let dir: string;
 let app: express.Express;
@@ -552,6 +554,95 @@ describe("documents that need care do not break the others", () => {
     const res = await createFixture(FRESH, "finance-major", "One too many");
     expect(res.status).toBe(409);
     expect(res.body.error).toMatch(/up to 12/);
+  });
+});
+
+describe("a Workday PDF export", () => {
+  let id: number;
+
+  it("is accepted, and its table is read for the planning sidebar", async () => {
+    const res = await create(PDFUSER, buildAprPdf({ fuseFirstStatus: true }), {
+      label: "My Academic Progress",
+      fileName: "View_My_Academic_Progress.pdf",
+      contentType: PDF_TYPE,
+    });
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ sourceFormat: "pdf", importStatus: "ready", sheetCount: 1, tableFromPdf: true });
+    id = res.body.id;
+  });
+
+  it("SIDEBAR: every program block, grouped — and no period, units, grade or GPA line", async () => {
+    const side = await request(app).get("/api/progress-reports/sidebar").set("x-test-user", PDFUSER);
+    const doc = side.body.documents[0];
+    expect(doc.state).toBe("ready");
+    expect(doc.report.tableFromPdf).toBe(true);
+    const sheet = doc.sheets[0];
+    expect(sheet.columns.map((c: any) => c.header)).toEqual(["Requirement", "Status", "Remaining", "Registrations Used"]);
+    expect([...new Set(sheet.groups.map((g: any) => g.block))]).toEqual([
+      "Finance Major Requirements",
+      "Mathematics Major Requirements",
+      "Healthcare Innovation and Design Minor Requirements",
+      "Sample Center Requirements",
+    ]);
+    const payload = JSON.stringify(side.body);
+    for (const period of FIXTURE_PRIVATE_MARKERS.academicPeriods) expect(payload).not.toContain(period);
+    for (const hidden of ["Program of Study GPA", "3.100", "2.800", "Last Evaluated"]) expect(payload).not.toContain(hidden);
+    const cells: string[] = sheet.groups.flatMap((g: any) => g.rows.flatMap((r: any) => r.cells));
+    for (const token of ["A-", "B+", "CR", "4.5"]) expect(cells).not.toContain(token);
+    expect(cells).toContain("Mathematics Major GPA");
+    expect(cells).toContain("Core: CAS: CTW 1");
+  });
+
+  it("FULL: the table read from the PDF carries all seven columns; the original PDF is still served", async () => {
+    const wb = await request(app).get(`/api/progress-reports/${id}/workbook`).set("x-test-user", PDFUSER);
+    expect(wb.body.workbook.sourceFormat).toBe("pdf");
+    expect(wb.body.workbook.warnings).toContain("reconstructed_from_pdf");
+    const texts = wb.body.workbook.sheets[0].rows.flatMap((r: any) => r.cells.map((c: any) => c.text));
+    expect(texts).toEqual(expect.arrayContaining(["Academic Period", "Units", "Grade", "Fall 2025 Quarter", "4.5", "B+"]));
+    const file = await request(app).get(`/api/progress-reports/${id}/file`).set("x-test-user", PDFUSER);
+    expect(file.status).toBe(200);
+    expect(file.headers["content-type"]).toBe(PDF_TYPE);
+    expect(file.headers["content-disposition"]).toMatch(/^inline/);
+  });
+
+  it("a PDF uploaded BEFORE this release is read the first time it is opened, keeping its upload date", async () => {
+    const bytes = buildAprPdf();
+    const objectPath = await putBytes(PDFUSER, bytes, PDF_TYPE, "older.pdf");
+    const uploadedAt = new Date("2026-09-09T17:00:00Z");
+    const [row] = await db
+      .insert(progressReportsTable)
+      .values({
+        userId: PDFUSER,
+        fileName: "older.pdf",
+        fileSize: bytes.length,
+        contentType: PDF_TYPE,
+        sourceFormat: "pdf",
+        objectPath,
+        uploadedAt,
+        parsed: { completedCourses: [], possibleCourses: [], notes: [], parserVersion: "hierarchical-v4" },
+        parseStatus: "parsed",
+      })
+      .returning();
+    const side = await request(app).get("/api/progress-reports/sidebar").set("x-test-user", PDFUSER);
+    const doc = side.body.documents.find((d: any) => d.report.id === row!.id);
+    expect(doc.state).toBe("ready");
+    expect(doc.report.uploadedAt).toBe(uploadedAt.toISOString());
+    expect(doc.sheets[0].groups.length).toBe(9);
+    expect(JSON.stringify(doc)).not.toMatch(/completedCourses|parserVersion/);
+  });
+
+  it("a PDF that is not an Academic Progress report stays an original, and is tried only once", async () => {
+    const res = await create(PDFUSER, buildAprPdf({ withoutHeader: true, programs: [] }), {
+      label: "Some other PDF",
+      fileName: "other.pdf",
+      contentType: PDF_TYPE,
+    });
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ importStatus: "ready", sheetCount: 0, tableFromPdf: false, importErrorCode: null });
+    const side = await request(app).get("/api/progress-reports/sidebar").set("x-test-user", PDFUSER);
+    expect(side.body.documents.find((d: any) => d.report.id === res.body.id).state).toBe("original_only");
+    const [stored] = await db.select().from(progressReportsTable).where(eq(progressReportsTable.id, res.body.id));
+    expect(stored!.importError).toBe("unrecognized_pdf");
   });
 });
 

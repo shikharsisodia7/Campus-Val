@@ -11,6 +11,7 @@
  *   E  small screens — the APR becomes an accessible drawer
  *   F  APR privacy under advisor sharing
  *   G  Plan Controls
+ *   K  A Workday PDF export: shown as uploaded, and its table read for the sidebar
  *   H  Lecture + lab scheduling for Chemistry, Biology and Physics, conflicts,
  *      swapping one component, removing a course, a tentative future term
  *
@@ -26,6 +27,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { mkdirSync, writeFileSync } from "fs";
 import { buildAprFixture, type AprFixtureName } from "../../api-server/src/__fixtures__/apr/build-workbooks";
+import { buildAprPdf } from "../../api-server/src/__fixtures__/apr/build-pdf";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SHOTS = path.resolve(__dirname, "../test-results/qa");
@@ -949,6 +951,71 @@ test("J. one export holding several programs (the layout of a real Workday repor
   await shot(page, "J2-combined-sidebar");
 
   for (const r of await listAprs(page)) if (r.label === "All Programs") await page.request.delete(`/api/progress-reports/${r.id}`);
+  expect(errors, errors.join("\n")).toEqual([]);
+});
+
+test("K. a Workday PDF export: shown as uploaded, table read for the sidebar", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const errors = watchErrors(page);
+  const file = path.join(FILES, "synthetic-apr-workday.pdf");
+  writeFileSync(file, buildAprPdf({ fuseFirstStatus: true }));
+
+  await page.goto("/progress-report");
+  await page.getByTestId("button-upload-another").click();
+  await expect(page.getByTestId("upload-supported-format")).toContainText("PDF");
+  await page.getByTestId("input-apr-label").fill("My PDF Export");
+  await page.locator('[data-testid="card-upload-form"] input[type="file"]').setInputFiles(file);
+  await page.getByTestId("button-upload").click();
+  await expect(page.getByTestId("apr-document-label").filter({ hasText: "My PDF Export" })).toBeVisible({ timeout: 30_000 });
+
+  const card = cardFor(page, "My PDF Export");
+  await expect(card.getByTestId("apr-document-status")).toHaveText("Ready");
+  await expect(card.getByTestId("apr-document-uploaded")).toContainText(`Uploaded ${TODAY}`);
+  await card.locator('[data-testid^="apr-document-toggle-"]').click();
+
+  // The original PDF is embedded, served privately, as a PDF.
+  const frame = card.locator('iframe[data-testid^="apr-pdf-frame-"]');
+  await expect(frame).toBeVisible({ timeout: 20_000 });
+  const src = await frame.getAttribute("src");
+  const original = await page.request.get(src!);
+  expect(original.status()).toBe(200);
+  expect(original.headers()["content-type"]).toBe("application/pdf");
+  expect(original.headers()["content-disposition"]).toContain("inline");
+  expect(original.headers()["cache-control"]).toBe("private, no-store");
+  expect((await original.body()).subarray(0, 5).toString()).toBe("%PDF-");
+
+  // The table CampusVal read from it is there to check, all seven columns.
+  await card.locator('[data-testid^="apr-pdf-table-toggle-"]').click();
+  const table = card.getByTestId("apr-workbook-table");
+  await expect(table).toBeVisible({ timeout: 20_000 });
+  for (const text of ["Finance Major Requirements", "Registrations Used", "Academic Period", "Grade", "Mathematics Major GPA", "Fall 2025 Quarter"]) {
+    await expect(table, text).toContainText(text);
+  }
+  await shot(page, "K1-pdf-full");
+
+  // Sidebar: grouped like an Excel upload, and says it came from the PDF.
+  await page.goto("/degree-plan");
+  const panel = page.getByTestId("workday-apr-panel").first();
+  await expect(panel).toBeVisible({ timeout: 30_000 });
+  const doc = panel.locator('[data-testid^="apr-sidebar-document-"]:not([data-testid*="toggle"])').filter({ hasText: "My PDF Export" });
+  const toggle = doc.locator('[data-testid^="apr-sidebar-document-toggle-"]');
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await expect(doc.getByTestId("apr-sidebar-from-pdf")).toContainText("Read from the table in your PDF");
+  const blocks = doc.getByTestId("apr-sidebar-block");
+  await expect(blocks).toHaveCount(4);
+  const math = blocks.nth(1);
+  await math.locator(":scope > h4 > button").click();
+  await math.locator("[data-group-key] button").filter({ hasText: /^Mathematics Major/ }).click();
+  await expect(math).toContainText("Mathematics Major GPA");
+  await expect(math).toContainText("Satisfied");
+  const text = await doc.innerText();
+  expect(text).not.toMatch(/Program of Study GPA|Last Evaluated|2\.800|3\.100|Quarter|Page \d+ of/);
+  const cells = await doc.getByRole("cell").allInnerTexts();
+  for (const token of ["A-", "B+", "CR", "4.5"]) expect(cells, token).not.toContain(token);
+  await shot(page, "K2-pdf-sidebar");
+
+  for (const r of await listAprs(page)) if (r.label === "My PDF Export") await page.request.delete(`/api/progress-reports/${r.id}`);
   expect(errors, errors.join("\n")).toEqual([]);
 });
 

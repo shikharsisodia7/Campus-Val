@@ -33,6 +33,7 @@
     "openai": "^4.103.0",
     "pino": "^9",
     "pino-http": "^10",
+    "unpdf": "^1.8.1",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -13,7 +13,8 @@ export interface ProgressReportSidebarDocument {
   report: ProgressReportDocument;
   /** ready: grouped rows are included. unrecognized_layout: the file was read but its
 table was not recognised, so no rows are sent (open the full APR). original_only:
-a PDF, viewable as the original file. import_failed / processing: the file state.
+a PDF whose table could not be read; viewable as the original file. import_failed /
+processing: the file state.
  */
   state: ProgressReportSidebarDocumentState;
   sheets: AprSidebarSheet[];
