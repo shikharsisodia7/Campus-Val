@@ -72,7 +72,7 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
   const { data: minorsList } = useListGraduationMinors();
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [newPlanName, setNewPlanName] = useState("My Tentative Degree Plan");
+  const [newPlanName, setNewPlanName] = useState("Tentative Degree Plan");
   const [createMode, setCreateMode] = useState("copy"); // copy | blank
 
   const [renameOpen, setRenameOpen] = useState(false);
@@ -455,10 +455,15 @@ export function PlanControlsPanel({ plans }: { plans: AcademicPlan[] }) {
                     <Button
                       key={tp.id}
                       variant={activePlanId === tp.id ? "default" : "outline"}
-                      className="w-full justify-start font-normal"
+                      className="h-auto w-full flex-col items-start justify-start gap-0 py-1.5 font-normal"
                       onClick={() => setActivePlanId(tp.id)}
+                      data-testid={`select-tentative-plan-${tp.id}`}
                     >
-                      {tp.name}
+                      {/* The plan's own name can be anything; its TYPE is always stated. */}
+                      <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
+                        Tentative Degree Plan
+                      </span>
+                      <span className="max-w-full truncate">{tp.name}</span>
                     </Button>
                   ))}
                   <Button

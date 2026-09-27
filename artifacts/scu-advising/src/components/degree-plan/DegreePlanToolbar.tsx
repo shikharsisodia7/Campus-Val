@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AcademicPlan } from "@workspace/api-client-react";
-import { usePlanningProgressReport } from "@/hooks/use-planning-progress-report";
+import { useAprDocuments } from "@/hooks/use-apr-documents";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -24,7 +24,7 @@ import { useTrackUsage } from "@/hooks/use-track-usage";
  *
  *   LEFT (Plan Controls)      → Planning Requirements, on the left
  *   MIDDLE (Load Four-Year Plan + plan name) → the Degree Plan board, center
- *   RIGHT (Upload/Replace Workday APR) → the APR reference column, on the right
+ *   RIGHT (Upload / Manage Workday APRs) → the APR reference column, on the right
  *
  * The plan-type label ("Degree Plan" / "Tentative Degree Plan") is
  * deliberately not repeated here — the page heading above already says it;
@@ -44,8 +44,8 @@ export function DegreePlanToolbar({
   const [controlsOpen, setControlsOpen] = useState(false);
   const [sharingOpen, setSharingOpen] = useState(false);
   useTrackUsage("plan_controls", controlsOpen);
-  const { data: reportEnvelope } = usePlanningProgressReport();
-  const hasReport = !!reportEnvelope?.report;
+  const { data: aprList } = useAprDocuments();
+  const hasReport = (aprList?.reports.length ?? 0) > 0;
 
   const degreePlan = plans.find((p) => p.planType === "degree") ?? null;
 
@@ -107,7 +107,7 @@ export function DegreePlanToolbar({
         <Button asChild variant="outline" size="sm" className="h-8 shrink-0 text-xs">
           <Link href="/progress-report" data-testid="button-upload-apr-toolbar">
             <Upload className="mr-1.5 h-3.5 w-3.5" />
-            {hasReport ? "Replace Workday APR" : "Upload Workday APR"}
+            {hasReport ? "Manage Workday APRs" : "Upload Workday APR"}
           </Link>
         </Button>
       </div>

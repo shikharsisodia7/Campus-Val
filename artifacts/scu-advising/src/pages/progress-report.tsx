@@ -1,293 +1,264 @@
-import { useState, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import {
-  useGetProgressReport,
-  getGetProgressReportQueryKey,
-  useRequestUploadUrl,
-  useRegisterProgressReport,
-  useDeleteProgressReport,
-} from "@workspace/api-client-react";
+import { useId, useState } from "react";
+import { Link } from "wouter";
+import type { ProgressReportCategory } from "@workspace/api-client-react";
 import { AppShell, PageHeader, PageContent } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  FileUp,
-  ShieldCheck,
-  AlertTriangle,
-  Loader2,
-  XCircle,
-  Info,
-} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertTriangle, ArrowLeft, FileUp, Info, Loader2, Plus, ShieldCheck, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { UploadZone, type SelectedFile } from "@/components/progress-report/UploadZone";
-import { ReportCard } from "@/components/progress-report/ReportCard";
 import { useTrackUsage } from "@/hooks/use-track-usage";
+import { APR_UPLOAD_PHASE_LABEL, useAprDocuments, useAprUpload } from "@/hooks/use-apr-documents";
+import { UploadZone, type SelectedFile } from "@/components/progress-report/UploadZone";
+import { AprDocumentCard } from "@/components/progress-report/AprDocumentCard";
+import { APR_CATEGORY_OPTIONS } from "@/components/progress-report/apr-format";
 
-type UploadPhase = "idle" | "requesting-url" | "uploading" | "registering";
-
-// The private APR page is the one place that reads the FULL report (grades
-// behind a toggle, source lines for review items) and asks the server whether
-// the stored original can still be read.
-const FULL_VIEW_PARAMS = { view: "full", checkSource: true } as const;
-
+/**
+ * The full Academic Progress Report page: every APR the student has uploaded,
+ * each in its own collapsible container showing the workbook as Workday
+ * exported it. The compact, grade-free version lives in the planning sidebar.
+ */
 export default function ProgressReportPage() {
   useTrackUsage("apr_upload");
-  const qc = useQueryClient();
-  const { toast } = useToast();
+  const { data, isLoading, isError, refetch } = useAprDocuments();
+  const [adding, setAdding] = useState(false);
 
-  const [replacing, setReplacing] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
-  const [uploadPhase, setUploadPhase] = useState<UploadPhase>("idle");
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
-  // ─── Data ───────────────────────────────────────────────────────────────────
-  const {
-    data: envelope,
-    isLoading: envelopeLoading,
-    isError: envelopeError,
-    error: envelopeRawError,
-  } = useGetProgressReport(FULL_VIEW_PARAMS, {
-    query: {
-      queryKey: getGetProgressReportQueryKey(FULL_VIEW_PARAMS),
-      retry: (failCount: number, err: unknown) => {
-        // 404 = no report yet (not a network error) — don't retry
-        const status = (err as { status?: number })?.status;
-        if (status === 404) return false;
-        return failCount < 1;
-      },
-    },
-  });
-
-  // ─── Mutations ──────────────────────────────────────────────────────────────
-  const requestUrlMutation = useRequestUploadUrl();
-  const registerMutation = useRegisterProgressReport();
-  const deleteMutation = useDeleteProgressReport({
-    mutation: {
-      onSuccess: () => {
-        // Remove (not just invalidate) so the stale report doesn't linger:
-        // the refetch after delete returns 404, and react-query keeps the
-        // previous data on error, which would leave the deleted card visible.
-        qc.removeQueries({ queryKey: getGetProgressReportQueryKey() });
-        qc.invalidateQueries({ queryKey: getGetProgressReportQueryKey() });
-        toast({ title: "Report deleted", description: "Your progress report has been removed." });
-      },
-      onError: () => {
-        toast({ title: "Delete failed", description: "Could not delete your report. Please try again.", variant: "destructive" });
-      },
-    },
-  });
-
-  // ─── Upload flow ─────────────────────────────────────────────────────────
-  const handleUpload = useCallback(async () => {
-    if (!selectedFile) return;
-    setUploadError(null);
-
-    try {
-      // Step 1: request presigned URL
-      setUploadPhase("requesting-url");
-      const urlResponse = await requestUrlMutation.mutateAsync({
-        data: {
-          name: selectedFile.name,
-          size: selectedFile.size,
-          contentType: selectedFile.contentType,
-        },
-      });
-
-      // Step 2: PUT file directly to the presigned URL (never our backend)
-      setUploadPhase("uploading");
-      const putResponse = await fetch(urlResponse.uploadURL, {
-        method: "PUT",
-        headers: { "Content-Type": selectedFile.contentType },
-        body: selectedFile.file,
-      });
-      if (!putResponse.ok) {
-        throw new Error(`Upload failed (HTTP ${putResponse.status})`);
-      }
-
-      // Step 3: register with our backend
-      setUploadPhase("registering");
-      await registerMutation.mutateAsync({
-        data: {
-          objectPath: urlResponse.objectPath,
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size,
-          contentType: selectedFile.contentType,
-        },
-      });
-
-      // Success
-      qc.invalidateQueries({ queryKey: getGetProgressReportQueryKey() });
-      setSelectedFile(null);
-      setReplacing(false);
-      setUploadPhase("idle");
-      toast({ title: "Report uploaded", description: "Your progress report is now stored securely." });
-    } catch (err) {
-      setUploadPhase("idle");
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Upload failed. Please try again.";
-      setUploadError(msg);
-    }
-  }, [selectedFile, requestUrlMutation, registerMutation, qc, toast]);
-
-  const isUploading = uploadPhase !== "idle";
-
-  // ─── Derive state ─────────────────────────────────────────────────────────
-  // Check for 404 (no report) vs real errors
-  const is404 = envelopeError &&
-    (envelopeRawError as { status?: number })?.status === 404;
-
-  const available = envelope?.available ?? (is404 ? true : undefined);
-  // A 404 means "no report" — ignore any stale cached envelope in that case.
-  const report = is404 ? null : envelope?.report ?? null;
-
-  const showUploadForm =
-    available === true &&
-    (report === null || is404 || replacing) &&
-    !isUploading;
-
-  const showReport = available === true && report !== null && !replacing;
-
-  const phaseLabel: Record<UploadPhase, string> = {
-    idle: "",
-    "requesting-url": "Preparing upload…",
-    uploading: "Uploading file…",
-    registering: "Processing report…",
-  };
+  const reports = data?.reports ?? [];
+  const available = data?.available;
+  const atLimit = !!data && reports.length >= data.maxDocuments;
+  const showForm = available === true && (adding || reports.length === 0);
 
   return (
     <AppShell>
       <PageHeader
-        title="Academic Progress Report"
-        subtitle="Upload your official Workday Academic Progress Report so CampusVal can show it as a read-only reference next to your plans."
+        title="Academic Progress Reports"
+        subtitle="Your Workday Academic Progress Reports, shown as exported. Workday is the source of truth — CampusVal displays it for comparison and does not re-evaluate it."
       />
       <PageContent>
-        {/* Privacy + disclaimer notice */}
-        <Card className="p-5 border-emerald-200 bg-emerald-50" data-testid="card-privacy-notice">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm" className="h-8 text-xs">
+              <Link href="/degree-plan" data-testid="link-back-degree-plan">
+                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                Back to Degree Plan
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="h-8 text-xs">
+              <Link href="/planner" data-testid="link-back-quarter-plan">
+                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                Back to Quarter Plan
+              </Link>
+            </Button>
+          </div>
+          {available === true && reports.length > 0 && !adding && (
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setAdding(true)}
+              disabled={atLimit}
+              title={atLimit ? `You can keep up to ${data?.maxDocuments} APRs.` : undefined}
+              data-testid="button-upload-another"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              Upload another APR
+            </Button>
+          )}
+        </div>
+
+        <Card className="border-emerald-200 bg-emerald-50 p-4" data-testid="card-privacy-notice">
           <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
-            <div className="space-y-1.5 text-sm text-emerald-900">
-              <p className="font-semibold">Your file is private and under your control.</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Stored <strong>privately</strong> — only you can access it.</li>
-                <li>You can <strong>delete it anytime</strong> from this page.</li>
-                <li>CampusVal <strong>never sends your file</strong> to any third party.</li>
-                <li>Uploading a report <strong>does not change</strong> your plans or profile.</li>
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
+            <div className="space-y-1 text-sm text-emerald-900">
+              <p className="font-semibold">Your files are private and under your control.</p>
+              <ul className="list-disc space-y-0.5 pl-5">
+                <li>Only you can see your APRs. Sharing a plan with an advisor does <strong>not</strong> share them.</li>
+                <li>Upload one file per major or minor — no need to combine Excel files.</li>
+                <li>Uploading an APR does <strong>not</strong> change your plans or your Workday record.</li>
               </ul>
-              <p className="mt-2 text-xs text-emerald-800">
-                <Info className="inline h-3.5 w-3.5 mr-1" />
-                CampusVal is a planning aid and <strong>does not replace Workday or your academic advisor</strong>.
-                Always confirm requirements and credits with your official advisor.
+              <p className="mt-1 text-xs text-emerald-800">
+                <Info className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
+                CampusVal cannot refresh an APR from Workday. Each one shows the date you uploaded it —
+                export and upload again after grades post or your program changes.
               </p>
             </div>
           </div>
         </Card>
 
-        {/* Loading state */}
-        {envelopeLoading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="status-loading">
-            <Loader2 className="h-4 w-4 animate-spin" />
+        {isLoading && (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status" data-testid="status-loading">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Loading…
-          </div>
+          </p>
         )}
 
-        {/* Storage unavailable */}
-        {available === false && !envelopeLoading && (
-          <Card className="p-5 border-border bg-muted/40" data-testid="card-storage-unavailable">
+        {isError && !isLoading && (
+          <Card className="p-4" role="alert" data-testid="card-apr-load-error">
+            <p className="text-sm">Couldn't load your Academic Progress Reports right now.</p>
+            <Button size="sm" variant="outline" className="mt-2 h-8 text-xs" onClick={() => void refetch()}>
+              Try again
+            </Button>
+          </Card>
+        )}
+
+        {available === false && !isLoading && (
+          <Card className="border-border bg-muted/40 p-5" data-testid="card-storage-unavailable">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
               <div>
                 <p className="font-semibold text-foreground">File uploads aren't configured for this deployment.</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  This feature requires object storage to be set up by the server operator. The rest
-                  of CampusVal works normally.
+                  This feature requires private file storage to be set up by the server operator. The
+                  rest of CampusVal works normally.
                 </p>
               </div>
             </div>
           </Card>
         )}
 
-        {/* Uploading progress */}
-        {isUploading && (
-          <Card className="p-6" data-testid="card-uploading">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <div>
-                <p className="font-medium text-foreground" data-testid="text-upload-phase">
-                  {phaseLabel[uploadPhase]}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Please don't close this tab.
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* Upload form (no report yet, or replacing) */}
-        {showUploadForm && (
-          <Card className="p-6 space-y-5" data-testid="card-upload-form">
-            <div>
-              <h2 className="font-serif text-xl font-semibold mb-1">
-                {replacing ? "Replace progress report" : "Upload your progress report"}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Export your <strong>Academic Progress Report</strong> from Workday (Academics →
-                Academic Progress Report) as PDF or Excel (.xlsx), then upload it here.
-              </p>
-            </div>
-
-            <UploadZone
-              onFileSelected={setSelectedFile}
-              disabled={isUploading}
-            />
-
-            {uploadError && (
-              <div
-                data-testid="card-upload-error"
-                className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                role="alert"
-              >
-                <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{uploadError}</span>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-3">
-              <Button
-                data-testid="button-upload"
-                onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
-                className="gap-2"
-              >
-                <FileUp className="h-4 w-4" />
-                {replacing ? "Upload & replace" : "Upload report"}
-              </Button>
-              {replacing && (
-                <Button
-                  variant="outline"
-                  data-testid="button-cancel-replace"
-                  onClick={() => { setReplacing(false); setSelectedFile(null); setUploadError(null); }}
-                  disabled={isUploading}
-                >
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </Card>
-        )}
-
-        {/* Existing report */}
-        {showReport && report && (
-          <ReportCard
-            report={report}
-            onDelete={() => deleteMutation.mutate()}
-            onReplace={() => { setReplacing(true); setSelectedFile(null); setUploadError(null); }}
-            isDeleting={deleteMutation.isPending}
+        {showForm && (
+          <UploadForm
+            first={reports.length === 0}
+            maxUploadBytes={data?.maxUploadBytes}
+            onCancel={reports.length > 0 ? () => setAdding(false) : undefined}
+            onUploaded={() => setAdding(false)}
           />
+        )}
+
+        {available === true && reports.length > 0 && (
+          <section aria-label="Uploaded Academic Progress Reports" className="space-y-3" data-testid="apr-document-list">
+            <p className="text-xs text-muted-foreground" data-testid="apr-document-count">
+              {reports.length} APR{reports.length === 1 ? "" : "s"} uploaded. Open one at a time, or several.
+            </p>
+            {reports.map((report, i) => (
+              <AprDocumentCard
+                key={report.id}
+                report={report}
+                // One open by default; the rest stay collapsed until asked for.
+                defaultOpen={i === 0 && reports.length === 1}
+                maxUploadBytes={data?.maxUploadBytes}
+              />
+            ))}
+          </section>
         )}
       </PageContent>
     </AppShell>
+  );
+}
+
+function UploadForm({
+  first,
+  maxUploadBytes,
+  onCancel,
+  onUploaded,
+}: {
+  first: boolean;
+  maxUploadBytes?: number;
+  onCancel?: () => void;
+  onUploaded: () => void;
+}) {
+  const [file, setFile] = useState<SelectedFile | null>(null);
+  const [label, setLabel] = useState("");
+  const [category, setCategory] = useState<ProgressReportCategory>(first ? "primary_major" : "other");
+  const { upload, busy, phase, error } = useAprUpload();
+  const { toast } = useToast();
+  const labelId = useId();
+  const categoryId = useId();
+
+  if (busy) {
+    return (
+      <Card className="p-6" data-testid="card-uploading">
+        <div className="flex flex-col items-center gap-3 text-center" role="status">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+          <p className="font-medium text-foreground" data-testid="text-upload-phase">
+            {APR_UPLOAD_PHASE_LABEL[phase]}
+          </p>
+          <p className="text-sm text-muted-foreground">Please don't close this tab.</p>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="space-y-4 p-5" data-testid="card-upload-form">
+      <div>
+        <h2 className="mb-1 font-serif text-xl font-semibold">
+          {first ? "Upload a Workday APR" : "Upload another APR"}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          In Workday, open <strong>View My Academic Progress</strong>, export the report to{" "}
+          <strong>Excel (.xlsx)</strong>, and upload that file here. Have more than one major or a
+          minor? Upload each export separately.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-[1fr_14rem]">
+        <div className="space-y-1">
+          <Label htmlFor={labelId}>Label</Label>
+          <Input
+            id={labelId}
+            value={label}
+            maxLength={80}
+            placeholder="e.g. Finance Major"
+            onChange={(e) => setLabel(e.target.value)}
+            data-testid="input-apr-label"
+          />
+          <p className="text-[11px] text-muted-foreground">Your own name for this APR. CampusVal does not guess it from the file.</p>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={categoryId}>This APR is for</Label>
+          <select
+            id={categoryId}
+            value={category}
+            onChange={(e) => setCategory(e.target.value as ProgressReportCategory)}
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            data-testid="select-apr-category"
+          >
+            {APR_CATEGORY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <UploadZone onFileSelected={setFile} maxBytes={maxUploadBytes} />
+
+      {error && (
+        <div
+          data-testid="card-upload-error"
+          className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
+          <XCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        <Button
+          data-testid="button-upload"
+          disabled={!file || !label.trim()}
+          className="gap-2"
+          onClick={async () => {
+            if (!file || !label.trim()) return;
+            const doc = await upload(file, { label: label.trim(), category });
+            if (doc) {
+              toast({ title: "APR uploaded", description: `“${doc.label}” is stored privately.` });
+              onUploaded();
+            }
+          }}
+        >
+          <FileUp className="h-4 w-4" aria-hidden="true" />
+          Upload APR
+        </Button>
+        {onCancel && (
+          <Button variant="outline" onClick={onCancel} data-testid="button-cancel-upload">
+            Cancel
+          </Button>
+        )}
+      </div>
+    </Card>
   );
 }

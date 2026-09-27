@@ -1,4 +1,5 @@
-import { useGetCourse, ScheduleEvent, useDeleteScheduleEvent, getGetCourseQueryKey } from "@workspace/api-client-react";
+import { useGetCourse, ScheduleEvent, useDeleteScheduleEvent, useRemoveCourseFromSchedule, getGetCourseQueryKey } from "@workspace/api-client-react";
+import { componentLabel } from "./course-components";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ export function CourseDetailsDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const delMut = useDeleteScheduleEvent();
+  const removeCourseMut = useRemoveCourseFromSchedule();
 
   const isSection = event?.kind === "section";
   const courseCode = isSection ? event.courseCode! : "";
@@ -54,6 +56,28 @@ export function CourseDetailsDialog({
       }
     );
   };
+
+  const handleRemoveCourse = () => {
+    if (!event.scheduleId || !courseCode) return;
+    removeCourseMut.mutate(
+      { id: event.scheduleId, courseCode },
+      {
+        onSuccess: (result) => {
+          queryClient.invalidateQueries({
+            predicate: (q) => String(q.queryKey[0]).startsWith("/api/schedules"),
+          });
+          toast({
+            title: `${courseCode} removed`,
+            description: `${result.removed} section${result.removed === 1 ? "" : "s"} removed from this schedule.`,
+          });
+          onOpenChange(false);
+        },
+        onError: () => toast({ title: "Failed to remove course", variant: "destructive" }),
+      },
+    );
+  };
+
+  const part = componentLabel(event.componentType).toLowerCase();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,7 +110,9 @@ export function CourseDetailsDialog({
                     size="icon"
                     className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={handleRemove}
-                    aria-label={`Remove ${courseCode} from schedule`}
+                    aria-label={`Remove this ${courseCode} ${part} only`}
+                    title={`Remove this ${part} only`}
+                    data-testid="button-remove-component"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -94,6 +120,35 @@ export function CourseDetailsDialog({
               </DialogTitle>
               {course && <p className="text-muted-foreground text-sm font-medium">{course.title}</p>}
             </DialogHeader>
+
+            <div
+              className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/20 p-2 text-xs"
+              data-testid="component-actions"
+            >
+              <span className="font-semibold text-foreground">
+                This is the {part} of {courseCode}.
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={handleRemove}
+                disabled={delMut.isPending || removeCourseMut.isPending}
+                data-testid="button-remove-this-component"
+              >
+                Remove this {part} only
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs text-destructive hover:text-destructive"
+                onClick={handleRemoveCourse}
+                disabled={delMut.isPending || removeCourseMut.isPending}
+                data-testid="button-remove-whole-course"
+              >
+                Remove entire course (all components)
+              </Button>
+            </div>
 
             <div className="space-y-6 mt-4">
               <div className="grid grid-cols-2 gap-4 text-sm bg-muted/20 p-4 rounded-lg border">

@@ -37,7 +37,7 @@ present for admins and future re-enablement," never "removed."
 | Core Curriculum | `/core-reqs` | Requirement data carries a visible source, academic year, and last-verified date (see `docs/DATA_PROVENANCE.md`) — current enough for pilot review. | Re-audit if the source data goes stale. |
 | GPA Calculator | `/gpa` | Professor said this can remain for now as a secondary utility. | Already visible. |
 | Transfer Credit | `/transfer` | Kept with official-source/verification wording and no guarantee language. | Already visible. |
-| Workday APR (Progress Report) | `/progress-report` | The Workday Academic Progress Report upload/read workflow the professor specifically wants reviewed. Same underlying data as Degree Plan's read-only APR panel. | Already visible. |
+| Workday APR (Progress Report) | `/progress-report` | Upload one or more Workday Academic Progress Report Excel exports (one per major/minor) and read each exactly as exported. Same underlying data as the read-only APR panel beside Degree Plan and Quarter Plan. | Already visible. |
 | SCU Resources | `/resources` | Emphasizes trusted official SCU resources and who to contact. | Already visible. |
 | Shared with Me (Advisors) | `/shared-with-me` | Student-controlled, read-only, already security-tested. | Already visible. |
 

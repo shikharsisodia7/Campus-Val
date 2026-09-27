@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { AlertTriangle } from "lucide-react";
-import { DAYS, toTimedEvent, format12, termColor, capitalize } from "./utils";
+import { DAYS, toTimedEvent, format12, termColor, capitalize, componentSuffix } from "./utils";
 import { findEventConflicts, timeToMinutes, layoutDayEvents } from "@/lib/conflicts";
 
 const HOUR_START = 8; // 8 AM
@@ -162,7 +162,7 @@ export function CalendarGrid({
 
                   const eventLabel =
                     (s.kind === "section"
-                      ? `${s.courseCode}${isTentative ? " tentative offering" : s.sectionNumber ? `-${s.sectionNumber}` : ""}`
+                      ? `${s.courseCode}${isTentative ? " tentative offering" : s.sectionNumber ? `-${s.sectionNumber}` : ""}${componentSuffix(s)}`
                       : s.name) +
                     `, ${d.label} ${format12(s.startTime)}–${format12(s.endTime)}${isConflict ? ", time conflict" : ""}`;
 
@@ -208,6 +208,11 @@ export function CalendarGrid({
                           </span>
                         )}
                       </div>
+                      {componentSuffix(s) && (
+                        <div className="truncate text-[10px] font-semibold" data-testid={`calendar-component-${s.id}`}>
+                          {componentSuffix(s).trim().slice(1, -1)}
+                        </div>
+                      )}
                       <div className="truncate opacity-90 text-[10px]">
                         {s.kind === "section" ? s.instructor || "Instructor TBA" : capitalize(s.category || "")}
                       </div>

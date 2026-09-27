@@ -1,6 +1,5 @@
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { WorkdayAprPanel } from "../progress-report/WorkdayAprPanel";
-import { useListGraduationMajors } from "@workspace/api-client-react";
 
 /**
  * The right-hand column of Degree Plan / Tentative Degree Plan — the shared
@@ -11,21 +10,7 @@ import { useListGraduationMajors } from "@workspace/api-client-react";
  * DegreePlanToolbar on the planning side.
  */
 export function ContextPanel() {
-  const { activePlan, profile } = useDegreePlanContext();
-  const { data: majorsList } = useListGraduationMajors();
+  const { activePlan } = useDegreePlanContext();
   if (!activePlan) return null;
-  // Reconciliation only makes sense against the real Degree Plan — a
-  // Tentative Degree Plan's whole purpose is exploring a possibly-different
-  // major, and that intentional divergence must never be flagged as a
-  // discrepancy against the Workday APR.
-  const primaryMajorCode =
-    activePlan.planType === "degree"
-      ? activePlan.programs?.primaryMajor?.trim() || profile?.major
-      : undefined;
-  const planningMajorTitle = primaryMajorCode
-    ? (majorsList?.majors.find(
-        (m) => m.code.toLowerCase() === primaryMajorCode.toLowerCase(),
-      )?.title ?? primaryMajorCode)
-    : undefined;
-  return <WorkdayAprPanel planningMajorTitle={planningMajorTitle} />;
+  return <WorkdayAprPanel />;
 }

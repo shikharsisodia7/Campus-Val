@@ -77,6 +77,7 @@ router.post("/sections/sync", requireAuth, async (req, res) => {
       seatsOpen: s.seatsOpen,
       waitlist: s.waitlist,
         sourceLine: s.sourceLine,
+        component: s.component,
       }));
       const inserted = await tx
         .insert(courseSectionsTable)
@@ -99,6 +100,7 @@ router.post("/sections/sync", requireAuth, async (req, res) => {
             waitlist: sql`excluded.waitlist`,
             syncedAt: sql`now()`,
             sourceLine: sql`excluded.source_line`,
+            component: sql`excluded.component`,
           },
         })
         .returning({ id: courseSectionsTable.id });

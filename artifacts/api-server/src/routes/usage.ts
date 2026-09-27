@@ -52,7 +52,7 @@ router.post("/usage-events", requireAuth, async (req, res) => {
     userType: campusValUserType(req.userEmail!),
     feature,
   });
-  // See the identical comment in routes/progress-report.ts DELETE: an empty
+  // See the identical comment in routes/progress-reports.ts DELETE: an empty
   // 204 body has been observed intermittently arriving at the client as a
   // platform-level 503 despite the handler completing successfully.
   res.status(200).json({ recorded: true });

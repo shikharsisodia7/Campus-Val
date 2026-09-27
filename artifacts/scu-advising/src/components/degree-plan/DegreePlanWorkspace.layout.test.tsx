@@ -15,8 +15,10 @@ describe("DegreePlanWorkspace laptop layout classes", () => {
 
   it("uses a three-column grid with a flexible center track", () => {
     expect(source).toMatch(/minmax\(0,\s*1fr\)/);
-    expect(source).toMatch(/minmax\(210px,\s*240px\)/);
-    expect(source).toMatch(/minmax\(250px,\s*280px\)/);
+    expect(source).toMatch(/minmax\(200px,\s*230px\)/);
+    // The APR column is deliberately the wider rail: it holds a table to read.
+    expect(source).toMatch(/minmax\(330px,\s*380px\)/);
+    expect(source).toMatch(/minmax\(400px,\s*460px\)/);
     expect(source).not.toMatch(/w-\[320px\]/);
     expect(source).not.toMatch(/w-\[300px\]/);
   });

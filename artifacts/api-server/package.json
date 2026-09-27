@@ -11,6 +11,8 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p scripts/tsconfig.json --noEmit",
     "import-registrar-tentatives": "tsx scripts/import-registrar-tentatives.ts",
+    "extract-component-markers": "tsx scripts/extract-registrar-component-markers.ts",
+    "audit-components": "tsx scripts/audit-course-components.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -31,8 +33,6 @@
     "openai": "^4.103.0",
     "pino": "^9",
     "pino-http": "^10",
-    "unpdf": "^1.8.0",
-    "xlsx": "^0.18.5",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -47,6 +47,7 @@
     "pino-pretty": "^13",
     "supertest": "^7.2.2",
     "thread-stream": "3.1.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "xlsx": "0.18.5"
   }
 }

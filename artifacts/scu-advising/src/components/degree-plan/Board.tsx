@@ -46,7 +46,6 @@ export function Board(_props: { plans: any[] }) {
     activePlanId,
     profile,
     scheduleAvailability,
-    aprCompletedCodes = new Set(),
   } = useDegreePlanContext();
   const updatePlanItem = useOptimisticUpdatePlanItem();
   const updatePlan = useUpdatePlan();
@@ -328,28 +327,6 @@ export function Board(_props: { plans: any[] }) {
             scheduleAvailability={scheduleAvailability}
           />
           <CompletedArea items={completedItems} availableYears={displayYears} />
-          {aprCompletedCodes.size > 0 &&
-            (() => {
-              const review = plannedItems.filter(
-                (item) =>
-                  item.itemType === "course" &&
-                  item.courseCode &&
-                  aprCompletedCodes.has(item.courseCode.toUpperCase()),
-              );
-              return review.length > 0 ? (
-                <div
-                  className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
-                  data-testid="apr-plan-mismatch"
-                >
-                  <strong>Possible report match to review:</strong>{" "}
-                  {review.map((item) => item.courseCode).join(", ")} also
-                  appears on your uploaded Academic Progress Report but remains
-                  planned here. Nothing was moved automatically; verify it in
-                  Workday before changing your plan.
-                </div>
-              ) : null;
-            })()}
-
           {displayYears.map((year) => {
             const hasSummer =
               summerVisibleByYear.has(year) || addedSummers.includes(year);

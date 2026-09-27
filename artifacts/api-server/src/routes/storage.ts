@@ -7,15 +7,15 @@ import { Router, type IRouter, type Request, type Response } from 'express';
 import { ObjectNotFoundError, getPrivateObjectStorage, isPrivateStorageConfigured } from '../lib/storage';
 import { resolveStorageProvider } from '../lib/config';
 import { sendPrivateFile } from '../lib/private-file-response';
+import { aprMaxUploadBytes } from '../lib/apr/limits';
 
 import { requireAuth } from '../middlewares/requireAuth';
 
 const router: IRouter = Router();
 
-// Kept in sync with MAX_FILE_SIZE in progress-report.ts. Must not be derived
-// from client-supplied size — this bounds what the signed upload token
+// The same configurable limit the APR routes enforce (APR_MAX_UPLOAD_MB). Never
+// derived from client-supplied size — this bounds what the signed upload token
 // itself will accept, ahead of the authoritative post-upload metadata check.
-const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
 
 /**
  * POST /storage/uploads/request-url
@@ -48,7 +48,7 @@ router.post(
       const storage = await getPrivateObjectStorage();
       const { uploadURL, objectPath } = await storage.createUploadTarget(
         req.userId!,
-        { contentType, maxSizeBytes: MAX_UPLOAD_SIZE_BYTES },
+        { contentType, maxSizeBytes: aprMaxUploadBytes() },
       );
 
       // Cloud providers return an absolute presigned URL; the local provider

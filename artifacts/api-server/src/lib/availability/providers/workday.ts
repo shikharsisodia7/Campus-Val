@@ -43,6 +43,8 @@ export const UpstreamAvailabilityPayload = z.object({
       term: z.enum(["fall", "winter", "spring", "summer"]),
       year: z.number().int(),
       instructor: z.string().nullable().optional(),
+      /** Instructional format of this section ("Lecture", "Laboratory", ...), when the source has it. */
+      component: z.string().max(60).nullable().optional(),
       capacity: nullableInt,
       enrolled: nullableInt,
       seatsAvailable: nullableInt,
@@ -117,6 +119,7 @@ export function normalizeUpstreamPayload(
       term: s.term,
       year: s.year,
       instructor: s.instructor ?? null,
+      component: s.component ?? null,
       capacity: s.capacity ?? null,
       enrolled: s.enrolled ?? null,
       seatsAvailable,

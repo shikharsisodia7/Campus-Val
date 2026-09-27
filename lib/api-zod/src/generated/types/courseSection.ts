@@ -33,10 +33,15 @@ export interface CourseSection {
   seatsKnown?: boolean;
   /** True for tentative-schedule terms (Winter/Spring 2027) where section numbers and instructors are not yet finalized. */
   tentative?: boolean;
-  /** Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin's laboratory/recitation text. Always treat it as a planning aid; "unknown" means CampusVal could not tell. */
+  /** Which course component this section is. When the source states an instructional format it is used as-is; otherwise it is derived from how the course's own sections meet in that term. "unknown" means CampusVal could not tell. */
   componentType?: CourseSectionComponentType;
-  /** Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official. */
+  /** True when componentType was derived from the meeting pattern; false when the source published it. */
   componentInferred?: boolean;
+  /**
+   * The instructional format exactly as the source printed it, when it did.
+   * @nullable
+   */
+  componentSourceLabel?: string | null;
   /** Derived from seatsKnown/seatsOpen/waitlist, never fabricated. "unknown" whenever seatsKnown is false (including every tentative Winter/Spring term, which never carries seat data). CampusVal has no source that distinguishes an instructor-closed section from a merely-full one, so both collapse to "full" rather than inventing a fifth state without evidence — see docs/SECTION_AVAILABILITY.md. */
   availabilityStatus: CourseSectionAvailabilityStatus;
   /** When the SOURCE says this section's seat data was true (the live feed's own timestamp, or the data steward's paste time). Null when no source has said anything (the official Registrar schedule has no seat data). */

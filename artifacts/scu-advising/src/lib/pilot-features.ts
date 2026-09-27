@@ -153,7 +153,7 @@ export const PILOT_FEATURES: PilotFeatureDef[] = [
     status: "PILOT_VISIBLE",
     group: "planning-tools",
     rationale:
-      "The Workday Academic Progress Report upload/read workflow the professor specifically wants reviewed. Same underlying APR data Degree Plan's read-only right-hand panel shows.",
+      "Upload one or more Workday Academic Progress Report Excel exports and read each exactly as exported. Same data as the read-only APR panel beside Degree Plan and Quarter Plan.",
   },
   {
     id: "scu-resources",

@@ -91,11 +91,22 @@ node artifacts/api-server/dist/migrate.mjs --status   # applied / pending, chang
   them, which is what makes rollback (§9) safe.
 
 **Backup/restore**: use your standard `pg_dump` / PITR. The database holds
-student plans, profiles, feedback, and the *parsed* text of uploaded APRs (which
+student plans, profiles, feedback, and the structural copy of uploaded APR workbooks (which
 include course names and, in the stored parse, grades). Treat dumps as FERPA-
 sensitive: encrypt at rest, restrict access, never commit them. Restore =
 `pg_restore` into an empty database, then `node dist/migrate.mjs --status` (a
 restored dump already carries its migration records).
+
+### Migrations in this release (2026-09-26)
+
+| Migration | Change | Notes |
+| --- | --- | --- |
+| `0002_apr_documents` | `progress_reports`: many documents per student (drops the one-per-user constraint; adds `label`, `category`, `display_order`, `source_format`, `file_hash`, `workbook`, `import_error`) | Additive. Existing reports are kept as each student's first document, labelled "Academic Progress Report". |
+| `0003_section_component` | `course_sections.component` (nullable) | The instructional format a source publishes for a section. |
+
+Both are additive, so apply them **before** deploying the new application code:
+the previous release keeps working against the migrated schema, while the new
+release requires the new columns.
 
 ## 4. Uploaded APR storage
 
@@ -105,12 +116,13 @@ web-served), owner-only readable.
 
 Set `PRIVATE_STORAGE_PROVIDER=local` and point `PRIVATE_STORAGE_DIR` at a
 persistent volume (the container declares `/var/lib/campusval/private`). Properties
-(all covered by `progress-report.local-storage.test.ts`):
+(all covered by `progress-reports.test.ts` and `progress-reports.access-control.test.ts`):
 
 - The only read path is the authenticated, owner-checked API route. The directory
   is never served statically and no public or presigned-forever URL exists.
 - Upload links are HMAC-signed with `STORAGE_SIGNING_SECRET`, expire in 15
-  minutes, and are bound to one path, one size cap (10 MB) and one content type.
+  minutes, and are bound to one path, one size cap (`APR_MAX_UPLOAD_MB`, default
+  10 MB) and one content type.
 - Filesystem paths are built only from a strictly validated identifier — path
   traversal is not expressible.
 - Files are written `0600` in `0700` directories; uploads write to a temp file and
@@ -142,7 +154,7 @@ If SCU prefers object storage (S3-compatible, Azure Blob), implement the small
       proxy_set_header   Host $host;
       proxy_set_header   X-Forwarded-Proto $scheme;
       proxy_set_header   X-Forwarded-For $remote_addr;
-      client_max_body_size 12m;      # APR uploads are capped at 10 MB
+      client_max_body_size 12m;      # must be >= APR_MAX_UPLOAD_MB (default 10)
   }
   ```
 - **CORS**: production allows only `PUBLIC_APP_URL` plus `CORS_ALLOWED_ORIGINS`.
@@ -183,7 +195,7 @@ docker run -d --name campusval -p 8080:8080 --env-file campusval.env \
 The image is ~430 MB, has no `node_modules` (the server is one esbuild bundle),
 runs as an unprivileged user, and has a `HEALTHCHECK`. It handles `SIGTERM` by
 draining in-flight requests (15 s cap) before exiting, so rolling restarts do not
-cut off an APR upload being parsed.
+cut off an APR upload being processed.
 
 `VITE_CLERK_PUBLISHABLE_KEY` is a public key; Docker warns about `ARG` names that
 look secret — that warning is expected for this variable only.
@@ -201,7 +213,7 @@ Neither exposes versions, hostnames, connection strings or error text.
 
 Structured JSON (pino) on stdout, one line per request with method, path (no
 query string), status and timing. `Authorization` and cookie headers are redacted.
-APR contents and parsed data are never logged (asserted by tests). Ship stdout to
+APR contents are never logged (asserted by tests). Ship stdout to
 your log platform; set `LOG_LEVEL=warn` to reduce volume. Startup configuration
 errors are printed once, in plain text, then the process exits with status 1.
 
@@ -234,14 +246,15 @@ curl -fsS https://HOST/api/healthz                       # {"status":"ok"}
 curl -fsS https://HOST/api/readyz                        # {"status":"ready","checks":{"database":"ok",...}}
 curl -sI  https://HOST/ | grep -i strict-transport       # HSTS present over HTTPS
 curl -s   https://HOST/ | grep 'rel="canonical"'         # uses PUBLIC_APP_URL
-curl -s -o /dev/null -w "%{http_code}\n" https://HOST/api/progress-report   # 401 when signed out
+curl -s -o /dev/null -w "%{http_code}\n" https://HOST/api/progress-reports  # 401 when signed out
 curl -s -o /dev/null -w "%{http_code}\n" https://HOST/admin/feedback        # 200 (SPA route)
 ```
 
 Then sign in with an @scu.edu account and check: Dashboard loads; Degree Plan
-shows the Workday APR panel; APR page → upload a PDF → structured view appears →
-"View original" opens the PDF; sign in as a *different* user and confirm the
-first user's APR is not reachable; Quarter Plan → Filter → a Core chip lists
+shows the Academic Progress Reports panel on the right; APR page → upload a Workday
+Excel export (.xlsx) with a label → the full workbook appears with its upload date →
+upload a second one → both are listed → "Original file" downloads the workbook; sign
+in as a *different* user and confirm the first user's APRs are not reachable; Quarter Plan → Filter → a Core chip lists
 courses; kill the DB briefly and confirm `/api/readyz` returns 503 while
 `/api/healthz` stays 200.
 

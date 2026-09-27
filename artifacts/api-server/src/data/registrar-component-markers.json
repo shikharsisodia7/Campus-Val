@@ -1,0 +1,227 @@
+[
+  {
+    "courseCode": "BIOL 1A",
+    "title": "Energy and Matter L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 1B",
+    "title": "Information and Evolution L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 1C",
+    "title": "Systems L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 2",
+    "title": "Human Health and Disease L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 102",
+    "title": "Science Education L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 104",
+    "title": "Human Anatomy L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 110",
+    "title": "Genetics L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 113",
+    "title": "General Microbiology L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 117",
+    "title": "Epidemiology L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 122",
+    "title": "Neurobiology L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 124",
+    "title": "Human Physiology L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 134",
+    "title": "CA Plant Diversity L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 156",
+    "title": "Restoration Ecology L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 160",
+    "title": "Biostatistics L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 172",
+    "title": "Molecular Modeling L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 173",
+    "title": "Bioinformatics L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "BIOL 175",
+    "title": "Molecular Biology L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "CHEM 11",
+    "title": "General Chemistry I L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "CHEM 11L",
+    "title": "General Chemistry I L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "CHEM 12",
+    "title": "General Chemistry II L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "CHEM 31",
+    "title": "Organic Chemistry I L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "CHEM 32",
+    "title": "Organic Chemistry II L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "CHEM 33",
+    "title": "Organic Chemistry III L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "CHEM 111",
+    "title": "Instrumental Analysis L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  },
+  {
+    "courseCode": "ENGR 111",
+    "title": "STEM Outreach in the Comm L&L",
+    "components": [
+      "lecture",
+      "lab"
+    ],
+    "marker": "L&L"
+  }
+]

@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { CourseScheduleStatus } from "./courseScheduleStatus";
 import type { ScheduleEvent } from "./scheduleEvent";
 
 export interface QuarterScheduleDetail {
@@ -13,6 +14,8 @@ export interface QuarterScheduleDetail {
   term: string;
   year: number;
   events: ScheduleEvent[];
+  /** Per course on this schedule, which components are chosen and which are still needed. */
+  courseStatus?: CourseScheduleStatus[];
   createdAt: string;
   updatedAt: string;
 }

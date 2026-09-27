@@ -1,0 +1,1 @@
+ALTER TABLE "course_sections" ADD COLUMN "component" text;

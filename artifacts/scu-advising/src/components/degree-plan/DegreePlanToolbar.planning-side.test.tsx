@@ -11,7 +11,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-let mockReportQuery: { data: any } = { data: { available: false, report: null } };
+let mockReportQuery: { data: any } = { data: { available: false, reports: [] } };
 
 vi.mock("@workspace/api-client-react", async () => {
   const actual = await vi.importActual<any>("@workspace/api-client-react");
@@ -25,8 +25,7 @@ vi.mock("@workspace/api-client-react", async () => {
     useAddPlanItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
     useListGraduationMajors: () => ({ data: { majors: [] } }),
     useListGraduationMinors: () => ({ data: { minors: [] } }),
-    useGetProgressReport: () => mockReportQuery,
-    useListProgressReportMappings: () => ({ data: { mappings: [] } }),
+    useListProgressReports: () => mockReportQuery,
     useGetDegreeRequirements: () => ({ data: { groups: [] } }),
     useGetProfile: () => ({
       data: { major: "CSE", startYear: 2026, college: "School of Engineering" },
@@ -64,7 +63,6 @@ function renderToolbar(mode: "degree" | "tentative" = "degree") {
           requirements: [],
           scheduleAvailability: undefined,
           catalog: [],
-          aprCompletedCodes: new Set(),
         }}
       >
         <DegreePlanToolbar plans={[plan as any]} mode={mode} />
@@ -76,7 +74,7 @@ function renderToolbar(mode: "degree" | "tentative" = "degree") {
 describe("DegreePlanToolbar — plan controls sit on the planning side", () => {
   afterEach(() => {
     cleanup();
-    mockReportQuery = { data: { available: false, report: null } };
+    mockReportQuery = { data: { available: false, reports: [] } };
   });
 
   it("renders a Plan Controls trigger outside the APR column", () => {
@@ -158,13 +156,13 @@ describe("DegreePlanToolbar — plan controls sit on the planning side", () => {
     expect(link.getAttribute("href")).toBe("/progress-report");
   });
 
-  it("shows 'Replace Workday APR' once a report already exists", () => {
+  it("shows 'Manage Workday APRs' once at least one APR exists", () => {
     mockReportQuery = {
-      data: { available: true, report: { id: 1, fileName: "apr.pdf" } },
+      data: { available: true, reports: [{ id: 1, fileName: "apr.xlsx" }] },
     };
     renderToolbar();
     expect(screen.getByTestId("button-upload-apr-toolbar").textContent).toMatch(
-      /Replace Workday APR/,
+      /Manage Workday APRs/,
     );
   });
 

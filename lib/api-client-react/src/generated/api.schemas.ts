@@ -100,8 +100,39 @@ export interface ScheduleEvent {
   endTime: string;
   /** @nullable */
   location?: string | null;
-  /** Which component of the course this scheduled section is (lecture / lab / recitation), derived from the meeting snapshot on the event. Null for commitments and for sections CampusVal cannot classify. */
-  componentType?: "lecture" | "lab" | "recitation" | "unknown" | null;
+  /** Which component of the course this scheduled section is, classified against the sections the course offers in the schedule's own term. Null for commitments. */
+  componentType?:
+    | "lecture"
+    | "lab"
+    | "discussion"
+    | "recitation"
+    | "unknown"
+    | null;
+}
+
+/**
+ * The normalized component of a section. "unknown" means CampusVal could not tell; it is never guessed from a section number.
+ */
+export type CourseComponentType =
+  (typeof CourseComponentType)[keyof typeof CourseComponentType];
+
+export const CourseComponentType = {
+  lecture: "lecture",
+  lab: "lab",
+  discussion: "discussion",
+  recitation: "recitation",
+  unknown: "unknown",
+} as const;
+
+export interface CourseScheduleStatus {
+  courseCode: string;
+  scheduled: CourseComponentType[];
+  /** Needed, sections exist for the term, none chosen yet. */
+  missing: CourseComponentType[];
+  /** Needed, but the term's schedule lists no section for it yet. */
+  notYetPublished: CourseComponentType[];
+  /** Every component that can be scheduled for the term has been. */
+  complete: boolean;
 }
 
 export interface QuarterScheduleDetail {
@@ -110,8 +141,30 @@ export interface QuarterScheduleDetail {
   term: string;
   year: number;
   events: ScheduleEvent[];
+  /** Per course on this schedule, which components are chosen and which are still needed. */
+  courseStatus?: CourseScheduleStatus[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CourseComponentRequirement {
+  componentType: CourseComponentType;
+  required: boolean;
+  sectionCount: number;
+  /** False when the component is needed but no section for it is listed for the term yet. */
+  sectionsPublished: boolean;
+  /** The published SCU text the requirement comes from. */
+  evidence: string[];
+}
+
+export interface CourseComponentPlan {
+  courseCode: string;
+  term: string;
+  year: number;
+  tentative: boolean;
+  offered: boolean;
+  multiComponent: boolean;
+  components: CourseComponentRequirement[];
 }
 
 export type ScheduleEventInputMeetingDaysItem =
@@ -302,289 +355,281 @@ export interface ErrorEnvelope {
   error: string;
 }
 
-export interface ProgressReportInput {
-  /** Object path returned by the upload URL endpoint (must start with /objects/). */
-  objectPath: string;
-  /** Original file name (used to detect extension). */
-  fileName: string;
-  /** File size in bytes (must be <= 10 MB). */
-  fileSize: number;
-  /** MIME type (must be application/pdf or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet). */
-  contentType: string;
-}
-
-export type ParsedProgressReportCompletedCoursesItemConfidence =
-  (typeof ParsedProgressReportCompletedCoursesItemConfidence)[keyof typeof ParsedProgressReportCompletedCoursesItemConfidence];
-
-export const ParsedProgressReportCompletedCoursesItemConfidence = {
-  high: "high",
-} as const;
-
-export type ParsedProgressReportCompletedCoursesItem = {
-  code: string;
-  title: string;
-  units: number;
-  confidence: ParsedProgressReportCompletedCoursesItemConfidence;
-};
-
-export type ParsedProgressReportNonCompletedCoursesItemStatus =
-  (typeof ParsedProgressReportNonCompletedCoursesItemStatus)[keyof typeof ParsedProgressReportNonCompletedCoursesItemStatus];
-
-export const ParsedProgressReportNonCompletedCoursesItemStatus = {
-  in_progress: "in_progress",
-  not_completed: "not_completed",
-  needs_review: "needs_review",
-} as const;
-
-export type ParsedProgressReportNonCompletedCoursesItem = {
-  code: string;
-  title: string;
-  units: number;
-  status: ParsedProgressReportNonCompletedCoursesItemStatus;
-};
-
-export type ParsedProgressReportPossibleCoursesItem = {
-  raw: string;
-};
-
 /**
- * Classified from the heading, for display order only. `name` stays the document's own wording.
- */
-export type ParsedProgressReportGroupsItemKind =
-  (typeof ParsedProgressReportGroupsItemKind)[keyof typeof ParsedProgressReportGroupsItemKind];
+ * What the student says this APR is for. Any number of documents may share a category,
+so nothing limits how many majors or minors a student can have. Never inferred from
+the file.
 
-export const ParsedProgressReportGroupsItemKind = {
-  core: "core",
-  major: "major",
+ */
+export type ProgressReportCategory =
+  (typeof ProgressReportCategory)[keyof typeof ProgressReportCategory];
+
+export const ProgressReportCategory = {
+  primary_major: "primary_major",
+  second_major: "second_major",
+  additional_major: "additional_major",
   minor: "minor",
+  additional_minor: "additional_minor",
   other: "other",
 } as const;
 
 /**
- * "university" for the university-wide rows Workday repeats under every program.
+ * The state of the FILE IMPORT. "ready" means the file was read and can be displayed —
+it says nothing about academic requirements.
+
  */
-export type ParsedProgressReportGroupsItemRequirementsItemScope =
-  (typeof ParsedProgressReportGroupsItemRequirementsItemScope)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemScope];
+export type ProgressReportImportStatus =
+  (typeof ProgressReportImportStatus)[keyof typeof ProgressReportImportStatus];
 
-export const ParsedProgressReportGroupsItemRequirementsItemScope = {
-  university: "university",
-  program: "program",
-} as const;
-
-/**
- * Set only when the row itself states a unit requirement.
- */
-export type ParsedProgressReportGroupsItemRequirementsItemUnit =
-  (typeof ParsedProgressReportGroupsItemRequirementsItemUnit)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemUnit];
-
-export const ParsedProgressReportGroupsItemRequirementsItemUnit = {
-  total: "total",
-  upper_division: "upper_division",
-} as const;
-
-/**
- * "core" for University Core rows ("Core: LSB: CTW 1"), "college" for a school's own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set ("Core: CAS: ...").
- */
-export type ParsedProgressReportGroupsItemRequirementsItemCategory =
-  (typeof ParsedProgressReportGroupsItemRequirementsItemCategory)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemCategory];
-
-export const ParsedProgressReportGroupsItemRequirementsItemCategory = {
-  core: "core",
-  college: "college",
-} as const;
-
-export type ParsedProgressReportGroupsItemRequirementsItemStatus =
-  (typeof ParsedProgressReportGroupsItemRequirementsItemStatus)[keyof typeof ParsedProgressReportGroupsItemRequirementsItemStatus];
-
-export const ParsedProgressReportGroupsItemRequirementsItemStatus = {
-  completed: "completed",
-  in_progress: "in_progress",
-  remaining: "remaining",
-  needs_review: "needs_review",
-} as const;
-
-export type ParsedProgressReportGroupsItemRequirementsItemCoursesItem = {
-  code: string;
-  title: string;
-  /** @nullable */
-  units: number | null;
-  /** @nullable */
-  grade: string | null;
-  inCatalog: boolean;
-  /** The row said "(In Progress)". */
-  inProgress?: boolean;
-  /** The row said "(Transfer Credit)". */
-  transfer?: boolean;
-  /** Workday's "Academic Period" text (for example "Fall 2025"), when the row has one. */
-  period?: string;
-};
-
-export type ParsedProgressReportGroupsItemRequirementsItem = {
-  name: string;
-  /** Position of this row in the source document. */
-  order?: number;
-  /** "university" for the university-wide rows Workday repeats under every program. */
-  scope?: ParsedProgressReportGroupsItemRequirementsItemScope;
-  /** Set only when the row itself states a unit requirement. */
-  unit?: ParsedProgressReportGroupsItemRequirementsItemUnit;
-  /** @nullable */
-  requiredUnits?: number | null;
-  /**
-   * Text Workday printed after the status word, kept verbatim and not interpreted.
-   * @nullable
-   */
-  detail?: string | null;
-  /** The row's "Remaining" column, verbatim (for example "Minimum 1 Course(s)", "Minimum 44 Unit(s)", "Minimum Combination Required"). Present only when Workday printed one; never computed. */
-  remaining?: string;
-  /** "core" for University Core rows ("Core: LSB: CTW 1"), "college" for a school's own Core rows. Workday places these rows inside a program block; blocks in the same school repeat them and a major in another school brings its own set ("Core: CAS: ..."). */
-  category?: ParsedProgressReportGroupsItemRequirementsItemCategory;
-  /** The source line this row was read from. Omitted from the planning view. */
-  sourceText?: string;
-  status: ParsedProgressReportGroupsItemRequirementsItemStatus;
-  courses: ParsedProgressReportGroupsItemRequirementsItemCoursesItem[];
-};
-
-export type ParsedProgressReportGroupsItem = {
-  name: string;
-  /** Classified from the heading, for display order only. `name` stays the document's own wording. */
-  kind?: ParsedProgressReportGroupsItemKind;
-  /** Position of the heading in the source document. */
-  order?: number;
-  requirements: ParsedProgressReportGroupsItemRequirementsItem[];
-};
-
-export type ParsedUnitRequirementStatus =
-  (typeof ParsedUnitRequirementStatus)[keyof typeof ParsedUnitRequirementStatus];
-
-export const ParsedUnitRequirementStatus = {
-  completed: "completed",
-  in_progress: "in_progress",
-  remaining: "remaining",
-  needs_review: "needs_review",
-} as const;
-
-export interface ParsedUnitRequirement {
-  name: string;
-  status: ParsedUnitRequirementStatus;
-  /** @nullable */
-  requiredUnits: number | null;
-  /** @nullable */
-  detail: string | null;
-  order: number;
-}
-
-/**
- * Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one.
- */
-export type ParsedProgressReportSummary = {
-  totalUnits?: ParsedUnitRequirement;
-  upperDivisionUnits?: ParsedUnitRequirement;
-  /** The number printed after "Cumulative Credits Earned", when the report prints exactly that label. */
-  creditsEarned?: number;
-};
-
-export interface ParsedProgressReport {
-  completedCourses: ParsedProgressReportCompletedCoursesItem[];
-  /** Catalog courses present in the report that are NOT completed (in progress, withdrawn, or needing review); never counted as completed coursework. */
-  nonCompletedCourses?: ParsedProgressReportNonCompletedCoursesItem[];
-  /** Code-like tokens not found in catalog; retained for user review. */
-  possibleCourses: ParsedProgressReportPossibleCoursesItem[];
-  /**
-   * Program/major detected from the report, if clearly labeled.
-   * @nullable
-   */
-  program?: string | null;
-  /**
-   * Student ID extracted from the document when confidently present.
-   * @nullable
-   */
-  reportStudentId?: string | null;
-  /** Requirement-group hierarchy derived from the document's own structure (e.g. "<Program> Requirements"); absent when the document doesn't support it or predates this field. */
-  groups?: ParsedProgressReportGroupsItem[];
-  /** Majors named in the report header, exactly as Workday lists them. Never inferred. */
-  declaredMajors?: string[];
-  /** Minors named in the report header, exactly as Workday lists them. Never inferred. */
-  declaredMinors?: string[];
-  /** The date printed on the report pages (YYYY-MM-DD). */
-  reportDate?: string;
-  /** The most recent "Last Evaluated" date across the program blocks (YYYY-MM-DD). */
-  lastEvaluated?: string;
-  /** Unit totals the APR itself states. Absent when the report prints none — CampusVal never computes one. */
-  summary?: ParsedProgressReportSummary;
-  /** Set once a report has been parsed by the hierarchical parser; absent on reports parsed by an older version (the server transparently reparses these from the stored file on next read). */
-  parserVersion?: string;
-  notes: string[];
-}
-
-export interface ProgressReportMapping {
-  /** The code as the report printed it. */
-  rawCode: string;
-  /** The catalog course the student says it corresponds to. */
-  courseCode: string;
-  /** @nullable */
-  courseTitle: string | null;
-  /** @nullable */
-  courseUnits: number | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ProgressReportMappingList {
-  mappings: ProgressReportMapping[];
-}
-
-export interface ProgressReportMappingInput {
-  /**
-   * @minLength 1
-   * @maxLength 20
-   */
-  courseCode: string;
-}
-
-/**
- * Only present when checkSource=true. "missing" means the row exists but the stored original can no longer be read.
- */
-export type ProgressReportSourceFile =
-  (typeof ProgressReportSourceFile)[keyof typeof ProgressReportSourceFile];
-
-export const ProgressReportSourceFile = {
-  available: "available",
-  missing: "missing",
-  unknown: "unknown",
-} as const;
-
-export type ProgressReportParseStatus =
-  (typeof ProgressReportParseStatus)[keyof typeof ProgressReportParseStatus];
-
-export const ProgressReportParseStatus = {
-  pending: "pending",
-  parsed: "parsed",
+export const ProgressReportImportStatus = {
+  processing: "processing",
+  ready: "ready",
   unsupported: "unsupported",
   failed: "failed",
 } as const;
 
-export interface ProgressReport {
+export interface ProgressReportFileInput {
+  /** Object path returned by the upload URL endpoint (must start with /objects/). */
+  objectPath: string;
+  /**
+   * Original file name (used to check the extension).
+   * @maxLength 255
+   */
+  fileName: string;
+  /**
+   * File size in bytes.
+   * @minimum 1
+   */
+  fileSize: number;
+  /** MIME type. Excel (.xlsx) is the supported Workday export; PDF is accepted as a stored original. */
+  contentType: string;
+}
+
+export type ProgressReportCreateInput = ProgressReportFileInput & {
+  /**
+   * The student's own name for this APR, for example "Finance Major".
+   * @minLength 1
+   * @maxLength 80
+   */
+  label: string;
+  category?: ProgressReportCategory;
+};
+
+export interface ProgressReportUpdateInput {
+  /**
+   * @minLength 1
+   * @maxLength 80
+   */
+  label?: string;
+  category?: ProgressReportCategory;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  displayOrder?: number;
+}
+
+export type ProgressReportDocumentSourceFormat =
+  (typeof ProgressReportDocumentSourceFormat)[keyof typeof ProgressReportDocumentSourceFormat];
+
+export const ProgressReportDocumentSourceFormat = {
+  xlsx: "xlsx",
+  pdf: "pdf",
+} as const;
+
+export interface ProgressReportDocument {
   id: number;
+  label: string;
+  category: ProgressReportCategory;
+  displayOrder: number;
   fileName: string;
   fileSize: number;
   contentType: string;
-  /** Only present when checkSource=true. "missing" means the row exists but the stored original can no longer be read. */
-  sourceFile?: ProgressReportSourceFile;
+  sourceFormat: ProgressReportDocumentSourceFormat;
+  /** When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a Workday timestamp. */
   uploadedAt: string;
-  parsed?: ParsedProgressReport | null;
-  parseStatus: ProgressReportParseStatus;
+  importStatus: ProgressReportImportStatus;
+  /** @nullable */
+  importErrorCode: string | null;
+  /** @nullable */
+  importErrorMessage: string | null;
+  /** Worksheets in the stored workbook (0 for a PDF). */
+  sheetCount: number;
+  /**
+   * First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.
+   * @nullable
+   */
+  fileFingerprint?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
+export interface ProgressReportList {
+  /** False when object storage is not configured for this deployment. */
+  available: boolean;
+  maxUploadBytes: number;
+  maxDocuments: number;
+  reports: ProgressReportDocument[];
+}
+
+export interface ProgressReportImportFailure {
+  error: string;
+  code: string;
+}
+
+export type AprCellAlign = (typeof AprCellAlign)[keyof typeof AprCellAlign];
+
+export const AprCellAlign = {
+  left: "left",
+  center: "center",
+  right: "right",
+} as const;
+
+export interface AprCell {
+  /** Source column index (0 = column A). */
+  c: number;
+  /** The cell as Excel displayed it. Plain text */
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  indent?: number;
+  align?: AprCellAlign;
+  filled?: boolean;
+}
+
+export interface AprRow {
+  /** Source row index (0 = row 1). */
+  r: number;
+  cells: AprCell[];
+}
+
+export interface AprMerge {
+  r: number;
+  c: number;
+  rowSpan: number;
+  colSpan: number;
+}
+
+export type AprSheetVisibility =
+  (typeof AprSheetVisibility)[keyof typeof AprSheetVisibility];
+
+export const AprSheetVisibility = {
+  visible: "visible",
+  hidden: "hidden",
+} as const;
+
+export interface AprSheet {
+  name: string;
+  index: number;
+  visibility: AprSheetVisibility;
+  rowCount: number;
+  columnCount: number;
+  columnWidths: (number | null)[];
+  rows: AprRow[];
+  merges: AprMerge[];
+}
+
+export type AprWorkbookSourceFormat =
+  (typeof AprWorkbookSourceFormat)[keyof typeof AprWorkbookSourceFormat];
+
+export const AprWorkbookSourceFormat = {
+  xlsx: "xlsx",
+} as const;
+
+export interface AprWorkbook {
+  version: number;
+  sourceFormat: AprWorkbookSourceFormat;
+  sheets: AprSheet[];
+  warnings: string[];
+}
+
+export interface ProgressReportWorkbookEnvelope {
+  report: ProgressReportDocument;
+  /** Null for a PDF (shown from the original file) and for a document whose import failed. */
+  workbook: AprWorkbook | null;
+}
+
+export interface AprSidebarColumn {
+  index: number;
+  header: string;
+}
+
+export interface AprSidebarRow {
+  r: number;
+  /** One entry per kept column, in column order. */
+  cells: string[];
+  bold?: boolean;
+  indent?: number;
+}
+
+export type AprSidebarGroupKind =
+  (typeof AprSidebarGroupKind)[keyof typeof AprSidebarGroupKind];
+
+export const AprSidebarGroupKind = {
+  university: "university",
+  core: "core",
+  major: "major",
+  minor: "minor",
+  program: "program",
+  other: "other",
+} as const;
+
+export interface AprSidebarGroup {
+  key: string;
+  kind: AprSidebarGroupKind;
+  label: string;
+  /**
+   * The program block this group sits in, as Workday titled it ("Finance Major Requirements"). Null when the export has no block title.
+   * @nullable
+   */
+  block: string | null;
+  /** Position of that block in the sheet, so blocks stay in source order. */
+  blockIndex: number;
+  rows: AprSidebarRow[];
+}
+
+export interface AprSidebarSheet {
+  name: string;
+  index: number;
+  /** False when the table header was not recognised; no rows are sent for that sheet. */
+  structured: boolean;
+  columns: AprSidebarColumn[];
+  omittedColumns: string[];
+  groups: AprSidebarGroup[];
+  preambleRowCount: number;
+  warnings: string[];
+}
+
 /**
- * When available=false, object storage is not configured.
-When available=true, report may be null (no upload yet) or a full ProgressReport.
+ * ready: grouped rows are included. unrecognized_layout: the file was read but its
+table was not recognised, so no rows are sent (open the full APR). original_only:
+a PDF, viewable as the original file. import_failed / processing: the file state.
 
  */
-export interface ProgressReportEnvelope {
+export type ProgressReportSidebarDocumentState =
+  (typeof ProgressReportSidebarDocumentState)[keyof typeof ProgressReportSidebarDocumentState];
+
+export const ProgressReportSidebarDocumentState = {
+  ready: "ready",
+  unrecognized_layout: "unrecognized_layout",
+  original_only: "original_only",
+  import_failed: "import_failed",
+  processing: "processing",
+} as const;
+
+export interface ProgressReportSidebarDocument {
+  report: ProgressReportDocument;
+  /** ready: grouped rows are included. unrecognized_layout: the file was read but its
+table was not recognised, so no rows are sent (open the full APR). original_only:
+a PDF, viewable as the original file. import_failed / processing: the file state.
+ */
+  state: ProgressReportSidebarDocumentState;
+  sheets: AprSidebarSheet[];
+}
+
+export interface ProgressReportSidebar {
   available: boolean;
-  report?: ProgressReport | null;
+  documents: ProgressReportSidebarDocument[];
 }
 
 export interface DeletedResponse {
@@ -1404,7 +1449,7 @@ export const CourseSectionMeetingDaysItem = {
 } as const;
 
 /**
- * Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin's laboratory/recitation text. Always treat it as a planning aid; "unknown" means CampusVal could not tell.
+ * Which course component this section is. When the source states an instructional format it is used as-is; otherwise it is derived from how the course's own sections meet in that term. "unknown" means CampusVal could not tell.
  */
 export type CourseSectionComponentType =
   (typeof CourseSectionComponentType)[keyof typeof CourseSectionComponentType];
@@ -1412,6 +1457,7 @@ export type CourseSectionComponentType =
 export const CourseSectionComponentType = {
   lecture: "lecture",
   lab: "lab",
+  discussion: "discussion",
   recitation: "recitation",
   unknown: "unknown",
 } as const;
@@ -1476,10 +1522,15 @@ export interface CourseSection {
   seatsKnown?: boolean;
   /** True for tentative-schedule terms (Winter/Spring 2027) where section numbers and instructors are not yet finalized. */
   tentative?: boolean;
-  /** Which course component this section is. SCU publishes no component column, so this is derived from the published meeting pattern and the bulletin's laboratory/recitation text. Always treat it as a planning aid; "unknown" means CampusVal could not tell. */
+  /** Which course component this section is. When the source states an instructional format it is used as-is; otherwise it is derived from how the course's own sections meet in that term. "unknown" means CampusVal could not tell. */
   componentType?: CourseSectionComponentType;
-  /** Always true — componentType is derived, never a Registrar field. Present so the UI can label it as inferred rather than official. */
+  /** True when componentType was derived from the meeting pattern; false when the source published it. */
   componentInferred?: boolean;
+  /**
+   * The instructional format exactly as the source printed it, when it did.
+   * @nullable
+   */
+  componentSourceLabel?: string | null;
   /** Derived from seatsKnown/seatsOpen/waitlist, never fabricated. "unknown" whenever seatsKnown is false (including every tentative Winter/Spring term, which never carries seat data). CampusVal has no source that distinguishes an instructor-closed section from a merely-full one, so both collapse to "full" rather than inventing a fifth state without evidence — see docs/SECTION_AVAILABILITY.md. */
   availabilityStatus: CourseSectionAvailabilityStatus;
   /** When the SOURCE says this section's seat data was true (the live feed's own timestamp, or the data steward's paste time). Null when no source has said anything (the official Registrar schedule has no seat data). */
@@ -1798,6 +1849,11 @@ export type ListCourseSectionsParams = {
   year?: number;
 };
 
+export type GetCourseComponentsParams = {
+  term: Term;
+  year: number;
+};
+
 export type GetSectionAvailabilityStatusParams = {
   term: Term;
   year: number;
@@ -1909,6 +1965,11 @@ export type DuplicateScheduleBody = {
   name?: string;
 };
 
+export type RemoveCourseFromSchedule200 = {
+  /** Number of component sections removed. */
+  removed: number;
+};
+
 export type ListCoreAreas200CoreAreasItem = {
   name: string;
   /**
@@ -1971,26 +2032,4 @@ export const SearchCoursesTerm = {
   winter: "winter",
   spring: "spring",
   summer: "summer",
-} as const;
-
-export type GetProgressReportParams = {
-  /**
- * "planning" returns a minimized projection for the Degree Plan /
-Tentative Degree Plan / Quarter Plan reference panel: no grades,
-no raw source text. "full" (default) is for the private APR page.
-
- */
-  view?: GetProgressReportView;
-  /**
-   * When true, also reports whether the original uploaded file can still be read from storage (sourceFile).
-   */
-  checkSource?: boolean;
-};
-
-export type GetProgressReportView =
-  (typeof GetProgressReportView)[keyof typeof GetProgressReportView];
-
-export const GetProgressReportView = {
-  full: "full",
-  planning: "planning",
 } as const;

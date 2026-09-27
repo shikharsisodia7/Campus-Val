@@ -147,10 +147,12 @@ live. A 500 there means the deployment is missing production environment variabl
 Sign-in is restricted to `@scu.edu` accounts. Invited external reviewers can be allowed
 individually through the server-side `GUEST_REVIEWER_EMAILS` allowlist — see
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Uploaded Academic Progress Reports live in
-private object storage behind owner checks; they are never publicly addressable, and
-planning pages receive a grade-free projection of them
+private object storage behind owner checks; they are never publicly addressable. A
+student may upload several (one Workday Excel export per major or minor). They are shown
+as exported — CampusVal does not re-evaluate them — and planning pages are never sent
+their Academic Period, Units or Grade columns
 ([docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md),
-[docs/APR_SIDEBAR_AND_RECONCILIATION.md](docs/APR_SIDEBAR_AND_RECONCILIATION.md)).
+[docs/APR_SOURCE_FIDELITY.md](docs/APR_SOURCE_FIDELITY.md)).
 
 ## Workday integration
 
