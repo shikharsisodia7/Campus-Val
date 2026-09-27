@@ -95,12 +95,23 @@ function watchErrors(page: Page): string[] {
   return errors;
 }
 
+/**
+ * A stored session token is short-lived. After the first page load, wait until
+ * the page has refreshed it before calling the API directly.
+ */
+async function sessionReady(page: Page) {
+  await expect
+    .poll(async () => (await page.request.get("/api/progress-reports")).status(), { timeout: 30_000 })
+    .toBe(200);
+}
+
 test.describe.configure({ mode: "serial" });
 
 test("A. APR page: several Excel APRs, full workbook, upload dates, replace one, delete one", async ({ page }) => {
   test.setTimeout(120_000);
   const errors = watchErrors(page);
   await page.goto("/");
+  await sessionReady(page);
   await deleteAllAprs(page);
 
   // No APR yet -> the upload form, Excel-first.
@@ -254,6 +265,7 @@ test("B. Degree Plan: APR reference in the RIGHT column (grouped, grade-free), C
   await page.setViewportSize({ width: 1440, height: 900 });
   const errors = watchErrors(page);
   await page.goto("/");
+  await sessionReady(page);
   await removePlanItems(page, ["ENGL 1A"]);
   await page.goto("/degree-plan");
   const panel = page.getByTestId("workday-apr-panel").first();
@@ -738,6 +750,7 @@ test("H. Quarter Plan: lecture + lab for Chemistry, Biology and Physics; conflic
   await page.setViewportSize({ width: 1440, height: 900 });
   const errors = watchErrors(page);
   await page.goto("/");
+  await sessionReady(page);
   const scheduleId = await freshSchedule(page, "fall", 2026, "QA Labs Fall 2026");
 
   // Pick sections from the real Registrar data: a lecture and a lab per course,
