@@ -1,0 +1,5 @@
+# Migration files are hashed byte-for-byte to decide what has been applied
+# (drizzle.__drizzle_migrations). A CRLF checkout changes the hash, so
+# `migrate --status` would report an applied migration as pending.
+lib/db/drizzle/*.sql text eol=lf
+lib/db/drizzle/meta/*.json text eol=lf
