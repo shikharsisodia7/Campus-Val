@@ -168,3 +168,12 @@ There is no malware scanning of uploads (PDF/XLSX are parsed, never executed).
 - Role gating: `routes/role.test.ts`
 - Auth allowlist: `middlewares/requireAuth.test.ts`
 - Feedback/error reporting: `routes/feedback.test.ts`
+
+## Degree Checksheets
+
+Department documents a student uploads, and the student's own tracking on them,
+follow the same rules as the APR: owner-only on every route, private storage
+with no public URL, never disclosed by plan sharing, no content in logs, and no
+file content rendered as markup. The full table of what was checked, with the
+test that enforces each line, is in
+[DEGREE_CHECKSHEETS.md](DEGREE_CHECKSHEETS.md#security).

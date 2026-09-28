@@ -30,6 +30,13 @@ export default defineConfig({
       dependencies: ["setup"],
     },
     {
+      // Live QA of Degree Checksheets. See tests/degree-checksheets.spec.ts.
+      name: "checksheets",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
+      testMatch: /degree-checksheets\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
       name: "1440x900",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
       testMatch: /responsive\.spec\.ts/,

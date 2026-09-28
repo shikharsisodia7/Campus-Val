@@ -38,6 +38,7 @@ present for admins and future re-enablement," never "removed."
 | GPA Calculator | `/gpa` | Professor said this can remain for now as a secondary utility. | Already visible. |
 | Transfer Credit | `/transfer` | Kept with official-source/verification wording and no guarantee language. | Already visible. |
 | Workday APR (Progress Report) | `/progress-report` | Upload one or more Workday Academic Progress Report Excel exports (one per major/minor) and read each exactly as exported. Same underlying data as the read-only APR panel beside Degree Plan and Quarter Plan. | Already visible. |
+| Degree Checksheets | `/degree-checksheets` | Requested by the professor (2026-09-28). Students upload the department checksheets, four-year plans and advising resources they are following, and track their own status and quarter on them. A reference library: it changes no plan, no requirement and no APR. Under Additional Features for now; may move beside the planning tools. See `docs/DEGREE_CHECKSHEETS.md`. | Already visible. |
 | SCU Resources | `/resources` | Emphasizes trusted official SCU resources and who to contact. | Already visible. |
 | Shared with Me (Advisors) | `/shared-with-me` | Student-controlled, read-only, already security-tested. | Already visible. |
 

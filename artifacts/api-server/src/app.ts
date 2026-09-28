@@ -127,6 +127,7 @@ const SPA_ROUTES = new Set([
   "/evaluation",
   "/feedback",
   "/progress-report",
+  "/degree-checksheets",
   "/shared-with-me",
   "/admin/usage",
   "/admin/feedback",

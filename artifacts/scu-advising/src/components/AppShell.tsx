@@ -218,6 +218,7 @@ function MobileLink({
     <Link
       href={item.path}
       onClick={onNavigate}
+      title={item.description}
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium",
         active
@@ -276,6 +277,8 @@ function AdditionalFeatures({ location, isAdmin }: { location: string; isAdmin: 
                 <DropdownMenuItem key={item.path} asChild>
                   <Link
                     href={item.path}
+                    title={item.description}
+                    data-testid={`feature-link-${item.id}`}
                     className="flex cursor-pointer items-center gap-2"
                   >
                     <Icon className="h-4 w-4" /> {item.label}

@@ -36,6 +36,21 @@ import type {
   CourseSection,
   CreateOpenaiConversationBody,
   DashboardSummary,
+  DegreeChecksheetAnnotation,
+  DegreeChecksheetAnnotationConflict,
+  DegreeChecksheetAnnotationCreateInput,
+  DegreeChecksheetAnnotationList,
+  DegreeChecksheetAnnotationUpdateInput,
+  DegreeChecksheetCreateInput,
+  DegreeChecksheetDocument,
+  DegreeChecksheetFailure,
+  DegreeChecksheetFileInput,
+  DegreeChecksheetList,
+  DegreeChecksheetRenderEnvelope,
+  DegreeChecksheetReplaceResult,
+  DegreeChecksheetUpdateInput,
+  DegreeChecksheetUploadTarget,
+  DegreeChecksheetUploadUrlRequest,
   DegreeRequirementsResponse,
   DeletedResponse,
   DuplicateScheduleBody,
@@ -6646,3 +6661,1219 @@ export function useGetProgressReportWorkbook<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Metadata of every department document the CALLER has uploaded, in library order
+(major checksheets, minor checksheets, four-year plans, other resources). The
+preview and the student's tracking are not included. There is no way to address
+another user's documents.
+If object storage is not configured, returns { available: false, documents: [] }.
+
+ * @summary List the authenticated student's Degree Checksheet documents
+ */
+export const getListDegreeChecksheetsUrl = () => {
+  return `/api/degree-checksheets`;
+};
+
+export const listDegreeChecksheets = async (
+  options?: RequestInit,
+): Promise<DegreeChecksheetList> => {
+  return customFetch<DegreeChecksheetList>(getListDegreeChecksheetsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDegreeChecksheetsQueryKey = () => {
+  return [`/api/degree-checksheets`] as const;
+};
+
+export const getListDegreeChecksheetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDegreeChecksheets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDegreeChecksheets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDegreeChecksheetsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDegreeChecksheets>>
+  > = ({ signal }) => listDegreeChecksheets({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDegreeChecksheets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDegreeChecksheetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDegreeChecksheets>>
+>;
+export type ListDegreeChecksheetsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the authenticated student's Degree Checksheet documents
+ */
+
+export function useListDegreeChecksheets<
+  TData = Awaited<ReturnType<typeof listDegreeChecksheets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listDegreeChecksheets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDegreeChecksheetsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Called after the client PUT the file to the upload link. The file is checked and
+its preview built before anything is saved; a file that is refused (422) leaves no
+document behind.
+
+ * @summary Add an uploaded department document
+ */
+export const getCreateDegreeChecksheetUrl = () => {
+  return `/api/degree-checksheets`;
+};
+
+export const createDegreeChecksheet = async (
+  degreeChecksheetCreateInput: DegreeChecksheetCreateInput,
+  options?: RequestInit,
+): Promise<DegreeChecksheetDocument> => {
+  return customFetch<DegreeChecksheetDocument>(getCreateDegreeChecksheetUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(degreeChecksheetCreateInput),
+  });
+};
+
+export const getCreateDegreeChecksheetMutationOptions = <
+  TError = ErrorType<void | DegreeChecksheetFailure>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDegreeChecksheet>>,
+    TError,
+    { data: BodyType<DegreeChecksheetCreateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDegreeChecksheet>>,
+  TError,
+  { data: BodyType<DegreeChecksheetCreateInput> },
+  TContext
+> => {
+  const mutationKey = ["createDegreeChecksheet"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDegreeChecksheet>>,
+    { data: BodyType<DegreeChecksheetCreateInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createDegreeChecksheet(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateDegreeChecksheetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createDegreeChecksheet>>
+>;
+export type CreateDegreeChecksheetMutationBody =
+  BodyType<DegreeChecksheetCreateInput>;
+export type CreateDegreeChecksheetMutationError =
+  ErrorType<void | DegreeChecksheetFailure>;
+
+/**
+ * @summary Add an uploaded department document
+ */
+export const useCreateDegreeChecksheet = <
+  TError = ErrorType<void | DegreeChecksheetFailure>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDegreeChecksheet>>,
+    TError,
+    { data: BodyType<DegreeChecksheetCreateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createDegreeChecksheet>>,
+  TError,
+  { data: BodyType<DegreeChecksheetCreateInput> },
+  TContext
+> => {
+  return useMutation(getCreateDegreeChecksheetMutationOptions(options));
+};
+
+/**
+ * @summary Request a short-lived, owner-bound upload link for one file
+ */
+export const getRequestDegreeChecksheetUploadUrlUrl = () => {
+  return `/api/degree-checksheets/upload-url`;
+};
+
+export const requestDegreeChecksheetUploadUrl = async (
+  degreeChecksheetUploadUrlRequest: DegreeChecksheetUploadUrlRequest,
+  options?: RequestInit,
+): Promise<DegreeChecksheetUploadTarget> => {
+  return customFetch<DegreeChecksheetUploadTarget>(
+    getRequestDegreeChecksheetUploadUrlUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(degreeChecksheetUploadUrlRequest),
+    },
+  );
+};
+
+export const getRequestDegreeChecksheetUploadUrlMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestDegreeChecksheetUploadUrl>>,
+    TError,
+    { data: BodyType<DegreeChecksheetUploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestDegreeChecksheetUploadUrl>>,
+  TError,
+  { data: BodyType<DegreeChecksheetUploadUrlRequest> },
+  TContext
+> => {
+  const mutationKey = ["requestDegreeChecksheetUploadUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestDegreeChecksheetUploadUrl>>,
+    { data: BodyType<DegreeChecksheetUploadUrlRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestDegreeChecksheetUploadUrl(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestDegreeChecksheetUploadUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestDegreeChecksheetUploadUrl>>
+>;
+export type RequestDegreeChecksheetUploadUrlMutationBody =
+  BodyType<DegreeChecksheetUploadUrlRequest>;
+export type RequestDegreeChecksheetUploadUrlMutationError = ErrorType<void>;
+
+/**
+ * @summary Request a short-lived, owner-bound upload link for one file
+ */
+export const useRequestDegreeChecksheetUploadUrl = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestDegreeChecksheetUploadUrl>>,
+    TError,
+    { data: BodyType<DegreeChecksheetUploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestDegreeChecksheetUploadUrl>>,
+  TError,
+  { data: BodyType<DegreeChecksheetUploadUrlRequest> },
+  TContext
+> => {
+  return useMutation(
+    getRequestDegreeChecksheetUploadUrlMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Metadata of one of the caller's documents
+ */
+export const getGetDegreeChecksheetUrl = (id: number) => {
+  return `/api/degree-checksheets/${id}`;
+};
+
+export const getDegreeChecksheet = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DegreeChecksheetDocument> => {
+  return customFetch<DegreeChecksheetDocument>(getGetDegreeChecksheetUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDegreeChecksheetQueryKey = (id: number) => {
+  return [`/api/degree-checksheets/${id}`] as const;
+};
+
+export const getGetDegreeChecksheetQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDegreeChecksheet>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDegreeChecksheet>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDegreeChecksheetQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDegreeChecksheet>>
+  > = ({ signal }) => getDegreeChecksheet(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDegreeChecksheet>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDegreeChecksheetQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDegreeChecksheet>>
+>;
+export type GetDegreeChecksheetQueryError = ErrorType<void>;
+
+/**
+ * @summary Metadata of one of the caller's documents
+ */
+
+export function useGetDegreeChecksheet<
+  TData = Awaited<ReturnType<typeof getDegreeChecksheet>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDegreeChecksheet>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDegreeChecksheetQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Rename a document or edit its descriptive metadata (the file is not touched)
+ */
+export const getUpdateDegreeChecksheetUrl = (id: number) => {
+  return `/api/degree-checksheets/${id}`;
+};
+
+export const updateDegreeChecksheet = async (
+  id: number,
+  degreeChecksheetUpdateInput: DegreeChecksheetUpdateInput,
+  options?: RequestInit,
+): Promise<DegreeChecksheetDocument> => {
+  return customFetch<DegreeChecksheetDocument>(
+    getUpdateDegreeChecksheetUrl(id),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(degreeChecksheetUpdateInput),
+    },
+  );
+};
+
+export const getUpdateDegreeChecksheetMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDegreeChecksheet>>,
+    TError,
+    { id: number; data: BodyType<DegreeChecksheetUpdateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDegreeChecksheet>>,
+  TError,
+  { id: number; data: BodyType<DegreeChecksheetUpdateInput> },
+  TContext
+> => {
+  const mutationKey = ["updateDegreeChecksheet"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDegreeChecksheet>>,
+    { id: number; data: BodyType<DegreeChecksheetUpdateInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateDegreeChecksheet(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDegreeChecksheetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDegreeChecksheet>>
+>;
+export type UpdateDegreeChecksheetMutationBody =
+  BodyType<DegreeChecksheetUpdateInput>;
+export type UpdateDegreeChecksheetMutationError = ErrorType<void>;
+
+/**
+ * @summary Rename a document or edit its descriptive metadata (the file is not touched)
+ */
+export const useUpdateDegreeChecksheet = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDegreeChecksheet>>,
+    TError,
+    { id: number; data: BodyType<DegreeChecksheetUpdateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDegreeChecksheet>>,
+  TError,
+  { id: number; data: BodyType<DegreeChecksheetUpdateInput> },
+  TContext
+> => {
+  return useMutation(getUpdateDegreeChecksheetMutationOptions(options));
+};
+
+/**
+ * @summary Permanently delete one document, its tracking and its stored file
+ */
+export const getDeleteDegreeChecksheetUrl = (id: number) => {
+  return `/api/degree-checksheets/${id}`;
+};
+
+export const deleteDegreeChecksheet = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DeletedResponse> => {
+  return customFetch<DeletedResponse>(getDeleteDegreeChecksheetUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteDegreeChecksheetMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDegreeChecksheet>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDegreeChecksheet>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteDegreeChecksheet"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDegreeChecksheet>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteDegreeChecksheet(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDegreeChecksheetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDegreeChecksheet>>
+>;
+
+export type DeleteDegreeChecksheetMutationError = ErrorType<void>;
+
+/**
+ * @summary Permanently delete one document, its tracking and its stored file
+ */
+export const useDeleteDegreeChecksheet = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDegreeChecksheet>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDegreeChecksheet>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteDegreeChecksheetMutationOptions(options));
+};
+
+/**
+ * A structural copy made for display: a grid for a workbook, blocks for a Word
+document, page sizes for a PDF, dimensions for a picture. Read-only: there is no
+endpoint that edits it, and the student's tracking is stored separately.
+
+ * @summary The display copy of one document
+ */
+export const getGetDegreeChecksheetRenderUrl = (id: number) => {
+  return `/api/degree-checksheets/${id}/render`;
+};
+
+export const getDegreeChecksheetRender = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DegreeChecksheetRenderEnvelope> => {
+  return customFetch<DegreeChecksheetRenderEnvelope>(
+    getGetDegreeChecksheetRenderUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetDegreeChecksheetRenderQueryKey = (id: number) => {
+  return [`/api/degree-checksheets/${id}/render`] as const;
+};
+
+export const getGetDegreeChecksheetRenderQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDegreeChecksheetRender>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDegreeChecksheetRender>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDegreeChecksheetRenderQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDegreeChecksheetRender>>
+  > = ({ signal }) =>
+    getDegreeChecksheetRender(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDegreeChecksheetRender>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDegreeChecksheetRenderQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDegreeChecksheetRender>>
+>;
+export type GetDegreeChecksheetRenderQueryError = ErrorType<void>;
+
+/**
+ * @summary The display copy of one document
+ */
+
+export function useGetDegreeChecksheetRender<
+  TData = Awaited<ReturnType<typeof getDegreeChecksheetRender>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDegreeChecksheetRender>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDegreeChecksheetRenderQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Stream the original uploaded file, byte for byte
+ */
+export const getDownloadDegreeChecksheetFileUrl = (id: number) => {
+  return `/api/degree-checksheets/${id}/file`;
+};
+
+export const downloadDegreeChecksheetFile = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getDownloadDegreeChecksheetFileUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getDownloadDegreeChecksheetFileQueryKey = (id: number) => {
+  return [`/api/degree-checksheets/${id}/file`] as const;
+};
+
+export const getDownloadDegreeChecksheetFileQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadDegreeChecksheetFile>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadDegreeChecksheetFile>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadDegreeChecksheetFileQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadDegreeChecksheetFile>>
+  > = ({ signal }) =>
+    downloadDegreeChecksheetFile(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDegreeChecksheetFile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadDegreeChecksheetFileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadDegreeChecksheetFile>>
+>;
+export type DownloadDegreeChecksheetFileQueryError = ErrorType<void>;
+
+/**
+ * @summary Stream the original uploaded file, byte for byte
+ */
+
+export function useDownloadDegreeChecksheetFile<
+  TData = Awaited<ReturnType<typeof downloadDegreeChecksheetFile>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadDegreeChecksheetFile>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadDegreeChecksheetFileQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * The new file is checked and its preview built first. Only if that succeeds is the
+document switched to it and the old file removed. Tracking entries tied to a place
+in the old file stay in place only where the new file offers the same place holding
+the same content; the rest are detached, never drawn over the new file.
+
+ * @summary Replace the file of ONE document
+ */
+export const getReplaceDegreeChecksheetFileUrl = (id: number) => {
+  return `/api/degree-checksheets/${id}/file`;
+};
+
+export const replaceDegreeChecksheetFile = async (
+  id: number,
+  degreeChecksheetFileInput: DegreeChecksheetFileInput,
+  options?: RequestInit,
+): Promise<DegreeChecksheetReplaceResult> => {
+  return customFetch<DegreeChecksheetReplaceResult>(
+    getReplaceDegreeChecksheetFileUrl(id),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(degreeChecksheetFileInput),
+    },
+  );
+};
+
+export const getReplaceDegreeChecksheetFileMutationOptions = <
+  TError = ErrorType<void | DegreeChecksheetFailure>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replaceDegreeChecksheetFile>>,
+    TError,
+    { id: number; data: BodyType<DegreeChecksheetFileInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof replaceDegreeChecksheetFile>>,
+  TError,
+  { id: number; data: BodyType<DegreeChecksheetFileInput> },
+  TContext
+> => {
+  const mutationKey = ["replaceDegreeChecksheetFile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof replaceDegreeChecksheetFile>>,
+    { id: number; data: BodyType<DegreeChecksheetFileInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return replaceDegreeChecksheetFile(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReplaceDegreeChecksheetFileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof replaceDegreeChecksheetFile>>
+>;
+export type ReplaceDegreeChecksheetFileMutationBody =
+  BodyType<DegreeChecksheetFileInput>;
+export type ReplaceDegreeChecksheetFileMutationError =
+  ErrorType<void | DegreeChecksheetFailure>;
+
+/**
+ * @summary Replace the file of ONE document
+ */
+export const useReplaceDegreeChecksheetFile = <
+  TError = ErrorType<void | DegreeChecksheetFailure>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof replaceDegreeChecksheetFile>>,
+    TError,
+    { id: number; data: BodyType<DegreeChecksheetFileInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof replaceDegreeChecksheetFile>>,
+  TError,
+  { id: number; data: BodyType<DegreeChecksheetFileInput> },
+  TContext
+> => {
+  return useMutation(getReplaceDegreeChecksheetFileMutationOptions(options));
+};
+
+/**
+ * @summary The caller's tracking entries for one document
+ */
+export const getListDegreeChecksheetAnnotationsUrl = (id: number) => {
+  return `/api/degree-checksheets/${id}/annotations`;
+};
+
+export const listDegreeChecksheetAnnotations = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DegreeChecksheetAnnotationList> => {
+  return customFetch<DegreeChecksheetAnnotationList>(
+    getListDegreeChecksheetAnnotationsUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDegreeChecksheetAnnotationsQueryKey = (id: number) => {
+  return [`/api/degree-checksheets/${id}/annotations`] as const;
+};
+
+export const getListDegreeChecksheetAnnotationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDegreeChecksheetAnnotations>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDegreeChecksheetAnnotations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDegreeChecksheetAnnotationsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDegreeChecksheetAnnotations>>
+  > = ({ signal }) =>
+    listDegreeChecksheetAnnotations(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDegreeChecksheetAnnotations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDegreeChecksheetAnnotationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDegreeChecksheetAnnotations>>
+>;
+export type ListDegreeChecksheetAnnotationsQueryError = ErrorType<void>;
+
+/**
+ * @summary The caller's tracking entries for one document
+ */
+
+export function useListDegreeChecksheetAnnotations<
+  TData = Awaited<ReturnType<typeof listDegreeChecksheetAnnotations>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDegreeChecksheetAnnotations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDegreeChecksheetAnnotationsQueryOptions(
+    id,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * A cell holds one entry, so creating an entry for a cell that already has one updates
+it. Points and list entries may be as many as the student likes.
+
+ * @summary Add a tracking entry (or set the one that belongs to a cell)
+ */
+export const getCreateDegreeChecksheetAnnotationUrl = (id: number) => {
+  return `/api/degree-checksheets/${id}/annotations`;
+};
+
+export const createDegreeChecksheetAnnotation = async (
+  id: number,
+  degreeChecksheetAnnotationCreateInput: DegreeChecksheetAnnotationCreateInput,
+  options?: RequestInit,
+): Promise<DegreeChecksheetAnnotation> => {
+  return customFetch<DegreeChecksheetAnnotation>(
+    getCreateDegreeChecksheetAnnotationUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(degreeChecksheetAnnotationCreateInput),
+    },
+  );
+};
+
+export const getCreateDegreeChecksheetAnnotationMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDegreeChecksheetAnnotation>>,
+    TError,
+    { id: number; data: BodyType<DegreeChecksheetAnnotationCreateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createDegreeChecksheetAnnotation>>,
+  TError,
+  { id: number; data: BodyType<DegreeChecksheetAnnotationCreateInput> },
+  TContext
+> => {
+  const mutationKey = ["createDegreeChecksheetAnnotation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createDegreeChecksheetAnnotation>>,
+    { id: number; data: BodyType<DegreeChecksheetAnnotationCreateInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createDegreeChecksheetAnnotation(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateDegreeChecksheetAnnotationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createDegreeChecksheetAnnotation>>
+>;
+export type CreateDegreeChecksheetAnnotationMutationBody =
+  BodyType<DegreeChecksheetAnnotationCreateInput>;
+export type CreateDegreeChecksheetAnnotationMutationError = ErrorType<void>;
+
+/**
+ * @summary Add a tracking entry (or set the one that belongs to a cell)
+ */
+export const useCreateDegreeChecksheetAnnotation = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createDegreeChecksheetAnnotation>>,
+    TError,
+    { id: number; data: BodyType<DegreeChecksheetAnnotationCreateInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createDegreeChecksheetAnnotation>>,
+  TError,
+  { id: number; data: BodyType<DegreeChecksheetAnnotationCreateInput> },
+  TContext
+> => {
+  return useMutation(
+    getCreateDegreeChecksheetAnnotationMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Change, clear, move or re-link one tracking entry
+ */
+export const getUpdateDegreeChecksheetAnnotationUrl = (
+  id: number,
+  annotationId: number,
+) => {
+  return `/api/degree-checksheets/${id}/annotations/${annotationId}`;
+};
+
+export const updateDegreeChecksheetAnnotation = async (
+  id: number,
+  annotationId: number,
+  degreeChecksheetAnnotationUpdateInput: DegreeChecksheetAnnotationUpdateInput,
+  options?: RequestInit,
+): Promise<DegreeChecksheetAnnotation> => {
+  return customFetch<DegreeChecksheetAnnotation>(
+    getUpdateDegreeChecksheetAnnotationUrl(id, annotationId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(degreeChecksheetAnnotationUpdateInput),
+    },
+  );
+};
+
+export const getUpdateDegreeChecksheetAnnotationMutationOptions = <
+  TError = ErrorType<void | DegreeChecksheetAnnotationConflict>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDegreeChecksheetAnnotation>>,
+    TError,
+    {
+      id: number;
+      annotationId: number;
+      data: BodyType<DegreeChecksheetAnnotationUpdateInput>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDegreeChecksheetAnnotation>>,
+  TError,
+  {
+    id: number;
+    annotationId: number;
+    data: BodyType<DegreeChecksheetAnnotationUpdateInput>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateDegreeChecksheetAnnotation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDegreeChecksheetAnnotation>>,
+    {
+      id: number;
+      annotationId: number;
+      data: BodyType<DegreeChecksheetAnnotationUpdateInput>;
+    }
+  > = (props) => {
+    const { id, annotationId, data } = props ?? {};
+
+    return updateDegreeChecksheetAnnotation(
+      id,
+      annotationId,
+      data,
+      requestOptions,
+    );
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDegreeChecksheetAnnotationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDegreeChecksheetAnnotation>>
+>;
+export type UpdateDegreeChecksheetAnnotationMutationBody =
+  BodyType<DegreeChecksheetAnnotationUpdateInput>;
+export type UpdateDegreeChecksheetAnnotationMutationError =
+  ErrorType<void | DegreeChecksheetAnnotationConflict>;
+
+/**
+ * @summary Change, clear, move or re-link one tracking entry
+ */
+export const useUpdateDegreeChecksheetAnnotation = <
+  TError = ErrorType<void | DegreeChecksheetAnnotationConflict>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDegreeChecksheetAnnotation>>,
+    TError,
+    {
+      id: number;
+      annotationId: number;
+      data: BodyType<DegreeChecksheetAnnotationUpdateInput>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDegreeChecksheetAnnotation>>,
+  TError,
+  {
+    id: number;
+    annotationId: number;
+    data: BodyType<DegreeChecksheetAnnotationUpdateInput>;
+  },
+  TContext
+> => {
+  return useMutation(
+    getUpdateDegreeChecksheetAnnotationMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Remove one tracking entry
+ */
+export const getDeleteDegreeChecksheetAnnotationUrl = (
+  id: number,
+  annotationId: number,
+) => {
+  return `/api/degree-checksheets/${id}/annotations/${annotationId}`;
+};
+
+export const deleteDegreeChecksheetAnnotation = async (
+  id: number,
+  annotationId: number,
+  options?: RequestInit,
+): Promise<DeletedResponse> => {
+  return customFetch<DeletedResponse>(
+    getDeleteDegreeChecksheetAnnotationUrl(id, annotationId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteDegreeChecksheetAnnotationMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDegreeChecksheetAnnotation>>,
+    TError,
+    { id: number; annotationId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteDegreeChecksheetAnnotation>>,
+  TError,
+  { id: number; annotationId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteDegreeChecksheetAnnotation"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteDegreeChecksheetAnnotation>>,
+    { id: number; annotationId: number }
+  > = (props) => {
+    const { id, annotationId } = props ?? {};
+
+    return deleteDegreeChecksheetAnnotation(id, annotationId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteDegreeChecksheetAnnotationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteDegreeChecksheetAnnotation>>
+>;
+
+export type DeleteDegreeChecksheetAnnotationMutationError = ErrorType<void>;
+
+/**
+ * @summary Remove one tracking entry
+ */
+export const useDeleteDegreeChecksheetAnnotation = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteDegreeChecksheetAnnotation>>,
+    TError,
+    { id: number; annotationId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteDegreeChecksheetAnnotation>>,
+  TError,
+  { id: number; annotationId: number },
+  TContext
+> => {
+  return useMutation(
+    getDeleteDegreeChecksheetAnnotationMutationOptions(options),
+  );
+};

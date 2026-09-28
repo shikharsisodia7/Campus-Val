@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * contains is displayed literally and can never become markup or a link.
  */
 
-const columnLetter = (index: number): string => {
+export const columnLetter = (index: number): string => {
   let n = index + 1;
   let out = "";
   while (n > 0) {
@@ -25,14 +25,14 @@ const columnLetter = (index: number): string => {
   return out;
 };
 
-interface Grid {
+export interface Grid {
   rowIndexes: number[];
   cellAt: Map<string, AprSheet["rows"][number]["cells"][number]>;
   spanAt: Map<string, { rowSpan: number; colSpan: number }>;
   covered: Set<string>;
 }
 
-function buildGrid(sheet: AprSheet): Grid {
+export function buildGrid(sheet: AprSheet): Grid {
   const cellAt: Grid["cellAt"] = new Map();
   for (const row of sheet.rows) for (const cell of row.cells) cellAt.set(`${row.r}:${cell.c}`, cell);
 

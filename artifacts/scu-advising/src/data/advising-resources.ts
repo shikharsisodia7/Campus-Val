@@ -30,7 +30,7 @@ export const OFFICIAL_RESOURCES: OfficialResource[] = [
     id: "workday",
     title: "Workday Student",
     description:
-      "Registration, official degree audit, grades, and live section seats. The single source of truth for your academic record.",
+      "Registration, official degree audit, grades, and live section seats. The definitive reference for degree completion and your academic record.",
     url: "https://www.myworkday.com/scu/",
     authorityFor: "Your official academic record and registration",
     lastVerified: "2026-07-23",
