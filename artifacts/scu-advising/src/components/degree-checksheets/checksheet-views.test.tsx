@@ -235,6 +235,141 @@ describe("Word document", () => {
   });
 });
 
+describe("tracking a filled cell the student chooses", () => {
+  const sheetView = (tracking = fakeTracking([]), showTracking = true) =>
+    render(
+      <ChecksheetSpreadsheetView documentId={1} title="Major" sheets={[majorSheet]} tracking={tracking} showTracking={showTracking} />,
+    );
+  const docView = (tracking = fakeTracking([]), showTracking = true) =>
+    render(<ChecksheetDocumentView documentId={4} title="Guide" blocks={documentBlocks} tracking={tracking} showTracking={showTracking} />);
+
+  it("offers nothing to choose until the student asks", () => {
+    sheetView();
+    expect(screen.getByTestId("checksheet-pick-item").getAttribute("aria-pressed")).toBe("false");
+    expect(document.querySelectorAll("[data-pickable]")).toHaveLength(0);
+    expect(screen.queryByTestId("checksheet-pick-instructions")).toBeNull();
+  });
+
+  it("then lets any cell that says something be chosen, and no empty one", () => {
+    sheetView();
+    fireEvent.click(screen.getByTestId("checksheet-pick-item"));
+    expect(screen.getByTestId("checksheet-pick-instructions").textContent).toMatch(/document's own text is not changed/);
+    const pickable = [...document.querySelectorAll("[data-pickable]")];
+    // Every filled cell of the sheet: 1 title + 5 headers + 1 heading + 3 + 3 + 3.
+    expect(pickable).toHaveLength(16);
+    expect(pickable.every((el) => (el.textContent ?? "").trim() !== "")).toBe(true);
+    expect(pickable.every((el) => el.getAttribute("role") === "button" && el.getAttribute("tabindex") === "0")).toBe(true);
+    // The student's empty Status / Quarter cells are not among them.
+    expect(document.querySelectorAll("[data-tracking-cell][data-pickable]")).toHaveLength(0);
+  });
+
+  it("records the cell's position and what it says, then stops choosing", () => {
+    const addItem = vi.fn(() => "sheetitem:0:5:0");
+    sheetView(fakeTracking([], { addItem }));
+    fireEvent.click(screen.getByTestId("checksheet-pick-item"));
+    fireEvent.click(screen.getByLabelText("Track Widget Mathematics I"));
+    expect(addItem).toHaveBeenCalledWith("sheet_item", { sheet: 0, row: 5, col: 0 }, "Widget Mathematics I");
+    expect(screen.getByTestId("checksheet-pick-item").getAttribute("aria-pressed")).toBe("false");
+    expect(document.querySelectorAll("[data-pickable]")).toHaveLength(0);
+  });
+
+  it("can be chosen from the keyboard", () => {
+    const addItem = vi.fn(() => "k");
+    sheetView(fakeTracking([], { addItem }));
+    fireEvent.click(screen.getByTestId("checksheet-pick-item"));
+    fireEvent.keyDown(screen.getByLabelText("Track WIDG 130"), { key: "Enter" });
+    expect(addItem).toHaveBeenCalledWith("sheet_item", { sheet: 0, row: 6, col: 1 }, "WIDG 130");
+  });
+
+  const chosen = testEntry({
+    key: "sheetitem:0:5:0",
+    id: 40,
+    anchorType: "sheet_item",
+    anchor: { sheet: 0, row: 5, col: 0 },
+    itemLabel: "Widget Mathematics I",
+    status: "in_progress",
+    term: "winter",
+    termYear: 2027,
+  });
+
+  it("shows the student's tracking UNDER the department's text, which is still there", () => {
+    sheetView(fakeTracking([chosen]));
+    const cell = document.querySelector('tr[data-source-row="6"] td')!;
+    expect(cell.firstChild!.textContent).toBe("Widget Mathematics I");
+    const block = within(cell as HTMLElement).getByTestId("checksheet-item-0-5-0");
+    expect(block.textContent).toContain("My tracking");
+    expect(block.getAttribute("title")).toMatch(/does not change the original document/);
+    expect((within(block).getByLabelText("My status for Widget Mathematics I") as HTMLSelectElement).value).toBe("in_progress");
+    expect((within(block).getByLabelText("My quarter for Widget Mathematics I: quarter") as HTMLSelectElement).value).toBe("winter");
+    expect((within(block).getByLabelText("My quarter for Widget Mathematics I: year") as HTMLSelectElement).value).toBe("2027");
+    expect(screen.getByTestId("checksheet-pick-count").textContent).toBe("You are tracking 1 cell you chose.");
+  });
+
+  it("changes, clears and stops tracking", () => {
+    const change = vi.fn();
+    const remove = vi.fn();
+    sheetView(fakeTracking([chosen], { change, remove }));
+    fireEvent.change(screen.getByTestId("checksheet-item-0-5-0-status"), { target: { value: "completed" } });
+    expect(change).toHaveBeenLastCalledWith("sheetitem:0:5:0", { status: "completed" });
+    fireEvent.change(screen.getByTestId("checksheet-item-0-5-0-status"), { target: { value: "" } });
+    expect(change).toHaveBeenLastCalledWith("sheetitem:0:5:0", { status: null });
+    fireEvent.change(screen.getByTestId("checksheet-item-0-5-0-term-term"), { target: { value: "" } });
+    expect(change).toHaveBeenLastCalledWith("sheetitem:0:5:0", { term: null, termYear: null });
+    fireEvent.click(screen.getByLabelText("Stop tracking Widget Mathematics I"));
+    expect(remove).toHaveBeenCalledWith("sheetitem:0:5:0");
+  });
+
+  it("does not offer a cell that is already tracked", () => {
+    sheetView(fakeTracking([chosen]));
+    fireEvent.click(screen.getByTestId("checksheet-pick-item"));
+    expect(screen.queryByLabelText("Track Widget Mathematics I")).toBeNull();
+    expect(screen.getByLabelText("Track WIDG 111")).toBeTruthy();
+  });
+
+  it("'Show original only' hides the tracking, the toolbar and leaves the text", () => {
+    sheetView(fakeTracking([chosen]), false);
+    expect(screen.queryByTestId("checksheet-pick-toolbar")).toBeNull();
+    expect(document.querySelectorAll("[data-tracked-item]")).toHaveLength(0);
+    expect(document.querySelector('tr[data-source-row="6"] td')!.textContent).toBe("Widget Mathematics I");
+  });
+
+  it("works the same in a Word table", () => {
+    const addItem = vi.fn(() => "blockitem:4:1:0");
+    const view = docView(fakeTracking([], { addItem }));
+    fireEvent.click(screen.getByTestId("checksheet-pick-item"));
+    // Text outside a table cannot be chosen.
+    expect([...document.querySelectorAll("[data-pickable]")].every((el) => el.closest("table"))).toBe(true);
+    fireEvent.click(screen.getByLabelText("Track WIDG 101 Introduction to Widgetry"));
+    expect(addItem).toHaveBeenCalledWith("doc_item", { block: 4, row: 1, col: 0 }, "WIDG 101 Introduction to Widgetry");
+    view.unmount();
+
+    const change = vi.fn();
+    docView(
+      fakeTracking(
+        [testEntry({ key: "blockitem:4:1:0", id: 41, anchorType: "doc_item", anchor: { block: 4, row: 1, col: 0 }, status: "planned" })],
+        { change },
+      ),
+    );
+    const cell = screen.getByTestId("checksheet-doc-source-4-1-0");
+    expect(cell.firstChild!.textContent).toBe("WIDG 101 Introduction to Widgetry");
+    fireEvent.change(within(cell).getByTestId("checksheet-doc-item-4-1-0-status"), { target: { value: "completed" } });
+    expect(change).toHaveBeenCalledWith("blockitem:4:1:0", { status: "completed" });
+  });
+
+  it("has no toolbar on a Word document without a table", () => {
+    render(
+      <ChecksheetDocumentView
+        documentId={5}
+        title="Notes"
+        blocks={[{ type: "paragraph", runs: [{ text: "Only text." }] }]}
+        tracking={fakeTracking([])}
+        showTracking
+      />,
+    );
+    expect(screen.queryByTestId("checksheet-pick-toolbar")).toBeNull();
+  });
+});
+
 describe("markers on a page or picture", () => {
   const IDLE: MarkerMode = { placing: false, moving: null, open: null };
 

@@ -5,16 +5,29 @@
  * Word document, a point on a page or picture. It is never the visible text:
  * the same course can be listed twice, and text is not a key.
  *
+ * There are two kinds of cell anchor:
+ *   sheet_cell / doc_cell   an EMPTY cell the department left for the student
+ *                           (a Status or Quarter column), found by
+ *                           tracking-layout.ts. It holds one kind of value.
+ *   sheet_item / doc_item   a FILLED cell the student chose to track, for
+ *                           documents that list items without leaving a column
+ *                           for the student (a Fall / Winter / Spring grid of
+ *                           courses). CampusVal never picks these itself:
+ *                           deciding which cells are requirements would be
+ *                           reading the document. The student points; the
+ *                           position is remembered.
+ *
  * Every anchor sent by a browser is checked against the document's own render
  * before it is stored, so an entry can only ever be placed somewhere the
  * document really offers. When the file is replaced, each anchor is checked
  * again against the NEW render (`reconcileAnchor`), and anything that cannot
  * be shown to mean the same thing is detached rather than left in place.
  */
+import { createHash } from "node:crypto";
 import { CHECKSHEET_LIMITS } from "./limits";
 import type { ChecksheetRender, DocTextRun, TrackingCell, TrackingLayout } from "./model";
 
-export type AnchorType = "sheet_cell" | "doc_cell" | "point" | "manual";
+export type AnchorType = "sheet_cell" | "doc_cell" | "sheet_item" | "doc_item" | "point" | "manual";
 
 export interface SheetCellAnchor {
   sheet: number;
@@ -54,6 +67,11 @@ const roundFraction = (value: number): number => Math.round(value * 10_000) / 10
 
 function findCell(layout: TrackingLayout | undefined, row: number, col: number): TrackingCell | undefined {
   return layout?.cells.find((cell) => cell.r === row && cell.c === col);
+}
+
+/** What a filled cell says, as a hash: compared on replacement, never shown. */
+function itemFingerprint(scope: string, text: string): string {
+  return createHash("sha256").update(`${scope}\u241f${text.replace(/\s+/g, " ").trim()}`).digest("hex").slice(0, 32);
 }
 
 function pageFingerprint(render: ChecksheetRender, page: number): string | null {
@@ -109,6 +127,39 @@ export function resolveAnchor(
     };
   }
 
+  if (type === "sheet_item" && render.kind === "spreadsheet") {
+    const { sheet, row, col } = input;
+    if (!isIndex(sheet) || !isIndex(row) || !isIndex(col)) return null;
+    const source = render.sheets[sheet];
+    const text = source?.rows.find((candidate) => candidate.r === row)?.cells.find((cell) => cell.c === col)?.text;
+    // Only a cell that says something can be tracked as an item.
+    if (!source || !text || text.trim() === "") return null;
+    return {
+      type: "sheet_item",
+      anchor: { sheet, row, col },
+      key: `sheetitem:${sheet}:${row}:${col}`,
+      fingerprint: itemFingerprint(`sheet:${source.index}:${source.name}`, text),
+      field: null,
+    };
+  }
+
+  if (type === "doc_item" && render.kind === "document") {
+    const { block, row, col } = input;
+    if (!isIndex(block) || !isIndex(row) || !isIndex(col)) return null;
+    const target = render.blocks[block];
+    if (target?.type !== "table") return null;
+    const cell = target.rows[row]?.[col];
+    const text = cell ? runsText(cell.runs) : "";
+    if (text.trim() === "") return null;
+    return {
+      type: "doc_item",
+      anchor: { block, row, col },
+      key: `blockitem:${block}:${row}:${col}`,
+      fingerprint: itemFingerprint(`block:${block}`, text),
+      field: null,
+    };
+  }
+
   if (type === "point" && (render.kind === "pdf" || render.kind === "image")) {
     const { page, x, y } = input;
     if (!isIndex(page) || !isFraction(x) || !isFraction(y)) return null;
@@ -153,7 +204,9 @@ export function reconcileAnchor(
   return stored.anchorFingerprint === resolved.fingerprint ? resolved : null;
 }
 
-const runsText = (runs: DocTextRun[]): string => runs.map((run) => run.text).join("");
+function runsText(runs: DocTextRun[]): string {
+  return runs.map((run) => run.text).join("");
+}
 
 function clip(text: string): string {
   const flat = text.replace(/\s+/g, " ").trim();
@@ -186,6 +239,19 @@ export function describeAnchor(render: ChecksheetRender | null, stored: StoredAn
       if (label) return clip(label);
     }
     return "Table row";
+  }
+  if (stored.anchorType === "sheet_item" && render?.kind === "spreadsheet") {
+    const sheet = render.sheets[Number(anchor["sheet"])];
+    const text = sheet?.rows
+      .find((candidate) => candidate.r === Number(anchor["row"]))
+      ?.cells.find((cell) => cell.c === Number(anchor["col"]))?.text;
+    return text?.trim() ? clip(text) : "Worksheet cell";
+  }
+  if (stored.anchorType === "doc_item" && render?.kind === "document") {
+    const block = render.blocks[Number(anchor["block"])];
+    const cell = block?.type === "table" ? block.rows[Number(anchor["row"])]?.[Number(anchor["col"])] : undefined;
+    const text = cell ? runsText(cell.runs) : "";
+    return text.trim() ? clip(text) : "Table cell";
   }
   if (stored.anchorType === "point") {
     return render?.kind === "image" ? "Marker on the picture" : `Marker on page ${Number(anchor["page"] ?? 0) + 1}`;

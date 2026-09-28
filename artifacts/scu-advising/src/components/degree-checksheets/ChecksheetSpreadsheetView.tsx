@@ -3,8 +3,9 @@ import type { ChecksheetSheet, ChecksheetTrackingCell } from "@workspace/api-cli
 import { cn } from "@/lib/utils";
 import { buildGrid, columnLetter } from "@/components/progress-report/AprWorkbookTable";
 import type { ChecksheetTracking } from "@/hooks/use-degree-checksheets";
-import { cellKey } from "@/hooks/use-degree-checksheets";
+import { cellKey, itemKey } from "@/hooks/use-degree-checksheets";
 import { MyTrackingTag, StatusSelect, TermSelect, TRACKING_HINT } from "./TrackingControls";
+import { PICKABLE, PickItemToolbar, TrackedItem } from "./TrackedItem";
 
 /**
  * A department workbook, shown as it was uploaded, with the student's own
@@ -34,12 +35,15 @@ export function ChecksheetSpreadsheetView({
   showTracking: boolean;
 }) {
   const [active, setActive] = useState(0);
+  const [picking, setPicking] = useState(false);
   const index = Math.min(active, sheets.length - 1);
   const sheet = sheets[index];
   if (!sheet) return null;
+  const chosen = tracking.entries.filter((entry) => !entry.detached && entry.anchorType === "sheet_item").length;
 
   return (
     <div className="space-y-2" data-testid={`checksheet-spreadsheet-${documentId}`}>
+      {showTracking && <PickItemToolbar picking={picking} onChange={setPicking} count={chosen} />}
       {sheets.length > 1 && (
         <div role="tablist" aria-label="Worksheets" className="flex flex-wrap gap-1" data-testid="checksheet-sheet-tabs">
           {sheets.map((s, i) => (
@@ -70,6 +74,8 @@ export function ChecksheetSpreadsheetView({
         caption={`${title} — ${sheet.name}`}
         tracking={tracking}
         showTracking={showTracking}
+        picking={showTracking && picking}
+        onPicked={() => setPicking(false)}
       />
     </div>
   );
@@ -81,12 +87,16 @@ function SheetGrid({
   caption,
   tracking,
   showTracking,
+  picking,
+  onPicked,
 }: {
   sheet: ChecksheetSheet;
   sheetPosition: number;
   caption: string;
   tracking: ChecksheetTracking;
   showTracking: boolean;
+  picking: boolean;
+  onPicked: () => void;
 }) {
   const grid = useMemo(() => buildGrid(sheet), [sheet]);
   const columns = useMemo(() => Array.from({ length: sheet.columnCount }, (_, c) => c), [sheet.columnCount]);
@@ -215,6 +225,14 @@ function SheetGrid({
                   );
                 }
 
+                const text = cell?.text.trim() ?? "";
+                const item = { sheet: sheetPosition, row: r, col: c };
+                const chosen = showTracking && cell ? entries.get(itemKey("sheet_item", item)) : undefined;
+                const pickable = picking && text !== "" && !chosen;
+                const pick = () => {
+                  tracking.addItem("sheet_item", item, text.slice(0, 200));
+                  onPicked();
+                };
                 return (
                   <td
                     key={c}
@@ -227,10 +245,34 @@ function SheetGrid({
                       cell?.filled && "bg-muted/60",
                       cell?.align === "center" && "text-center",
                       cell?.align === "right" && "text-right",
+                      pickable && PICKABLE,
                     )}
                     style={cell?.indent ? { paddingLeft: `${0.375 + cell.indent * 0.9}rem` } : undefined}
+                    {...(pickable
+                      ? {
+                          role: "button",
+                          tabIndex: 0,
+                          "aria-label": `Track ${text.slice(0, 120)}`,
+                          onClick: pick,
+                          onKeyDown: (e: React.KeyboardEvent) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              pick();
+                            }
+                          },
+                        }
+                      : {})}
+                    data-pickable={pickable ? "true" : undefined}
                   >
                     {cell?.text ?? ""}
+                    {chosen && (
+                      <TrackedItem
+                        entry={chosen}
+                        name={text.slice(0, 120)}
+                        tracking={tracking}
+                        testId={`checksheet-item-${sheetPosition}-${r}-${c}`}
+                      />
+                    )}
                   </td>
                 );
               })}

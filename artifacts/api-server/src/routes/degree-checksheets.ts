@@ -152,7 +152,11 @@ function documentDto(row: MetaRow) {
 
 function annotationDto(row: DegreeChecksheetAnnotationRow, field: "status" | "term" | null) {
   const type =
-    row.anchorType === "sheet_cell" || row.anchorType === "doc_cell" || row.anchorType === "point"
+    row.anchorType === "sheet_cell" ||
+    row.anchorType === "doc_cell" ||
+    row.anchorType === "sheet_item" ||
+    row.anchorType === "doc_item" ||
+    row.anchorType === "point"
       ? row.anchorType
       : "manual";
   return {
@@ -951,6 +955,11 @@ router.post("/degree-checksheets/:id/annotations", requireAuth, async (req, res)
   if (!tracking.ok) {
     res.status(400).json({ error: tracking.error });
     return;
+  }
+  // An item the student chose is named after the cell it sits in, so it can be
+  // read in a list and recognised if a replacement detaches it.
+  if ((anchor.type === "sheet_item" || anchor.type === "doc_item") && !tracking.values.itemLabel) {
+    tracking.values.itemLabel = describeAnchor(render, { anchorType: anchor.type, anchor: anchor.anchor, anchorFingerprint: null });
   }
 
   if (existing) {

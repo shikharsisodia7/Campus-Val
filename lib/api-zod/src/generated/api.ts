@@ -4384,7 +4384,18 @@ export const ListDegreeChecksheetAnnotationsResponse = zod.object({
     zod.object({
       id: zod.number(),
       documentId: zod.number(),
-      anchorType: zod.enum(["sheet_cell", "doc_cell", "point", "manual"]),
+      anchorType: zod
+        .enum([
+          "sheet_cell",
+          "doc_cell",
+          "sheet_item",
+          "doc_item",
+          "point",
+          "manual",
+        ])
+        .describe(
+          "sheet_cell \/ doc_cell: an empty cell the document left for the student (one kind of\nvalue). sheet_item \/ doc_item: a filled cell the STUDENT chose to track (status and\nquarter). point: a marker on a page or picture. manual: the student's own list.\n",
+        ),
       anchor: zod
         .object({
           sheet: zod
@@ -4437,7 +4448,7 @@ export const ListDegreeChecksheetAnnotationsResponse = zod.object({
             .optional(),
         })
         .describe(
-          "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+          "A position in one document. sheet_cell and sheet_item: sheet,row,col. doc_cell and\ndoc_item: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
         ),
       field: zod
         .union([zod.literal("status"), zod.literal("term"), zod.literal(null)])
@@ -4515,7 +4526,18 @@ export const createDegreeChecksheetAnnotationBodyTermYearMax = 2100;
 export const createDegreeChecksheetAnnotationBodyNoteMax = 500;
 
 export const CreateDegreeChecksheetAnnotationBody = zod.object({
-  anchorType: zod.enum(["sheet_cell", "doc_cell", "point", "manual"]),
+  anchorType: zod
+    .enum([
+      "sheet_cell",
+      "doc_cell",
+      "sheet_item",
+      "doc_item",
+      "point",
+      "manual",
+    ])
+    .describe(
+      "sheet_cell \/ doc_cell: an empty cell the document left for the student (one kind of\nvalue). sheet_item \/ doc_item: a filled cell the STUDENT chose to track (status and\nquarter). point: a marker on a page or picture. manual: the student's own list.\n",
+    ),
   anchor: zod
     .object({
       sheet: zod
@@ -4551,7 +4573,7 @@ export const CreateDegreeChecksheetAnnotationBody = zod.object({
     })
     .optional()
     .describe(
-      "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+      "A position in one document. sheet_cell and sheet_item: sheet,row,col. doc_cell and\ndoc_item: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
     ),
   itemLabel: zod
     .string()
@@ -4597,7 +4619,18 @@ export const createDegreeChecksheetAnnotationResponseAnchorYMax = 1;
 export const CreateDegreeChecksheetAnnotationResponse = zod.object({
   id: zod.number(),
   documentId: zod.number(),
-  anchorType: zod.enum(["sheet_cell", "doc_cell", "point", "manual"]),
+  anchorType: zod
+    .enum([
+      "sheet_cell",
+      "doc_cell",
+      "sheet_item",
+      "doc_item",
+      "point",
+      "manual",
+    ])
+    .describe(
+      "sheet_cell \/ doc_cell: an empty cell the document left for the student (one kind of\nvalue). sheet_item \/ doc_item: a filled cell the STUDENT chose to track (status and\nquarter). point: a marker on a page or picture. manual: the student's own list.\n",
+    ),
   anchor: zod
     .object({
       sheet: zod
@@ -4632,7 +4665,7 @@ export const CreateDegreeChecksheetAnnotationResponse = zod.object({
         .optional(),
     })
     .describe(
-      "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+      "A position in one document. sheet_cell and sheet_item: sheet,row,col. doc_cell and\ndoc_item: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
     ),
   field: zod
     .union([zod.literal("status"), zod.literal("term"), zod.literal(null)])
@@ -4762,7 +4795,7 @@ export const UpdateDegreeChecksheetAnnotationBody = zod.object({
     })
     .optional()
     .describe(
-      "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+      "A position in one document. sheet_cell and sheet_item: sheet,row,col. doc_cell and\ndoc_item: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
     ),
   keepAsListEntry: zod
     .boolean()
@@ -4796,7 +4829,18 @@ export const updateDegreeChecksheetAnnotationResponseAnchorYMax = 1;
 export const UpdateDegreeChecksheetAnnotationResponse = zod.object({
   id: zod.number(),
   documentId: zod.number(),
-  anchorType: zod.enum(["sheet_cell", "doc_cell", "point", "manual"]),
+  anchorType: zod
+    .enum([
+      "sheet_cell",
+      "doc_cell",
+      "sheet_item",
+      "doc_item",
+      "point",
+      "manual",
+    ])
+    .describe(
+      "sheet_cell \/ doc_cell: an empty cell the document left for the student (one kind of\nvalue). sheet_item \/ doc_item: a filled cell the STUDENT chose to track (status and\nquarter). point: a marker on a page or picture. manual: the student's own list.\n",
+    ),
   anchor: zod
     .object({
       sheet: zod
@@ -4831,7 +4875,7 @@ export const UpdateDegreeChecksheetAnnotationResponse = zod.object({
         .optional(),
     })
     .describe(
-      "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+      "A position in one document. sheet_cell and sheet_item: sheet,row,col. doc_cell and\ndoc_item: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
     ),
   field: zod
     .union([zod.literal("status"), zod.literal("term"), zod.literal(null)])

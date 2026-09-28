@@ -12,8 +12,9 @@
  *   G  small screens
  *   H  privacy: another student and a plan-sharing advisor see nothing
  *   I  nothing else changed: APR page, Degree Plan, Quarter Plan, Tentative
- *   R  (optional) real department PDFs from a local folder, never committed:
- *      set CHECKSHEET_REAL_DIR to a folder of PDFs downloaded from scu.edu
+ *   R  (optional) real department documents from a local folder, never
+ *      committed: set CHECKSHEET_REAL_DIR to a folder holding eng-*.pdf,
+ *      cas-*.pdf and cas-*.docx files downloaded from scu.edu
  *
  * Every document used here is SYNTHETIC (api-server/src/__fixtures__/checksheets).
  *
@@ -726,6 +727,39 @@ test("E. A flowchart picture and a Word document", async ({ page }) => {
   await expect(again.getByLabel("My quarter for WIDG 101 Introduction to Widgetry: quarter")).toHaveValue("fall");
   await shot(page, "E2-word-document");
 
+  // A cell that SAYS something can be tracked too, when the student chooses it.
+  await expect(again.locator("[data-pickable]")).toHaveCount(0);
+  await again.getByTestId("checksheet-pick-item").click();
+  await expect(again.getByTestId("checksheet-pick-instructions")).toBeVisible();
+  await again.getByRole("button", { name: "Track WIDG 120 Widget Design Studio" }).click();
+  await expect(again.locator("[data-pickable]")).toHaveCount(0);
+  const chosen = again.locator('[data-tracked-item="true"]');
+  await expect(chosen).toHaveCount(1);
+  await chosen.getByLabel("My status for WIDG 120 Widget Design Studio").selectOption("planned");
+  await chosen.getByLabel("My quarter for WIDG 120 Widget Design Studio: quarter").selectOption("fall");
+  await saved(again);
+  // The department's words are still in the cell, above the student's entry.
+  const sourceCell = again.locator("td").filter({ has: page.locator('[data-tracked-item="true"]') });
+  await expect(sourceCell).toContainText("WIDG 120 Widget Design Studio");
+  await page.reload();
+  const third = cardFor(page, "Widgetry Advising Guide");
+  await open(third);
+  // (This row also has the department's own Status column; look inside the chosen cell.)
+  const kept = third.locator('[data-tracked-item="true"]');
+  await expect(kept).toHaveCount(1, { timeout: 20_000 });
+  await expect(kept.getByLabel("My status for WIDG 120 Widget Design Studio")).toHaveValue("planned");
+  await expect(kept.getByLabel("My quarter for WIDG 120 Widget Design Studio: quarter")).toHaveValue("fall");
+  await expect(third.getByTestId("checksheet-pick-count")).toHaveText("You are tracking 1 cell you chose.");
+  await shot(page, "E2b-word-cell-chosen");
+  await third.locator('[data-testid^="checksheet-toggle-tracking-"]').click();
+  await expect(third.locator('[data-tracked-item="true"]')).toHaveCount(0);
+  await expect(third.getByText("WIDG 120 Widget Design Studio")).toBeVisible();
+  await third.locator('[data-testid^="checksheet-toggle-tracking-"]').click();
+  await third.getByRole("button", { name: "Stop tracking WIDG 120 Widget Design Studio" }).click();
+  await saved(third);
+  await expect(third.locator('[data-tracked-item="true"]')).toHaveCount(0);
+  await collapse(third);
+
   // A hostile Word document is displayed as text and runs nothing.
   await uploadDocument(page, "hostile-docx", { title: "Hostile sample", category: "other" });
   const hostile = cardFor(page, "Hostile sample");
@@ -1075,11 +1109,13 @@ test("I. Nothing else changed: APR, Degree Plan, Quarter Plan, Tentative Degree 
  * without the folder this test is skipped.
  */
 const REAL_DIR = process.env.CHECKSHEET_REAL_DIR;
-const REAL_PDFS = REAL_DIR && existsSync(REAL_DIR) ? readdirSync(REAL_DIR).filter((n) => /^eng-.*\.pdf$/i.test(n)).sort() : [];
+const REAL_FILES = REAL_DIR && existsSync(REAL_DIR) ? readdirSync(REAL_DIR).sort() : [];
+const REAL_PDFS = REAL_FILES.filter((n) => /^(eng|cas)-.*\.pdf$/i.test(n));
+const REAL_DOCS = REAL_FILES.filter((n) => /^cas-.*\.docx$/i.test(n));
 
 test("R. Real SCU department PDFs are drawn, tracked and left unchanged", async ({ page }) => {
-  test.skip(REAL_PDFS.length === 0, "Set CHECKSHEET_REAL_DIR to a folder of real department PDFs.");
-  test.setTimeout(240_000);
+  test.skip(REAL_PDFS.length + REAL_DOCS.length === 0, "Set CHECKSHEET_REAL_DIR to a folder of real department documents.");
+  test.setTimeout(420_000);
   const errors = watchErrors(page);
   await page.goto("/degree-checksheets");
   await sessionReady(page);
@@ -1119,6 +1155,7 @@ test("R. Real SCU department PDFs are drawn, tracked and left unchanged", async 
     await card.getByTestId("checksheet-add-marker").click();
     await clickAt(first, 0.5, 0.5);
     await page.locator('[data-testid^="checksheet-marker-status-"]').selectOption("planned");
+    await expect(card.locator('button[data-testid^="checksheet-marker-"]')).toHaveCount(1);
     await saved(card);
     await page.keyboard.press("Escape");
     await card.getByTestId("checksheet-zoom-in").click();
@@ -1137,9 +1174,75 @@ test("R. Real SCU department PDFs are drawn, tracked and left unchanged", async 
     await expect(cardFor(page, title)).toHaveCount(0, { timeout: 20_000 });
   }
 
+  // Real Word documents: first-year course plans, a Fall / Winter / Spring grid per option.
+  for (const [index, name] of REAL_DOCS.entries()) {
+    const file = path.join(REAL_DIR!, name);
+    const bytes = readFileSync(file);
+    const title = `Real SCU document W${index + 1}`;
+
+    await page.getByTestId("button-upload-checksheet").first().click();
+    const dialog = page.getByTestId("checksheet-upload-dialog");
+    await dialog.getByTestId("checksheet-input-file").setInputFiles(file);
+    await dialog.getByTestId("checksheet-field-title").fill(title);
+    await dialog.getByTestId("checksheet-field-category").selectOption("advising_resource");
+    await dialog.getByTestId("checksheet-upload-submit").click();
+    await expect(dialog).toBeHidden({ timeout: 60_000 });
+
+    const card = cardFor(page, title);
+    await open(card);
+    const body = card.locator('[data-testid^="checksheet-document-"][role="region"]');
+    await expect(body).toBeVisible({ timeout: 30_000 });
+    await expect(body).toContainText(/Major: /);
+    await expect(body).toContainText("Option One");
+    // Its advising notes are a list, and its plans are tables headed by the quarters.
+    expect(await body.locator("li").count()).toBeGreaterThanOrEqual(2);
+    expect(await body.locator("table").count()).toBeGreaterThanOrEqual(2);
+    await expect(body.locator("table").first().locator("tr").first()).toContainText(/FALL\s*WINTER\s*SPRING/);
+    // Nothing in it is offered for editing until the student chooses a cell.
+    await expect(body.locator("select, input, textarea, [contenteditable]")).toHaveCount(0);
+
+    // The student tracks the first course of Option One.
+    await card.getByTestId("checksheet-pick-item").click();
+    const first = body.locator("table").first().locator("tr").nth(1).locator("td, th").first();
+    // Only the first row is a header, however the file flagged its rows.
+    await expect(body.locator("table").first().locator("tr").first().locator("th")).toHaveCount(3);
+    await expect(body.locator("table").first().locator("tr").nth(1).locator("th")).toHaveCount(0);
+    const course = (await first.innerText()).trim();
+    expect(course.length).toBeGreaterThan(2);
+    await first.click();
+    const entry = first.locator('[data-tracked-item="true"]');
+    await expect(entry).toBeVisible();
+    await entry.locator("select").first().selectOption("completed");
+    await entry.locator("select").nth(1).selectOption("fall");
+    await saved(card);
+    await expect(first).toContainText(course);
+    await first.scrollIntoViewIfNeeded();
+    await shot(page, `RW${index + 1}-real-word-document`);
+
+    await page.reload();
+    const again = cardFor(page, title);
+    await open(again);
+    const kept = again.locator('[data-tracked-item="true"]');
+    await expect(kept).toHaveCount(1, { timeout: 30_000 });
+    await expect(kept.locator("select").first()).toHaveValue("completed");
+    await expect(kept.locator("select").nth(1)).toHaveValue("fall");
+
+    const doc = (await listDocuments(page)).find((d) => d.title === title)!;
+    const stored = await (await page.request.get(`/api/degree-checksheets/${doc.id}/file`)).body();
+    expect(stored.equals(bytes), `${name} is stored byte for byte`).toBe(true);
+    const [saved_] = await entriesOf(page, doc.id);
+    expect(saved_).toMatchObject({ anchorType: "doc_item", status: "completed", term: "fall", itemLabel: course });
+    await noHorizontalOverflow(page, name);
+
+    await again.locator('[data-testid^="checksheet-delete-"]').click();
+    await page.getByTestId("checksheet-delete-confirm").click();
+    await expect(cardFor(page, title)).toHaveCount(0, { timeout: 20_000 });
+  }
+
   // A saved sign-in page, named like a document, is refused with a reason.
-  const notADocument = REAL_DIR && existsSync(path.join(REAL_DIR, "cas-1.pdf")) ? path.join(REAL_DIR, "cas-1.pdf") : null;
-  if (notADocument) {
+  const notADocument = path.join(FILES, "saved-sign-in-page.pdf");
+  writeFileSync(notADocument, "<!DOCTYPE html><html><head><title>Sign in</title></head><body>Sign in to continue</body></html>");
+  {
     await page.getByTestId("button-upload-checksheet").first().click();
     const dialog = page.getByTestId("checksheet-upload-dialog");
     await dialog.getByTestId("checksheet-input-file").setInputFiles(notADocument);

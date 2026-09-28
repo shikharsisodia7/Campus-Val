@@ -59,7 +59,8 @@ function sourceFiles(dir: string, keep: (path: string) => boolean): string[] {
 }
 const isSource = (p: string) => /\.tsx?$/.test(p) && !/\.test\.tsx?$/.test(p);
 const SERVER = sourceFiles(SRC, isSource);
-const text = (p: string) => readFileSync(p, "utf8");
+// Read as the repository stores it: a Windows checkout has CRLF on disk.
+const text = (p: string) => readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const rel = (p: string) => relative(SRC, p).replace(/\\/g, "/");
 const ROUTE = text(join(SRC, "routes", "degree-checksheets.ts"));
 const LIB = SERVER.filter((p) => rel(p).startsWith("lib/checksheets/"));

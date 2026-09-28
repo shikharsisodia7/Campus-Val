@@ -193,9 +193,19 @@ export function cellKey(anchorType: "sheet_cell" | "doc_cell", anchor: AnchorInp
     : `block:${anchor.block}:${anchor.row}:${anchor.col}`;
 }
 
+/** The key of a filled cell the student chose to track. */
+export function itemKey(anchorType: "sheet_item" | "doc_item", anchor: AnchorInput): string {
+  return anchorType === "sheet_item"
+    ? `sheetitem:${anchor.sheet}:${anchor.row}:${anchor.col}`
+    : `blockitem:${anchor.block}:${anchor.row}:${anchor.col}`;
+}
+
 function keyOf(entry: DegreeChecksheetAnnotation): string {
   if (!entry.detached && (entry.anchorType === "sheet_cell" || entry.anchorType === "doc_cell")) {
     return cellKey(entry.anchorType, entry.anchor);
+  }
+  if (!entry.detached && (entry.anchorType === "sheet_item" || entry.anchorType === "doc_item")) {
+    return itemKey(entry.anchorType, entry.anchor);
   }
   return `id:${entry.id}`;
 }
@@ -355,6 +365,26 @@ export function useChecksheetTracking(documentId: number, enabled: boolean) {
     [change, queue, remove],
   );
 
+  /**
+   * Starts tracking a filled cell the student pointed at. The cell's own text
+   * becomes the entry's name (the server reads it from the document too).
+   */
+  const addItem = useCallback(
+    (anchorType: "sheet_item" | "doc_item", anchor: AnchorInput, label: string): string => {
+      const key = itemKey(anchorType, anchor);
+      if (entriesRef.current.some((entry) => entry.key === key)) return key;
+      setNotice(null);
+      queue.declare(key, { anchorType, anchor });
+      setEntries((list) => [
+        ...list,
+        { key, id: null, anchorType, anchor, field: null, detached: false, sortOrder: list.length, ...EMPTY, itemLabel: label },
+      ]);
+      queue.save(key, {});
+      return key;
+    },
+    [queue],
+  );
+
   const addPoint = useCallback(
     (anchor: Required<Pick<AnchorInput, "page" | "x" | "y">>, values: Partial<TrackingValues>): string => {
       const key = `new:${nextLocal.current++}`;
@@ -430,6 +460,7 @@ export function useChecksheetTracking(documentId: number, enabled: boolean) {
     change,
     remove,
     setCell,
+    addItem,
     addPoint,
     addManual,
     movePoint,

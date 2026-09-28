@@ -200,7 +200,9 @@ type Spy = (...args: never[]) => unknown;
 /** A stand-in for a document's tracking, recording what the view asks of it. */
 export function fakeTracking(
   entries: TrackingEntry[],
-  spies: Partial<Record<"change" | "remove" | "setCell" | "addPoint" | "addManual" | "movePoint" | "keepAsListEntry" | "retry", Spy>> = {},
+  spies: Partial<
+    Record<"change" | "remove" | "setCell" | "addItem" | "addPoint" | "addManual" | "movePoint" | "keepAsListEntry" | "retry", Spy>
+  > = {},
 ): ChecksheetTracking {
   const nothing = () => undefined;
   return {
@@ -214,6 +216,7 @@ export function fakeTracking(
     change: (spies.change ?? nothing) as never,
     remove: (spies.remove ?? nothing) as never,
     setCell: (spies.setCell ?? nothing) as never,
+    addItem: (spies.addItem ?? (() => "item")) as never,
     addPoint: (spies.addPoint ?? (() => "new:1")) as never,
     addManual: (spies.addManual ?? (() => "new:1")) as never,
     movePoint: (spies.movePoint ?? nothing) as never,

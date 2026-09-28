@@ -231,8 +231,10 @@ year; the server refuses one without the other.
 
 | `anchor_type` | Used for | `anchor` |
 | --- | --- | --- |
-| `sheet_cell` | A worksheet cell the document left for the student | `{ sheet, row, col }` |
+| `sheet_cell` | An EMPTY worksheet cell the document left for the student | `{ sheet, row, col }` |
 | `doc_cell` | The same, in a table of a Word document | `{ block, row, col }` |
+| `sheet_item` | A FILLED worksheet cell the student chose to track | `{ sheet, row, col }` |
+| `doc_item` | The same, in a table of a Word document | `{ block, row, col }` |
 | `point` | A marker on a PDF page or a picture | `{ page, x, y }`, `x`/`y` as fractions (0–1) of the page from its top-left |
 | `manual` | An entry in the student's own list | `{}` |
 
@@ -265,6 +267,25 @@ case the student uses the My Tracking list).
 
 This reads column headers and whether a cell is empty. It does not read
 requirements.
+
+### Tracking a cell the student chooses
+
+Many real SCU documents list courses without leaving a column for the student:
+the College of Arts and Sciences first-year course plans are Fall / Winter /
+Spring grids in which each cell is a course ("RTC 1", "MUSC 1A"). Nothing in
+them can be detected as a student column, and nothing should be.
+
+For these, the student presses **Track a cell** and then clicks or taps the
+cell they want. CampusVal stores an entry anchored to that cell and draws the
+student's status and quarter **beneath the department's text**, which stays as
+it is. Such an entry holds both a status and a quarter, is named after what the
+cell says, and has a remove button.
+
+CampusVal never chooses these cells itself. Deciding which cells are
+requirements would be reading the document; the student points, and only the
+position is remembered. Any cell that says something can be chosen; an empty
+cell cannot. On replacement the entry stays only if that cell still says the
+same thing.
 
 ### Every document has My Tracking
 
@@ -304,6 +325,7 @@ again**), announced to screen readers.
 | Entry | Kept in place when |
 | --- | --- |
 | Cell entry | The new file offers the same cell, for the same kind of value, **and** the row there has the same content (fingerprints match). |
+| Cell the student chose | The same cell exists and still says the same thing. |
 | Marker on a PDF | The page exists, has the same size, and has the same text. A page with no text (a scan) cannot be verified. |
 | Marker on a picture | Only when the very same file is uploaded again. |
 | List entry | Always. |
@@ -404,15 +426,26 @@ repository:
 | Mechanical Engineering curriculum flow chart (4 landscape pages, colour) | Drawn, text selectable, marker placed, stored byte for byte |
 | Computer Science & Engineering four-year course plan (1 page) | Same |
 | General Engineering four-year plans (2 pages) | Same |
-| A saved Google sign-in page named `.pdf` / `.docx` | Refused: "contents don't match its file type" |
+| Music first-year course plans, downloaded from Google Docs as Word and as PDF | Both drawn; in the Word file a course cell is chosen and tracked, and survives a reload |
+| Gender and Sexuality Studies first-year course plans, Word and PDF (2 pages) | Same |
+| A saved sign-in page named `.pdf` | Refused: "contents don't match its file type" |
 
-The College of Arts and Sciences publishes its checksheets as Google Docs that
-require an SCU sign-in, so they could not be downloaded for this check. A
-student who is signed in downloads one as PDF or Word and uploads it; both
-formats are covered by the synthetic fixtures. The Leavey School of Business
-advising page links no downloadable checksheet files.
+The College of Arts and Sciences publishes its documents as Google Docs that
+require an SCU sign-in. The two above were downloaded by the repository owner
+with their own SCU account. The Leavey School of Business advising page links
+no downloadable files.
 
-To repeat the check, point the browser spec at a folder of PDFs:
+Two things real files showed that synthetic ones had not:
+
+- **They have no student columns.** They are grids of courses. This is why a
+  student can choose any filled cell to track (above).
+- **Google's Word export flags every table row as a header row.** Shown
+  literally, the whole table would be styled as headings. The reader keeps the
+  first row as the header when every row claims to be one
+  (`header_rows_normalized`).
+
+To repeat the check, point the browser spec at a folder holding `eng-*.pdf`,
+`cas-*.pdf` and `cas-*.docx` files:
 
 ```
 CHECKSHEET_REAL_DIR=<folder> E2E_BASE_URL=http://localhost:18080 \
