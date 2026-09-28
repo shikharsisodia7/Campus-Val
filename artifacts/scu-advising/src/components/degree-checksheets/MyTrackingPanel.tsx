@@ -43,7 +43,12 @@ export function MyTrackingPanel({
   const manual = tracking.entries.filter((entry) => !entry.detached && entry.anchorType === "manual");
   const points = tracking.entries.filter((entry) => !entry.detached && entry.anchorType === "point");
   const cells = tracking.entries.filter(
-    (entry) => !entry.detached && (entry.anchorType === "sheet_cell" || entry.anchorType === "doc_cell"),
+    (entry) =>
+      !entry.detached &&
+      (entry.anchorType === "sheet_cell" ||
+        entry.anchorType === "doc_cell" ||
+        entry.anchorType === "sheet_item" ||
+        entry.anchorType === "doc_item"),
   );
 
   const add = () => {

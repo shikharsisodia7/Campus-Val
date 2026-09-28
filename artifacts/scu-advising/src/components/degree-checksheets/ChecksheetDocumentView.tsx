@@ -1,9 +1,10 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, useState } from "react";
 import type { ChecksheetDocBlock, ChecksheetDocRun, ChecksheetDocTableCell } from "@workspace/api-client-react";
 import { ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { cellKey, type ChecksheetTracking } from "@/hooks/use-degree-checksheets";
+import { cellKey, itemKey, type ChecksheetTracking } from "@/hooks/use-degree-checksheets";
 import { MyTrackingTag, StatusSelect, TermSelect, TRACKING_HINT } from "./TrackingControls";
+import { PICKABLE, PickItemToolbar, TrackedItem } from "./TrackedItem";
 import { safeExternalUrl } from "./checksheet-format";
 
 /**
@@ -32,8 +33,13 @@ export function ChecksheetDocumentView({
   showTracking: boolean;
 }) {
   const groups = useMemo(() => groupLists(blocks), [blocks]);
+  const [picking, setPicking] = useState(false);
+  const hasTable = blocks.some((block) => block.type === "table");
+  const chosen = tracking.entries.filter((entry) => !entry.detached && entry.anchorType === "doc_item").length;
 
   return (
+    <div className="space-y-2">
+    {showTracking && hasTable && <PickItemToolbar picking={picking} onChange={setPicking} count={chosen} />}
     <div
       className="max-h-[75vh] overflow-auto rounded-md border border-border bg-background"
       tabIndex={0}
@@ -53,10 +59,13 @@ export function ChecksheetDocumentView({
               title={title}
               tracking={tracking}
               showTracking={showTracking}
+              picking={showTracking && picking}
+              onPicked={() => setPicking(false)}
             />
           ),
         )}
       </div>
+    </div>
     </div>
   );
 }
@@ -127,12 +136,16 @@ function Block({
   title,
   tracking,
   showTracking,
+  picking,
+  onPicked,
 }: {
   block: ChecksheetDocBlock;
   index: number;
   title: string;
   tracking: ChecksheetTracking;
   showTracking: boolean;
+  picking: boolean;
+  onPicked: () => void;
 }) {
   switch (block.type) {
     case "heading": {
@@ -151,7 +164,9 @@ function Block({
         </p>
       );
     case "table":
-      return <Table block={block} index={index} tracking={tracking} showTracking={showTracking} />;
+      return (
+        <Table block={block} index={index} tracking={tracking} showTracking={showTracking} picking={picking} onPicked={onPicked} />
+      );
     case "image":
       return block.mime && block.data && /^[A-Za-z0-9+/=]+$/.test(block.data) ? (
         <img
@@ -178,11 +193,15 @@ function Table({
   index,
   tracking,
   showTracking,
+  picking,
+  onPicked,
 }: {
   block: ChecksheetDocBlock;
   index: number;
   tracking: ChecksheetTracking;
   showTracking: boolean;
+  picking: boolean;
+  onPicked: () => void;
 }) {
   const rows = block.rows ?? [];
   const slots = new Map((block.tracking?.cells ?? []).map((cell) => [`${cell.r}:${cell.c}`, cell]));
@@ -240,6 +259,14 @@ function Table({
                     );
                   }
                   const Cell = cell.header ? "th" : "td";
+                  const text = textOf(cell);
+                  const item = { block: index, row: r, col: c };
+                  const chosen = showTracking ? entries.get(itemKey("doc_item", item)) : undefined;
+                  const pickable = picking && text !== "" && !chosen;
+                  const pick = () => {
+                    tracking.addItem("doc_item", item, text.slice(0, 200));
+                    onPicked();
+                  };
                   return (
                     <Cell
                       key={c}
@@ -249,9 +276,34 @@ function Table({
                       className={cn(
                         "max-w-[28rem] border border-border/70 px-2 py-1 text-left align-top font-normal",
                         cell.header && "bg-muted/60 font-semibold",
+                        pickable && PICKABLE,
                       )}
+                      {...(pickable
+                        ? {
+                            role: "button",
+                            tabIndex: 0,
+                            "aria-label": `Track ${text.slice(0, 120)}`,
+                            onClick: pick,
+                            onKeyDown: (e: React.KeyboardEvent) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                pick();
+                              }
+                            },
+                          }
+                        : {})}
+                      data-pickable={pickable ? "true" : undefined}
+                      data-testid={`checksheet-doc-source-${index}-${r}-${c}`}
                     >
                       <Runs runs={cell.runs} />
+                      {chosen && (
+                        <TrackedItem
+                          entry={chosen}
+                          name={text.slice(0, 120)}
+                          tracking={tracking}
+                          testId={`checksheet-doc-item-${index}-${r}-${c}`}
+                        />
+                      )}
                     </Cell>
                   );
                 })}

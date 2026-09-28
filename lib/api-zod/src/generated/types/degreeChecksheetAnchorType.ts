@@ -6,12 +6,20 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * sheet_cell / doc_cell: an empty cell the document left for the student (one kind of
+value). sheet_item / doc_item: a filled cell the STUDENT chose to track (status and
+quarter). point: a marker on a page or picture. manual: the student's own list.
+
+ */
 export type DegreeChecksheetAnchorType =
   (typeof DegreeChecksheetAnchorType)[keyof typeof DegreeChecksheetAnchorType];
 
 export const DegreeChecksheetAnchorType = {
   sheet_cell: "sheet_cell",
   doc_cell: "doc_cell",
+  sheet_item: "sheet_item",
+  doc_item: "doc_item",
   point: "point",
   manual: "manual",
 } as const;

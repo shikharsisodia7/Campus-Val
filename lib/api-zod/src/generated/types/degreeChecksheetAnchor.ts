@@ -7,7 +7,8 @@
  */
 
 /**
- * A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.
+ * A position in one document. sheet_cell and sheet_item: sheet,row,col. doc_cell and
+doc_item: block,row,col.
 point: page,x,y with x and y as fractions (0..1) of the page from its top-left
 corner, so a marker keeps its place at any zoom. manual: empty.
 

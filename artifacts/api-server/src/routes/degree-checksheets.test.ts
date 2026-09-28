@@ -122,16 +122,31 @@ async function createRaw(user: string, bytes: Buffer, fileName: string, contentT
   });
 }
 
+/**
+ * Each fixture is built ONCE. A workbook records the moment it was written, so
+ * two builds of the same fixture are different files; a test that means "the
+ * same file again" must upload the same bytes.
+ */
+const built = new Map<ChecksheetFixtureName, Buffer>();
+async function fixtureBytes(name: ChecksheetFixtureName): Promise<Buffer> {
+  let bytes = built.get(name);
+  if (!bytes) {
+    bytes = await buildChecksheetFixture(name);
+    built.set(name, bytes);
+  }
+  return bytes;
+}
+
 async function create(user: string, name: ChecksheetFixtureName, meta: Meta) {
   const file = CHECKSHEET_FIXTURE_FILES[name];
-  const bytes = await buildChecksheetFixture(name);
+  const bytes = await fixtureBytes(name);
   const res = await createRaw(user, bytes, file.fileName, file.contentType, meta);
   return { res, bytes };
 }
 
 async function replaceWith(user: string, id: number, name: ChecksheetFixtureName) {
   const file = CHECKSHEET_FIXTURE_FILES[name];
-  const bytes = await buildChecksheetFixture(name);
+  const bytes = await fixtureBytes(name);
   const objectPath = await putBytes(user, bytes, file.contentType, file.fileName);
   const res = await as(user, request(app).put(`/api/degree-checksheets/${id}/file`)).send({
     objectPath,
@@ -688,6 +703,115 @@ describe("student tracking on a spreadsheet", () => {
       .where(eq(academicPlansTable.userId, TRACK));
     const reports = await db.select().from(progressReportsTable).where(eq(progressReportsTable.userId, TRACK));
     expect([plans, items, reports]).toEqual([[], [], []]);
+  });
+});
+
+describe("tracking a filled cell the student chose", () => {
+  let id: number;
+  let docxId: number;
+  let uploaded: Buffer;
+  /** "Widget Mathematics I", in the Requirement column of the major workbook. */
+  const ITEM = { sheet: 0, row: 5, col: 0 };
+
+  beforeAll(async () => {
+    const major = await create(TRACK, "major-workbook", { title: "Major, tracked by cell" });
+    id = major.res.body.id;
+    uploaded = major.bytes;
+    docxId = (await create(TRACK, "advising-docx", { title: "Guide, tracked by cell" })).res.body.id;
+  });
+
+  it("starts tracking a cell, named after what the cell says", async () => {
+    const res = await annotate(TRACK, id, { anchorType: "sheet_item", anchor: ITEM });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body).toMatchObject({
+      anchorType: "sheet_item",
+      anchor: ITEM,
+      field: null,
+      itemLabel: "Widget Mathematics I",
+      status: null,
+      term: null,
+      detached: false,
+    });
+  });
+
+  it("holds BOTH a status and a quarter, unlike a Status or Quarter column", async () => {
+    const [entry] = (await annotations(TRACK, id)).body.annotations;
+    const res = await patch(TRACK, id, entry.id, { status: "completed", term: "fall", termYear: 2025 });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ status: "completed", term: "fall", termYear: 2025, itemLabel: "Widget Mathematics I" });
+  });
+
+  it("holds one entry per cell", async () => {
+    const again = await annotate(TRACK, id, { anchorType: "sheet_item", anchor: ITEM, status: "in_progress" });
+    expect(again.status).toBe(200);
+    const all = (await annotations(TRACK, id)).body.annotations;
+    expect(all).toHaveLength(1);
+    expect(all[0]).toMatchObject({ status: "in_progress", term: "fall", termYear: 2025 });
+  });
+
+  it("can sit in the same row as an entry in the department's Status column", async () => {
+    const cell = await annotate(TRACK, id, { anchorType: "sheet_cell", anchor: { sheet: 0, row: 5, col: 2 }, status: "planned" });
+    expect(cell.status).toBe(201);
+    expect((await annotations(TRACK, id)).body.annotations.map((a: any) => [a.anchorType, a.status])).toEqual([
+      ["sheet_item", "in_progress"],
+      ["sheet_cell", "planned"],
+    ]);
+  });
+
+  it("refuses an empty cell, a cell that does not exist, and the wrong document type", async () => {
+    for (const anchor of [
+      { sheet: 0, row: 5, col: 3 }, // empty
+      { sheet: 0, row: 1, col: 0 }, // blank row
+      { sheet: 0, row: 99, col: 0 },
+      { sheet: 2, row: 5, col: 0 },
+    ]) {
+      expect((await annotate(TRACK, id, { anchorType: "sheet_item", anchor, status: "planned" })).status, JSON.stringify(anchor)).toBe(400);
+    }
+    expect((await annotate(TRACK, id, { anchorType: "doc_item", anchor: { block: 0, row: 0, col: 0 }, status: "planned" })).status).toBe(400);
+    expect((await annotate(TRACK, docxId, { anchorType: "sheet_item", anchor: ITEM, status: "planned" })).status).toBe(400);
+  });
+
+  it("tracks a course cell of a Word table, and not a paragraph", async () => {
+    const render = await as(TRACK, request(app).get(`/api/degree-checksheets/${docxId}/render`));
+    const block = render.body.render.blocks.findIndex((b: any) => b.type === "table");
+    const res = await annotate(TRACK, docxId, { anchorType: "doc_item", anchor: { block, row: 2, col: 0 }, status: "planned", term: "winter", termYear: 2027 });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body).toMatchObject({ anchorType: "doc_item", itemLabel: "WIDG 111 Widget Mathematics I", status: "planned", term: "winter" });
+    expect((await annotate(TRACK, docxId, { anchorType: "doc_item", anchor: { block: 0, row: 0, col: 0 }, status: "planned" })).status).toBe(400);
+    expect((await annotate(TRACK, docxId, { anchorType: "doc_item", anchor: { block, row: 2, col: 2 }, status: "planned" })).status).toBe(400);
+  });
+
+  it("leaves the source exactly as it was", async () => {
+    expect(sha(await originalOf(TRACK, id))).toBe(sha(uploaded));
+    const render = await as(TRACK, request(app).get(`/api/degree-checksheets/${id}/render`));
+    const row = render.body.render.sheets[0].rows.find((r: any) => r.r === 5);
+    expect(row.cells.map((c: any) => [c.c, c.text])).toEqual([
+      [0, "Widget Mathematics I"],
+      [1, "WIDG 111"],
+      [4, "Prerequisite for WIDG 112"],
+    ]);
+    expect(JSON.stringify(render.body)).not.toMatch(/in_progress|sheet_item/);
+  });
+
+  it("after a replacement, stays on a cell that says the same and leaves one that does not", async () => {
+    const doc = (await create(REPLACE, "major-workbook", { title: "chosen cells" })).res.body.id;
+    // Row 4 is reworded by the replacement; row 5 is not.
+    const changed = await annotate(REPLACE, doc, { anchorType: "sheet_item", anchor: { sheet: 0, row: 4, col: 0 }, status: "completed" });
+    const same = await annotate(REPLACE, doc, { anchorType: "sheet_item", anchor: { sheet: 0, row: 5, col: 0 }, status: "planned" });
+    const { res } = await replaceWith(REPLACE, doc, "major-workbook-reworded");
+    expect(res.body.tracking).toEqual({ kept: 1, detached: 1 });
+    const after = (await annotations(REPLACE, doc)).body.annotations;
+    expect(after.find((a: any) => a.id === same.body.id)).toMatchObject({ detached: false, anchor: { sheet: 0, row: 5, col: 0 } });
+    expect(after.find((a: any) => a.id === changed.body.id)).toMatchObject({
+      detached: true,
+      status: "completed",
+      itemLabel: "Introduction to Widgetry",
+    });
+    // The student may start tracking what is there now; it is a new entry.
+    const fresh = await annotate(REPLACE, doc, { anchorType: "sheet_item", anchor: { sheet: 0, row: 4, col: 0 } });
+    expect(fresh.status).toBe(201);
+    expect(fresh.body).toMatchObject({ itemLabel: "History of Widgets", status: null });
+    expect(fresh.body.id).not.toBe(changed.body.id);
   });
 });
 

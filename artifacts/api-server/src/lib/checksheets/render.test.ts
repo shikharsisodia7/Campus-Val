@@ -332,6 +332,35 @@ describe("Word document", () => {
     expect(JSON.stringify(blocks)).not.toMatch(/onclick|iframe|evil\.invalid|tracker\.invalid|svg\+xml|"href"/);
   });
 
+  it("treats only the first row as the header when an export flags every row as one", () => {
+    const row = (cells: string[]) => `<tr>${cells.map((c) => `<th><p>${c}</p></th>`).join("")}</tr>`;
+    const { blocks, warnings } = htmlToBlocks(
+      `<table><thead>${row(["FALL", "WINTER", "SPRING"])}${row(["RTC 1", "CTW 1", "CTW 2"])}${row(["C&amp;I 1", "C&amp;I 2", "Core or Elective"])}</thead></table>`,
+    );
+    const [table] = blocks;
+    if (table?.type !== "table") throw new Error("expected a table");
+    expect(table.rows.map((r) => r.map((c) => !!c.header))).toEqual([
+      [true, true, true],
+      [false, false, false],
+      [false, false, false],
+    ]);
+    expect(table.rows[2]!.map((c) => c.runs[0]!.text)).toEqual(["C&I 1", "C&I 2", "Core or Elective"]);
+    expect(warnings).toEqual(["header_rows_normalized"]);
+  });
+
+  it("leaves a real header row, and a one-row table, as they are", () => {
+    const normal = htmlToBlocks("<table><thead><tr><th>Course</th><th>Units</th></tr></thead><tbody><tr><td>WIDG 101</td><td>4</td></tr></tbody></table>");
+    const [table] = normal.blocks;
+    if (table?.type !== "table") throw new Error("expected a table");
+    expect(table.rows.map((r) => r.map((c) => !!c.header))).toEqual([
+      [true, true],
+      [false, false],
+    ]);
+    expect(normal.warnings).toEqual([]);
+    const single = htmlToBlocks("<table><tr><th>Only</th><th>Row</th></tr></table>").blocks[0];
+    expect(single?.type === "table" && single.rows[0]!.every((c) => c.header)).toBe(true);
+  });
+
   it("keeps a document with nothing to show as an original only", async () => {
     const empty = await buildChecksheetFixture("advising-docx");
     const zip = await JSZip.loadAsync(empty);

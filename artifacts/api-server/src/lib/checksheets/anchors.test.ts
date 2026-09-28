@@ -143,6 +143,81 @@ describe("resolveAnchor", () => {
   });
 });
 
+describe("a filled cell the student chose to track", () => {
+  it("accepts a worksheet cell that says something, and lets it hold status and quarter", () => {
+    const resolved = resolveAnchor(sheet("Introduction to Widgetry", "aaa"), "sheet_item", { sheet: 0, row: 1, col: 0 });
+    expect(resolved).toMatchObject({
+      type: "sheet_item",
+      anchor: { sheet: 0, row: 1, col: 0 },
+      key: "sheetitem:0:1:0",
+      field: null,
+    });
+    expect(resolved!.fingerprint).toMatch(/^[0-9a-f]{32}$/);
+  });
+
+  it("refuses an empty cell, a missing cell, and the wrong kind of document", () => {
+    const render = sheet("Intro", "aaa");
+    for (const anchor of [
+      { sheet: 0, row: 1, col: 2 }, // empty: the student's Status column
+      { sheet: 0, row: 1, col: 9 },
+      { sheet: 0, row: 7, col: 0 },
+      { sheet: 4, row: 1, col: 0 },
+      { sheet: 0, row: -1, col: 0 },
+      {},
+    ]) {
+      expect(resolveAnchor(render, "sheet_item", anchor), JSON.stringify(anchor)).toBeNull();
+    }
+    expect(resolveAnchor(pdf(["h"]), "sheet_item", { sheet: 0, row: 1, col: 0 })).toBeNull();
+    expect(resolveAnchor(render, "doc_item", { block: 0, row: 1, col: 0 })).toBeNull();
+  });
+
+  it("accepts a filled Word table cell, and nothing outside a table", () => {
+    expect(resolveAnchor(document, "doc_item", { block: 1, row: 1, col: 0 })).toMatchObject({
+      type: "doc_item",
+      key: "blockitem:1:1:0",
+      field: null,
+    });
+    expect(resolveAnchor(document, "doc_item", { block: 1, row: 1, col: 1 })).toBeNull(); // empty
+    expect(resolveAnchor(document, "doc_item", { block: 0, row: 0, col: 0 })).toBeNull(); // a paragraph
+    expect(resolveAnchor(document, "doc_item", { block: 1, row: 5, col: 0 })).toBeNull();
+  });
+
+  it("has a key of its own, so it never collides with the department's empty cell", () => {
+    const item = resolveAnchor(sheet("Intro", "aaa"), "sheet_item", { sheet: 0, row: 0, col: 2 });
+    const cell = resolveAnchor(sheet("Intro", "aaa"), "sheet_cell", { sheet: 0, row: 1, col: 2 });
+    expect(item!.key).not.toBe(cell!.key);
+    expect(item!.key!.startsWith("sheetitem:")).toBe(true);
+  });
+
+  it("stays after a replacement only while the cell still says the same thing", () => {
+    const made = resolveAnchor(sheet("Introduction to Widgetry", "aaa"), "sheet_item", { sheet: 0, row: 1, col: 0 })!;
+    const stored = { anchorType: "sheet_item", anchor: made.anchor, anchorFingerprint: made.fingerprint };
+    // Same wording, different spacing: the same cell.
+    expect(reconcileAnchor(stored, sheet("Introduction   to  Widgetry ", "zzz"), false)).not.toBeNull();
+    // Another requirement now sits there.
+    expect(reconcileAnchor(stored, sheet("History of Widgets", "aaa"), false)).toBeNull();
+    // A different kind of file.
+    expect(reconcileAnchor(stored, pdf(["h"]), false)).toBeNull();
+
+    const inDoc = resolveAnchor(document, "doc_item", { block: 1, row: 1, col: 0 })!;
+    const storedDoc = { anchorType: "doc_item", anchor: inDoc.anchor, anchorFingerprint: inDoc.fingerprint };
+    expect(reconcileAnchor(storedDoc, document, false)).not.toBeNull();
+    expect(reconcileAnchor(storedDoc, sheet("x", "y"), false)).toBeNull();
+  });
+
+  it("is described by what the cell says", () => {
+    expect(
+      describeAnchor(sheet("Introduction to Widgetry", "aaa"), { anchorType: "sheet_item", anchor: { sheet: 0, row: 1, col: 1 }, anchorFingerprint: null }),
+    ).toBe("WIDG 101");
+    expect(describeAnchor(document, { anchorType: "doc_item", anchor: { block: 1, row: 1, col: 0 }, anchorFingerprint: null })).toBe(
+      "WIDG 101 Introduction",
+    );
+    expect(describeAnchor(pdf(["h"]), { anchorType: "doc_item", anchor: { block: 1, row: 1, col: 0 }, anchorFingerprint: null })).toBe(
+      "Tracking entry",
+    );
+  });
+});
+
 describe("reconcileAnchor — what survives a replacement", () => {
   const cell = { anchorType: "sheet_cell", anchor: { sheet: 0, row: 1, col: 2 }, anchorFingerprint: "aaa" };
 

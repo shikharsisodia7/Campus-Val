@@ -242,6 +242,13 @@ export function htmlToBlocks(html: string): { blocks: DocBlock[]; warnings: stri
           tableDepth = Math.max(0, tableDepth - 1);
           if (tableDepth === 0 && table) {
             const rows = table.rows.filter((row) => row.length > 0);
+            // Some exporters (Google Docs among them) flag EVERY row as a
+            // header row. A table cannot be all header; the first row is the
+            // header and the rest is its content.
+            if (rows.length > 1 && rows.every((row) => row.every((cell) => cell.header))) {
+              for (const row of rows.slice(1)) for (const cell of row) delete cell.header;
+              warnings.add("header_rows_normalized");
+            }
             if (rows.length > 0) addBlock({ type: "table", rows, tracking: { columns: [], cells: [] } });
             table = null;
           }

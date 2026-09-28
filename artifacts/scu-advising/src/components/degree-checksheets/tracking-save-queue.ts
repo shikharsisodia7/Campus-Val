@@ -40,7 +40,7 @@ export interface SavedEntry {
 }
 
 export interface CreateRequest extends Partial<TrackingValues> {
-  anchorType: "sheet_cell" | "doc_cell" | "point" | "manual";
+  anchorType: "sheet_cell" | "doc_cell" | "sheet_item" | "doc_item" | "point" | "manual";
   anchor?: AnchorInput;
 }
 
