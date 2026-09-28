@@ -14,6 +14,7 @@ const PILOT_VISIBLE_PATHS = [
   "/gpa",
   "/transfer",
   "/progress-report",
+  "/degree-checksheets",
   "/resources",
   "/shared-with-me",
 ];

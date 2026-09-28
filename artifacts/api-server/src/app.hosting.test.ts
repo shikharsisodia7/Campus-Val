@@ -83,7 +83,7 @@ describe("public origin and SPA routes", () => {
   });
 
   it("known client routes answer 200 (including ones that were 404s before), unknown paths 404", async () => {
-    for (const p of ["/degree-plan", "/planner", "/progress-report", "/shared-with-me", "/admin/feedback", "/admin/usage"]) {
+    for (const p of ["/degree-plan", "/planner", "/progress-report", "/degree-checksheets", "/shared-with-me", "/admin/feedback", "/admin/usage"]) {
       expect((await request(app).get(p)).status, p).toBe(200);
     }
     expect((await request(app).get("/definitely-not-a-page")).status).toBe(404);
@@ -97,7 +97,7 @@ describe("public origin and SPA routes", () => {
 });
 
 describe("protected APIs need a session", () => {
-  it.each(["/api/progress-reports", "/api/progress-reports/sidebar", "/api/progress-reports/1/workbook", "/api/progress-reports/1/file", "/api/plans", "/api/profile"])("%s → 401 signed out", async (p) => {
+  it.each(["/api/degree-checksheets", "/api/degree-checksheets/1/render", "/api/degree-checksheets/1/file", "/api/degree-checksheets/1/annotations", "/api/progress-reports", "/api/progress-reports/sidebar", "/api/progress-reports/1/workbook", "/api/progress-reports/1/file", "/api/plans", "/api/profile"])("%s → 401 signed out", async (p) => {
     expect((await request(app).get(p)).status).toBe(401);
   });
 });

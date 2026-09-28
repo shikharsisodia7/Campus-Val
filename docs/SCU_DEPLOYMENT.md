@@ -42,7 +42,8 @@ invalid variable (nothing else is printed — values are never logged).
 | `PUBLIC_APP_URL` | recommended | e.g. `https://campusval.scu.edu`. Canonical/OG URLs, CORS allowlist. |
 | `TRUST_PROXY` | when behind a proxy | `1` for one proxy hop. Unset = trust none. |
 | `HOST` | no | Bind address (default `0.0.0.0`). |
-| `PRIVATE_STORAGE_PROVIDER=local`, `PRIVATE_STORAGE_DIR`, `STORAGE_SIGNING_SECRET` | for APR upload | See §4. |
+| `PRIVATE_STORAGE_PROVIDER=local`, `PRIVATE_STORAGE_DIR`, `STORAGE_SIGNING_SECRET` | for APR and Degree Checksheet upload | See §4. |
+| `APR_MAX_UPLOAD_MB`, `CHECKSHEET_MAX_UPLOAD_MB` | no | Largest upload in MB. Defaults 10 and 20; each 1–50. The proxy's body limit must be at least the larger. |
 | `CORS_ALLOWED_ORIGINS` | no | Extra browser origins; the bundled app needs none. |
 | `DATABASE_POOL_MAX` | no | Default 5; use 10–20 on a long-running host. |
 | `LOG_LEVEL` | no | Default `info`. |
@@ -122,7 +123,12 @@ persistent volume (the container declares `/var/lib/campusval/private`). Propert
   is never served statically and no public or presigned-forever URL exists.
 - Upload links are HMAC-signed with `STORAGE_SIGNING_SECRET`, expire in 15
   minutes, and are bound to one path, one size cap (`APR_MAX_UPLOAD_MB`, default
-  10 MB) and one content type.
+  10 MB; `CHECKSHEET_MAX_UPLOAD_MB`, default 20 MB, for Degree Checksheets) and
+  one content type.
+- Degree Checksheets use this same storage and need nothing further: no extra
+  directory, no native package, no background worker. The web build includes a
+  `pdfjs/` folder of static files (fonts and image decoders for the in-app PDF
+  viewer) that is served with the rest of the web app.
 - Filesystem paths are built only from a strictly validated identifier — path
   traversal is not expressible.
 - Files are written `0600` in `0700` directories; uploads write to a temp file and
@@ -154,7 +160,7 @@ If SCU prefers object storage (S3-compatible, Azure Blob), implement the small
       proxy_set_header   Host $host;
       proxy_set_header   X-Forwarded-Proto $scheme;
       proxy_set_header   X-Forwarded-For $remote_addr;
-      client_max_body_size 12m;      # must be >= APR_MAX_UPLOAD_MB (default 10)
+      client_max_body_size 22m;      # must be >= the larger of APR_MAX_UPLOAD_MB (10) and CHECKSHEET_MAX_UPLOAD_MB (20)
   }
   ```
 - **CORS**: production allows only `PUBLIC_APP_URL` plus `CORS_ALLOWED_ORIGINS`.

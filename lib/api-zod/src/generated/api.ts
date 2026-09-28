@@ -3509,3 +3509,1376 @@ export const GetProgressReportWorkbookResponse = zod.object({
       "Null for a PDF whose table could not be read (it is shown from the original file) and for a document whose import failed.",
     ),
 });
+
+/**
+ * Metadata of every department document the CALLER has uploaded, in library order
+(major checksheets, minor checksheets, four-year plans, other resources). The
+preview and the student's tracking are not included. There is no way to address
+another user's documents.
+If object storage is not configured, returns { available: false, documents: [] }.
+
+ * @summary List the authenticated student's Degree Checksheet documents
+ */
+export const ListDegreeChecksheetsResponse = zod.object({
+  available: zod
+    .boolean()
+    .describe(
+      "False when object storage is not configured for this deployment.",
+    ),
+  maxUploadBytes: zod.number(),
+  maxDocuments: zod.number(),
+  acceptedExtensions: zod.array(zod.string()),
+  documents: zod.array(
+    zod.object({
+      id: zod.number(),
+      title: zod.string(),
+      category: zod
+        .enum([
+          "major_checksheet",
+          "minor_checksheet",
+          "four_year_plan",
+          "flowchart",
+          "advising_resource",
+          "other",
+        ])
+        .describe(
+          "What kind of department resource the STUDENT says this is. Never inferred from the file.",
+        ),
+      programName: zod.string().nullable(),
+      programRole: zod.union([
+        zod
+          .enum([
+            "major",
+            "additional_major",
+            "minor",
+            "additional_minor",
+            "general",
+          ])
+          .describe(
+            "Which of the student's programs the document is for. Descriptive only.",
+          ),
+        zod.null(),
+      ]),
+      school: zod.string().nullable(),
+      academicYearLabel: zod.string().nullable(),
+      sourceUrl: zod.string().nullable(),
+      sortOrder: zod.number(),
+      fileName: zod.string(),
+      fileSize: zod.number(),
+      mimeType: zod.string(),
+      sourceFormat: zod.enum(["pdf", "xlsx", "xls", "docx", "png", "jpg"]),
+      sourceVersion: zod
+        .number()
+        .describe("1 for the first file; +1 each time the file is replaced."),
+      uploadedAt: zod.coerce
+        .date()
+        .describe(
+          "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a department date.",
+        ),
+      renderStatus: zod
+        .enum(["ready", "original_only", "failed"])
+        .describe(
+          'The state of the FILE. \"ready\": a preview exists. \"original_only\": the file is\nstored and downloadable but has no preview. Says nothing about requirements.\n',
+        ),
+      renderNoteCode: zod.string().nullable(),
+      renderNoteMessage: zod.string().nullable(),
+      previewKind: zod
+        .union([
+          zod.literal("spreadsheet"),
+          zod.literal("pdf"),
+          zod.literal("image"),
+          zod.literal("document"),
+          zod.literal(null),
+        ])
+        .nullable(),
+      inlineTracking: zod
+        .boolean()
+        .describe(
+          "True when the document has cells where tracking can be entered in place.",
+        ),
+      fileFingerprint: zod
+        .string()
+        .describe(
+          "First 12 hex characters of the file's SHA-256. Lets the browser notice an identical file before uploading it again.",
+        ),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * Called after the client PUT the file to the upload link. The file is checked and
+its preview built before anything is saved; a file that is refused (422) leaves no
+document behind.
+
+ * @summary Add an uploaded department document
+ */
+export const createDegreeChecksheetBodyOneFileNameMax = 255;
+
+export const createDegreeChecksheetBodyOneContentTypeMax = 200;
+
+export const createDegreeChecksheetBodyTwoTitleMax = 120;
+
+export const createDegreeChecksheetBodyTwoProgramNameMax = 120;
+
+export const createDegreeChecksheetBodyTwoSchoolMax = 120;
+
+export const createDegreeChecksheetBodyTwoAcademicYearLabelMax = 120;
+
+export const createDegreeChecksheetBodyTwoSourceUrlMax = 2000;
+
+export const CreateDegreeChecksheetBody = zod
+  .object({
+    objectPath: zod
+      .string()
+      .describe(
+        "Object path returned by the upload-url endpoint (must start with \/objects\/).",
+      ),
+    fileName: zod.string().min(1).max(createDegreeChecksheetBodyOneFileNameMax),
+    fileSize: zod.number().min(1),
+    contentType: zod.string().max(createDegreeChecksheetBodyOneContentTypeMax),
+  })
+  .and(
+    zod.object({
+      title: zod
+        .string()
+        .min(1)
+        .max(createDegreeChecksheetBodyTwoTitleMax)
+        .describe(
+          'The student\'s own name for the document, for example \"Finance Major Checksheet\".',
+        ),
+      category: zod
+        .enum([
+          "major_checksheet",
+          "minor_checksheet",
+          "four_year_plan",
+          "flowchart",
+          "advising_resource",
+          "other",
+        ])
+        .optional()
+        .describe(
+          "What kind of department resource the STUDENT says this is. Never inferred from the file.",
+        ),
+      programName: zod
+        .string()
+        .max(createDegreeChecksheetBodyTwoProgramNameMax)
+        .nullish(),
+      programRole: zod
+        .union([
+          zod
+            .enum([
+              "major",
+              "additional_major",
+              "minor",
+              "additional_minor",
+              "general",
+            ])
+            .describe(
+              "Which of the student's programs the document is for. Descriptive only.",
+            ),
+          zod.null(),
+        ])
+        .optional(),
+      school: zod
+        .string()
+        .max(createDegreeChecksheetBodyTwoSchoolMax)
+        .nullish(),
+      academicYearLabel: zod
+        .string()
+        .max(createDegreeChecksheetBodyTwoAcademicYearLabelMax)
+        .nullish()
+        .describe(
+          'Free text such as \"2025-26\" or \"Fall 2025 and Later\". Descriptive only.',
+        ),
+      sourceUrl: zod
+        .string()
+        .max(createDegreeChecksheetBodyTwoSourceUrlMax)
+        .nullish(),
+    }),
+  );
+
+/**
+ * @summary Request a short-lived, owner-bound upload link for one file
+ */
+export const requestDegreeChecksheetUploadUrlBodyNameMax = 255;
+
+export const requestDegreeChecksheetUploadUrlBodyContentTypeMax = 200;
+
+export const RequestDegreeChecksheetUploadUrlBody = zod.object({
+  name: zod.string().min(1).max(requestDegreeChecksheetUploadUrlBodyNameMax),
+  size: zod.number().min(1),
+  contentType: zod
+    .string()
+    .max(requestDegreeChecksheetUploadUrlBodyContentTypeMax),
+});
+
+export const RequestDegreeChecksheetUploadUrlResponse = zod.object({
+  uploadURL: zod.string(),
+  objectPath: zod.string(),
+  contentType: zod
+    .string()
+    .describe(
+      "The Content-Type the upload must be sent with. The link accepts no other.",
+    ),
+});
+
+/**
+ * @summary Metadata of one of the caller's documents
+ */
+
+export const GetDegreeChecksheetParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const GetDegreeChecksheetResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  category: zod
+    .enum([
+      "major_checksheet",
+      "minor_checksheet",
+      "four_year_plan",
+      "flowchart",
+      "advising_resource",
+      "other",
+    ])
+    .describe(
+      "What kind of department resource the STUDENT says this is. Never inferred from the file.",
+    ),
+  programName: zod.string().nullable(),
+  programRole: zod.union([
+    zod
+      .enum([
+        "major",
+        "additional_major",
+        "minor",
+        "additional_minor",
+        "general",
+      ])
+      .describe(
+        "Which of the student's programs the document is for. Descriptive only.",
+      ),
+    zod.null(),
+  ]),
+  school: zod.string().nullable(),
+  academicYearLabel: zod.string().nullable(),
+  sourceUrl: zod.string().nullable(),
+  sortOrder: zod.number(),
+  fileName: zod.string(),
+  fileSize: zod.number(),
+  mimeType: zod.string(),
+  sourceFormat: zod.enum(["pdf", "xlsx", "xls", "docx", "png", "jpg"]),
+  sourceVersion: zod
+    .number()
+    .describe("1 for the first file; +1 each time the file is replaced."),
+  uploadedAt: zod.coerce
+    .date()
+    .describe(
+      "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a department date.",
+    ),
+  renderStatus: zod
+    .enum(["ready", "original_only", "failed"])
+    .describe(
+      'The state of the FILE. \"ready\": a preview exists. \"original_only\": the file is\nstored and downloadable but has no preview. Says nothing about requirements.\n',
+    ),
+  renderNoteCode: zod.string().nullable(),
+  renderNoteMessage: zod.string().nullable(),
+  previewKind: zod
+    .union([
+      zod.literal("spreadsheet"),
+      zod.literal("pdf"),
+      zod.literal("image"),
+      zod.literal("document"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  inlineTracking: zod
+    .boolean()
+    .describe(
+      "True when the document has cells where tracking can be entered in place.",
+    ),
+  fileFingerprint: zod
+    .string()
+    .describe(
+      "First 12 hex characters of the file's SHA-256. Lets the browser notice an identical file before uploading it again.",
+    ),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Rename a document or edit its descriptive metadata (the file is not touched)
+ */
+
+export const UpdateDegreeChecksheetParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const updateDegreeChecksheetBodyTitleMax = 120;
+
+export const updateDegreeChecksheetBodyProgramNameMax = 120;
+
+export const updateDegreeChecksheetBodySchoolMax = 120;
+
+export const updateDegreeChecksheetBodyAcademicYearLabelMax = 120;
+
+export const updateDegreeChecksheetBodySourceUrlMax = 2000;
+
+export const updateDegreeChecksheetBodySortOrderMin = 0;
+export const updateDegreeChecksheetBodySortOrderMax = 1000;
+
+export const UpdateDegreeChecksheetBody = zod.object({
+  title: zod.string().min(1).max(updateDegreeChecksheetBodyTitleMax).optional(),
+  category: zod
+    .enum([
+      "major_checksheet",
+      "minor_checksheet",
+      "four_year_plan",
+      "flowchart",
+      "advising_resource",
+      "other",
+    ])
+    .optional()
+    .describe(
+      "What kind of department resource the STUDENT says this is. Never inferred from the file.",
+    ),
+  programName: zod
+    .string()
+    .max(updateDegreeChecksheetBodyProgramNameMax)
+    .nullish(),
+  programRole: zod
+    .union([
+      zod
+        .enum([
+          "major",
+          "additional_major",
+          "minor",
+          "additional_minor",
+          "general",
+        ])
+        .describe(
+          "Which of the student's programs the document is for. Descriptive only.",
+        ),
+      zod.null(),
+    ])
+    .optional(),
+  school: zod.string().max(updateDegreeChecksheetBodySchoolMax).nullish(),
+  academicYearLabel: zod
+    .string()
+    .max(updateDegreeChecksheetBodyAcademicYearLabelMax)
+    .nullish(),
+  sourceUrl: zod.string().max(updateDegreeChecksheetBodySourceUrlMax).nullish(),
+  sortOrder: zod
+    .number()
+    .min(updateDegreeChecksheetBodySortOrderMin)
+    .max(updateDegreeChecksheetBodySortOrderMax)
+    .optional(),
+});
+
+export const UpdateDegreeChecksheetResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  category: zod
+    .enum([
+      "major_checksheet",
+      "minor_checksheet",
+      "four_year_plan",
+      "flowchart",
+      "advising_resource",
+      "other",
+    ])
+    .describe(
+      "What kind of department resource the STUDENT says this is. Never inferred from the file.",
+    ),
+  programName: zod.string().nullable(),
+  programRole: zod.union([
+    zod
+      .enum([
+        "major",
+        "additional_major",
+        "minor",
+        "additional_minor",
+        "general",
+      ])
+      .describe(
+        "Which of the student's programs the document is for. Descriptive only.",
+      ),
+    zod.null(),
+  ]),
+  school: zod.string().nullable(),
+  academicYearLabel: zod.string().nullable(),
+  sourceUrl: zod.string().nullable(),
+  sortOrder: zod.number(),
+  fileName: zod.string(),
+  fileSize: zod.number(),
+  mimeType: zod.string(),
+  sourceFormat: zod.enum(["pdf", "xlsx", "xls", "docx", "png", "jpg"]),
+  sourceVersion: zod
+    .number()
+    .describe("1 for the first file; +1 each time the file is replaced."),
+  uploadedAt: zod.coerce
+    .date()
+    .describe(
+      "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a department date.",
+    ),
+  renderStatus: zod
+    .enum(["ready", "original_only", "failed"])
+    .describe(
+      'The state of the FILE. \"ready\": a preview exists. \"original_only\": the file is\nstored and downloadable but has no preview. Says nothing about requirements.\n',
+    ),
+  renderNoteCode: zod.string().nullable(),
+  renderNoteMessage: zod.string().nullable(),
+  previewKind: zod
+    .union([
+      zod.literal("spreadsheet"),
+      zod.literal("pdf"),
+      zod.literal("image"),
+      zod.literal("document"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  inlineTracking: zod
+    .boolean()
+    .describe(
+      "True when the document has cells where tracking can be entered in place.",
+    ),
+  fileFingerprint: zod
+    .string()
+    .describe(
+      "First 12 hex characters of the file's SHA-256. Lets the browser notice an identical file before uploading it again.",
+    ),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Permanently delete one document, its tracking and its stored file
+ */
+
+export const DeleteDegreeChecksheetParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const DeleteDegreeChecksheetResponse = zod.object({
+  deleted: zod.boolean(),
+});
+
+/**
+ * A structural copy made for display: a grid for a workbook, blocks for a Word
+document, page sizes for a PDF, dimensions for a picture. Read-only: there is no
+endpoint that edits it, and the student's tracking is stored separately.
+
+ * @summary The display copy of one document
+ */
+
+export const GetDegreeChecksheetRenderParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const getDegreeChecksheetRenderResponseRenderOneBlocksItemLevelMax = 6;
+
+export const GetDegreeChecksheetRenderResponse = zod.object({
+  document: zod.object({
+    id: zod.number(),
+    title: zod.string(),
+    category: zod
+      .enum([
+        "major_checksheet",
+        "minor_checksheet",
+        "four_year_plan",
+        "flowchart",
+        "advising_resource",
+        "other",
+      ])
+      .describe(
+        "What kind of department resource the STUDENT says this is. Never inferred from the file.",
+      ),
+    programName: zod.string().nullable(),
+    programRole: zod.union([
+      zod
+        .enum([
+          "major",
+          "additional_major",
+          "minor",
+          "additional_minor",
+          "general",
+        ])
+        .describe(
+          "Which of the student's programs the document is for. Descriptive only.",
+        ),
+      zod.null(),
+    ]),
+    school: zod.string().nullable(),
+    academicYearLabel: zod.string().nullable(),
+    sourceUrl: zod.string().nullable(),
+    sortOrder: zod.number(),
+    fileName: zod.string(),
+    fileSize: zod.number(),
+    mimeType: zod.string(),
+    sourceFormat: zod.enum(["pdf", "xlsx", "xls", "docx", "png", "jpg"]),
+    sourceVersion: zod
+      .number()
+      .describe("1 for the first file; +1 each time the file is replaced."),
+    uploadedAt: zod.coerce
+      .date()
+      .describe(
+        "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a department date.",
+      ),
+    renderStatus: zod
+      .enum(["ready", "original_only", "failed"])
+      .describe(
+        'The state of the FILE. \"ready\": a preview exists. \"original_only\": the file is\nstored and downloadable but has no preview. Says nothing about requirements.\n',
+      ),
+    renderNoteCode: zod.string().nullable(),
+    renderNoteMessage: zod.string().nullable(),
+    previewKind: zod
+      .union([
+        zod.literal("spreadsheet"),
+        zod.literal("pdf"),
+        zod.literal("image"),
+        zod.literal("document"),
+        zod.literal(null),
+      ])
+      .nullable(),
+    inlineTracking: zod
+      .boolean()
+      .describe(
+        "True when the document has cells where tracking can be entered in place.",
+      ),
+    fileFingerprint: zod
+      .string()
+      .describe(
+        "First 12 hex characters of the file's SHA-256. Lets the browser notice an identical file before uploading it again.",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+  render: zod
+    .union([
+      zod.object({
+        version: zod.number(),
+        kind: zod.enum(["spreadsheet", "pdf", "image", "document"]),
+        sheets: zod
+          .array(
+            zod
+              .object({
+                name: zod.string(),
+                index: zod.number(),
+                visibility: zod.enum(["visible", "hidden"]),
+                rowCount: zod.number(),
+                columnCount: zod.number(),
+                columnWidths: zod.array(zod.number().nullable()),
+                rows: zod.array(
+                  zod.object({
+                    r: zod.number().describe("Source row index (0 = row 1)."),
+                    cells: zod.array(
+                      zod.object({
+                        c: zod
+                          .number()
+                          .describe("Source column index (0 = column A)."),
+                        text: zod
+                          .string()
+                          .describe(
+                            "The cell as Excel displayed it. Plain text",
+                          ),
+                        bold: zod.boolean().optional(),
+                        italic: zod.boolean().optional(),
+                        indent: zod.number().optional(),
+                        align: zod.enum(["left", "center", "right"]).optional(),
+                        filled: zod.boolean().optional(),
+                      }),
+                    ),
+                  }),
+                ),
+                merges: zod.array(
+                  zod.object({
+                    r: zod.number(),
+                    c: zod.number(),
+                    rowSpan: zod.number(),
+                    colSpan: zod.number(),
+                  }),
+                ),
+              })
+              .and(
+                zod.object({
+                  tracking: zod
+                    .object({
+                      columns: zod.array(
+                        zod.object({
+                          c: zod.number(),
+                          field: zod.enum(["status", "term"]),
+                          header: zod.string(),
+                          headerRow: zod.number(),
+                        }),
+                      ),
+                      cells: zod.array(
+                        zod.object({
+                          r: zod.number(),
+                          c: zod.number(),
+                          field: zod.enum(["status", "term"]),
+                        }),
+                      ),
+                    })
+                    .describe(
+                      "Where the source left room for the student to write. About placement only.",
+                    ),
+                }),
+              ),
+          )
+          .optional(),
+        pages: zod
+          .array(
+            zod.object({
+              width: zod.number(),
+              height: zod.number(),
+            }),
+          )
+          .optional(),
+        width: zod.number().optional(),
+        height: zod.number().optional(),
+        blocks: zod
+          .array(
+            zod.object({
+              type: zod.enum([
+                "heading",
+                "paragraph",
+                "list-item",
+                "table",
+                "image",
+                "image-omitted",
+              ]),
+              level: zod
+                .number()
+                .min(1)
+                .max(
+                  getDegreeChecksheetRenderResponseRenderOneBlocksItemLevelMax,
+                )
+                .optional(),
+              ordered: zod.boolean().optional(),
+              depth: zod.number().optional(),
+              runs: zod
+                .array(
+                  zod.object({
+                    text: zod.string().describe("Plain text. Never markup."),
+                    bold: zod.boolean().optional(),
+                    italic: zod.boolean().optional(),
+                    underline: zod.boolean().optional(),
+                    href: zod
+                      .string()
+                      .optional()
+                      .describe("An http(s) link from the document."),
+                  }),
+                )
+                .optional(),
+              rows: zod
+                .array(
+                  zod.array(
+                    zod.object({
+                      runs: zod.array(
+                        zod.object({
+                          text: zod
+                            .string()
+                            .describe("Plain text. Never markup."),
+                          bold: zod.boolean().optional(),
+                          italic: zod.boolean().optional(),
+                          underline: zod.boolean().optional(),
+                          href: zod
+                            .string()
+                            .optional()
+                            .describe("An http(s) link from the document."),
+                        }),
+                      ),
+                      header: zod.boolean().optional(),
+                      colSpan: zod.number().optional(),
+                      rowSpan: zod.number().optional(),
+                    }),
+                  ),
+                )
+                .optional(),
+              tracking: zod
+                .object({
+                  columns: zod.array(
+                    zod.object({
+                      c: zod.number(),
+                      field: zod.enum(["status", "term"]),
+                      header: zod.string(),
+                      headerRow: zod.number(),
+                    }),
+                  ),
+                  cells: zod.array(
+                    zod.object({
+                      r: zod.number(),
+                      c: zod.number(),
+                      field: zod.enum(["status", "term"]),
+                    }),
+                  ),
+                })
+                .optional()
+                .describe(
+                  "Where the source left room for the student to write. About placement only.",
+                ),
+              mime: zod
+                .enum(["image/png", "image/jpeg", "image/gif"])
+                .optional(),
+              data: zod.string().optional().describe("Base64 picture bytes."),
+              alt: zod.string().optional(),
+            }),
+          )
+          .optional(),
+        warnings: zod.array(zod.string()).optional(),
+      }),
+      zod.null(),
+    ])
+    .describe("Null when the document is kept as an original only."),
+});
+
+/**
+ * @summary Stream the original uploaded file, byte for byte
+ */
+
+export const DownloadDegreeChecksheetFileParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+/**
+ * The new file is checked and its preview built first. Only if that succeeds is the
+document switched to it and the old file removed. Tracking entries tied to a place
+in the old file stay in place only where the new file offers the same place holding
+the same content; the rest are detached, never drawn over the new file.
+
+ * @summary Replace the file of ONE document
+ */
+
+export const ReplaceDegreeChecksheetFileParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const replaceDegreeChecksheetFileBodyFileNameMax = 255;
+
+export const replaceDegreeChecksheetFileBodyContentTypeMax = 200;
+
+export const ReplaceDegreeChecksheetFileBody = zod.object({
+  objectPath: zod
+    .string()
+    .describe(
+      "Object path returned by the upload-url endpoint (must start with \/objects\/).",
+    ),
+  fileName: zod.string().min(1).max(replaceDegreeChecksheetFileBodyFileNameMax),
+  fileSize: zod.number().min(1),
+  contentType: zod.string().max(replaceDegreeChecksheetFileBodyContentTypeMax),
+});
+
+export const ReplaceDegreeChecksheetFileResponse = zod.object({
+  document: zod.object({
+    id: zod.number(),
+    title: zod.string(),
+    category: zod
+      .enum([
+        "major_checksheet",
+        "minor_checksheet",
+        "four_year_plan",
+        "flowchart",
+        "advising_resource",
+        "other",
+      ])
+      .describe(
+        "What kind of department resource the STUDENT says this is. Never inferred from the file.",
+      ),
+    programName: zod.string().nullable(),
+    programRole: zod.union([
+      zod
+        .enum([
+          "major",
+          "additional_major",
+          "minor",
+          "additional_minor",
+          "general",
+        ])
+        .describe(
+          "Which of the student's programs the document is for. Descriptive only.",
+        ),
+      zod.null(),
+    ]),
+    school: zod.string().nullable(),
+    academicYearLabel: zod.string().nullable(),
+    sourceUrl: zod.string().nullable(),
+    sortOrder: zod.number(),
+    fileName: zod.string(),
+    fileSize: zod.number(),
+    mimeType: zod.string(),
+    sourceFormat: zod.enum(["pdf", "xlsx", "xls", "docx", "png", "jpg"]),
+    sourceVersion: zod
+      .number()
+      .describe("1 for the first file; +1 each time the file is replaced."),
+    uploadedAt: zod.coerce
+      .date()
+      .describe(
+        "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a department date.",
+      ),
+    renderStatus: zod
+      .enum(["ready", "original_only", "failed"])
+      .describe(
+        'The state of the FILE. \"ready\": a preview exists. \"original_only\": the file is\nstored and downloadable but has no preview. Says nothing about requirements.\n',
+      ),
+    renderNoteCode: zod.string().nullable(),
+    renderNoteMessage: zod.string().nullable(),
+    previewKind: zod
+      .union([
+        zod.literal("spreadsheet"),
+        zod.literal("pdf"),
+        zod.literal("image"),
+        zod.literal("document"),
+        zod.literal(null),
+      ])
+      .nullable(),
+    inlineTracking: zod
+      .boolean()
+      .describe(
+        "True when the document has cells where tracking can be entered in place.",
+      ),
+    fileFingerprint: zod
+      .string()
+      .describe(
+        "First 12 hex characters of the file's SHA-256. Lets the browser notice an identical file before uploading it again.",
+      ),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  }),
+  tracking: zod.object({
+    kept: zod.number().describe("Entries still in place."),
+    detached: zod
+      .number()
+      .describe("Entries whose place could not be confirmed in the new file."),
+  }),
+});
+
+/**
+ * @summary The caller's tracking entries for one document
+ */
+
+export const ListDegreeChecksheetAnnotationsParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorSheetMin = 0;
+
+export const listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorBlockMin = 0;
+
+export const listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorRowMin = 0;
+
+export const listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorColMin = 0;
+
+export const listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorPageMin = 0;
+
+export const listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorXMin = 0;
+export const listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorXMax = 1;
+
+export const listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorYMin = 0;
+export const listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorYMax = 1;
+
+export const ListDegreeChecksheetAnnotationsResponse = zod.object({
+  maxAnnotations: zod.number(),
+  annotations: zod.array(
+    zod.object({
+      id: zod.number(),
+      documentId: zod.number(),
+      anchorType: zod.enum(["sheet_cell", "doc_cell", "point", "manual"]),
+      anchor: zod
+        .object({
+          sheet: zod
+            .number()
+            .min(
+              listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorSheetMin,
+            )
+            .optional(),
+          block: zod
+            .number()
+            .min(
+              listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorBlockMin,
+            )
+            .optional(),
+          row: zod
+            .number()
+            .min(
+              listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorRowMin,
+            )
+            .optional(),
+          col: zod
+            .number()
+            .min(
+              listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorColMin,
+            )
+            .optional(),
+          page: zod
+            .number()
+            .min(
+              listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorPageMin,
+            )
+            .optional(),
+          x: zod
+            .number()
+            .min(
+              listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorXMin,
+            )
+            .max(
+              listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorXMax,
+            )
+            .optional(),
+          y: zod
+            .number()
+            .min(
+              listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorYMin,
+            )
+            .max(
+              listDegreeChecksheetAnnotationsResponseAnnotationsItemAnchorYMax,
+            )
+            .optional(),
+        })
+        .describe(
+          "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+        ),
+      field: zod
+        .union([zod.literal("status"), zod.literal("term"), zod.literal(null)])
+        .nullable()
+        .describe("For a cell entry, which value its column holds."),
+      detached: zod
+        .boolean()
+        .describe(
+          "True when the file was replaced and this entry's place could not be confirmed in\nthe new file. A detached entry is listed, never drawn over the document.\n",
+        ),
+      itemLabel: zod.string().nullable(),
+      status: zod.union([
+        zod
+          .enum(["not_started", "planned", "in_progress", "completed"])
+          .describe(
+            "The student's own status for an item. Never an official or verified status.",
+          ),
+        zod.null(),
+      ]),
+      term: zod.union([
+        zod.enum(["fall", "winter", "spring", "summer"]),
+        zod.null(),
+      ]),
+      termYear: zod
+        .number()
+        .nullable()
+        .describe(
+          "The CALENDAR year of the term (winter + 2027 = Winter 2027).",
+        ),
+      note: zod.string().nullable(),
+      sortOrder: zod.number(),
+      revision: zod
+        .number()
+        .describe(
+          "+1 on every change. Send it back as expectedRevision to avoid overwriting a newer save.",
+        ),
+      createdAt: zod.coerce.date(),
+      updatedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * A cell holds one entry, so creating an entry for a cell that already has one updates
+it. Points and list entries may be as many as the student likes.
+
+ * @summary Add a tracking entry (or set the one that belongs to a cell)
+ */
+
+export const CreateDegreeChecksheetAnnotationParams = zod.object({
+  id: zod.coerce.number().min(1),
+});
+
+export const createDegreeChecksheetAnnotationBodyAnchorSheetMin = 0;
+
+export const createDegreeChecksheetAnnotationBodyAnchorBlockMin = 0;
+
+export const createDegreeChecksheetAnnotationBodyAnchorRowMin = 0;
+
+export const createDegreeChecksheetAnnotationBodyAnchorColMin = 0;
+
+export const createDegreeChecksheetAnnotationBodyAnchorPageMin = 0;
+
+export const createDegreeChecksheetAnnotationBodyAnchorXMin = 0;
+export const createDegreeChecksheetAnnotationBodyAnchorXMax = 1;
+
+export const createDegreeChecksheetAnnotationBodyAnchorYMin = 0;
+export const createDegreeChecksheetAnnotationBodyAnchorYMax = 1;
+
+export const createDegreeChecksheetAnnotationBodyItemLabelMax = 200;
+
+export const createDegreeChecksheetAnnotationBodyTermYearMin = 2000;
+export const createDegreeChecksheetAnnotationBodyTermYearMax = 2100;
+
+export const createDegreeChecksheetAnnotationBodyNoteMax = 500;
+
+export const CreateDegreeChecksheetAnnotationBody = zod.object({
+  anchorType: zod.enum(["sheet_cell", "doc_cell", "point", "manual"]),
+  anchor: zod
+    .object({
+      sheet: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationBodyAnchorSheetMin)
+        .optional(),
+      block: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationBodyAnchorBlockMin)
+        .optional(),
+      row: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationBodyAnchorRowMin)
+        .optional(),
+      col: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationBodyAnchorColMin)
+        .optional(),
+      page: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationBodyAnchorPageMin)
+        .optional(),
+      x: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationBodyAnchorXMin)
+        .max(createDegreeChecksheetAnnotationBodyAnchorXMax)
+        .optional(),
+      y: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationBodyAnchorYMin)
+        .max(createDegreeChecksheetAnnotationBodyAnchorYMax)
+        .optional(),
+    })
+    .optional()
+    .describe(
+      "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+    ),
+  itemLabel: zod
+    .string()
+    .max(createDegreeChecksheetAnnotationBodyItemLabelMax)
+    .nullish(),
+  status: zod
+    .union([
+      zod
+        .enum(["not_started", "planned", "in_progress", "completed"])
+        .describe(
+          "The student's own status for an item. Never an official or verified status.",
+        ),
+      zod.null(),
+    ])
+    .optional(),
+  term: zod
+    .union([zod.enum(["fall", "winter", "spring", "summer"]), zod.null()])
+    .optional(),
+  termYear: zod
+    .number()
+    .min(createDegreeChecksheetAnnotationBodyTermYearMin)
+    .max(createDegreeChecksheetAnnotationBodyTermYearMax)
+    .nullish(),
+  note: zod.string().max(createDegreeChecksheetAnnotationBodyNoteMax).nullish(),
+});
+
+export const createDegreeChecksheetAnnotationResponseAnchorSheetMin = 0;
+
+export const createDegreeChecksheetAnnotationResponseAnchorBlockMin = 0;
+
+export const createDegreeChecksheetAnnotationResponseAnchorRowMin = 0;
+
+export const createDegreeChecksheetAnnotationResponseAnchorColMin = 0;
+
+export const createDegreeChecksheetAnnotationResponseAnchorPageMin = 0;
+
+export const createDegreeChecksheetAnnotationResponseAnchorXMin = 0;
+export const createDegreeChecksheetAnnotationResponseAnchorXMax = 1;
+
+export const createDegreeChecksheetAnnotationResponseAnchorYMin = 0;
+export const createDegreeChecksheetAnnotationResponseAnchorYMax = 1;
+
+export const CreateDegreeChecksheetAnnotationResponse = zod.object({
+  id: zod.number(),
+  documentId: zod.number(),
+  anchorType: zod.enum(["sheet_cell", "doc_cell", "point", "manual"]),
+  anchor: zod
+    .object({
+      sheet: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationResponseAnchorSheetMin)
+        .optional(),
+      block: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationResponseAnchorBlockMin)
+        .optional(),
+      row: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationResponseAnchorRowMin)
+        .optional(),
+      col: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationResponseAnchorColMin)
+        .optional(),
+      page: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationResponseAnchorPageMin)
+        .optional(),
+      x: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationResponseAnchorXMin)
+        .max(createDegreeChecksheetAnnotationResponseAnchorXMax)
+        .optional(),
+      y: zod
+        .number()
+        .min(createDegreeChecksheetAnnotationResponseAnchorYMin)
+        .max(createDegreeChecksheetAnnotationResponseAnchorYMax)
+        .optional(),
+    })
+    .describe(
+      "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+    ),
+  field: zod
+    .union([zod.literal("status"), zod.literal("term"), zod.literal(null)])
+    .nullable()
+    .describe("For a cell entry, which value its column holds."),
+  detached: zod
+    .boolean()
+    .describe(
+      "True when the file was replaced and this entry's place could not be confirmed in\nthe new file. A detached entry is listed, never drawn over the document.\n",
+    ),
+  itemLabel: zod.string().nullable(),
+  status: zod.union([
+    zod
+      .enum(["not_started", "planned", "in_progress", "completed"])
+      .describe(
+        "The student's own status for an item. Never an official or verified status.",
+      ),
+    zod.null(),
+  ]),
+  term: zod.union([
+    zod.enum(["fall", "winter", "spring", "summer"]),
+    zod.null(),
+  ]),
+  termYear: zod
+    .number()
+    .nullable()
+    .describe("The CALENDAR year of the term (winter + 2027 = Winter 2027)."),
+  note: zod.string().nullable(),
+  sortOrder: zod.number(),
+  revision: zod
+    .number()
+    .describe(
+      "+1 on every change. Send it back as expectedRevision to avoid overwriting a newer save.",
+    ),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Change, clear, move or re-link one tracking entry
+ */
+
+export const UpdateDegreeChecksheetAnnotationParams = zod.object({
+  id: zod.coerce.number().min(1),
+  annotationId: zod.coerce.number().min(1),
+});
+
+export const updateDegreeChecksheetAnnotationBodyItemLabelMax = 200;
+
+export const updateDegreeChecksheetAnnotationBodyTermYearMin = 2000;
+export const updateDegreeChecksheetAnnotationBodyTermYearMax = 2100;
+
+export const updateDegreeChecksheetAnnotationBodyNoteMax = 500;
+
+export const updateDegreeChecksheetAnnotationBodyAnchorSheetMin = 0;
+
+export const updateDegreeChecksheetAnnotationBodyAnchorBlockMin = 0;
+
+export const updateDegreeChecksheetAnnotationBodyAnchorRowMin = 0;
+
+export const updateDegreeChecksheetAnnotationBodyAnchorColMin = 0;
+
+export const updateDegreeChecksheetAnnotationBodyAnchorPageMin = 0;
+
+export const updateDegreeChecksheetAnnotationBodyAnchorXMin = 0;
+export const updateDegreeChecksheetAnnotationBodyAnchorXMax = 1;
+
+export const updateDegreeChecksheetAnnotationBodyAnchorYMin = 0;
+export const updateDegreeChecksheetAnnotationBodyAnchorYMax = 1;
+
+export const UpdateDegreeChecksheetAnnotationBody = zod.object({
+  itemLabel: zod
+    .string()
+    .max(updateDegreeChecksheetAnnotationBodyItemLabelMax)
+    .nullish(),
+  status: zod
+    .union([
+      zod
+        .enum(["not_started", "planned", "in_progress", "completed"])
+        .describe(
+          "The student's own status for an item. Never an official or verified status.",
+        ),
+      zod.null(),
+    ])
+    .optional(),
+  term: zod
+    .union([zod.enum(["fall", "winter", "spring", "summer"]), zod.null()])
+    .optional(),
+  termYear: zod
+    .number()
+    .min(updateDegreeChecksheetAnnotationBodyTermYearMin)
+    .max(updateDegreeChecksheetAnnotationBodyTermYearMax)
+    .nullish(),
+  note: zod.string().max(updateDegreeChecksheetAnnotationBodyNoteMax).nullish(),
+  anchor: zod
+    .object({
+      sheet: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationBodyAnchorSheetMin)
+        .optional(),
+      block: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationBodyAnchorBlockMin)
+        .optional(),
+      row: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationBodyAnchorRowMin)
+        .optional(),
+      col: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationBodyAnchorColMin)
+        .optional(),
+      page: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationBodyAnchorPageMin)
+        .optional(),
+      x: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationBodyAnchorXMin)
+        .max(updateDegreeChecksheetAnnotationBodyAnchorXMax)
+        .optional(),
+      y: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationBodyAnchorYMin)
+        .max(updateDegreeChecksheetAnnotationBodyAnchorYMax)
+        .optional(),
+    })
+    .optional()
+    .describe(
+      "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+    ),
+  keepAsListEntry: zod
+    .boolean()
+    .optional()
+    .describe("Turn a detached entry into an entry of the student's own list."),
+  expectedRevision: zod
+    .number()
+    .min(1)
+    .optional()
+    .describe(
+      "The revision the change was based on. A mismatch is refused with 409.",
+    ),
+});
+
+export const updateDegreeChecksheetAnnotationResponseAnchorSheetMin = 0;
+
+export const updateDegreeChecksheetAnnotationResponseAnchorBlockMin = 0;
+
+export const updateDegreeChecksheetAnnotationResponseAnchorRowMin = 0;
+
+export const updateDegreeChecksheetAnnotationResponseAnchorColMin = 0;
+
+export const updateDegreeChecksheetAnnotationResponseAnchorPageMin = 0;
+
+export const updateDegreeChecksheetAnnotationResponseAnchorXMin = 0;
+export const updateDegreeChecksheetAnnotationResponseAnchorXMax = 1;
+
+export const updateDegreeChecksheetAnnotationResponseAnchorYMin = 0;
+export const updateDegreeChecksheetAnnotationResponseAnchorYMax = 1;
+
+export const UpdateDegreeChecksheetAnnotationResponse = zod.object({
+  id: zod.number(),
+  documentId: zod.number(),
+  anchorType: zod.enum(["sheet_cell", "doc_cell", "point", "manual"]),
+  anchor: zod
+    .object({
+      sheet: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationResponseAnchorSheetMin)
+        .optional(),
+      block: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationResponseAnchorBlockMin)
+        .optional(),
+      row: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationResponseAnchorRowMin)
+        .optional(),
+      col: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationResponseAnchorColMin)
+        .optional(),
+      page: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationResponseAnchorPageMin)
+        .optional(),
+      x: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationResponseAnchorXMin)
+        .max(updateDegreeChecksheetAnnotationResponseAnchorXMax)
+        .optional(),
+      y: zod
+        .number()
+        .min(updateDegreeChecksheetAnnotationResponseAnchorYMin)
+        .max(updateDegreeChecksheetAnnotationResponseAnchorYMax)
+        .optional(),
+    })
+    .describe(
+      "A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
+    ),
+  field: zod
+    .union([zod.literal("status"), zod.literal("term"), zod.literal(null)])
+    .nullable()
+    .describe("For a cell entry, which value its column holds."),
+  detached: zod
+    .boolean()
+    .describe(
+      "True when the file was replaced and this entry's place could not be confirmed in\nthe new file. A detached entry is listed, never drawn over the document.\n",
+    ),
+  itemLabel: zod.string().nullable(),
+  status: zod.union([
+    zod
+      .enum(["not_started", "planned", "in_progress", "completed"])
+      .describe(
+        "The student's own status for an item. Never an official or verified status.",
+      ),
+    zod.null(),
+  ]),
+  term: zod.union([
+    zod.enum(["fall", "winter", "spring", "summer"]),
+    zod.null(),
+  ]),
+  termYear: zod
+    .number()
+    .nullable()
+    .describe("The CALENDAR year of the term (winter + 2027 = Winter 2027)."),
+  note: zod.string().nullable(),
+  sortOrder: zod.number(),
+  revision: zod
+    .number()
+    .describe(
+      "+1 on every change. Send it back as expectedRevision to avoid overwriting a newer save.",
+    ),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Remove one tracking entry
+ */
+
+export const DeleteDegreeChecksheetAnnotationParams = zod.object({
+  id: zod.coerce.number().min(1),
+  annotationId: zod.coerce.number().min(1),
+});
+
+export const DeleteDegreeChecksheetAnnotationResponse = zod.object({
+  deleted: zod.boolean(),
+});

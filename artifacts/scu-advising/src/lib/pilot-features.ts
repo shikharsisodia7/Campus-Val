@@ -9,6 +9,7 @@ import {
   Calculator,
   ArrowLeftRight,
   FileUp,
+  ClipboardCheck,
   Library,
   UserCheck,
   Users,
@@ -63,6 +64,8 @@ export interface PilotFeatureDef {
   status: PilotStatus;
   /** Only set for PILOT_VISIBLE / PILOT_HIDDEN items — which "Additional Features" group they render under. */
   group?: PilotFeatureGroupId;
+  /** One line saying what the feature is for, shown with its menu entry. */
+  description?: string;
   /** Why the professor's pilot review put this feature at this status — feeds docs/PILOT_FEATURE_MATRIX.md. */
   rationale: string;
   /** What would need to be true to move this out of PILOT_HIDDEN. */
@@ -154,6 +157,17 @@ export const PILOT_FEATURES: PilotFeatureDef[] = [
     group: "planning-tools",
     rationale:
       "Upload one or more Workday Academic Progress Report Excel exports and read each exactly as exported. Same data as the read-only APR panel beside Degree Plan and Quarter Plan.",
+  },
+  {
+    id: "degree-checksheets",
+    path: "/degree-checksheets",
+    label: "Degree Checksheets",
+    icon: ClipboardCheck,
+    status: "PILOT_VISIBLE",
+    group: "planning-tools",
+    description: "Upload and track department major/minor checksheets, four-year plans, and advising resources.",
+    rationale:
+      "Requested by the professor: students upload the department checksheet they are following and track their own status and quarter on it. A reference library only — it changes no plan, no requirement and no APR. Placed under Additional Features for now; it may move beside the planning tools later.",
   },
   {
     id: "scu-resources",

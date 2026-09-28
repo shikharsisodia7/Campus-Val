@@ -48,6 +48,7 @@ const AdvicePage = lazy(() => import("@/pages/advice"));
 const ResourcesPage = lazy(() => import("@/pages/resources"));
 const FeedbackPage = lazy(() => import("@/pages/feedback"));
 const ProgressReportPage = lazy(() => import("@/pages/progress-report"));
+const DegreeChecksheetsPage = lazy(() => import("@/pages/degree-checksheets"));
 const AdminUsagePage = lazy(() => import("@/pages/admin-usage"));
 const AdminFeedbackPage = lazy(() => import("@/pages/admin-feedback"));
 
@@ -337,6 +338,11 @@ function AppRoutes() {
         <Route path="/progress-report">
           <Protected>
             <ProgressReportPage />
+          </Protected>
+        </Route>
+        <Route path="/degree-checksheets">
+          <Protected>
+            <DegreeChecksheetsPage />
           </Protected>
         </Route>
         <Route path="/admin/usage">

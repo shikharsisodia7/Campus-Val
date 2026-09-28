@@ -1,0 +1,66 @@
+/*
+ * The invisible text drawn over each PDF page so its words can be selected,
+ * searched and read by a screen reader. Positions and sizes are set by the PDF
+ * library; these rules are the part of its stylesheet that the text needs.
+ * Scoped to .cv-pdf-text so nothing else on the page is affected.
+ */
+.cv-pdf-text {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  text-align: initial;
+  text-size-adjust: none;
+  -webkit-text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 0;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.cv-pdf-text :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.cv-pdf-text > :not(.markedContent),
+.cv-pdf-text .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.cv-pdf-text .markedContent {
+  display: contents;
+}
+
+.cv-pdf-text span[role="img"] {
+  user-select: none;
+  cursor: default;
+}
+
+.cv-pdf-text ::selection {
+  background: rgb(140 21 21 / 0.25);
+}
+
+.cv-pdf-text br::selection {
+  background: transparent;
+}
+
+.cv-pdf-text .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: 0;
+  cursor: default;
+  user-select: none;
+}

@@ -156,6 +156,7 @@ test.describe("pilot feature visibility (non-admin)", () => {
     await expect(page.getByText("GPA Calculator")).toBeVisible();
     await expect(page.getByText("Transfer Credit")).toBeVisible();
     await expect(page.getByText(/Workday APR/)).toBeVisible();
+    await expect(page.getByText("Degree Checksheets", { exact: true })).toBeVisible();
     await expect(page.getByText("SCU Resources")).toBeVisible();
 
     for (const label of PILOT_HIDDEN_LABELS) {

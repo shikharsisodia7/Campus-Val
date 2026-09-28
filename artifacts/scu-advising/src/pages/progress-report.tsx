@@ -33,7 +33,7 @@ export default function ProgressReportPage() {
     <AppShell>
       <PageHeader
         title="Academic Progress Reports"
-        subtitle="Your Workday Academic Progress Reports, shown as exported. Workday is the source of truth — CampusVal displays it for comparison and does not re-evaluate it."
+        subtitle="Your Workday Academic Progress Reports, shown as exported. Workday is the definitive reference for degree completion — CampusVal displays each report as of the date you uploaded it and does not re-evaluate it."
       />
       <PageContent>
         <div className="flex flex-wrap items-center justify-between gap-2">

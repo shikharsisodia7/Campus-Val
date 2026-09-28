@@ -17,6 +17,7 @@ export const USAGE_FEATURES = [
   "tentative_degree_plan",
   "quarter_plan",
   "apr_upload",
+  "degree_checksheets",
   "four_year_plan",
   "plan_controls",
   "find_courses",

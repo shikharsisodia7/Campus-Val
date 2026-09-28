@@ -154,6 +154,13 @@ their Academic Period, Units or Grade columns
 ([docs/SECURITY_AND_PRIVACY.md](docs/SECURITY_AND_PRIVACY.md),
 [docs/APR_SOURCE_FIDELITY.md](docs/APR_SOURCE_FIDELITY.md)).
 
+**Degree Checksheets** (Additional Features) hold the department documents a student
+uploads: major and minor checksheets, four-year plans, flowcharts, advising resources.
+Each is shown as uploaded and is never changed; the student's own status and quarter
+for each item are stored separately. They are private to the student, are not shared
+with a plan, and do not change any plan or requirement
+([docs/DEGREE_CHECKSHEETS.md](docs/DEGREE_CHECKSHEETS.md)).
+
 ## Workday integration
 
 **Status: ready for SCU authorization — not connected.** CampusVal has no Workday

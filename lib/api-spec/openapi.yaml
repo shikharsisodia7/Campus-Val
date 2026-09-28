@@ -35,6 +35,8 @@ tags:
     description: Object storage upload and serving endpoints
   - name: progress-report
     description: Academic progress report upload, import, and retrieval
+  - name: degree-checksheets
+    description: Department checksheets and advising resources a student uploads, and the student's own tracking
 paths:
   /healthz:
     get:
@@ -1724,6 +1726,305 @@ paths:
         "404":
           description: No such document for this user
 
+  /degree-checksheets:
+    get:
+      operationId: listDegreeChecksheets
+      tags: [degree-checksheets]
+      summary: List the authenticated student's Degree Checksheet documents
+      description: |
+        Metadata of every department document the CALLER has uploaded, in library order
+        (major checksheets, minor checksheets, four-year plans, other resources). The
+        preview and the student's tracking are not included. There is no way to address
+        another user's documents.
+        If object storage is not configured, returns { available: false, documents: [] }.
+      responses:
+        "200":
+          description: The caller's documents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetList"
+    post:
+      operationId: createDegreeChecksheet
+      tags: [degree-checksheets]
+      summary: Add an uploaded department document
+      description: |
+        Called after the client PUT the file to the upload link. The file is checked and
+        its preview built before anything is saved; a file that is refused (422) leaves no
+        document behind.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeChecksheetCreateInput"
+      responses:
+        "201":
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetDocument"
+        "400":
+          description: Validation error (bad type, oversize, bad path, bad title or URL)
+        "409":
+          description: The student already has the maximum number of documents
+        "422":
+          description: The file was refused (see `code`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetFailure"
+  /degree-checksheets/upload-url:
+    post:
+      operationId: requestDegreeChecksheetUploadUrl
+      tags: [degree-checksheets]
+      summary: Request a short-lived, owner-bound upload link for one file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeChecksheetUploadUrlRequest"
+      responses:
+        "200":
+          description: Upload link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetUploadTarget"
+        "400":
+          description: Unsupported type or oversize
+  /degree-checksheets/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: getDegreeChecksheet
+      tags: [degree-checksheets]
+      summary: Metadata of one of the caller's documents
+      responses:
+        "200":
+          description: The document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetDocument"
+        "404":
+          description: No such document for this user
+    patch:
+      operationId: updateDegreeChecksheet
+      tags: [degree-checksheets]
+      summary: Rename a document or edit its descriptive metadata (the file is not touched)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeChecksheetUpdateInput"
+      responses:
+        "200":
+          description: The updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetDocument"
+        "400":
+          description: Validation error
+        "404":
+          description: No such document for this user
+    delete:
+      operationId: deleteDegreeChecksheet
+      tags: [degree-checksheets]
+      summary: Permanently delete one document, its tracking and its stored file
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletedResponse"
+        "404":
+          description: No such document for this user
+  /degree-checksheets/{id}/render:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: getDegreeChecksheetRender
+      tags: [degree-checksheets]
+      summary: The display copy of one document
+      description: |
+        A structural copy made for display: a grid for a workbook, blocks for a Word
+        document, page sizes for a PDF, dimensions for a picture. Read-only: there is no
+        endpoint that edits it, and the student's tracking is stored separately.
+      responses:
+        "200":
+          description: The display copy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetRenderEnvelope"
+        "404":
+          description: No such document for this user
+  /degree-checksheets/{id}/file:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: downloadDegreeChecksheetFile
+      tags: [degree-checksheets]
+      summary: Stream the original uploaded file, byte for byte
+      responses:
+        "200":
+          description: File content
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: No such document for this user
+    put:
+      operationId: replaceDegreeChecksheetFile
+      tags: [degree-checksheets]
+      summary: Replace the file of ONE document
+      description: |
+        The new file is checked and its preview built first. Only if that succeeds is the
+        document switched to it and the old file removed. Tracking entries tied to a place
+        in the old file stay in place only where the new file offers the same place holding
+        the same content; the rest are detached, never drawn over the new file.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeChecksheetFileInput"
+      responses:
+        "200":
+          description: The document, now showing the new file, and what happened to its tracking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetReplaceResult"
+        "400":
+          description: Validation error
+        "404":
+          description: No such document for this user
+        "422":
+          description: The new file was refused; the previous file was kept
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetFailure"
+  /degree-checksheets/{id}/annotations:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: listDegreeChecksheetAnnotations
+      tags: [degree-checksheets]
+      summary: The caller's tracking entries for one document
+      responses:
+        "200":
+          description: Tracking entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetAnnotationList"
+        "404":
+          description: No such document for this user
+    post:
+      operationId: createDegreeChecksheetAnnotation
+      tags: [degree-checksheets]
+      summary: Add a tracking entry (or set the one that belongs to a cell)
+      description: |
+        A cell holds one entry, so creating an entry for a cell that already has one updates
+        it. Points and list entries may be as many as the student likes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeChecksheetAnnotationCreateInput"
+      responses:
+        "200":
+          description: The existing entry for that cell, updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetAnnotation"
+        "201":
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetAnnotation"
+        "400":
+          description: Validation error, or the document offers no such place
+        "404":
+          description: No such document for this user
+        "409":
+          description: The document already has the maximum number of entries
+  /degree-checksheets/{id}/annotations/{annotationId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+      - name: annotationId
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    patch:
+      operationId: updateDegreeChecksheetAnnotation
+      tags: [degree-checksheets]
+      summary: Change, clear, move or re-link one tracking entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeChecksheetAnnotationUpdateInput"
+      responses:
+        "200":
+          description: The updated entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetAnnotation"
+        "400":
+          description: Validation error
+        "404":
+          description: No such entry for this user
+        "409":
+          description: The entry was changed elsewhere since it was loaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeChecksheetAnnotationConflict"
+    delete:
+      operationId: deleteDegreeChecksheetAnnotation
+      tags: [degree-checksheets]
+      summary: Remove one tracking entry
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeletedResponse"
+        "404":
+          description: No such entry for this user
+
 components:
   schemas:
     QuarterSchedule:
@@ -2352,6 +2653,467 @@ components:
         documents:
           type: array
           items: { $ref: "#/components/schemas/ProgressReportSidebarDocument" }
+
+    DegreeChecksheetCategory:
+      type: string
+      enum: [major_checksheet, minor_checksheet, four_year_plan, flowchart, advising_resource, other]
+      description: What kind of department resource the STUDENT says this is. Never inferred from the file.
+
+    DegreeChecksheetProgramRole:
+      type: string
+      enum: [major, additional_major, minor, additional_minor, general]
+      description: Which of the student's programs the document is for. Descriptive only.
+
+    DegreeChecksheetFormat:
+      type: string
+      enum: [pdf, xlsx, xls, docx, png, jpg]
+
+    DegreeChecksheetRenderStatus:
+      type: string
+      enum: [ready, original_only, failed]
+      description: |
+        The state of the FILE. "ready": a preview exists. "original_only": the file is
+        stored and downloadable but has no preview. Says nothing about requirements.
+
+    TrackingStatus:
+      type: string
+      enum: [not_started, planned, in_progress, completed]
+      description: The student's own status for an item. Never an official or verified status.
+
+    TrackingTerm:
+      type: string
+      enum: [fall, winter, spring, summer]
+
+    DegreeChecksheetUploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size: { type: integer, minimum: 1 }
+        contentType: { type: string, maxLength: 200 }
+
+    DegreeChecksheetUploadTarget:
+      type: object
+      required: [uploadURL, objectPath, contentType]
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+        contentType:
+          type: string
+          description: The Content-Type the upload must be sent with. The link accepts no other.
+
+    DegreeChecksheetFileInput:
+      type: object
+      required: [objectPath, fileName, fileSize, contentType]
+      properties:
+        objectPath:
+          type: string
+          description: Object path returned by the upload-url endpoint (must start with /objects/).
+        fileName: { type: string, minLength: 1, maxLength: 255 }
+        fileSize: { type: integer, minimum: 1 }
+        contentType: { type: string, maxLength: 200 }
+
+    DegreeChecksheetCreateInput:
+      allOf:
+        - $ref: "#/components/schemas/DegreeChecksheetFileInput"
+        - type: object
+          required: [title]
+          properties:
+            title:
+              type: string
+              minLength: 1
+              maxLength: 120
+              description: The student's own name for the document, for example "Finance Major Checksheet".
+            category:
+              $ref: "#/components/schemas/DegreeChecksheetCategory"
+            programName: { type: ["string", "null"], maxLength: 120 }
+            programRole:
+              oneOf:
+                - $ref: "#/components/schemas/DegreeChecksheetProgramRole"
+                - type: "null"
+            school: { type: ["string", "null"], maxLength: 120 }
+            academicYearLabel:
+              type: ["string", "null"]
+              maxLength: 120
+              description: Free text such as "2025-26" or "Fall 2025 and Later". Descriptive only.
+            sourceUrl: { type: ["string", "null"], maxLength: 2000 }
+
+    DegreeChecksheetUpdateInput:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        category:
+          $ref: "#/components/schemas/DegreeChecksheetCategory"
+        programName: { type: ["string", "null"], maxLength: 120 }
+        programRole:
+          oneOf:
+            - $ref: "#/components/schemas/DegreeChecksheetProgramRole"
+            - type: "null"
+        school: { type: ["string", "null"], maxLength: 120 }
+        academicYearLabel: { type: ["string", "null"], maxLength: 120 }
+        sourceUrl: { type: ["string", "null"], maxLength: 2000 }
+        sortOrder: { type: integer, minimum: 0, maximum: 1000 }
+
+    DegreeChecksheetDocument:
+      type: object
+      required:
+        - id
+        - title
+        - category
+        - programName
+        - programRole
+        - school
+        - academicYearLabel
+        - sourceUrl
+        - sortOrder
+        - fileName
+        - fileSize
+        - mimeType
+        - sourceFormat
+        - sourceVersion
+        - uploadedAt
+        - renderStatus
+        - renderNoteCode
+        - renderNoteMessage
+        - previewKind
+        - inlineTracking
+        - fileFingerprint
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        category:
+          $ref: "#/components/schemas/DegreeChecksheetCategory"
+        programName: { type: ["string", "null"] }
+        programRole:
+          oneOf:
+            - $ref: "#/components/schemas/DegreeChecksheetProgramRole"
+            - type: "null"
+        school: { type: ["string", "null"] }
+        academicYearLabel: { type: ["string", "null"] }
+        sourceUrl: { type: ["string", "null"] }
+        sortOrder: { type: integer }
+        fileName: { type: string }
+        fileSize: { type: integer }
+        mimeType: { type: string }
+        sourceFormat:
+          $ref: "#/components/schemas/DegreeChecksheetFormat"
+        sourceVersion:
+          type: integer
+          description: 1 for the first file; +1 each time the file is replaced.
+        uploadedAt:
+          type: string
+          format: date-time
+          description: When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a department date.
+        renderStatus:
+          $ref: "#/components/schemas/DegreeChecksheetRenderStatus"
+        renderNoteCode: { type: ["string", "null"] }
+        renderNoteMessage: { type: ["string", "null"] }
+        previewKind:
+          type: ["string", "null"]
+          enum: [spreadsheet, pdf, image, document, null]
+        inlineTracking:
+          type: boolean
+          description: True when the document has cells where tracking can be entered in place.
+        fileFingerprint:
+          type: string
+          description: First 12 hex characters of the file's SHA-256. Lets the browser notice an identical file before uploading it again.
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DegreeChecksheetList:
+      type: object
+      required: [available, documents, maxUploadBytes, maxDocuments, acceptedExtensions]
+      properties:
+        available:
+          type: boolean
+          description: False when object storage is not configured for this deployment.
+        maxUploadBytes: { type: integer }
+        maxDocuments: { type: integer }
+        acceptedExtensions:
+          type: array
+          items: { type: string }
+        documents:
+          type: array
+          items: { $ref: "#/components/schemas/DegreeChecksheetDocument" }
+
+    DegreeChecksheetFailure:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code: { type: string }
+
+    ChecksheetTrackingColumn:
+      type: object
+      required: [c, field, header, headerRow]
+      properties:
+        c: { type: integer }
+        field: { type: string, enum: [status, term] }
+        header: { type: string }
+        headerRow: { type: integer }
+
+    ChecksheetTrackingCell:
+      type: object
+      required: [r, c, field]
+      properties:
+        r: { type: integer }
+        c: { type: integer }
+        field: { type: string, enum: [status, term] }
+
+    ChecksheetTrackingLayout:
+      type: object
+      required: [columns, cells]
+      description: Where the source left room for the student to write. About placement only.
+      properties:
+        columns:
+          type: array
+          items: { $ref: "#/components/schemas/ChecksheetTrackingColumn" }
+        cells:
+          type: array
+          items: { $ref: "#/components/schemas/ChecksheetTrackingCell" }
+
+    ChecksheetSheet:
+      allOf:
+        - $ref: "#/components/schemas/AprSheet"
+        - type: object
+          required: [tracking]
+          properties:
+            tracking:
+              $ref: "#/components/schemas/ChecksheetTrackingLayout"
+
+    ChecksheetPdfPage:
+      type: object
+      required: [width, height]
+      properties:
+        width: { type: number }
+        height: { type: number }
+
+    ChecksheetDocRun:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string, description: Plain text. Never markup. }
+        bold: { type: boolean }
+        italic: { type: boolean }
+        underline: { type: boolean }
+        href: { type: string, description: An http(s) link from the document. }
+
+    ChecksheetDocTableCell:
+      type: object
+      required: [runs]
+      properties:
+        runs:
+          type: array
+          items: { $ref: "#/components/schemas/ChecksheetDocRun" }
+        header: { type: boolean }
+        colSpan: { type: integer }
+        rowSpan: { type: integer }
+
+    ChecksheetDocBlock:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [heading, paragraph, list-item, table, image, image-omitted]
+        level: { type: integer, minimum: 1, maximum: 6 }
+        ordered: { type: boolean }
+        depth: { type: integer }
+        runs:
+          type: array
+          items: { $ref: "#/components/schemas/ChecksheetDocRun" }
+        rows:
+          type: array
+          items:
+            type: array
+            items: { $ref: "#/components/schemas/ChecksheetDocTableCell" }
+        tracking:
+          $ref: "#/components/schemas/ChecksheetTrackingLayout"
+        mime: { type: string, enum: [image/png, image/jpeg, image/gif] }
+        data: { type: string, description: Base64 picture bytes. }
+        alt: { type: string }
+
+    DegreeChecksheetRender:
+      type: object
+      required: [version, kind]
+      properties:
+        version: { type: integer }
+        kind: { type: string, enum: [spreadsheet, pdf, image, document] }
+        sheets:
+          type: array
+          items: { $ref: "#/components/schemas/ChecksheetSheet" }
+        pages:
+          type: array
+          items: { $ref: "#/components/schemas/ChecksheetPdfPage" }
+        width: { type: integer }
+        height: { type: integer }
+        blocks:
+          type: array
+          items: { $ref: "#/components/schemas/ChecksheetDocBlock" }
+        warnings:
+          type: array
+          items: { type: string }
+
+    DegreeChecksheetRenderEnvelope:
+      type: object
+      required: [document, render]
+      properties:
+        document:
+          $ref: "#/components/schemas/DegreeChecksheetDocument"
+        render:
+          oneOf:
+            - $ref: "#/components/schemas/DegreeChecksheetRender"
+            - type: "null"
+          description: Null when the document is kept as an original only.
+
+    DegreeChecksheetAnchor:
+      type: object
+      description: |
+        A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.
+        point: page,x,y with x and y as fractions (0..1) of the page from its top-left
+        corner, so a marker keeps its place at any zoom. manual: empty.
+      properties:
+        sheet: { type: integer, minimum: 0 }
+        block: { type: integer, minimum: 0 }
+        row: { type: integer, minimum: 0 }
+        col: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 0 }
+        x: { type: number, minimum: 0, maximum: 1 }
+        y: { type: number, minimum: 0, maximum: 1 }
+
+    DegreeChecksheetAnchorType:
+      type: string
+      enum: [sheet_cell, doc_cell, point, manual]
+
+    DegreeChecksheetAnnotation:
+      type: object
+      required:
+        - id
+        - documentId
+        - anchorType
+        - anchor
+        - field
+        - detached
+        - itemLabel
+        - status
+        - term
+        - termYear
+        - note
+        - sortOrder
+        - revision
+        - createdAt
+        - updatedAt
+      properties:
+        id: { type: integer }
+        documentId: { type: integer }
+        anchorType:
+          $ref: "#/components/schemas/DegreeChecksheetAnchorType"
+        anchor:
+          $ref: "#/components/schemas/DegreeChecksheetAnchor"
+        field:
+          type: ["string", "null"]
+          enum: [status, term, null]
+          description: For a cell entry, which value its column holds.
+        detached:
+          type: boolean
+          description: |
+            True when the file was replaced and this entry's place could not be confirmed in
+            the new file. A detached entry is listed, never drawn over the document.
+        itemLabel: { type: ["string", "null"] }
+        status:
+          oneOf:
+            - $ref: "#/components/schemas/TrackingStatus"
+            - type: "null"
+        term:
+          oneOf:
+            - $ref: "#/components/schemas/TrackingTerm"
+            - type: "null"
+        termYear:
+          type: ["integer", "null"]
+          description: The CALENDAR year of the term (winter + 2027 = Winter 2027).
+        note: { type: ["string", "null"] }
+        sortOrder: { type: integer }
+        revision:
+          type: integer
+          description: +1 on every change. Send it back as expectedRevision to avoid overwriting a newer save.
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DegreeChecksheetAnnotationList:
+      type: object
+      required: [annotations, maxAnnotations]
+      properties:
+        maxAnnotations: { type: integer }
+        annotations:
+          type: array
+          items: { $ref: "#/components/schemas/DegreeChecksheetAnnotation" }
+
+    DegreeChecksheetAnnotationCreateInput:
+      type: object
+      required: [anchorType]
+      properties:
+        anchorType:
+          $ref: "#/components/schemas/DegreeChecksheetAnchorType"
+        anchor:
+          $ref: "#/components/schemas/DegreeChecksheetAnchor"
+        itemLabel: { type: ["string", "null"], maxLength: 200 }
+        status:
+          oneOf:
+            - $ref: "#/components/schemas/TrackingStatus"
+            - type: "null"
+        term:
+          oneOf:
+            - $ref: "#/components/schemas/TrackingTerm"
+            - type: "null"
+        termYear: { type: ["integer", "null"], minimum: 2000, maximum: 2100 }
+        note: { type: ["string", "null"], maxLength: 500 }
+
+    DegreeChecksheetAnnotationUpdateInput:
+      type: object
+      properties:
+        itemLabel: { type: ["string", "null"], maxLength: 200 }
+        status:
+          oneOf:
+            - $ref: "#/components/schemas/TrackingStatus"
+            - type: "null"
+        term:
+          oneOf:
+            - $ref: "#/components/schemas/TrackingTerm"
+            - type: "null"
+        termYear: { type: ["integer", "null"], minimum: 2000, maximum: 2100 }
+        note: { type: ["string", "null"], maxLength: 500 }
+        anchor:
+          $ref: "#/components/schemas/DegreeChecksheetAnchor"
+        keepAsListEntry:
+          type: boolean
+          description: Turn a detached entry into an entry of the student's own list.
+        expectedRevision:
+          type: integer
+          minimum: 1
+          description: The revision the change was based on. A mismatch is refused with 409.
+
+    DegreeChecksheetAnnotationConflict:
+      type: object
+      required: [error, current]
+      properties:
+        error: { type: string }
+        current:
+          $ref: "#/components/schemas/DegreeChecksheetAnnotation"
+
+    DegreeChecksheetReplaceResult:
+      type: object
+      required: [document, tracking]
+      properties:
+        document:
+          $ref: "#/components/schemas/DegreeChecksheetDocument"
+        tracking:
+          type: object
+          required: [kept, detached]
+          properties:
+            kept: { type: integer, description: Entries still in place. }
+            detached: { type: integer, description: Entries whose place could not be confirmed in the new file. }
 
     DeletedResponse:
       type: object

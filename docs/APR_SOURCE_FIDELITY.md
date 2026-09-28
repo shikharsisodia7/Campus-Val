@@ -1,4 +1,4 @@
-# Academic Progress Reports — Workday is the source of truth
+# Academic Progress Reports — Workday is the definitive reference
 
 _2026-09-26 pass. Supersedes `APR_SIDEBAR_AND_RECONCILIATION.md` and
 `APR_FIXTURE_COVERAGE_MATRIX.md`, which describe the earlier design in which
@@ -6,9 +6,16 @@ CampusVal parsed and interpreted the report._
 
 ## Design principle
 
-**The Workday Academic Progress Report is the authoritative source. CampusVal
-displays it for comparison; it does not independently certify academic
-requirements.**
+**Workday is the definitive reference for degree completion. CampusVal displays
+the Academic Progress Report a student exported from it, for comparison; it
+does not independently certify academic requirements.**
+
+_Wording, 2026-09-28._ The professor asked that the app not call the APR the
+"single source of truth": an uploaded APR is a copy from the day it was
+exported, and only Workday itself is current. The APR page now reads "Workday
+is the definitive reference for degree completion — CampusVal displays each
+report as of the date you uploaded it and does not re-evaluate it." Nothing
+about how the APR works changed.
 
 CampusVal is a planning workspace that sits _beside_ the official record. A
 student (or an advisor sitting with the student) looks at the Workday APR on the

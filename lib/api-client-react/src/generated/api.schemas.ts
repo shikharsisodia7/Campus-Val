@@ -637,6 +637,535 @@ export interface ProgressReportSidebar {
   documents: ProgressReportSidebarDocument[];
 }
 
+/**
+ * What kind of department resource the STUDENT says this is. Never inferred from the file.
+ */
+export type DegreeChecksheetCategory =
+  (typeof DegreeChecksheetCategory)[keyof typeof DegreeChecksheetCategory];
+
+export const DegreeChecksheetCategory = {
+  major_checksheet: "major_checksheet",
+  minor_checksheet: "minor_checksheet",
+  four_year_plan: "four_year_plan",
+  flowchart: "flowchart",
+  advising_resource: "advising_resource",
+  other: "other",
+} as const;
+
+/**
+ * Which of the student's programs the document is for. Descriptive only.
+ */
+export type DegreeChecksheetProgramRole =
+  (typeof DegreeChecksheetProgramRole)[keyof typeof DegreeChecksheetProgramRole];
+
+export const DegreeChecksheetProgramRole = {
+  major: "major",
+  additional_major: "additional_major",
+  minor: "minor",
+  additional_minor: "additional_minor",
+  general: "general",
+} as const;
+
+export type DegreeChecksheetFormat =
+  (typeof DegreeChecksheetFormat)[keyof typeof DegreeChecksheetFormat];
+
+export const DegreeChecksheetFormat = {
+  pdf: "pdf",
+  xlsx: "xlsx",
+  xls: "xls",
+  docx: "docx",
+  png: "png",
+  jpg: "jpg",
+} as const;
+
+/**
+ * The state of the FILE. "ready": a preview exists. "original_only": the file is
+stored and downloadable but has no preview. Says nothing about requirements.
+
+ */
+export type DegreeChecksheetRenderStatus =
+  (typeof DegreeChecksheetRenderStatus)[keyof typeof DegreeChecksheetRenderStatus];
+
+export const DegreeChecksheetRenderStatus = {
+  ready: "ready",
+  original_only: "original_only",
+  failed: "failed",
+} as const;
+
+/**
+ * The student's own status for an item. Never an official or verified status.
+ */
+export type TrackingStatus =
+  (typeof TrackingStatus)[keyof typeof TrackingStatus];
+
+export const TrackingStatus = {
+  not_started: "not_started",
+  planned: "planned",
+  in_progress: "in_progress",
+  completed: "completed",
+} as const;
+
+export type TrackingTerm = (typeof TrackingTerm)[keyof typeof TrackingTerm];
+
+export const TrackingTerm = {
+  fall: "fall",
+  winter: "winter",
+  spring: "spring",
+  summer: "summer",
+} as const;
+
+export interface DegreeChecksheetUploadUrlRequest {
+  /**
+   * @minLength 1
+   * @maxLength 255
+   */
+  name: string;
+  /** @minimum 1 */
+  size: number;
+  /** @maxLength 200 */
+  contentType: string;
+}
+
+export interface DegreeChecksheetUploadTarget {
+  uploadURL: string;
+  objectPath: string;
+  /** The Content-Type the upload must be sent with. The link accepts no other. */
+  contentType: string;
+}
+
+export interface DegreeChecksheetFileInput {
+  /** Object path returned by the upload-url endpoint (must start with /objects/). */
+  objectPath: string;
+  /**
+   * @minLength 1
+   * @maxLength 255
+   */
+  fileName: string;
+  /** @minimum 1 */
+  fileSize: number;
+  /** @maxLength 200 */
+  contentType: string;
+}
+
+export type DegreeChecksheetCreateInput = DegreeChecksheetFileInput & {
+  /**
+   * The student's own name for the document, for example "Finance Major Checksheet".
+   * @minLength 1
+   * @maxLength 120
+   */
+  title: string;
+  category?: DegreeChecksheetCategory;
+  /**
+   * @maxLength 120
+   * @nullable
+   */
+  programName?: string | null;
+  programRole?: DegreeChecksheetProgramRole | null;
+  /**
+   * @maxLength 120
+   * @nullable
+   */
+  school?: string | null;
+  /**
+   * Free text such as "2025-26" or "Fall 2025 and Later". Descriptive only.
+   * @maxLength 120
+   * @nullable
+   */
+  academicYearLabel?: string | null;
+  /**
+   * @maxLength 2000
+   * @nullable
+   */
+  sourceUrl?: string | null;
+};
+
+export interface DegreeChecksheetUpdateInput {
+  /**
+   * @minLength 1
+   * @maxLength 120
+   */
+  title?: string;
+  category?: DegreeChecksheetCategory;
+  /**
+   * @maxLength 120
+   * @nullable
+   */
+  programName?: string | null;
+  programRole?: DegreeChecksheetProgramRole | null;
+  /**
+   * @maxLength 120
+   * @nullable
+   */
+  school?: string | null;
+  /**
+   * @maxLength 120
+   * @nullable
+   */
+  academicYearLabel?: string | null;
+  /**
+   * @maxLength 2000
+   * @nullable
+   */
+  sourceUrl?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 1000
+   */
+  sortOrder?: number;
+}
+
+/**
+ * @nullable
+ */
+export type DegreeChecksheetDocumentPreviewKind =
+  | (typeof DegreeChecksheetDocumentPreviewKind)[keyof typeof DegreeChecksheetDocumentPreviewKind]
+  | null;
+
+export const DegreeChecksheetDocumentPreviewKind = {
+  spreadsheet: "spreadsheet",
+  pdf: "pdf",
+  image: "image",
+  document: "document",
+} as const;
+
+export interface DegreeChecksheetDocument {
+  id: number;
+  title: string;
+  category: DegreeChecksheetCategory;
+  /** @nullable */
+  programName: string | null;
+  programRole: DegreeChecksheetProgramRole | null;
+  /** @nullable */
+  school: string | null;
+  /** @nullable */
+  academicYearLabel: string | null;
+  /** @nullable */
+  sourceUrl: string | null;
+  sortOrder: number;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  sourceFormat: DegreeChecksheetFormat;
+  /** 1 for the first file; +1 each time the file is replaced. */
+  sourceVersion: number;
+  /** When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a department date. */
+  uploadedAt: string;
+  renderStatus: DegreeChecksheetRenderStatus;
+  /** @nullable */
+  renderNoteCode: string | null;
+  /** @nullable */
+  renderNoteMessage: string | null;
+  /** @nullable */
+  previewKind: DegreeChecksheetDocumentPreviewKind;
+  /** True when the document has cells where tracking can be entered in place. */
+  inlineTracking: boolean;
+  /** First 12 hex characters of the file's SHA-256. Lets the browser notice an identical file before uploading it again. */
+  fileFingerprint: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DegreeChecksheetList {
+  /** False when object storage is not configured for this deployment. */
+  available: boolean;
+  maxUploadBytes: number;
+  maxDocuments: number;
+  acceptedExtensions: string[];
+  documents: DegreeChecksheetDocument[];
+}
+
+export interface DegreeChecksheetFailure {
+  error: string;
+  code: string;
+}
+
+export type ChecksheetTrackingColumnField =
+  (typeof ChecksheetTrackingColumnField)[keyof typeof ChecksheetTrackingColumnField];
+
+export const ChecksheetTrackingColumnField = {
+  status: "status",
+  term: "term",
+} as const;
+
+export interface ChecksheetTrackingColumn {
+  c: number;
+  field: ChecksheetTrackingColumnField;
+  header: string;
+  headerRow: number;
+}
+
+export type ChecksheetTrackingCellField =
+  (typeof ChecksheetTrackingCellField)[keyof typeof ChecksheetTrackingCellField];
+
+export const ChecksheetTrackingCellField = {
+  status: "status",
+  term: "term",
+} as const;
+
+export interface ChecksheetTrackingCell {
+  r: number;
+  c: number;
+  field: ChecksheetTrackingCellField;
+}
+
+/**
+ * Where the source left room for the student to write. About placement only.
+ */
+export interface ChecksheetTrackingLayout {
+  columns: ChecksheetTrackingColumn[];
+  cells: ChecksheetTrackingCell[];
+}
+
+export type ChecksheetSheet = AprSheet & {
+  tracking: ChecksheetTrackingLayout;
+};
+
+export interface ChecksheetPdfPage {
+  width: number;
+  height: number;
+}
+
+export interface ChecksheetDocRun {
+  /** Plain text. Never markup. */
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  /** An http(s) link from the document. */
+  href?: string;
+}
+
+export interface ChecksheetDocTableCell {
+  runs: ChecksheetDocRun[];
+  header?: boolean;
+  colSpan?: number;
+  rowSpan?: number;
+}
+
+export type ChecksheetDocBlockType =
+  (typeof ChecksheetDocBlockType)[keyof typeof ChecksheetDocBlockType];
+
+export const ChecksheetDocBlockType = {
+  heading: "heading",
+  paragraph: "paragraph",
+  "list-item": "list-item",
+  table: "table",
+  image: "image",
+  "image-omitted": "image-omitted",
+} as const;
+
+export type ChecksheetDocBlockMime =
+  (typeof ChecksheetDocBlockMime)[keyof typeof ChecksheetDocBlockMime];
+
+export const ChecksheetDocBlockMime = {
+  "image/png": "image/png",
+  "image/jpeg": "image/jpeg",
+  "image/gif": "image/gif",
+} as const;
+
+export interface ChecksheetDocBlock {
+  type: ChecksheetDocBlockType;
+  /**
+   * @minimum 1
+   * @maximum 6
+   */
+  level?: number;
+  ordered?: boolean;
+  depth?: number;
+  runs?: ChecksheetDocRun[];
+  rows?: ChecksheetDocTableCell[][];
+  tracking?: ChecksheetTrackingLayout;
+  mime?: ChecksheetDocBlockMime;
+  /** Base64 picture bytes. */
+  data?: string;
+  alt?: string;
+}
+
+export type DegreeChecksheetRenderKind =
+  (typeof DegreeChecksheetRenderKind)[keyof typeof DegreeChecksheetRenderKind];
+
+export const DegreeChecksheetRenderKind = {
+  spreadsheet: "spreadsheet",
+  pdf: "pdf",
+  image: "image",
+  document: "document",
+} as const;
+
+export interface DegreeChecksheetRender {
+  version: number;
+  kind: DegreeChecksheetRenderKind;
+  sheets?: ChecksheetSheet[];
+  pages?: ChecksheetPdfPage[];
+  width?: number;
+  height?: number;
+  blocks?: ChecksheetDocBlock[];
+  warnings?: string[];
+}
+
+export interface DegreeChecksheetRenderEnvelope {
+  document: DegreeChecksheetDocument;
+  /** Null when the document is kept as an original only. */
+  render: DegreeChecksheetRender | null;
+}
+
+/**
+ * A position in one document. sheet_cell: sheet,row,col. doc_cell: block,row,col.
+point: page,x,y with x and y as fractions (0..1) of the page from its top-left
+corner, so a marker keeps its place at any zoom. manual: empty.
+
+ */
+export interface DegreeChecksheetAnchor {
+  /** @minimum 0 */
+  sheet?: number;
+  /** @minimum 0 */
+  block?: number;
+  /** @minimum 0 */
+  row?: number;
+  /** @minimum 0 */
+  col?: number;
+  /** @minimum 0 */
+  page?: number;
+  /**
+   * @minimum 0
+   * @maximum 1
+   */
+  x?: number;
+  /**
+   * @minimum 0
+   * @maximum 1
+   */
+  y?: number;
+}
+
+export type DegreeChecksheetAnchorType =
+  (typeof DegreeChecksheetAnchorType)[keyof typeof DegreeChecksheetAnchorType];
+
+export const DegreeChecksheetAnchorType = {
+  sheet_cell: "sheet_cell",
+  doc_cell: "doc_cell",
+  point: "point",
+  manual: "manual",
+} as const;
+
+/**
+ * For a cell entry, which value its column holds.
+ * @nullable
+ */
+export type DegreeChecksheetAnnotationField =
+  | (typeof DegreeChecksheetAnnotationField)[keyof typeof DegreeChecksheetAnnotationField]
+  | null;
+
+export const DegreeChecksheetAnnotationField = {
+  status: "status",
+  term: "term",
+} as const;
+
+export interface DegreeChecksheetAnnotation {
+  id: number;
+  documentId: number;
+  anchorType: DegreeChecksheetAnchorType;
+  anchor: DegreeChecksheetAnchor;
+  /**
+   * For a cell entry, which value its column holds.
+   * @nullable
+   */
+  field: DegreeChecksheetAnnotationField;
+  /** True when the file was replaced and this entry's place could not be confirmed in
+the new file. A detached entry is listed, never drawn over the document.
+ */
+  detached: boolean;
+  /** @nullable */
+  itemLabel: string | null;
+  status: TrackingStatus | null;
+  term: TrackingTerm | null;
+  /**
+   * The CALENDAR year of the term (winter + 2027 = Winter 2027).
+   * @nullable
+   */
+  termYear: number | null;
+  /** @nullable */
+  note: string | null;
+  sortOrder: number;
+  /** +1 on every change. Send it back as expectedRevision to avoid overwriting a newer save. */
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DegreeChecksheetAnnotationList {
+  maxAnnotations: number;
+  annotations: DegreeChecksheetAnnotation[];
+}
+
+export interface DegreeChecksheetAnnotationCreateInput {
+  anchorType: DegreeChecksheetAnchorType;
+  anchor?: DegreeChecksheetAnchor;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  itemLabel?: string | null;
+  status?: TrackingStatus | null;
+  term?: TrackingTerm | null;
+  /**
+   * @minimum 2000
+   * @maximum 2100
+   * @nullable
+   */
+  termYear?: number | null;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  note?: string | null;
+}
+
+export interface DegreeChecksheetAnnotationUpdateInput {
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  itemLabel?: string | null;
+  status?: TrackingStatus | null;
+  term?: TrackingTerm | null;
+  /**
+   * @minimum 2000
+   * @maximum 2100
+   * @nullable
+   */
+  termYear?: number | null;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  note?: string | null;
+  anchor?: DegreeChecksheetAnchor;
+  /** Turn a detached entry into an entry of the student's own list. */
+  keepAsListEntry?: boolean;
+  /**
+   * The revision the change was based on. A mismatch is refused with 409.
+   * @minimum 1
+   */
+  expectedRevision?: number;
+}
+
+export interface DegreeChecksheetAnnotationConflict {
+  error: string;
+  current: DegreeChecksheetAnnotation;
+}
+
+export type DegreeChecksheetReplaceResultTracking = {
+  /** Entries still in place. */
+  kept: number;
+  /** Entries whose place could not be confirmed in the new file. */
+  detached: number;
+};
+
+export interface DegreeChecksheetReplaceResult {
+  document: DegreeChecksheetDocument;
+  tracking: DegreeChecksheetReplaceResultTracking;
+}
+
 export interface DeletedResponse {
   deleted: boolean;
 }
