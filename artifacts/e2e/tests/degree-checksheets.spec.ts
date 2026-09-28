@@ -12,9 +12,13 @@
  *   G  small screens
  *   H  privacy: another student and a plan-sharing advisor see nothing
  *   I  nothing else changed: APR page, Degree Plan, Quarter Plan, Tentative
+ *   J  a requirements checklist (one student column per table); a replacement;
+ *      putting an entry the replacement set aside back into a cell
  *   R  (optional) real department documents from a local folder, never
  *      committed: set CHECKSHEET_REAL_DIR to a folder holding eng-*.pdf,
  *      cas-*.pdf and cas-*.docx files downloaded from scu.edu
+ *   S  (optional) every real requirements checklist (checklists/*.xlsx) and
+ *      course plan (plans/*.docx) in that folder
  *
  * Every document used here is SYNTHETIC (api-server/src/__fixtures__/checksheets).
  *
@@ -1103,6 +1107,131 @@ test("I. Nothing else changed: APR, Degree Plan, Quarter Plan, Tentative Degree 
 });
 
 
+test("J. A requirements checklist: both values in one column; a replacement; an entry put back in a cell", async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors = watchErrors(page);
+  await page.goto("/degree-checksheets");
+  await sessionReady(page);
+  const title = "Applied Widgetry Requirements Checklist";
+  await uploadDocument(page, "checklist-workbook", { title, category: "major_checksheet", program: "Applied Widgetry", role: "major" });
+
+  const card = cardFor(page, title);
+  await open(card);
+  const grid = card.getByTestId("checksheet-grid");
+  await expect(grid).toContainText("Introduction to Widgetry", { timeout: 30_000 });
+
+  // One student column per table, and it takes a status AND a quarter.
+  const cell = (r: number, c: number) => card.getByTestId(`checksheet-cell-0-${r}-${c}`);
+  await expect(cell(2, 1)).toHaveAttribute("data-tracking-cell", "both");
+  // A status, and a quarter with its year.
+  await expect(cell(2, 1).locator("select")).toHaveCount(3);
+  // Headings hold no control, in either table; a row that names nothing for a table holds none there.
+  for (const [r, c] of [[1, 1], [1, 4], [5, 1], [5, 4], [4, 4], [7, 4], [8, 4]]) await expect(cell(r!, c!)).toHaveCount(0);
+  await expect(cell(2, 4)).toHaveAttribute("data-tracking-cell", "both");
+  // Every shaded requirement row is offered: shading is not a heading.
+  for (const r of [2, 3, 4, 6, 7, 8]) await expect(cell(r, 1)).toBeVisible();
+  // A cell the spreadsheet calculates is left empty, with a plain statement.
+  await expect(grid).not.toContainText("#N/A");
+  await expect(card.getByTestId("checksheet-calculated-note")).toContainText("does not run formulas");
+  // Controls are named after their own table's row.
+  await expect(card.getByLabel("My status for Introduction to Widgetry", { exact: true })).toBeVisible();
+  await expect(card.getByLabel("My status for WIDG 101", { exact: true })).toBeVisible();
+
+  await card.getByTestId("checksheet-cell-status-0-2-1").selectOption("completed");
+  await card.getByTestId("checksheet-cell-term-0-2-1-term").selectOption("fall");
+  await card.getByTestId("checksheet-cell-status-0-3-1").selectOption("planned");
+  await saved(card);
+  await cell(2, 1).scrollIntoViewIfNeeded();
+  await shot(page, "J1-checklist-both-values");
+
+  const doc = (await listDocuments(page)).find((d) => d.title === title)!;
+  const before = await entriesOf(page, doc.id);
+  expect(before.map((e) => [e.anchor.row, e.anchor.col, e.status, e.term, e.detached])).toEqual([
+    [2, 1, "completed", "fall", false],
+    [3, 1, "planned", null, false],
+  ]);
+
+  await page.reload();
+  await open(cardFor(page, title));
+  await expect(card.getByTestId("checksheet-cell-status-0-2-1")).toHaveValue("completed", { timeout: 30_000 });
+  await expect(card.getByTestId("checksheet-cell-term-0-2-1-term")).toHaveValue("fall");
+  await expect(card.getByTestId("checksheet-cell-status-0-3-1")).toHaveValue("planned");
+
+  // The department publishes a new version: the first requirement is now a different course.
+  await card.locator('[data-testid^="checksheet-replace-"]').click();
+  const form = card.getByTestId("checksheet-replace-form");
+  await form.getByTestId("checksheet-input-file").setInputFiles(await fixtureFile("checklist-workbook-reworded"));
+  await form.getByTestId("checksheet-replace-submit").click();
+  const notice = card.locator('[data-testid^="checksheet-replaced-"]');
+  await expect(notice).toContainText("1 of your tracking entry could not be matched", { timeout: 40_000 });
+  await expect(notice).toContainText("1 stayed in place");
+  await expect(grid).toContainText("History of Widgets", { timeout: 20_000 });
+  // The new requirement did not inherit the old one's values.
+  await expect(card.getByTestId("checksheet-cell-status-0-2-1")).toHaveValue("");
+  await expect(card.getByTestId("checksheet-cell-status-0-3-1")).toHaveValue("planned");
+
+  const detached = card.getByTestId("checksheet-detached");
+  await expect(detached).toContainText("Introduction to Widgetry");
+  await expect(detached).toContainText("Completed");
+  await shot(page, "J2-checklist-replaced");
+
+  // The student decides where it belongs on the new file.
+  await detached.locator('[data-testid^="checksheet-detached-place-cell-"]').click();
+  const banner = card.getByTestId("checksheet-relink-banner");
+  await expect(banner).toContainText("Introduction to Widgetry");
+  await expect(banner).toContainText("Completed, Fall");
+  // Only free cells are offered; the one that is taken keeps its controls.
+  await expect(card.getByTestId("checksheet-place-here-0-3-1")).toHaveCount(0);
+  await expect(card.getByTestId("checksheet-cell-status-0-3-1")).toHaveValue("planned");
+  await expect(card.getByTestId("checksheet-place-here-0-2-1")).toBeVisible();
+  await card.getByTestId("checksheet-place-here-0-4-1").scrollIntoViewIfNeeded();
+  await shot(page, "J3-checklist-placing");
+
+  // Cancelling places nothing.
+  await card.getByTestId("checksheet-relink-cancel").click();
+  await expect(banner).toHaveCount(0);
+  await expect(card.getByTestId("checksheet-detached")).toBeVisible();
+  expect((await entriesOf(page, doc.id)).filter((e) => e.detached)).toHaveLength(1);
+
+  await card.locator('[data-testid^="checksheet-detached-place-cell-"]').click();
+  await card.getByTestId("checksheet-place-here-0-4-1").click();
+  await expect(banner).toHaveCount(0);
+  await expect(card.getByTestId("checksheet-detached")).toHaveCount(0);
+  await expect(card.getByTestId("checksheet-cell-status-0-4-1")).toHaveValue("completed");
+  await expect(card.getByTestId("checksheet-cell-term-0-4-1-term")).toHaveValue("fall");
+  await saved(card);
+  await cell(4, 1).scrollIntoViewIfNeeded();
+  await shot(page, "J4-checklist-placed");
+
+  const after = await entriesOf(page, doc.id);
+  expect(after.filter((e) => e.detached)).toEqual([]);
+  expect(after.map((e) => [e.id, e.anchor.row, e.anchor.col, e.status, e.term]).sort()).toEqual(
+    [
+      [before[0]!.id, 4, 1, "completed", "fall"],
+      [before[1]!.id, 3, 1, "planned", null],
+    ].sort(),
+  );
+
+  // It can be changed where it now sits, and all of it survives a reload.
+  await card.getByTestId("checksheet-cell-status-0-4-1").selectOption("in_progress");
+  await saved(card);
+  await page.reload();
+  await open(cardFor(page, title));
+  await expect(card.getByTestId("checksheet-cell-status-0-4-1")).toHaveValue("in_progress", { timeout: 30_000 });
+  await expect(card.getByTestId("checksheet-cell-term-0-4-1-term")).toHaveValue("fall");
+  await expect(card.getByTestId("checksheet-cell-status-0-2-1")).toHaveValue("");
+  await expect(card.getByTestId("checksheet-detached")).toHaveCount(0);
+  expect(await entriesOf(page, doc.id)).toHaveLength(2);
+
+  // The file is the department's, byte for byte.
+  const stored = await (await page.request.get(`/api/degree-checksheets/${doc.id}/file`)).body();
+  expect(stored.equals(uploadedBytes("checklist-workbook-reworded"))).toBe(true);
+  await noHorizontalOverflow(page, "requirements checklist");
+
+  await page.request.delete(`/api/degree-checksheets/${doc.id}`);
+  expect(errors).toEqual([]);
+});
+
 /**
  * Real department documents, when a folder of them is available on this
  * machine. They are read from outside the repository and are never committed;
@@ -1252,5 +1381,106 @@ test("R. Real SCU department PDFs are drawn, tracked and left unchanged", async 
     await dialog.getByTestId("checksheet-upload-cancel").click();
   }
   expect((await listDocuments(page)).some((d) => d.title.startsWith("Real SCU document") || d.title === "Saved sign-in page")).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+const filesIn = (folder: string, pattern: RegExp): string[] => {
+  const dir = REAL_DIR ? path.join(REAL_DIR, folder) : "";
+  return dir && existsSync(dir)
+    ? readdirSync(dir)
+        .filter((n) => pattern.test(n))
+        .sort()
+        .map((n) => path.join(dir, n))
+    : [];
+};
+const REAL_CHECKLISTS = filesIn("checklists", /\.xlsx$/i);
+const REAL_PLANS = filesIn("plans", /\.docx$/i);
+
+test("S. Every real requirements checklist and course plan is shown, tracked in place and left unchanged", async ({ page }) => {
+  test.skip(REAL_CHECKLISTS.length + REAL_PLANS.length === 0, "Set CHECKSHEET_REAL_DIR to a folder with checklists/ and plans/.");
+  test.setTimeout(45 * 60_000);
+  const errors = watchErrors(page);
+  await page.goto("/degree-checksheets");
+  await sessionReady(page);
+  for (const d of await listDocuments(page)) {
+    if (/^Real (checklist|plan) \d+$/.test(d.title)) await page.request.delete(`/api/degree-checksheets/${d.id}`);
+  }
+  await page.reload();
+  await sessionReady(page);
+
+  async function upload(file: string, title: string, category: string) {
+    await page.getByTestId("button-upload-checksheet").first().click();
+    const dialog = page.getByTestId("checksheet-upload-dialog");
+    await dialog.getByTestId("checksheet-input-file").setInputFiles(file);
+    await dialog.getByTestId("checksheet-field-title").fill(title);
+    await dialog.getByTestId("checksheet-field-category").selectOption(category);
+    await dialog.getByTestId("checksheet-upload-submit").click();
+    await expect(dialog, path.basename(file)).toBeHidden({ timeout: 60_000 });
+    const card = cardFor(page, title);
+    await open(card);
+    return card;
+  }
+
+  async function finish(card: Locator, file: string, title: string, entries: number) {
+    const doc = (await listDocuments(page)).find((d) => d.title === title)!;
+    const stored = await (await page.request.get(`/api/degree-checksheets/${doc.id}/file`)).body();
+    expect(stored.equals(readFileSync(file)), `${path.basename(file)} is stored byte for byte`).toBe(true);
+    expect(await entriesOf(page, doc.id), path.basename(file)).toHaveLength(entries);
+    await noHorizontalOverflow(page, path.basename(file));
+    await card.locator('[data-testid^="checksheet-delete-"]').click();
+    await page.getByTestId("checksheet-delete-confirm").click();
+    await expect(cardFor(page, title)).toHaveCount(0, { timeout: 20_000 });
+  }
+
+  let cells = 0;
+  for (const [index, file] of REAL_CHECKLISTS.entries()) {
+    const name = path.basename(file);
+    const title = `Real checklist ${index + 1}`;
+    const card = await upload(file, title, "major_checksheet");
+    const grid = card.getByTestId("checksheet-grid");
+    await expect(grid, name).toBeVisible({ timeout: 30_000 });
+    await expect(grid, name).toContainText(/Quarter|Status/);
+    // No value a formula failed to produce is shown as if the department wrote it.
+    expect(await grid.innerText(), name).not.toMatch(/#(N\/A|REF!|VALUE!|NAME\?)/);
+
+    const offered = grid.locator("[data-tracking-cell]");
+    const count = await offered.count();
+    expect(count, `${name}: cells offered in place`).toBeGreaterThan(5);
+    cells += count;
+    // Every one is an empty cell of the student's column, and holds both controls.
+    expect(await grid.locator('[data-tracking-cell="both"]').count(), name).toBe(count);
+
+    const first = offered.first();
+    await first.scrollIntoViewIfNeeded();
+    await first.locator("select").first().selectOption("completed");
+    await first.locator("select").nth(1).selectOption("fall");
+    await saved(card);
+    if (index < 3 || /history/i.test(name)) await shot(page, `S${index + 1}-real-checklist`);
+    await finish(card, file, title, 1);
+  }
+
+  for (const [index, file] of REAL_PLANS.entries()) {
+    const name = path.basename(file);
+    const title = `Real plan ${index + 1}`;
+    const card = await upload(file, title, "four_year_plan");
+    const body = card.locator('[data-testid^="checksheet-document-"][role="region"]');
+    await expect(body, name).toBeVisible({ timeout: 30_000 });
+    expect(await body.locator("table").count(), name).toBeGreaterThanOrEqual(1);
+    expect(((await body.innerText()).match(/[A-Za-z]{3,}/g) ?? []).length, name).toBeGreaterThan(40);
+    // A course plan leaves no column for the student; nothing is editable until a cell is chosen.
+    await expect(body.locator("select, input, textarea, [contenteditable]"), name).toHaveCount(0);
+    await card.getByTestId("checksheet-pick-item").click();
+    const pick = body.locator('[data-pickable="true"]').first();
+    await pick.scrollIntoViewIfNeeded();
+    await pick.click();
+    const entry = body.locator('[data-tracked-item="true"]');
+    await expect(entry, name).toHaveCount(1);
+    await entry.locator("select").first().selectOption("planned");
+    await saved(card);
+    if (index < 2) await shot(page, `SP${index + 1}-real-plan`);
+    await finish(card, file, title, 1);
+  }
+
+  console.log(`real checklists: ${REAL_CHECKLISTS.length}, cells offered in place: ${cells}; real course plans: ${REAL_PLANS.length}`);
   expect(errors).toEqual([]);
 });

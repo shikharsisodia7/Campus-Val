@@ -17,7 +17,7 @@ export interface DegreeChecksheetAnnotation {
   anchorType: DegreeChecksheetAnchorType;
   anchor: DegreeChecksheetAnchor;
   /**
-   * For a cell entry, which value its column holds.
+   * For a cell entry, which value its column holds ("both" for a table's only student column).
    * @nullable
    */
   field: DegreeChecksheetAnnotationField;

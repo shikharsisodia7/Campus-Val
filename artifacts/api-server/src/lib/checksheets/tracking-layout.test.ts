@@ -140,7 +140,7 @@ describe("conservative: when in doubt, nothing is editable", () => {
 
   it("accepts a bare 'Year' column only when it is completely empty", () => {
     const empty = detectTrackingLayout(grid([["Course", "Year"], ["WIDG 101", null], ["WIDG 111", null]]), NONE, "s");
-    expect(at(empty)).toEqual(["1:1:term", "2:1:term"]);
+    expect(at(empty)).toEqual(["1:1:both", "2:1:both"]);
 
     const rows: Cell[][] = [["Course", "Year"]];
     for (let i = 0; i < 9; i++) rows.push([`WIDG ${100 + i}`, null]);
@@ -176,7 +176,7 @@ describe("conservative: when in doubt, nothing is editable", () => {
       new Set(["1:1"]),
       "s",
     );
-    expect(at(layout)).toEqual(["2:1:status"]);
+    expect(at(layout)).toEqual(["2:1:both"]);
   });
 });
 
@@ -192,7 +192,7 @@ describe("tables with more than one region", () => {
       "s",
     );
     expect(layout.columns.map((c) => c.c)).toEqual([1, 3]);
-    expect(at(layout)).toEqual(["1:1:status", "2:1:status", "1:3:status", "2:3:status"]);
+    expect(at(layout)).toEqual(["1:1:both", "2:1:both", "1:3:both", "2:3:both"]);
   });
 
   it("starts a new region at each header row", () => {
@@ -206,7 +206,139 @@ describe("tables with more than one region", () => {
       NONE,
       "s",
     );
-    expect(at(layout)).toEqual(["1:1:status", "3:2:term"]);
+    expect(at(layout)).toEqual(["1:1:both", "3:2:both"]);
     expect(layout.columns.map((c) => c.headerRow)).toEqual([0, 2]);
+  });
+});
+
+describe("what a student column holds", () => {
+  it("holds both a status and a quarter when it is the table's only kind of student column", () => {
+    const layout = detectTrackingLayout(grid([["Course", "Quarter Completed"], ["WIDG 101", null]]), NONE, "s");
+    expect(layout.columns.map((c) => c.field)).toEqual(["both"]);
+    expect(at(layout)).toEqual(["1:1:both"]);
+  });
+
+  it("holds one value each when the table has a status column AND a quarter column", () => {
+    const layout = detectTrackingLayout(grid([["Course", "Status", "Quarter"], ["WIDG 101", null, null]]), NONE, "s");
+    expect(at(layout)).toEqual(["1:1:status", "1:2:term"]);
+  });
+});
+
+describe("two tables side by side, as the real checklists are laid out", () => {
+  // Requirements on the left; a four-year grid on the right with its own column.
+  const rows = grid(
+    [
+      ["Requirements", "Quarter Completed", null, "Course", "Quarter"],
+      ["Lower Division", null, null, "First Year", null],
+      ["WIDG 101", null, null, "WIDG 101", null],
+      ["WIDG 111", null, null, null, null],
+      [null, null, null, "GADG 10", null],
+    ],
+    [0, 1],
+  );
+  const layout = detectTrackingLayout(rows, NONE, "s");
+
+  it("offers a cell only in the rows that name something for that column", () => {
+    // Left column: rows 2 and 3. Right column: rows 2 and 4. Row 1 is a heading in both.
+    expect(at(layout)).toEqual(["2:1:both", "3:1:both", "2:4:both", "4:4:both"]);
+  });
+
+  it("fingerprints a cell by its own table's wording, not by its neighbour's", () => {
+    const changedNeighbour = detectTrackingLayout(
+      grid(
+        [
+          ["Requirements", "Quarter Completed", null, "Course", "Quarter"],
+          ["Lower Division", null, null, "First Year", null],
+          ["WIDG 101", null, null, "Something else entirely", null],
+          ["WIDG 111", null, null, null, null],
+          [null, null, null, "GADG 10", null],
+        ],
+        [0, 1],
+      ),
+      NONE,
+      "s",
+    );
+    const print = (l: typeof layout, r: number, c: number) => l.cells.find((x) => x.r === r && x.c === c)!.fingerprint;
+    expect(print(changedNeighbour, 2, 1)).toBe(print(layout, 2, 1));
+    expect(print(changedNeighbour, 2, 4)).not.toBe(print(layout, 2, 4));
+  });
+});
+
+describe("section headings", () => {
+  it("is a heading when its one label is bold, and an item when it is not", () => {
+    const rows: LayoutRow[] = [
+      { r: 0, cells: [{ c: 0, text: "Requirements" }, { c: 1, text: "Quarter Completed" }] },
+      { r: 1, cells: [{ c: 0, text: "Upper Division", emphasized: true }] },
+      { r: 2, cells: [{ c: 0, text: "One course in Widget History" }] },
+    ];
+    expect(at(detectTrackingLayout(rows, NONE, "s"))).toEqual(["2:1:both"]);
+  });
+});
+
+describe("what a column holds is decided per table, among the columns really offered", () => {
+  it("gives the one student column both values when the header's other column is the department's", () => {
+    // As the real checklists are: "Status" for the student, and a "Year" column the department filled in.
+    const layout = detectTrackingLayout(
+      grid([
+        ["Foundations", "Status", "Notes", "Year", "Fall"],
+        ["Cultures and Ideas 1", null, null, "Year 1 Course 1", null],
+        ["Cultures and Ideas 2", null, null, "Year 1 Course 2", null],
+      ]),
+      NONE,
+      "s",
+    );
+    expect(layout.columns.map((c) => [c.c, c.field, c.header])).toEqual([[1, "both", "Status"]]);
+    expect(at(layout)).toEqual(["1:1:both", "2:1:both"]);
+  });
+
+  it("keeps a table's Status and Quarter columns apart even when another table has one column", () => {
+    const layout = detectTrackingLayout(
+      grid([
+        ["Course", "Status", "Quarter", "Elective", "Completed"],
+        ["WIDG 101", null, null, "GADG 10", null],
+      ]),
+      NONE,
+      "s",
+    );
+    expect(at(layout)).toEqual(["1:1:status", "1:2:term", "1:4:both"]);
+  });
+
+  it("offers a Quarter column that follows a Status column in the rows of their shared table", () => {
+    const layout = detectTrackingLayout(
+      grid([
+        ["Course", "Status", "Quarter", "Elective", "Completed"],
+        ["WIDG 101", null, null, null, null],
+        [null, null, null, "GADG 10", null],
+      ]),
+      NONE,
+      "s",
+    );
+    expect(at(layout)).toEqual(["1:1:status", "1:2:term", "2:4:both"]);
+  });
+});
+
+describe("a header row whose first cell is the table's title", () => {
+  it("is still a header when the title is longer than a column header may be", () => {
+    const layout = detectTrackingLayout(
+      grid([
+        ["Applied Widgetry and Sprocket Studies Minor", "Quarter", "Notes"],
+        ["One upper-division course", null, null],
+      ]),
+      NONE,
+      "s",
+    );
+    expect(at(layout)).toEqual(["1:1:both"]);
+  });
+
+  it("is not a header when a cell is a sentence", () => {
+    const layout = detectTrackingLayout(
+      grid([
+        ["Students must complete every course listed below with a grade of C or better before graduating", "Quarter", "Notes"],
+        ["One upper-division course", null, null],
+      ]),
+      NONE,
+      "s",
+    );
+    expect(layout.cells).toEqual([]);
   });
 });

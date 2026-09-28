@@ -99,6 +99,48 @@ export const electivesSheet: ChecksheetSheet = {
   },
 };
 
+/**
+ * Laid out as a department "requirements checklist" is: the requirements with
+ * one student column on the left, and a year-by-year grid with its own student
+ * column on the right. Every cell is shaded, headings are bold.
+ */
+export const checklistSheet: ChecksheetSheet = {
+  name: "Checklist",
+  index: 0,
+  visibility: "visible",
+  rowCount: 5,
+  columnCount: 5,
+  columnWidths: [40, 18, 4, 24, 18],
+  merges: [],
+  rows: [
+    {
+      r: 0,
+      cells: [
+        { c: 0, text: "Requirements", bold: true, filled: true },
+        { c: 1, text: "Quarter Completed", bold: true, filled: true },
+        { c: 3, text: "Course", bold: true, filled: true },
+        { c: 4, text: "Quarter", bold: true, filled: true },
+      ],
+    },
+    { r: 1, cells: [{ c: 0, text: "Lower Division", bold: true, filled: true }, { c: 3, text: "First Year", bold: true, filled: true }] },
+    { r: 2, cells: [{ c: 0, text: "Introduction to Widgetry", filled: true }, { c: 3, text: "WIDG 101", filled: true }] },
+    { r: 3, cells: [{ c: 0, text: "Widget Mathematics I", filled: true }] },
+    { r: 4, cells: [{ c: 3, text: "GADG 10", filled: true }] },
+  ],
+  tracking: {
+    columns: [
+      { c: 1, field: "both", header: "Quarter Completed", headerRow: 0 },
+      { c: 4, field: "both", header: "Quarter", headerRow: 0 },
+    ],
+    cells: [
+      { r: 2, c: 1, field: "both" },
+      { r: 3, c: 1, field: "both" },
+      { r: 2, c: 4, field: "both" },
+      { r: 4, c: 4, field: "both" },
+    ],
+  },
+};
+
 export const spreadsheetRender: DegreeChecksheetRender = {
   version: 1,
   kind: "spreadsheet",
@@ -201,7 +243,10 @@ type Spy = (...args: never[]) => unknown;
 export function fakeTracking(
   entries: TrackingEntry[],
   spies: Partial<
-    Record<"change" | "remove" | "setCell" | "addItem" | "addPoint" | "addManual" | "movePoint" | "keepAsListEntry" | "retry", Spy>
+    Record<
+      "change" | "remove" | "setCell" | "addItem" | "addPoint" | "addManual" | "movePoint" | "placeInCell" | "keepAsListEntry" | "retry",
+      Spy
+    >
   > = {},
 ): ChecksheetTracking {
   const nothing = () => undefined;
@@ -220,6 +265,7 @@ export function fakeTracking(
     addPoint: (spies.addPoint ?? (() => "new:1")) as never,
     addManual: (spies.addManual ?? (() => "new:1")) as never,
     movePoint: (spies.movePoint ?? nothing) as never,
+    placeInCell: (spies.placeInCell ?? nothing) as never,
     keepAsListEntry: (spies.keepAsListEntry ?? nothing) as never,
     retry: (spies.retry ?? nothing) as never,
     flush: async () => undefined,

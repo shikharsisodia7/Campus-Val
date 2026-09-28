@@ -167,6 +167,84 @@ describe("spreadsheet", () => {
     const out = await buildChecksheetRender(Buffer.from(await wb.xlsx.writeBuffer()), "xlsx");
     expect(JSON.stringify(out.render)).not.toMatch(/SUM\(|HYPERLINK|formula/);
   });
+
+  it("leaves out a formula's error value, says so, and never offers that cell to the student", async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Checklist");
+    ws.addRow(["Requirements", "Quarter Completed"]);
+    ws.addRow(["WIDG 101", null]);
+    ws.addRow(["WIDG 111", { formula: "VLOOKUP(A3,Z1:Z2,1,FALSE)", result: { error: "#N/A" } }]);
+    ws.addRow(["WIDG 120", null]);
+    ws.addRow(["WIDG 130", null]);
+    ws.addRow(["WIDG 140", null]);
+    ws.addRow(["WIDG 150", null]);
+    const out = await buildChecksheetRender(Buffer.from(await wb.xlsx.writeBuffer()), "xlsx");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    expect(JSON.stringify(out.render.sheets)).not.toContain("#N/A");
+    expect(out.render.warnings).toContain("calculated_cells_not_shown");
+    const offered = out.render.sheets[0]!.tracking.cells.map((c) => c.r);
+    expect(offered).toEqual([1, 3, 4, 5, 6]);
+  });
+
+  it("says nothing about calculated cells when there are none", async () => {
+    const out = await buildChecksheetRender(await buildChecksheetFixture("major-workbook"), "xlsx");
+    expect(out.render?.kind === "spreadsheet" && out.render.warnings).not.toContain("calculated_cells_not_shown");
+  });
+
+  it("reads a workbook whose worksheet is named History, and shows that name", async () => {
+    // Excel reserves the name, the workbook library refuses it, and a History
+    // department's checklist has it. The library will not write one either, so
+    // the name is put into the file the way the real one has it.
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Hist");
+    ws.addRow(["Requirements", "Quarter Completed"]);
+    ws.addRow(["One course in Widget History", null]);
+    const zip = await JSZip.loadAsync(Buffer.from(await wb.xlsx.writeBuffer()));
+    const xml = await zip.file("xl/workbook.xml")!.async("string");
+    expect(xml).toContain('name="Hist"');
+    zip.file("xl/workbook.xml", xml.replace('name="Hist"', 'name="History"'));
+    const bytes = await zip.generateAsync({ type: "nodebuffer" });
+
+    const out = await buildChecksheetRender(bytes, "xlsx");
+    expect(out.status).toBe("ready");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    expect(out.render.sheets.map((s) => s.name)).toEqual(["History"]);
+    expect(out.render.sheets[0]!.tracking.cells.map((c) => [c.r, c.c, c.field])).toEqual([[1, 1, "both"]]);
+  });
+
+  it("reads a requirements checklist: two tables side by side, one student column each", async () => {
+    const out = await buildChecksheetRender(await buildChecksheetFixture("checklist-workbook"), "xlsx");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    const { tracking } = out.render.sheets[0]!;
+    expect(tracking.columns.map((c) => [c.c, c.field, c.header])).toEqual([
+      [1, "both", "Quarter Completed"],
+      [4, "both", "Quarter"],
+    ]);
+    const rowsOf = (c: number) => tracking.cells.filter((cell) => cell.c === c).map((cell) => cell.r);
+    // Five requirements and the units line; never the two headings.
+    expect(rowsOf(1)).toEqual([2, 3, 4, 6, 7, 8]);
+    // Three planned courses; never "First Year" / "Second Year", never the calculated cell's row.
+    expect(rowsOf(4)).toEqual([2, 3, 6]);
+    expect(out.render.warnings).toContain("calculated_cells_not_shown");
+  });
+
+  it("does not take shading for a heading: a shaded requirement row is still offered", async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Checklist");
+    ws.addRow(["Requirements", "Quarter Completed"]);
+    ws.addRow(["Upper Division", null]);
+    ws.addRow(["One course in Widget History", null]);
+    ws.getCell("A2").font = { bold: true };
+    for (const address of ["A2", "A3"]) {
+      ws.getCell(address).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDDDDD" } };
+    }
+    const out = await buildChecksheetRender(Buffer.from(await wb.xlsx.writeBuffer()), "xlsx");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    expect(out.render.sheets[0]!.tracking.cells.map((c) => c.r)).toEqual([2]);
+  });
 });
 
 describe("legacy .xls", () => {

@@ -101,10 +101,13 @@ export function ChecksheetDocumentCard({
   const [replaced, setReplaced] = useState<{ kept: number; detached: number } | null>(null);
   const [focus, setFocus] = useState<{ key: string; at: number } | null>(null);
   const [place, setPlace] = useState<{ key: string; at: number } | null>(null);
+  /** The detached cell entry the student is putting back, while they choose its cell. */
+  const [relinkKey, setRelinkKey] = useState<string | null>(null);
   const panelId = useId();
   const { toast } = useToast();
   const invalidate = useInvalidateChecksheets();
   const tracking = useChecksheetTracking(document.id, everOpened);
+  const relink = tracking.entries.find((entry) => entry.key === relinkKey && entry.detached) ?? null;
 
   const Icon = ICON[document.sourceFormat] ?? FileText;
   const sourceUrl = safeExternalUrl(document.sourceUrl);
@@ -323,7 +326,15 @@ export function ChecksheetDocumentCard({
               </p>
             )}
 
-            <Preview document={document} tracking={tracking} showTracking={showTracking} focus={focus} place={place} />
+            <Preview
+              document={document}
+              tracking={tracking}
+              showTracking={showTracking}
+              focus={focus}
+              place={place}
+              relink={relink}
+              onRelinkDone={() => setRelinkKey(null)}
+            />
 
             {tracking.isError ? (
               <div className="rounded-md border border-border bg-muted/30 p-3 text-sm" role="alert" data-testid="checksheet-tracking-error">
@@ -346,6 +357,8 @@ export function ChecksheetDocumentCard({
                   describePlace={(entry) => describePlace(entry, document)}
                   onShowPlace={(entry) => setFocus({ key: entry.key, at: Date.now() })}
                   onPlace={(entry) => setPlace({ key: entry.key, at: Date.now() })}
+                  onPlaceInCell={(entry) => setRelinkKey(entry.key)}
+                  canPlaceInCell={(entry) => canPlaceInCell(entry, document)}
                 />
               )
             )}
@@ -379,6 +392,15 @@ export function ChecksheetDocumentCard({
   );
 }
 
+/** A cell entry can only go back into a document of the kind it came from. */
+function canPlaceInCell(entry: TrackingEntry, document: DegreeChecksheetDocument): boolean {
+  if (entry.anchorType === "sheet_cell") return document.previewKind === "spreadsheet" && document.inlineTracking;
+  if (entry.anchorType === "sheet_item") return document.previewKind === "spreadsheet";
+  if (entry.anchorType === "doc_cell") return document.previewKind === "document" && document.inlineTracking;
+  if (entry.anchorType === "doc_item") return document.previewKind === "document";
+  return false;
+}
+
 function describePlace(entry: TrackingEntry, document: DegreeChecksheetDocument): string {
   if (entry.anchorType !== "point") return entry.itemLabel ?? "Tracking entry";
   return document.previewKind === "image" ? "Marker on the picture" : `Marker on page ${(entry.anchor.page ?? 0) + 1}`;
@@ -391,12 +413,16 @@ function Preview({
   showTracking,
   focus,
   place,
+  relink,
+  onRelinkDone,
 }: {
   document: DegreeChecksheetDocument;
   tracking: ChecksheetTracking;
   showTracking: boolean;
   focus: { key: string; at: number } | null;
   place: { key: string; at: number } | null;
+  relink: TrackingEntry | null;
+  onRelinkDone: () => void;
 }) {
   const ready = document.renderStatus === "ready";
   const { data, isLoading, isError, refetch } = useChecksheetRender(document.id, ready);
@@ -437,7 +463,16 @@ function Preview({
     );
   }
   return (
-    <PreviewBody document={document} render={data.render} tracking={tracking} showTracking={showTracking} focus={focus} place={place} />
+    <PreviewBody
+      document={document}
+      render={data.render}
+      tracking={tracking}
+      showTracking={showTracking}
+      focus={focus}
+      place={place}
+      relink={relink}
+      onRelinkDone={onRelinkDone}
+    />
   );
 }
 
@@ -448,6 +483,8 @@ function PreviewBody({
   showTracking,
   focus,
   place,
+  relink,
+  onRelinkDone,
 }: {
   document: DegreeChecksheetDocument;
   render: DegreeChecksheetRender;
@@ -455,13 +492,16 @@ function PreviewBody({
   showTracking: boolean;
   focus: { key: string; at: number } | null;
   place: { key: string; at: number } | null;
+  relink: TrackingEntry | null;
+  onRelinkDone: () => void;
 }) {
   const common = { documentId: document.id, title: document.title, tracking, showTracking };
+  const cells = { relink, onRelinkDone, warnings: render.warnings ?? [] };
   switch (render.kind) {
     case "spreadsheet":
-      return <ChecksheetSpreadsheetView {...common} sheets={render.sheets ?? []} />;
+      return <ChecksheetSpreadsheetView {...common} {...cells} sheets={render.sheets ?? []} />;
     case "document":
-      return <ChecksheetDocumentView {...common} blocks={render.blocks ?? []} />;
+      return <ChecksheetDocumentView {...common} {...cells} blocks={render.blocks ?? []} />;
     case "image":
       return (
         <ChecksheetImageView

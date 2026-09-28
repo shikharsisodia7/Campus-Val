@@ -80,7 +80,7 @@ extension, the declared type **and the first bytes of the file** must agree.
 | Format | Preview | Tracking |
 | --- | --- | --- |
 | PDF `.pdf` | Every page drawn in the app by PDF.js from the original file, with selectable text; zoom 50–300%; page navigation | Markers placed on the page + My Tracking list |
-| Excel `.xlsx` | Every worksheet as a grid: source order, wording, merged cells, bold, fills, indentation; horizontal and vertical scrolling; sticky headers | **In place**, in the document's own Status / Quarter columns + My Tracking list |
+| Excel `.xlsx` | Every worksheet as a grid: source order, wording, merged cells, bold, fills, indentation; horizontal and vertical scrolling; sticky headers. Cells a formula fills in are left empty, and the preview says so | **In place**, in the document's own Status / Quarter columns + My Tracking list |
 | Word `.docx` | Headings, paragraphs, lists, tables, links and embedded PNG/JPEG/GIF pictures, in order. Word's page layout is not reproduced | **In place** in a table's Status / Quarter columns + My Tracking list |
 | PNG `.png`, JPEG `.jpg` `.jpeg` | The picture, with zoom and scrolling | Markers placed on the picture + My Tracking list |
 | Excel `.xls` (legacy) | **None.** The file is stored and can be opened; the card says it has no preview and suggests saving as `.xlsx` | My Tracking list |
@@ -263,10 +263,28 @@ case the student uses the My Tracking list).
 3. A column already filled in more than a fifth of its rows is the department's
    and is left alone entirely. A bare `Year` column must be completely empty.
 4. A cell holding any source text is never offered, and neither is a cell hidden
-   under a merged range, or a section heading row.
+   under a merged range, a cell the spreadsheet calculates, or a section
+   heading row.
+5. A row is offered only if it names something in the columns that belong to
+   that student column: the ones between the previous student column and it.
+   Real checklists put two tables side by side (the requirements, and a
+   year-by-year grid); a row with text only in the other table is not a row of
+   this one.
 
-This reads column headers and whether a cell is empty. It does not read
-requirements.
+A **section heading** is a row whose only label is **bold**. Shading is not a
+sign of a heading: real checklists shade every cell.
+
+**What a student column holds** is decided per table, among the columns that
+are really offered. When a table has a status column *and* a quarter column,
+each holds its own value. When it is left with one student column, which is how
+the real checklists are built (a single "Status" or "Quarter" column), that
+column holds **both** a status and a quarter, as one entry per cell
+(`field: "both"`). A column right after another student column ("Status",
+"Quarter") belongs to the same table; a column with labels of its own starts a
+new one.
+
+This reads column headers, whether a cell is empty, and whether a label is bold.
+It does not read requirements.
 
 ### Tracking a cell the student chooses
 
@@ -331,10 +349,25 @@ again**), announced to screen readers.
 | List entry | Always. |
 
 Anything else is **detached**: kept, labelled with what it referred to, listed
-under My Tracking, and **not drawn on the new document**. The student keeps it
-in their list, removes it, or (for a marker) chooses **Place on the document**
-and clicks where it belongs on the new file. The card says how many entries stayed and how many
-need review. No entry is ever left against a different requirement.
+under My Tracking, and **not drawn on the new document**. The card says how
+many entries stayed and how many need review. No entry is ever left against a
+different requirement. The student then decides, for each one:
+
+| Choice | What happens |
+| --- | --- |
+| **Keep in my list** | It becomes an entry of the student's own list. |
+| **Place on the document** (a marker) | The student clicks where it belongs on the new page or picture. |
+| **Place in a cell** (a cell entry) | The preview shows **Place here** in every free cell that can hold the entry; the student picks the row it belongs to. For a cell the student had chosen, they click the cell it belongs to. |
+| Remove | It is deleted. |
+
+**Place in a cell** offers only cells that are free and that can hold
+everything the entry has: an entry with a status and a quarter is never put in
+a Status-only column, where half of it would be lost. The server makes the same
+checks again (`PATCH … { anchor }`), and gives the entry the new file's
+fingerprint for that row, so from then on it belongs to the new file. It is
+CampusVal that offers the cells and the student who chooses; CampusVal never
+moves an entry to a row by itself, because matching an old requirement to a new
+one would be reading the document.
 
 ## Duplicate files
 
@@ -429,13 +462,20 @@ repository:
 | Music first-year course plans, downloaded from Google Docs as Word and as PDF | Both drawn; in the Word file a course cell is chosen and tracked, and survives a reload |
 | Gender and Sexuality Studies first-year course plans, Word and PDF (2 pages) | Same |
 | A saved sign-in page named `.pdf` | Refused: "contents don't match its file type" |
+| **All 40** College of Arts and Sciences "Requirements Checklist" spreadsheets (Anthropology … Women's and Gender Studies) | All 40 shown; all 40 tracked **in place**, 1,708 cells in total; first cell of each given a status and a quarter in the browser; each stored byte for byte |
+| 24 College of Arts and Sciences first-year course plans, Word | All 24 shown; a course cell chosen and tracked in each; each stored byte for byte |
 
 The College of Arts and Sciences publishes its documents as Google Docs that
 require an SCU sign-in. The two above were downloaded by the repository owner
 with their own SCU account. The Leavey School of Business advising page links
 no downloadable files.
 
-Two things real files showed that synthetic ones had not:
+The 40 checklists and 24 course plans are Google Sheets and Google Docs behind
+an SCU sign-in; they were downloaded through the repository owner's own signed-in
+browser. Nine further course plans on that page were not downloaded (the
+browser session ended first); they are the same template as the 24.
+
+What real files showed that synthetic ones had not:
 
 - **They have no student columns.** They are grids of courses. This is why a
   student can choose any filled cell to track (above).
@@ -443,16 +483,43 @@ Two things real files showed that synthetic ones had not:
   literally, the whole table would be styled as headings. The reader keeps the
   first row as the header when every row claims to be one
   (`header_rows_normalized`).
+- **A checklist has ONE student column**, headed "Status" in 20 of them and
+  "Quarter" in the other 20. One value alone cannot say "planned for winter", so
+  a table's only student column holds both values. The header row also has a
+  "Year" column, which the department filled in; it is not offered, and it does
+  not count as the table's quarter column.
+- **A checklist is two tables side by side**: the requirements on the left, a
+  year-by-year grid on the right with its own column. Rows are matched to the
+  table they name something in (rule 5 above). Before this, about 40% of
+  requirement rows were not offered.
+- **A header row often starts with the table's title**, which can be longer
+  than a column header (41 characters in one minor's checklist). The other
+  cells of a header row may be up to 80 characters; the student column's own
+  header is still held to the short list of exact phrases.
+- **Every cell is shaded.** Shading was being taken for a heading; only bold is
+  now. Of 1,807 labelled rows, the 96 not offered are all headings
+  ("Explorations", "Integrations", "Upper Division Requirements" …).
+- **The History checklist's worksheet is named "History"**, a name Excel
+  reserves and the workbook library refuses to open. The name is changed in a
+  copy held in memory, only so the file can be read; the stored file is
+  untouched and the sheet is shown under its real name.
+- **39 of the 40 contain formulas Google could not export a value for**, shown
+  by other programs as `#N/A`. That is not the department's text, so such a cell
+  is left empty, the preview says that calculated cells are not shown
+  (`calculated_cells_not_shown`), and the cell is never offered to the student.
 
 To repeat the check, point the browser spec at a folder holding `eng-*.pdf`,
-`cas-*.pdf` and `cas-*.docx` files:
+`cas-*.pdf` and `cas-*.docx` files, with the checklists in `checklists/*.xlsx`
+and the course plans in `plans/*.docx` (tests R and S):
 
 ```
 CHECKSHEET_REAL_DIR=<folder> E2E_BASE_URL=http://localhost:18080 \
   pnpm --filter @workspace/e2e exec playwright test degree-checksheets.spec.ts --project=checksheets
 ```
 
-Without that folder the real-document test skips itself.
+Without that folder the real-document tests skip themselves. The same layout
+is covered without any real file by the synthetic `checklist-workbook`
+fixtures and browser test J.
 
 ```
 pnpm --filter @workspace/api-server exec tsx src/__fixtures__/checksheets/write-fixtures.ts <dir>

@@ -68,6 +68,7 @@ import {
   type ChecksheetErrorCode,
   type ChecksheetFormat,
   type ChecksheetRender,
+  type TrackingField,
 } from "../lib/checksheets/model";
 import { buildChecksheetRender } from "../lib/checksheets/render";
 
@@ -150,7 +151,7 @@ function documentDto(row: MetaRow) {
   };
 }
 
-function annotationDto(row: DegreeChecksheetAnnotationRow, field: "status" | "term" | null) {
+function annotationDto(row: DegreeChecksheetAnnotationRow, field: TrackingField | null) {
   const type =
     row.anchorType === "sheet_cell" ||
     row.anchorType === "doc_cell" ||
@@ -179,11 +180,12 @@ function annotationDto(row: DegreeChecksheetAnnotationRow, field: "status" | "te
 }
 
 /** Which value a cell entry holds, read from the document's own layout. */
-function fieldOf(render: ChecksheetRender | null, row: DegreeChecksheetAnnotationRow): "status" | "term" | null {
+function fieldOf(render: ChecksheetRender | null, row: DegreeChecksheetAnnotationRow): TrackingField | null {
   if (row.anchorType !== "sheet_cell" && row.anchorType !== "doc_cell") return null;
   const placed = row.detachedAt === null ? resolveAnchor(render, row.anchorType, row.anchor) : null;
   if (placed?.field) return placed.field;
-  // A detached cell entry keeps whichever value it was given.
+  // A detached cell entry keeps whichever values it was given.
+  if (row.term && row.status) return "both";
   return row.term ? "term" : row.status ? "status" : null;
 }
 

@@ -9,6 +9,7 @@
  * A file that is not what it claims to be, is damaged, or is password
  * protected is refused outright and nothing is stored.
  */
+import JSZip from "jszip";
 import { readAprWorkbook } from "../apr/workbook-reader";
 import { AprImportError, type AprImportErrorCode } from "../apr/workbook-model";
 import { readChecksheetDocx } from "./docx-reader";
@@ -45,6 +46,34 @@ const WORKBOOK_ERROR: Record<AprImportErrorCode, ChecksheetErrorCode> = {
   processing_failed: "processing_failed",
 };
 
+/** What a spreadsheet shows in a cell whose formula could not be calculated. */
+const FORMULA_ERROR = /^#(N\/A|REF!|VALUE!|NAME\?|DIV\/0!|NUM!|NULL!|ERROR!|CALC!|SPILL!)$/;
+
+/**
+ * Excel reserves the worksheet name "History", and the workbook library
+ * refuses to open a file that has one. A History department's checklist is
+ * named exactly that. The name is changed in a COPY of the file held in
+ * memory, only so the library will read it; the stored original is untouched
+ * and the sheet is shown under its real name.
+ */
+const RESERVED_SHEET_NAME = /(<sheet\b[^>]*\bname=")(history)(")/gi;
+const STAND_IN_SUFFIX = "\u200b";
+
+async function withReadableSheetNames(buf: Buffer): Promise<Buffer | null> {
+  try {
+    const zip = await JSZip.loadAsync(buf);
+    const entry = zip.file("xl/workbook.xml");
+    if (!entry) return null;
+    const xml = await entry.async("string");
+    if (!RESERVED_SHEET_NAME.test(xml)) return null;
+    RESERVED_SHEET_NAME.lastIndex = 0;
+    zip.file("xl/workbook.xml", xml.replace(RESERVED_SHEET_NAME, `$1$2${STAND_IN_SUFFIX}$3`));
+    return await zip.generateAsync({ type: "nodebuffer" });
+  } catch {
+    return null;
+  }
+}
+
 async function readSpreadsheet(buf: Buffer): Promise<SpreadsheetRender> {
   let workbook: Awaited<ReturnType<typeof readAprWorkbook>>;
   try {
@@ -52,12 +81,41 @@ async function readSpreadsheet(buf: Buffer): Promise<SpreadsheetRender> {
     // behaviour: sheets, rows, cells, merges. It is reused as it is.
     workbook = await readAprWorkbook(buf);
   } catch (err) {
-    if (err instanceof AprImportError) throw new ChecksheetError(WORKBOOK_ERROR[err.code]);
-    throw new ChecksheetError("malformed_workbook");
+    const readable = err instanceof AprImportError && err.code === "malformed_workbook" ? await withReadableSheetNames(buf) : null;
+    if (!readable) {
+      if (err instanceof AprImportError) throw new ChecksheetError(WORKBOOK_ERROR[err.code]);
+      throw new ChecksheetError("malformed_workbook");
+    }
+    try {
+      workbook = await readAprWorkbook(readable);
+    } catch (again) {
+      if (again instanceof AprImportError) throw new ChecksheetError(WORKBOOK_ERROR[again.code]);
+      throw new ChecksheetError("malformed_workbook");
+    }
+    for (const sheet of workbook.sheets) sheet.name = sheet.name.replace(STAND_IN_SUFFIX, "");
+  }
+
+  // A formula the export could not calculate leaves an error value ("#N/A")
+  // where the spreadsheet itself shows a result or nothing. It is not the
+  // department's text, so it is not shown; the preview says that calculated
+  // cells are missing. The cell is the spreadsheet's own, though: it is
+  // never offered to the student as a place to write.
+  let hiddenErrors = 0;
+  const calculated = new Map<number, Set<string>>();
+  for (const sheet of workbook.sheets) {
+    const hidden = new Set<string>();
+    for (const row of sheet.rows) {
+      const kept = row.cells.filter((cell) => !FORMULA_ERROR.test(cell.text.trim()));
+      for (const cell of row.cells) if (!kept.includes(cell)) hidden.add(`${row.r}:${cell.c}`);
+      row.cells = kept;
+    }
+    sheet.rows = sheet.rows.filter((row) => row.cells.length > 0);
+    hiddenErrors += hidden.size;
+    calculated.set(sheet.index, hidden);
   }
 
   const sheets: ChecksheetSheet[] = workbook.sheets.map((sheet) => {
-    const covered = new Set<string>();
+    const covered = new Set<string>(calculated.get(sheet.index));
     for (const merge of sheet.merges) {
       for (let r = merge.r; r < merge.r + merge.rowSpan; r++) {
         for (let c = merge.c; c < merge.c + merge.colSpan; c++) {
@@ -67,7 +125,7 @@ async function readSpreadsheet(buf: Buffer): Promise<SpreadsheetRender> {
     }
     const rows: LayoutRow[] = sheet.rows.map((row) => ({
       r: row.r,
-      cells: row.cells.map((cell) => ({ c: cell.c, text: cell.text, emphasized: !!cell.bold || !!cell.filled })),
+      cells: row.cells.map((cell) => ({ c: cell.c, text: cell.text, emphasized: !!cell.bold })),
     }));
     const tracking = detectTrackingLayout(rows, covered, `sheet:${sheet.index}:${sheet.name}`);
     // A control is only drawn inside the grid that is shown.
@@ -79,7 +137,10 @@ async function readSpreadsheet(buf: Buffer): Promise<SpreadsheetRender> {
     version: CHECKSHEET_RENDER_VERSION,
     kind: "spreadsheet",
     sheets,
-    warnings: workbook.warnings.filter((w) => w !== "reconstructed_from_pdf"),
+    warnings: [
+      ...workbook.warnings.filter((w) => w !== "reconstructed_from_pdf"),
+      ...(hiddenErrors > 0 ? ["calculated_cells_not_shown"] : []),
+    ].sort(),
   };
 }
 

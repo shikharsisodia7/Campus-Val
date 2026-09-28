@@ -25,6 +25,8 @@ export type ChecksheetFixtureName =
   | "minor-workbook"
   | "official-status-workbook"
   | "no-header-workbook"
+  | "checklist-workbook"
+  | "checklist-workbook-reworded"
   | "major-pdf"
   | "major-pdf-revised"
   | "four-year-plan-pdf"
@@ -90,6 +92,51 @@ async function workbook(sheets: SheetSpec[]): Promise<Buffer> {
       if (cells.filter((c) => c !== null).length === 1) row.font = { bold: true };
     }
   }
+  return Buffer.from(await wb.xlsx.writeBuffer());
+}
+
+/** The requirements of the synthetic checklist: a heading is a row with one bold cell. */
+export const CHECKLIST_ROWS: { text: string; heading?: boolean }[] = [
+  { text: "Lower Division Requirements", heading: true },
+  { text: "Introduction to Widgetry" },
+  { text: "Widget Mathematics I" },
+  { text: "Widget Mathematics II" },
+  { text: "Upper Division Requirements", heading: true },
+  { text: "Widget Design Studio" },
+  { text: "One course in Widget Ethics" },
+];
+
+/** The year-by-year grid that sits beside the requirements. */
+const CHECKLIST_PLAN: (string | null)[] = ["First Year", "WIDG 101", "WIDG 111", null, "Second Year", "WIDG 112", null];
+
+/**
+ * Laid out as a department "requirements checklist": the requirements with ONE
+ * student column ("Quarter Completed") on the left, and a year-by-year grid
+ * with its own student column on the right. Every cell is shaded, headings are
+ * bold, and one cell holds a formula whose export could not calculate it.
+ */
+async function checklist(rows: { text: string; heading?: boolean }[]): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Checklist");
+  ws.columns = [{ width: 40 }, { width: 20 }, { width: 4 }, { width: 24 }, { width: 16 }];
+  const shade = (cell: ExcelJS.Cell, argb: string) => {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb } };
+  };
+  const header = ws.addRow(["Requirements", "Quarter Completed", null, "Course", "Quarter"]);
+  header.font = { bold: true };
+  for (const c of [1, 2, 4, 5]) shade(header.getCell(c), "FFD1D5DB");
+  rows.forEach((item, i) => {
+    const plan = CHECKLIST_PLAN[i] ?? null;
+    const row = ws.addRow([item.text, null, null, plan, null]);
+    shade(row.getCell(1), "FFF3F4F6");
+    if (item.heading) row.getCell(1).font = { bold: true };
+    if (plan) {
+      shade(row.getCell(4), "FFF3F4F6");
+      if (/Year$/.test(plan)) row.getCell(4).font = { bold: true };
+    }
+  });
+  const total = ws.addRow(["Units toward the major", null, null, null, null]);
+  total.getCell(4).value = { formula: "VLOOKUP(A2,Z1:Z2,1,FALSE)", result: { error: "#N/A" } } as ExcelJS.CellValue;
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
@@ -353,6 +400,11 @@ export async function buildChecksheetFixture(name: ChecksheetFixtureName): Promi
       return workbook([
         { name: "Plan", title: "Applied Widgetry planning sheet (sample)", header: null, rows: MAJOR_ROWS },
       ]);
+    case "checklist-workbook":
+      return checklist(CHECKLIST_ROWS);
+    case "checklist-workbook-reworded":
+      // The same shape; the first requirement is a different one.
+      return checklist(CHECKLIST_ROWS.map((row, i) => (i === 1 ? { text: "History of Widgets" } : row)));
     case "major-pdf":
       return buildTextPdf([MAJOR_PDF_PAGE_1, MAJOR_PDF_PAGE_2]);
     case "major-pdf-revised":
@@ -412,6 +464,8 @@ export const CHECKSHEET_FIXTURE_FILES: Record<ChecksheetFixtureName, { fileName:
   "minor-workbook": { fileName: "sprocket-studies-minor.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "official-status-workbook": { fileName: "official-status.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "no-header-workbook": { fileName: "no-header.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  "checklist-workbook": { fileName: "applied-widgetry-checklist.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  "checklist-workbook-reworded": { fileName: "applied-widgetry-checklist-reworded.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "major-pdf": { fileName: "applied-widgetry-major.pdf", contentType: "application/pdf" },
   "major-pdf-revised": { fileName: "applied-widgetry-major-revised.pdf", contentType: "application/pdf" },
   "four-year-plan-pdf": { fileName: "widget-engineering-four-year-plan.pdf", contentType: "application/pdf" },

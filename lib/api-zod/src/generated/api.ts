@@ -4108,7 +4108,11 @@ export const GetDegreeChecksheetRenderResponse = zod.object({
                       columns: zod.array(
                         zod.object({
                           c: zod.number(),
-                          field: zod.enum(["status", "term"]),
+                          field: zod
+                            .enum(["status", "term", "both"])
+                            .describe(
+                              'What a student column holds. \"both\" when it is the table\'s only student column:\nthe cell then holds a status and a quarter.\n',
+                            ),
                           header: zod.string(),
                           headerRow: zod.number(),
                         }),
@@ -4117,7 +4121,11 @@ export const GetDegreeChecksheetRenderResponse = zod.object({
                         zod.object({
                           r: zod.number(),
                           c: zod.number(),
-                          field: zod.enum(["status", "term"]),
+                          field: zod
+                            .enum(["status", "term", "both"])
+                            .describe(
+                              'What a student column holds. \"both\" when it is the table\'s only student column:\nthe cell then holds a status and a quarter.\n',
+                            ),
                         }),
                       ),
                     })
@@ -4202,7 +4210,11 @@ export const GetDegreeChecksheetRenderResponse = zod.object({
                   columns: zod.array(
                     zod.object({
                       c: zod.number(),
-                      field: zod.enum(["status", "term"]),
+                      field: zod
+                        .enum(["status", "term", "both"])
+                        .describe(
+                          'What a student column holds. \"both\" when it is the table\'s only student column:\nthe cell then holds a status and a quarter.\n',
+                        ),
                       header: zod.string(),
                       headerRow: zod.number(),
                     }),
@@ -4211,7 +4223,11 @@ export const GetDegreeChecksheetRenderResponse = zod.object({
                     zod.object({
                       r: zod.number(),
                       c: zod.number(),
-                      field: zod.enum(["status", "term"]),
+                      field: zod
+                        .enum(["status", "term", "both"])
+                        .describe(
+                          'What a student column holds. \"both\" when it is the table\'s only student column:\nthe cell then holds a status and a quarter.\n',
+                        ),
                     }),
                   ),
                 })
@@ -4451,9 +4467,16 @@ export const ListDegreeChecksheetAnnotationsResponse = zod.object({
           "A position in one document. sheet_cell and sheet_item: sheet,row,col. doc_cell and\ndoc_item: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
         ),
       field: zod
-        .union([zod.literal("status"), zod.literal("term"), zod.literal(null)])
+        .union([
+          zod.literal("status"),
+          zod.literal("term"),
+          zod.literal("both"),
+          zod.literal(null),
+        ])
         .nullable()
-        .describe("For a cell entry, which value its column holds."),
+        .describe(
+          'For a cell entry, which value its column holds (\"both\" for a table\'s only student column).',
+        ),
       detached: zod
         .boolean()
         .describe(
@@ -4668,9 +4691,16 @@ export const CreateDegreeChecksheetAnnotationResponse = zod.object({
       "A position in one document. sheet_cell and sheet_item: sheet,row,col. doc_cell and\ndoc_item: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
     ),
   field: zod
-    .union([zod.literal("status"), zod.literal("term"), zod.literal(null)])
+    .union([
+      zod.literal("status"),
+      zod.literal("term"),
+      zod.literal("both"),
+      zod.literal(null),
+    ])
     .nullable()
-    .describe("For a cell entry, which value its column holds."),
+    .describe(
+      'For a cell entry, which value its column holds (\"both\" for a table\'s only student column).',
+    ),
   detached: zod
     .boolean()
     .describe(
@@ -4878,9 +4908,16 @@ export const UpdateDegreeChecksheetAnnotationResponse = zod.object({
       "A position in one document. sheet_cell and sheet_item: sheet,row,col. doc_cell and\ndoc_item: block,row,col.\npoint: page,x,y with x and y as fractions (0..1) of the page from its top-left\ncorner, so a marker keeps its place at any zoom. manual: empty.\n",
     ),
   field: zod
-    .union([zod.literal("status"), zod.literal("term"), zod.literal(null)])
+    .union([
+      zod.literal("status"),
+      zod.literal("term"),
+      zod.literal("both"),
+      zod.literal(null),
+    ])
     .nullable()
-    .describe("For a cell entry, which value its column holds."),
+    .describe(
+      'For a cell entry, which value its column holds (\"both\" for a table\'s only student column).',
+    ),
   detached: zod
     .boolean()
     .describe(

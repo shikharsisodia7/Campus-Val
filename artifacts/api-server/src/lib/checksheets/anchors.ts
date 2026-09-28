@@ -25,7 +25,7 @@
  */
 import { createHash } from "node:crypto";
 import { CHECKSHEET_LIMITS } from "./limits";
-import type { ChecksheetRender, DocTextRun, TrackingCell, TrackingLayout } from "./model";
+import type { ChecksheetRender, DocTextRun, TrackingCell, TrackingField, TrackingLayout } from "./model";
 
 export type AnchorType = "sheet_cell" | "doc_cell" | "sheet_item" | "doc_item" | "point" | "manual";
 
@@ -55,7 +55,7 @@ export interface ResolvedAnchor {
   key: string | null;
   fingerprint: string | null;
   /** Set for cell anchors: which value that column holds. */
-  field: "status" | "term" | null;
+  field: TrackingField | null;
 }
 
 const isIndex = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0;

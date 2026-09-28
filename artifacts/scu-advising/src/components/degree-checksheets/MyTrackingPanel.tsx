@@ -21,6 +21,8 @@ export function MyTrackingPanel({
   describePlace,
   onShowPlace,
   onPlace,
+  onPlaceInCell,
+  canPlaceInCell,
   inlineAvailable,
   pointsAvailable,
 }: {
@@ -32,6 +34,10 @@ export function MyTrackingPanel({
   onShowPlace?: (entry: TrackingEntry) => void;
   /** Lets the student put a detached marker onto the current document. */
   onPlace?: (entry: TrackingEntry) => void;
+  /** Lets the student put a detached cell entry into a cell of the current document. */
+  onPlaceInCell?: (entry: TrackingEntry) => void;
+  /** Whether the current document has cells this entry could go into. */
+  canPlaceInCell?: (entry: TrackingEntry) => boolean;
   inlineAvailable: boolean;
   pointsAvailable: boolean;
 }) {
@@ -90,9 +96,12 @@ export function MyTrackingPanel({
           </p>
           <p className="text-xs">
             The file was replaced, and CampusVal could not confirm that{" "}
-            {detached.length === 1 ? "this entry" : "these entries"} still belong in the same place, so{" "}
+            {detached.length === 1 ? "this entry still belongs" : "these entries still belong"} in the same place, so{" "}
             {detached.length === 1 ? "it is" : "they are"} not shown on the new document. Keep each one in your
-            list{onPlace && pointsAvailable ? ", place it on the new document yourself," : ""} or remove it.
+            list{(onPlace && pointsAvailable) || detached.some((entry) => canPlaceInCell?.(entry))
+              ? ", place it on the new document yourself,"
+              : ""}{" "}
+            or remove it.
           </p>
           <ul className="space-y-1.5">
             {detached.map((entry) => (
@@ -122,6 +131,19 @@ export function MyTrackingPanel({
                     >
                       <MapPin className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                       Place on the document
+                    </Button>
+                  )}
+                  {onPlaceInCell && canPlaceInCell?.(entry) && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                      onClick={() => onPlaceInCell(entry)}
+                      data-testid={`checksheet-detached-place-cell-${entry.key}`}
+                    >
+                      <MapPin className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      Place in a cell
                     </Button>
                   )}
                   <Button

@@ -12,7 +12,7 @@ import { MyTrackingPanel } from "./MyTrackingPanel";
 import { PointMarkerLayer, type MarkerMode } from "./PointMarkerLayer";
 import { SaveIndicator } from "./TrackingControls";
 import { ViewerToolbar } from "./ViewerToolbar";
-import { HOSTILE, documentBlocks, electivesSheet, fakeTracking, majorSheet, testEntry } from "./checksheet-test-data";
+import { HOSTILE, checklistSheet, documentBlocks, electivesSheet, fakeTracking, majorSheet, testEntry } from "./checksheet-test-data";
 
 const NOW = new Date(2026, 8, 28, 12);
 
@@ -662,8 +662,10 @@ describe("My Tracking", () => {
     // A detached marker is not among the markers on the document.
     expect(screen.queryByTestId("checksheet-marker-list")).toBeNull();
 
-    // A marker can be put back by the student; a cell entry cannot be dropped onto a page.
+    // A marker can be put back by the student; a cell entry cannot be dropped onto a page,
+    // and this document has no cells to put it in.
     expect(screen.queryByTestId("checksheet-detached-place-id:31")).toBeNull();
+    expect(screen.queryByTestId("checksheet-detached-place-cell-id:31")).toBeNull();
     fireEvent.click(screen.getByTestId("checksheet-detached-place-id:32"));
     expect(onPlace).toHaveBeenCalledWith(expect.objectContaining({ key: "id:32" }));
 
@@ -671,6 +673,222 @@ describe("My Tracking", () => {
     expect(keepAsListEntry).toHaveBeenCalledWith("id:31");
     fireEvent.click(screen.getByLabelText("Remove the entry for Marker on page 2"));
     expect(remove).toHaveBeenCalledWith("id:32");
+  });
+});
+
+describe("a checklist with one student column per table", () => {
+  const view = (tracking = fakeTracking([]), props: Partial<Parameters<typeof ChecksheetSpreadsheetView>[0]> = {}) =>
+    render(
+      <ChecksheetSpreadsheetView
+        documentId={1}
+        title="Widgetry checklist"
+        sheets={[checklistSheet]}
+        tracking={tracking}
+        showTracking
+        {...props}
+      />,
+    );
+
+  it("offers a status AND a quarter in the one column the department left", () => {
+    view();
+    const cell = screen.getByTestId("checksheet-cell-0-2-1");
+    expect(cell.getAttribute("data-tracking-cell")).toBe("both");
+    expect(within(cell).getByTestId("checksheet-cell-status-0-2-1")).toBeTruthy();
+    expect(within(cell).getByTestId("checksheet-cell-term-0-2-1-term")).toBeTruthy();
+    expect(cell.textContent).toContain("My tracking");
+  });
+
+  it("names each control after its OWN table's row, not the table beside it", () => {
+    view();
+    expect(screen.getByLabelText("My status for Introduction to Widgetry")).toBeTruthy();
+    expect(screen.getByLabelText("My status for WIDG 101")).toBeTruthy();
+    expect(screen.getByLabelText("My status for GADG 10")).toBeTruthy();
+    expect(screen.queryByLabelText(/My status for Introduction to Widgetry, WIDG 101/)).toBeNull();
+  });
+
+  it("offers nothing in a heading row, or in a row that names nothing for that table", () => {
+    view();
+    const cells = [...document.querySelectorAll("[data-tracking-cell]")].map((el) => el.getAttribute("data-testid"));
+    expect(cells).toEqual(["checksheet-cell-0-2-1", "checksheet-cell-0-2-4", "checksheet-cell-0-3-1", "checksheet-cell-0-4-4"]);
+  });
+
+  it("records both values against the one cell", () => {
+    const setCell = vi.fn();
+    view(fakeTracking([], { setCell }));
+    fireEvent.change(screen.getByTestId("checksheet-cell-status-0-3-1"), { target: { value: "completed" } });
+    expect(setCell).toHaveBeenLastCalledWith("sheet_cell", { sheet: 0, row: 3, col: 1 }, "both", { status: "completed" });
+    fireEvent.change(screen.getByTestId("checksheet-cell-term-0-3-1-term"), { target: { value: "fall" } });
+    expect(setCell).toHaveBeenLastCalledWith("sheet_cell", { sheet: 0, row: 3, col: 1 }, "both", { term: "fall", termYear: 2026 });
+  });
+
+  it("says so when the spreadsheet's calculated cells are left out, and only then", () => {
+    view(fakeTracking([]), { warnings: ["calculated_cells_not_shown"] });
+    expect(screen.getByTestId("checksheet-calculated-note").textContent).toMatch(/does not run formulas/);
+    cleanup();
+    view();
+    expect(screen.queryByTestId("checksheet-calculated-note")).toBeNull();
+  });
+});
+
+describe("putting a detached entry back into a cell", () => {
+  const detached = testEntry({
+    key: "id:31",
+    id: 31,
+    anchorType: "sheet_cell",
+    anchor: { sheet: 0, row: 2, col: 1 },
+    field: "both",
+    detached: true,
+    itemLabel: "Introduction to Widgetry",
+    status: "completed",
+    term: "fall",
+    termYear: 2025,
+  });
+  const taken = testEntry({
+    key: "sheet:0:3:1",
+    id: 32,
+    anchorType: "sheet_cell",
+    anchor: { sheet: 0, row: 3, col: 1 },
+    field: "both",
+    status: "planned",
+  });
+
+  it("offers it from My Tracking when the document has cells for it", () => {
+    const onPlaceInCell = vi.fn();
+    render(
+      <MyTrackingPanel
+        documentId={1}
+        tracking={fakeTracking([detached])}
+        describePlace={() => "Cell"}
+        onShowPlace={vi.fn()}
+        onPlaceInCell={onPlaceInCell}
+        canPlaceInCell={(entry) => entry.anchorType === "sheet_cell"}
+        inlineAvailable
+        pointsAvailable={false}
+      />,
+    );
+    expect(screen.getByTestId("checksheet-detached").textContent).toContain("place it on the new document yourself");
+    fireEvent.click(screen.getByTestId("checksheet-detached-place-cell-id:31"));
+    expect(onPlaceInCell).toHaveBeenCalledWith(expect.objectContaining({ key: "id:31" }));
+  });
+
+  const placing = (tracking: ReturnType<typeof fakeTracking>, relink = detached, onRelinkDone = vi.fn(), sheets = [checklistSheet]) => {
+    render(
+      <ChecksheetSpreadsheetView
+        documentId={1}
+        title="Widgetry checklist"
+        sheets={sheets}
+        tracking={tracking}
+        showTracking
+        relink={relink}
+        onRelinkDone={onRelinkDone}
+      />,
+    );
+    return onRelinkDone;
+  };
+
+  it("says what is being placed and offers only the free cells", () => {
+    placing(fakeTracking([detached, taken]));
+    const banner = screen.getByTestId("checksheet-relink-banner");
+    expect(banner.textContent).toContain("Introduction to Widgetry");
+    expect(banner.textContent).toContain("Completed, Fall 2025");
+    expect(banner.textContent).toContain("not changed");
+    const offered = [...document.querySelectorAll('[data-testid^="checksheet-place-here-"]')].map((el) => el.getAttribute("data-testid"));
+    expect(offered).toEqual(["checksheet-place-here-0-2-1", "checksheet-place-here-0-2-4", "checksheet-place-here-0-4-4"]);
+    // The cell that is taken keeps its own controls and values.
+    expect((screen.getByTestId("checksheet-cell-status-0-3-1") as HTMLSelectElement).value).toBe("planned");
+    // Nothing of the department's can be chosen while a cell entry is being placed.
+    expect(document.querySelectorAll('[data-pickable="true"]')).toHaveLength(0);
+  });
+
+  it("places it in the chosen cell and stops", () => {
+    const placeInCell = vi.fn();
+    const done = placing(fakeTracking([detached], { placeInCell }));
+    fireEvent.click(screen.getByLabelText("Place the entry here, for Widget Mathematics I"));
+    expect(placeInCell).toHaveBeenCalledWith("id:31", { sheet: 0, row: 3, col: 1 }, "both");
+    expect(done).toHaveBeenCalled();
+  });
+
+  it("can be cancelled, which places nothing", () => {
+    const placeInCell = vi.fn();
+    const done = placing(fakeTracking([detached], { placeInCell }));
+    fireEvent.click(screen.getByTestId("checksheet-relink-cancel"));
+    expect(done).toHaveBeenCalled();
+    expect(placeInCell).not.toHaveBeenCalled();
+  });
+
+  it("never offers a column that could not hold everything the entry has", () => {
+    // The entry has a status and a quarter; a Status column or a Quarter column holds one.
+    placing(fakeTracking([detached]), detached, vi.fn(), [majorSheet]);
+    expect(document.querySelectorAll('[data-testid^="checksheet-place-here-"]')).toHaveLength(0);
+    cleanup();
+    const statusOnly = { ...detached, term: null, termYear: null };
+    placing(fakeTracking([statusOnly]), statusOnly, vi.fn(), [majorSheet]);
+    const offered = [...document.querySelectorAll('[data-testid^="checksheet-place-here-"]')].map((el) => el.getAttribute("data-testid"));
+    expect(offered).toEqual(["checksheet-place-here-0-4-2", "checksheet-place-here-0-5-2"]);
+  });
+
+  it("shows a placed entry in its cell even though it keeps its own key", () => {
+    const placed = { ...detached, detached: false, anchor: { sheet: 0, row: 3, col: 1 } };
+    const setCell = vi.fn();
+    render(
+      <ChecksheetSpreadsheetView documentId={1} title="Widgetry checklist" sheets={[checklistSheet]} tracking={fakeTracking([placed], { setCell })} showTracking />,
+    );
+    expect((screen.getByTestId("checksheet-cell-status-0-3-1") as HTMLSelectElement).value).toBe("completed");
+    expect((screen.getByTestId("checksheet-cell-term-0-3-1-term") as HTMLSelectElement).value).toBe("fall");
+    expect((screen.getByTestId("checksheet-cell-status-0-2-1") as HTMLSelectElement).value).toBe("");
+  });
+
+  it("puts a chosen-cell entry back on a cell that says something", () => {
+    const item = testEntry({
+      key: "id:41",
+      id: 41,
+      anchorType: "sheet_item",
+      anchor: { sheet: 0, row: 2, col: 0 },
+      detached: true,
+      itemLabel: "Introduction to Widgetry",
+      status: "completed",
+    });
+    const placeInCell = vi.fn();
+    const addItem = vi.fn();
+    const done = placing(fakeTracking([item], { placeInCell, addItem }), item);
+    expect(document.querySelectorAll('[data-testid^="checksheet-place-here-"]')).toHaveLength(0);
+    fireEvent.click(screen.getByLabelText("Place the entry on Widget Mathematics I"));
+    expect(placeInCell).toHaveBeenCalledWith("id:41", { sheet: 0, row: 3, col: 0 }, null);
+    expect(addItem).not.toHaveBeenCalled();
+    expect(done).toHaveBeenCalled();
+  });
+
+  it("works the same in a Word table", () => {
+    const entry = testEntry({
+      key: "id:51",
+      id: 51,
+      anchorType: "doc_cell",
+      anchor: { block: 4, row: 1, col: 2 },
+      field: "status",
+      detached: true,
+      itemLabel: "WIDG 101 Introduction to Widgetry",
+      status: "completed",
+    });
+    const placeInCell = vi.fn();
+    const done = vi.fn();
+    render(
+      <ChecksheetDocumentView
+        documentId={1}
+        title="Guide"
+        blocks={documentBlocks}
+        tracking={fakeTracking([entry], { placeInCell })}
+        showTracking
+        relink={entry}
+        onRelinkDone={done}
+      />,
+    );
+    expect(screen.getByTestId("checksheet-relink-banner")).toBeTruthy();
+    const offered = [...document.querySelectorAll('[data-testid^="checksheet-doc-place-here-"]')].map((el) => el.getAttribute("data-testid"));
+    // Status cells only: a Quarter cell cannot hold a status.
+    expect(offered).toEqual(["checksheet-doc-place-here-4-1-2", "checksheet-doc-place-here-4-2-2"]);
+    fireEvent.click(screen.getByTestId("checksheet-doc-place-here-4-2-2"));
+    expect(placeInCell).toHaveBeenCalledWith("id:51", { block: 4, row: 2, col: 2 }, "status");
+    expect(done).toHaveBeenCalled();
   });
 });
 
