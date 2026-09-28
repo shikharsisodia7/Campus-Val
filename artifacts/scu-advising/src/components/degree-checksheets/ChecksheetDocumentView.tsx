@@ -2,9 +2,10 @@ import { Fragment, useMemo, useState } from "react";
 import type { ChecksheetDocBlock, ChecksheetDocRun, ChecksheetDocTableCell } from "@workspace/api-client-react";
 import { ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { cellKey, itemKey, type ChecksheetTracking } from "@/hooks/use-degree-checksheets";
-import { MyTrackingTag, StatusSelect, TermSelect, TRACKING_HINT } from "./TrackingControls";
+import { cellKey, entriesByPlace, itemKey, type ChecksheetTracking, type TrackingEntry } from "@/hooks/use-degree-checksheets";
+import { TRACKING_HINT } from "./TrackingControls";
 import { PICKABLE, PickItemToolbar, TrackedItem } from "./TrackedItem";
+import { PlaceHere, RelinkBanner, TrackingCellControls, canHold } from "./TrackingCell";
 import { safeExternalUrl } from "./checksheet-format";
 
 /**
@@ -25,21 +26,33 @@ export function ChecksheetDocumentView({
   blocks,
   tracking,
   showTracking,
+  relink = null,
+  onRelinkDone,
 }: {
   documentId: number;
   title: string;
   blocks: ChecksheetDocBlock[];
   tracking: ChecksheetTracking;
   showTracking: boolean;
+  /** A detached entry the student is putting back into a cell. */
+  relink?: TrackingEntry | null;
+  onRelinkDone?: () => void;
+  /** Accepted so both cell views take the same props; a Word file has no formulas. */
+  warnings?: string[];
 }) {
   const groups = useMemo(() => groupLists(blocks), [blocks]);
   const [picking, setPicking] = useState(false);
   const hasTable = blocks.some((block) => block.type === "table");
   const chosen = tracking.entries.filter((entry) => !entry.detached && entry.anchorType === "doc_item").length;
+  const placing = showTracking && hasTable && relink ? relink : null;
 
   return (
     <div className="space-y-2">
-    {showTracking && hasTable && <PickItemToolbar picking={picking} onChange={setPicking} count={chosen} />}
+    {placing ? (
+      <RelinkBanner entry={placing} item={placing.anchorType === "doc_item"} onCancel={() => onRelinkDone?.()} />
+    ) : (
+      showTracking && hasTable && <PickItemToolbar picking={picking} onChange={setPicking} count={chosen} />
+    )}
     <div
       className="max-h-[75vh] overflow-auto rounded-md border border-border bg-background"
       tabIndex={0}
@@ -59,8 +72,10 @@ export function ChecksheetDocumentView({
               title={title}
               tracking={tracking}
               showTracking={showTracking}
-              picking={showTracking && picking}
+              picking={showTracking && picking && !placing}
               onPicked={() => setPicking(false)}
+              relink={placing}
+              onRelinkDone={() => onRelinkDone?.()}
             />
           ),
         )}
@@ -138,6 +153,8 @@ function Block({
   showTracking,
   picking,
   onPicked,
+  relink,
+  onRelinkDone,
 }: {
   block: ChecksheetDocBlock;
   index: number;
@@ -146,6 +163,8 @@ function Block({
   showTracking: boolean;
   picking: boolean;
   onPicked: () => void;
+  relink: TrackingEntry | null;
+  onRelinkDone: () => void;
 }) {
   switch (block.type) {
     case "heading": {
@@ -165,7 +184,16 @@ function Block({
       );
     case "table":
       return (
-        <Table block={block} index={index} tracking={tracking} showTracking={showTracking} picking={picking} onPicked={onPicked} />
+        <Table
+          block={block}
+          index={index}
+          tracking={tracking}
+          showTracking={showTracking}
+          picking={picking}
+          onPicked={onPicked}
+          relink={relink}
+          onRelinkDone={onRelinkDone}
+        />
       );
     case "image":
       return block.mime && block.data && /^[A-Za-z0-9+/=]+$/.test(block.data) ? (
@@ -195,6 +223,8 @@ function Table({
   showTracking,
   picking,
   onPicked,
+  relink,
+  onRelinkDone,
 }: {
   block: ChecksheetDocBlock;
   index: number;
@@ -202,11 +232,15 @@ function Table({
   showTracking: boolean;
   picking: boolean;
   onPicked: () => void;
+  relink: TrackingEntry | null;
+  onRelinkDone: () => void;
 }) {
   const rows = block.rows ?? [];
   const slots = new Map((block.tracking?.cells ?? []).map((cell) => [`${cell.r}:${cell.c}`, cell]));
   const tracked = new Set((block.tracking?.columns ?? []).map((column) => column.c));
-  const entries = new Map(tracking.entries.map((entry) => [entry.key, entry]));
+  const entries = entriesByPlace(tracking.entries);
+  const placingCell = relink?.anchorType === "doc_cell";
+  const placingItem = relink?.anchorType === "doc_item";
   const textOf = (cell: ChecksheetDocTableCell | undefined) => (cell?.runs ?? []).map((run) => run.text).join("").trim();
 
   return (
@@ -227,32 +261,36 @@ function Table({
                   if (slot) {
                     const anchor = { block: index, row: r, col: c };
                     const entry = entries.get(cellKey("doc_cell", anchor));
+                    const target = placingCell && relink && !entry && canHold(slot.field, relink);
                     return (
                       <td
                         key={c}
                         className={cn(
                           "border border-primary/30 bg-primary/[0.04] p-1 align-top",
-                          slot.field === "term" ? "min-w-[13rem]" : "min-w-[9.5rem]",
+                          slot.field === "status" ? "min-w-[9.5rem]" : "min-w-[13rem]",
+                          target && "bg-primary/10",
                         )}
                         title={TRACKING_HINT}
                         data-tracking-cell={slot.field}
                         data-testid={`checksheet-doc-cell-${index}-${r}-${c}`}
                       >
-                        <MyTrackingTag className="mb-0.5" />
-                        {slot.field === "status" ? (
-                          <StatusSelect
-                            value={entry?.status ?? null}
-                            label={`My status for ${name}`}
-                            onChange={(status) => tracking.setCell("doc_cell", anchor, "status", { status })}
-                            testId={`checksheet-doc-cell-status-${index}-${r}-${c}`}
+                        {target && relink ? (
+                          <PlaceHere
+                            name={name}
+                            testId={`checksheet-doc-place-here-${index}-${r}-${c}`}
+                            onPlace={() => {
+                              tracking.placeInCell(relink.key, anchor, slot.field);
+                              onRelinkDone();
+                            }}
                           />
                         ) : (
-                          <TermSelect
-                            term={entry?.term ?? null}
-                            year={entry?.termYear ?? null}
-                            label={`My quarter for ${name}`}
-                            onChange={(term, termYear) => tracking.setCell("doc_cell", anchor, "term", { term, termYear })}
-                            testId={`checksheet-doc-cell-term-${index}-${r}-${c}`}
+                          <TrackingCellControls
+                            field={slot.field}
+                            entry={entry}
+                            name={name}
+                            onSet={(values) => tracking.setCell("doc_cell", anchor, slot.field, values)}
+                            statusTestId={`checksheet-doc-cell-status-${index}-${r}-${c}`}
+                            termTestId={`checksheet-doc-cell-term-${index}-${r}-${c}`}
                           />
                         )}
                       </td>
@@ -262,8 +300,13 @@ function Table({
                   const text = textOf(cell);
                   const item = { block: index, row: r, col: c };
                   const chosen = showTracking ? entries.get(itemKey("doc_item", item)) : undefined;
-                  const pickable = picking && text !== "" && !chosen;
+                  const pickable = (picking || placingItem) && text !== "" && !chosen;
                   const pick = () => {
+                    if (placingItem && relink) {
+                      tracking.placeInCell(relink.key, item, null);
+                      onRelinkDone();
+                      return;
+                    }
                     tracking.addItem("doc_item", item, text.slice(0, 200));
                     onPicked();
                   };
@@ -282,7 +325,7 @@ function Table({
                         ? {
                             role: "button",
                             tabIndex: 0,
-                            "aria-label": `Track ${text.slice(0, 120)}`,
+                            "aria-label": `${placingItem ? "Place the entry on" : "Track"} ${text.slice(0, 120)}`,
                             onClick: pick,
                             onKeyDown: (e: React.KeyboardEvent) => {
                               if (e.key === "Enter" || e.key === " ") {

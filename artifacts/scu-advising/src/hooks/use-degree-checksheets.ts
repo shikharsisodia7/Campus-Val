@@ -182,10 +182,13 @@ export interface TrackingEntry extends TrackingValues {
   id: number | null;
   anchorType: TrackingAnchorType;
   anchor: AnchorInput;
-  field: "status" | "term" | null;
+  field: TrackingField | null;
   detached: boolean;
   sortOrder: number;
 }
+
+/** What a student column holds; "both" when it is the table's only student column. */
+export type TrackingField = "status" | "term" | "both";
 
 export function cellKey(anchorType: "sheet_cell" | "doc_cell", anchor: AnchorInput): string {
   return anchorType === "sheet_cell"
@@ -198,6 +201,28 @@ export function itemKey(anchorType: "sheet_item" | "doc_item", anchor: AnchorInp
   return anchorType === "sheet_item"
     ? `sheetitem:${anchor.sheet}:${anchor.row}:${anchor.col}`
     : `blockitem:${anchor.block}:${anchor.row}:${anchor.col}`;
+}
+
+/**
+ * The cell an entry sits in, as a key; null when it sits in no cell (a marker,
+ * a list entry, or an entry a replacement detached). Views find "the entry of
+ * this cell" by it, whatever the entry's own key is.
+ */
+export function placeKeyOf(entry: Pick<TrackingEntry, "anchorType" | "anchor" | "detached">): string | null {
+  if (entry.detached) return null;
+  if (entry.anchorType === "sheet_cell" || entry.anchorType === "doc_cell") return cellKey(entry.anchorType, entry.anchor);
+  if (entry.anchorType === "sheet_item" || entry.anchorType === "doc_item") return itemKey(entry.anchorType, entry.anchor);
+  return null;
+}
+
+/** Entries by the cell they sit in. */
+export function entriesByPlace(entries: TrackingEntry[]): Map<string, TrackingEntry> {
+  const map = new Map<string, TrackingEntry>();
+  for (const entry of entries) {
+    const place = placeKeyOf(entry);
+    if (place) map.set(place, entry);
+  }
+  return map;
 }
 
 function keyOf(entry: DegreeChecksheetAnnotation): string {
@@ -216,7 +241,7 @@ function fromServer(entry: DegreeChecksheetAnnotation, key = keyOf(entry)): Trac
     id: entry.id,
     anchorType: entry.anchorType,
     anchor: entry.anchor,
-    field: entry.field === "status" || entry.field === "term" ? entry.field : null,
+    field: entry.field === "status" || entry.field === "term" || entry.field === "both" ? entry.field : null,
     detached: entry.detached,
     sortOrder: entry.sortOrder,
     itemLabel: entry.itemLabel,
@@ -342,16 +367,17 @@ export function useChecksheetTracking(documentId: number, enabled: boolean) {
 
   /** Sets a value in a cell the document offers; clearing the last value removes the entry. */
   const setCell = useCallback(
-    (anchorType: "sheet_cell" | "doc_cell", anchor: AnchorInput, field: "status" | "term", values: Partial<TrackingValues>) => {
+    (anchorType: "sheet_cell" | "doc_cell", anchor: AnchorInput, field: TrackingField, values: Partial<TrackingValues>) => {
       const key = cellKey(anchorType, anchor);
-      const existing = entriesRef.current.find((entry) => entry.key === key);
+      // An entry placed here by hand keeps its own key; find it by where it sits.
+      const existing = entriesRef.current.find((entry) => placeKeyOf(entry) === key);
       const next: TrackingValues = { ...EMPTY, ...(existing ?? {}), ...values };
       if (!hasContent(next)) {
-        if (existing) remove(key);
+        if (existing) remove(existing.key);
         return;
       }
       if (existing) {
-        change(key, values);
+        change(existing.key, values);
         return;
       }
       setNotice(null);
@@ -372,7 +398,8 @@ export function useChecksheetTracking(documentId: number, enabled: boolean) {
   const addItem = useCallback(
     (anchorType: "sheet_item" | "doc_item", anchor: AnchorInput, label: string): string => {
       const key = itemKey(anchorType, anchor);
-      if (entriesRef.current.some((entry) => entry.key === key)) return key;
+      const existing = entriesRef.current.find((entry) => placeKeyOf(entry) === key);
+      if (existing) return existing.key;
       setNotice(null);
       queue.declare(key, { anchorType, anchor });
       setEntries((list) => [
@@ -424,6 +451,20 @@ export function useChecksheetTracking(documentId: number, enabled: boolean) {
     [queue],
   );
 
+  /**
+   * Puts a detached entry into a cell of the CURRENT file, where the student
+   * says it belongs. The server checks that the document offers that cell and
+   * that it can hold the entry's values.
+   */
+  const placeInCell = useCallback(
+    (key: string, anchor: AnchorInput, field: TrackingField | null) => {
+      setNotice(null);
+      setEntries((list) => list.map((entry) => (entry.key === key ? { ...entry, anchor, field, detached: false } : entry)));
+      queue.save(key, {}, { anchor });
+    },
+    [queue],
+  );
+
   const keepAsListEntry = useCallback(
     (key: string) => {
       setNotice(null);
@@ -464,6 +505,7 @@ export function useChecksheetTracking(documentId: number, enabled: boolean) {
     addPoint,
     addManual,
     movePoint,
+    placeInCell,
     keepAsListEntry,
     retry: () => queue.retry(),
     flush: () => queue.flush(),

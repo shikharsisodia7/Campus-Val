@@ -5,11 +5,11 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
-import type { ChecksheetTrackingColumnField } from "./checksheetTrackingColumnField";
+import type { ChecksheetTrackingField } from "./checksheetTrackingField";
 
 export interface ChecksheetTrackingColumn {
   c: number;
-  field: ChecksheetTrackingColumnField;
+  field: ChecksheetTrackingField;
   header: string;
   headerRow: number;
 }

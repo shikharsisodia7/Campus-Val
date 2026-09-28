@@ -2845,12 +2845,19 @@ components:
         error: { type: string }
         code: { type: string }
 
+    ChecksheetTrackingField:
+      type: string
+      enum: [status, term, both]
+      description: |
+        What a student column holds. "both" when it is the table's only student column:
+        the cell then holds a status and a quarter.
+
     ChecksheetTrackingColumn:
       type: object
       required: [c, field, header, headerRow]
       properties:
         c: { type: integer }
-        field: { type: string, enum: [status, term] }
+        field: { $ref: "#/components/schemas/ChecksheetTrackingField" }
         header: { type: string }
         headerRow: { type: integer }
 
@@ -2860,7 +2867,7 @@ components:
       properties:
         r: { type: integer }
         c: { type: integer }
-        field: { type: string, enum: [status, term] }
+        field: { $ref: "#/components/schemas/ChecksheetTrackingField" }
 
     ChecksheetTrackingLayout:
       type: object
@@ -3019,8 +3026,8 @@ components:
           $ref: "#/components/schemas/DegreeChecksheetAnchor"
         field:
           type: ["string", "null"]
-          enum: [status, term, null]
-          description: For a cell entry, which value its column holds.
+          enum: [status, term, both, null]
+          description: For a cell entry, which value its column holds ("both" for a table's only student column).
         detached:
           type: boolean
           description: |

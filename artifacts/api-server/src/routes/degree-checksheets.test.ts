@@ -1298,6 +1298,108 @@ describe("several documents stay independent", () => {
   });
 });
 
+describe("a checklist with ONE student column, as the real ones have", () => {
+  const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+  /** Requirements on the left with "Quarter Completed"; synthetic wording. */
+  async function checklist(rows: string[]): Promise<Buffer> {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Checklist");
+    ws.addRow(["Requirements", "Quarter Completed"]);
+    for (const row of rows) ws.addRow([row, null]);
+    return Buffer.from(await wb.xlsx.writeBuffer());
+  }
+
+  const ROW_1 = { sheet: 0, row: 1, col: 1 };
+  const ROW_2 = { sheet: 0, row: 2, col: 1 };
+  let id: number;
+
+  it("offers the column for both a status and a quarter", async () => {
+    const bytes = await checklist(["Introduction to Widgetry", "Widget Mathematics I", "Widget Ethics"]);
+    const res = await createRaw(TRACK, bytes, "widgetry-checklist.xlsx", XLSX, { title: "Widgetry checklist" });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body.inlineTracking).toBe(true);
+    id = res.body.id;
+    const render = await as(TRACK, request(app).get(`/api/degree-checksheets/${id}/render`));
+    expect(render.body.render.sheets[0].tracking.columns).toEqual([
+      { c: 1, field: "both", header: "Quarter Completed", headerRow: 0 },
+    ]);
+  });
+
+  it("holds a status AND a quarter in one cell, as one entry", async () => {
+    const first = await annotate(TRACK, id, { anchorType: "sheet_cell", anchor: ROW_1, status: "completed" });
+    expect(first.status, JSON.stringify(first.body)).toBe(201);
+    expect(first.body).toMatchObject({ field: "both", status: "completed", term: null });
+    const second = await annotate(TRACK, id, { anchorType: "sheet_cell", anchor: ROW_1, term: "fall", termYear: 2025 });
+    expect(second.status).toBe(200);
+    expect(second.body).toMatchObject({ id: first.body.id, field: "both", status: "completed", term: "fall", termYear: 2025 });
+    expect((await annotations(TRACK, id)).body.annotations).toHaveLength(1);
+  });
+
+  it("after a reworded replacement, the student can put the detached entry into a cell of the new file", async () => {
+    const entry = (await annotations(TRACK, id)).body.annotations[0];
+    const bytes = await checklist(["History of Widgets", "Widget Mathematics I", "Widget Ethics"]);
+    const objectPath = await putBytes(TRACK, bytes, XLSX, "widgetry-checklist-2.xlsx");
+    const replaced = await as(TRACK, request(app).put(`/api/degree-checksheets/${id}/file`)).send({
+      objectPath,
+      fileName: "widgetry-checklist-2.xlsx",
+      fileSize: bytes.length,
+      contentType: XLSX,
+    });
+    expect(replaced.status, JSON.stringify(replaced.body)).toBe(200);
+    expect(replaced.body.tracking).toEqual({ kept: 0, detached: 1 });
+
+    const detached = (await annotations(TRACK, id)).body.annotations[0];
+    expect(detached).toMatchObject({
+      id: entry.id,
+      detached: true,
+      field: "both",
+      status: "completed",
+      term: "fall",
+      itemLabel: "Introduction to Widgetry",
+    });
+
+    // A cell that is taken is refused; a free one takes the entry with everything it held.
+    const taken = await annotate(TRACK, id, { anchorType: "sheet_cell", anchor: ROW_2, status: "planned" });
+    expect(taken.status).toBe(201);
+    expect((await patch(TRACK, id, entry.id, { anchor: ROW_2 })).status).toBe(400);
+    expect((await patch(TRACK, id, entry.id, { anchor: { sheet: 0, row: 0, col: 1 } })).status).toBe(400);
+
+    const placed = await patch(TRACK, id, entry.id, { anchor: ROW_1 });
+    expect(placed.status, JSON.stringify(placed.body)).toBe(200);
+    expect(placed.body).toMatchObject({
+      id: entry.id,
+      anchorType: "sheet_cell",
+      anchor: ROW_1,
+      detached: false,
+      field: "both",
+      status: "completed",
+      term: "fall",
+      termYear: 2025,
+    });
+
+    // It now belongs to the new file: the same file again keeps it in place.
+    const again = await putBytes(TRACK, bytes, XLSX, "widgetry-checklist-2.xlsx");
+    const same = await as(TRACK, request(app).put(`/api/degree-checksheets/${id}/file`)).send({
+      objectPath: again,
+      fileName: "widgetry-checklist-2.xlsx",
+      fileSize: bytes.length,
+      contentType: XLSX,
+    });
+    expect(same.body.tracking).toEqual({ kept: 2, detached: 0 });
+  });
+
+  it("will not put an entry that holds a quarter into a Status-only column", async () => {
+    const major = await create(TRACK, "major-workbook", { title: "Status and quarter columns" });
+    const both = await annotate(TRACK, major.res.body.id, { anchorType: "sheet_cell", anchor: TERM_CELL, term: "fall", termYear: 2025 });
+    await replaceWith(TRACK, major.res.body.id, "major-workbook-reworded");
+    const refused = await patch(TRACK, major.res.body.id, both.body.id, { anchor: STATUS_CELL });
+    expect(refused.status).toBe(400);
+    expect((await annotations(TRACK, major.res.body.id)).body.annotations[0]).toMatchObject({ detached: true, term: "fall" });
+  });
+});
+
 describe("what is written to the log", () => {
   it("records the events of a document's life", () => {
     const events = new Set(logged.map((entry) => (entry as any[])[0]?.event).filter(Boolean));

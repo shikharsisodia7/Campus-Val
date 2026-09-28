@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import type { ChecksheetSheet, ChecksheetTrackingCell } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { buildGrid, columnLetter } from "@/components/progress-report/AprWorkbookTable";
-import type { ChecksheetTracking } from "@/hooks/use-degree-checksheets";
+import { entriesByPlace, type ChecksheetTracking, type TrackingEntry, type TrackingField } from "@/hooks/use-degree-checksheets";
 import { cellKey, itemKey } from "@/hooks/use-degree-checksheets";
-import { MyTrackingTag, StatusSelect, TermSelect, TRACKING_HINT } from "./TrackingControls";
+import { TRACKING_HINT } from "./TrackingControls";
 import { PICKABLE, PickItemToolbar, TrackedItem } from "./TrackedItem";
+import { CalculatedCellsNote, PlaceHere, RelinkBanner, TrackingCellControls, canHold } from "./TrackingCell";
 
 /**
  * A department workbook, shown as it was uploaded, with the student's own
@@ -17,8 +18,9 @@ import { PICKABLE, PickItemToolbar, TrackedItem } from "./TrackedItem";
  * displayed literally and can never become markup or a link.
  *
  * A tracking control appears ONLY in a cell the server marked as the
- * student's. What is chosen there is stored as a tracking entry; the workbook
- * and this copy of it are never written to.
+ * student's, or beneath a cell the student chose. What is entered there is
+ * stored as a tracking entry; the workbook and this copy of it are never
+ * written to.
  */
 export function ChecksheetSpreadsheetView({
   documentId,
@@ -26,6 +28,9 @@ export function ChecksheetSpreadsheetView({
   sheets,
   tracking,
   showTracking,
+  relink = null,
+  onRelinkDone,
+  warnings = [],
 }: {
   documentId: number;
   title: string;
@@ -33,6 +38,10 @@ export function ChecksheetSpreadsheetView({
   tracking: ChecksheetTracking;
   /** Off shows the source alone, exactly as uploaded. */
   showTracking: boolean;
+  /** A detached entry the student is putting back into a cell. */
+  relink?: TrackingEntry | null;
+  onRelinkDone?: () => void;
+  warnings?: string[];
 }) {
   const [active, setActive] = useState(0);
   const [picking, setPicking] = useState(false);
@@ -40,10 +49,15 @@ export function ChecksheetSpreadsheetView({
   const sheet = sheets[index];
   if (!sheet) return null;
   const chosen = tracking.entries.filter((entry) => !entry.detached && entry.anchorType === "sheet_item").length;
+  const placing = showTracking && relink ? relink : null;
 
   return (
     <div className="space-y-2" data-testid={`checksheet-spreadsheet-${documentId}`}>
-      {showTracking && <PickItemToolbar picking={picking} onChange={setPicking} count={chosen} />}
+      {placing ? (
+        <RelinkBanner entry={placing} item={placing.anchorType === "sheet_item"} onCancel={() => onRelinkDone?.()} />
+      ) : (
+        showTracking && <PickItemToolbar picking={picking} onChange={setPicking} count={chosen} />
+      )}
       {sheets.length > 1 && (
         <div role="tablist" aria-label="Worksheets" className="flex flex-wrap gap-1" data-testid="checksheet-sheet-tabs">
           {sheets.map((s, i) => (
@@ -74,12 +88,18 @@ export function ChecksheetSpreadsheetView({
         caption={`${title} — ${sheet.name}`}
         tracking={tracking}
         showTracking={showTracking}
-        picking={showTracking && picking}
+        picking={showTracking && picking && !placing}
         onPicked={() => setPicking(false)}
+        relink={placing}
+        onRelinkDone={() => onRelinkDone?.()}
       />
+      <CalculatedCellsNote warnings={warnings} />
     </div>
   );
 }
+
+/** The width a student column needs for its controls, in rem. */
+const CONTROL_WIDTH: Record<TrackingField, number> = { status: 9.5, term: 13, both: 13 };
 
 function SheetGrid({
   sheet,
@@ -89,6 +109,8 @@ function SheetGrid({
   showTracking,
   picking,
   onPicked,
+  relink,
+  onRelinkDone,
 }: {
   sheet: ChecksheetSheet;
   sheetPosition: number;
@@ -97,6 +119,8 @@ function SheetGrid({
   showTracking: boolean;
   picking: boolean;
   onPicked: () => void;
+  relink: TrackingEntry | null;
+  onRelinkDone: () => void;
 }) {
   const grid = useMemo(() => buildGrid(sheet), [sheet]);
   const columns = useMemo(() => Array.from({ length: sheet.columnCount }, (_, c) => c), [sheet.columnCount]);
@@ -105,13 +129,20 @@ function SheetGrid({
     for (const cell of sheet.tracking.cells) map.set(`${cell.r}:${cell.c}`, cell);
     return map;
   }, [sheet.tracking.cells]);
-  const trackingColumns = useMemo(() => new Set(sheet.tracking.columns.map((c) => c.c)), [sheet.tracking.columns]);
-  const entries = useMemo(() => new Map(tracking.entries.map((entry) => [entry.key, entry])), [tracking.entries]);
+  const trackingColumns = useMemo(() => [...new Set(sheet.tracking.columns.map((c) => c.c))].sort((a, b) => a - b), [sheet.tracking.columns]);
+  const entries = useMemo(() => entriesByPlace(tracking.entries), [tracking.entries]);
 
-  /** What a row is about, in the department's own words: its first cell that is not a tracking column. */
-  const rowName = (r: number): string => {
+  /**
+   * What a row is about, in the department's own words: the text in the
+   * columns that belong to this student column, which are the ones between the
+   * previous student column and it. (A sheet may hold two tables side by side.)
+   */
+  const rowName = (r: number, column: number): string => {
     const row = sheet.rows.find((candidate) => candidate.r === r);
-    const parts = (row?.cells ?? []).filter((cell) => !trackingColumns.has(cell.c) && cell.text.trim() !== "");
+    const previous = [...trackingColumns].reverse().find((c) => c < column) ?? -1;
+    const filled = (row?.cells ?? []).filter((cell) => !trackingColumns.includes(cell.c) && cell.text.trim() !== "");
+    const own = filled.filter((cell) => cell.c > previous && cell.c < column);
+    const parts = own.length > 0 ? own : filled;
     const name = parts
       .slice(0, 2)
       .map((cell) => cell.text.trim())
@@ -126,6 +157,9 @@ function SheetGrid({
       </p>
     );
   }
+
+  const placingItem = relink?.anchorType === "sheet_item";
+  const placingCell = relink?.anchorType === "sheet_cell";
 
   return (
     <div
@@ -153,7 +187,7 @@ function SheetGrid({
             const rem = width ? Math.min(Math.max(width * 0.6, 4), 34) : 9;
             // A tracking column must fit its control, whatever the file's width.
             const column = sheet.tracking.columns.find((t) => t.c === c);
-            const min = showTracking && column ? (column.field === "term" ? 13 : 9.5) : Math.min(rem, 8);
+            const min = showTracking && column ? CONTROL_WIDTH[column.field] : Math.min(rem, 8);
             return <col key={c} style={{ width: `${Math.max(rem, min)}rem`, minWidth: `${min}rem` }} />;
           })}
         </colgroup>
@@ -195,30 +229,33 @@ function SheetGrid({
                 if (slot) {
                   const anchor = { sheet: sheetPosition, row: r, col: c };
                   const entry = entries.get(cellKey("sheet_cell", anchor));
-                  const name = rowName(r);
+                  const name = rowName(r, c);
+                  const target = placingCell && relink && !entry && canHold(slot.field, relink);
                   return (
                     <td
                       key={c}
-                      className="border border-primary/30 bg-primary/[0.04] p-1 align-top"
+                      className={cn("border border-primary/30 bg-primary/[0.04] p-1 align-top", target && "bg-primary/10")}
                       data-tracking-cell={slot.field}
                       data-testid={`checksheet-cell-${sheetPosition}-${r}-${c}`}
                       title={TRACKING_HINT}
                     >
-                      <MyTrackingTag className="mb-0.5" />
-                      {slot.field === "status" ? (
-                        <StatusSelect
-                          value={entry?.status ?? null}
-                          label={`My status for ${name}`}
-                          onChange={(status) => tracking.setCell("sheet_cell", anchor, "status", { status })}
-                          testId={`checksheet-cell-status-${sheetPosition}-${r}-${c}`}
+                      {target && relink ? (
+                        <PlaceHere
+                          name={name}
+                          testId={`checksheet-place-here-${sheetPosition}-${r}-${c}`}
+                          onPlace={() => {
+                            tracking.placeInCell(relink.key, anchor, slot.field);
+                            onRelinkDone();
+                          }}
                         />
                       ) : (
-                        <TermSelect
-                          term={entry?.term ?? null}
-                          year={entry?.termYear ?? null}
-                          label={`My quarter for ${name}`}
-                          onChange={(term, termYear) => tracking.setCell("sheet_cell", anchor, "term", { term, termYear })}
-                          testId={`checksheet-cell-term-${sheetPosition}-${r}-${c}`}
+                        <TrackingCellControls
+                          field={slot.field}
+                          entry={entry}
+                          name={name}
+                          onSet={(values) => tracking.setCell("sheet_cell", anchor, slot.field, values)}
+                          statusTestId={`checksheet-cell-status-${sheetPosition}-${r}-${c}`}
+                          termTestId={`checksheet-cell-term-${sheetPosition}-${r}-${c}`}
                         />
                       )}
                     </td>
@@ -228,8 +265,13 @@ function SheetGrid({
                 const text = cell?.text.trim() ?? "";
                 const item = { sheet: sheetPosition, row: r, col: c };
                 const chosen = showTracking && cell ? entries.get(itemKey("sheet_item", item)) : undefined;
-                const pickable = picking && text !== "" && !chosen;
+                const pickable = (picking || placingItem) && text !== "" && !chosen;
                 const pick = () => {
+                  if (placingItem && relink) {
+                    tracking.placeInCell(relink.key, item, null);
+                    onRelinkDone();
+                    return;
+                  }
                   tracking.addItem("sheet_item", item, text.slice(0, 200));
                   onPicked();
                 };
@@ -252,7 +294,7 @@ function SheetGrid({
                       ? {
                           role: "button",
                           tabIndex: 0,
-                          "aria-label": `Track ${text.slice(0, 120)}`,
+                          "aria-label": `${placingItem ? "Place the entry on" : "Track"} ${text.slice(0, 120)}`,
                           onClick: pick,
                           onKeyDown: (e: React.KeyboardEvent) => {
                             if (e.key === "Enter" || e.key === " ") {

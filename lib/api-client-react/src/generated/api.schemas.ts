@@ -879,33 +879,31 @@ export interface DegreeChecksheetFailure {
   code: string;
 }
 
-export type ChecksheetTrackingColumnField =
-  (typeof ChecksheetTrackingColumnField)[keyof typeof ChecksheetTrackingColumnField];
+/**
+ * What a student column holds. "both" when it is the table's only student column:
+the cell then holds a status and a quarter.
 
-export const ChecksheetTrackingColumnField = {
+ */
+export type ChecksheetTrackingField =
+  (typeof ChecksheetTrackingField)[keyof typeof ChecksheetTrackingField];
+
+export const ChecksheetTrackingField = {
   status: "status",
   term: "term",
+  both: "both",
 } as const;
 
 export interface ChecksheetTrackingColumn {
   c: number;
-  field: ChecksheetTrackingColumnField;
+  field: ChecksheetTrackingField;
   header: string;
   headerRow: number;
 }
 
-export type ChecksheetTrackingCellField =
-  (typeof ChecksheetTrackingCellField)[keyof typeof ChecksheetTrackingCellField];
-
-export const ChecksheetTrackingCellField = {
-  status: "status",
-  term: "term",
-} as const;
-
 export interface ChecksheetTrackingCell {
   r: number;
   c: number;
-  field: ChecksheetTrackingCellField;
+  field: ChecksheetTrackingField;
 }
 
 /**
@@ -1057,7 +1055,7 @@ export const DegreeChecksheetAnchorType = {
 } as const;
 
 /**
- * For a cell entry, which value its column holds.
+ * For a cell entry, which value its column holds ("both" for a table's only student column).
  * @nullable
  */
 export type DegreeChecksheetAnnotationField =
@@ -1067,6 +1065,7 @@ export type DegreeChecksheetAnnotationField =
 export const DegreeChecksheetAnnotationField = {
   status: "status",
   term: "term",
+  both: "both",
 } as const;
 
 export interface DegreeChecksheetAnnotation {
@@ -1075,7 +1074,7 @@ export interface DegreeChecksheetAnnotation {
   anchorType: DegreeChecksheetAnchorType;
   anchor: DegreeChecksheetAnchor;
   /**
-   * For a cell entry, which value its column holds.
+   * For a cell entry, which value its column holds ("both" for a table's only student column).
    * @nullable
    */
   field: DegreeChecksheetAnnotationField;

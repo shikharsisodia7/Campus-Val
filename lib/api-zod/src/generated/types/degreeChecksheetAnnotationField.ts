@@ -7,7 +7,7 @@
  */
 
 /**
- * For a cell entry, which value its column holds.
+ * For a cell entry, which value its column holds ("both" for a table's only student column).
  * @nullable
  */
 export type DegreeChecksheetAnnotationField =
@@ -17,4 +17,5 @@ export type DegreeChecksheetAnnotationField =
 export const DegreeChecksheetAnnotationField = {
   status: "status",
   term: "term",
+  both: "both",
 } as const;

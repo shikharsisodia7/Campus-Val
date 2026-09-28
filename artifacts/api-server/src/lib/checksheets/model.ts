@@ -26,11 +26,22 @@ export const CHECKSHEET_MIME: Record<ChecksheetFormat, string> = {
   jpg: "image/jpeg",
 };
 
+/**
+ * What a student column holds.
+ *   "status" / "term"  the table has BOTH a status and a quarter column, so
+ *                      each holds its own value.
+ *   "both"             the table has ONE student column. Real checklists use
+ *                      one column for "when, and whether" (its own choices run
+ *                      from "Fall Year 1" to "Completed" and "Transfer
+ *                      Credit"), so the cell holds a status and a quarter.
+ */
+export type TrackingField = "status" | "term" | "both";
+
 /** A column the department left for the student to fill in. */
 export interface TrackingColumn {
   /** Source column index (0 = column A). */
   c: number;
-  field: "status" | "term";
+  field: TrackingField;
   /** The header text, as the file has it. */
   header: string;
   /** Source row index of the header row this column was found in. */
@@ -41,7 +52,7 @@ export interface TrackingColumn {
 export interface TrackingCell {
   r: number;
   c: number;
-  field: "status" | "term";
+  field: TrackingField;
   /** Hash of the row this cell sits in. Compared on replacement; never the text. */
   fingerprint: string;
 }
