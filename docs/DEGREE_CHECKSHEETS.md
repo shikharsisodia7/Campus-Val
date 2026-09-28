@@ -461,14 +461,17 @@ repository:
 | General Engineering four-year plans (2 pages) | Same |
 | Music first-year course plans, downloaded from Google Docs as Word and as PDF | Both drawn; in the Word file a course cell is chosen and tracked, and survives a reload |
 | Gender and Sexuality Studies first-year course plans, Word and PDF (2 pages) | Same |
+| Leavey School of Business core curriculum, the web page saved as a PDF (6 pages) | Drawn, text selectable, marker placed, stored byte for byte |
 | A saved sign-in page named `.pdf` | Refused: "contents don't match its file type" |
 | **All 40** College of Arts and Sciences "Requirements Checklist" spreadsheets (Anthropology … Women's and Gender Studies) | All 40 shown; all 40 tracked **in place**, 1,708 cells in total; first cell of each given a status and a quarter in the browser; each stored byte for byte |
 | **All 33** College of Arts and Sciences first-year course plans, Word | All 33 shown; a course cell chosen and tracked in each; each stored byte for byte |
 
 The College of Arts and Sciences publishes its documents as Google Docs that
 require an SCU sign-in. The two above were downloaded by the repository owner
-with their own SCU account. The Leavey School of Business advising page links
-no downloadable files.
+with their own SCU account. The Leavey School of Business publishes its core
+curriculum as a web page (scu.edu/business/undergraduates/core), not as a file.
+A student saves that page as a PDF from the browser's Print dialog and uploads
+it; CampusVal does not fetch it.
 
 The 40 checklists and 33 course plans are Google Sheets and Google Docs behind
 an SCU sign-in; they were downloaded through the repository owner's own signed-in
@@ -508,7 +511,7 @@ What real files showed that synthetic ones had not:
   (`calculated_cells_not_shown`), and the cell is never offered to the student.
 
 To repeat the check, point the browser spec at a folder holding `eng-*.pdf`,
-`cas-*.pdf` and `cas-*.docx` files, with the checklists in `checklists/*.xlsx`
+`lsb-*.pdf`, `cas-*.pdf` and `cas-*.docx` files, with the checklists in `checklists/*.xlsx`
 and the course plans in `plans/*.docx` (tests R and S):
 
 ```

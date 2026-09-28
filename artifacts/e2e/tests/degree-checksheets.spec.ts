@@ -15,7 +15,7 @@
  *   J  a requirements checklist (one student column per table); a replacement;
  *      putting an entry the replacement set aside back into a cell
  *   R  (optional) real department documents from a local folder, never
- *      committed: set CHECKSHEET_REAL_DIR to a folder holding eng-*.pdf,
+ *      committed: set CHECKSHEET_REAL_DIR to a folder holding eng-*.pdf, lsb-*.pdf,
  *      cas-*.pdf and cas-*.docx files downloaded from scu.edu
  *   S  (optional) every real requirements checklist (checklists/*.xlsx) and
  *      course plan (plans/*.docx) in that folder
@@ -1239,7 +1239,7 @@ test("J. A requirements checklist: both values in one column; a replacement; an 
  */
 const REAL_DIR = process.env.CHECKSHEET_REAL_DIR;
 const REAL_FILES = REAL_DIR && existsSync(REAL_DIR) ? readdirSync(REAL_DIR).sort() : [];
-const REAL_PDFS = REAL_FILES.filter((n) => /^(eng|cas)-.*\.pdf$/i.test(n));
+const REAL_PDFS = REAL_FILES.filter((n) => /^(eng|cas|lsb)-.*\.pdf$/i.test(n));
 const REAL_DOCS = REAL_FILES.filter((n) => /^cas-.*\.docx$/i.test(n));
 
 test("R. Real SCU department PDFs are drawn, tracked and left unchanged", async ({ page }) => {
