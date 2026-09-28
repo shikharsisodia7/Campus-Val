@@ -463,17 +463,16 @@ repository:
 | Gender and Sexuality Studies first-year course plans, Word and PDF (2 pages) | Same |
 | A saved sign-in page named `.pdf` | Refused: "contents don't match its file type" |
 | **All 40** College of Arts and Sciences "Requirements Checklist" spreadsheets (Anthropology … Women's and Gender Studies) | All 40 shown; all 40 tracked **in place**, 1,708 cells in total; first cell of each given a status and a quarter in the browser; each stored byte for byte |
-| 24 College of Arts and Sciences first-year course plans, Word | All 24 shown; a course cell chosen and tracked in each; each stored byte for byte |
+| **All 33** College of Arts and Sciences first-year course plans, Word | All 33 shown; a course cell chosen and tracked in each; each stored byte for byte |
 
 The College of Arts and Sciences publishes its documents as Google Docs that
 require an SCU sign-in. The two above were downloaded by the repository owner
 with their own SCU account. The Leavey School of Business advising page links
 no downloadable files.
 
-The 40 checklists and 24 course plans are Google Sheets and Google Docs behind
+The 40 checklists and 33 course plans are Google Sheets and Google Docs behind
 an SCU sign-in; they were downloaded through the repository owner's own signed-in
-browser. Nine further course plans on that page were not downloaded (the
-browser session ended first); they are the same template as the 24.
+browser. That is every checklist and every course plan the College's page links.
 
 What real files showed that synthetic ones had not:
 
