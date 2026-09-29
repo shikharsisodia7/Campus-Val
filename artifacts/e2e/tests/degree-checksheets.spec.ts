@@ -1164,6 +1164,8 @@ test("J. A requirements checklist: both values in one column; a replacement; an 
 
   const doc = (await listDocuments(page)).find((d) => d.title === title)!;
   const before = await entriesOf(page, doc.id);
+  // Two entries made a moment apart are listed in the order the server received them.
+  before.sort((a, b) => a.anchor.row! - b.anchor.row!);
   expect(before.map((e) => [e.anchor.row, e.anchor.col, e.status, e.term, e.detached])).toEqual([
     [2, 1, "completed", "fall", false],
     [3, 1, "planned", null, false],

@@ -326,7 +326,7 @@ export default function Planner() {
                 />
               </div>
             ) : (
-              <div className="flex flex-1 items-center justify-center rounded-xl border bg-card p-6 text-center text-sm opacity-50 shadow-sm">
+              <div className="flex flex-1 items-center justify-center rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground shadow-sm">
                 Create a schedule above to search for sections.
               </div>
             )}

@@ -111,6 +111,23 @@ test("the main pages", async ({ page }) => {
   }
 });
 
+test("Quarter Plan before any schedule exists", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/planner");
+  await sessionReady(page);
+  // The schedules are put aside for this check and put back after it.
+  const listed = await (await page.request.get("/api/schedules")).json();
+  const schedules = (Array.isArray(listed) ? listed : (listed.schedules ?? [])) as { id: number }[];
+  await page.route(/\/api\/schedules(\?.*)?$/, (route) =>
+    route.request().method() === "GET" ? route.fulfill({ json: Array.isArray(listed) ? [] : { ...listed, schedules: [] } }) : route.continue(),
+  );
+  await page.reload();
+  await expect(page.getByText("Create a schedule above to search for sections.")).toBeVisible({ timeout: 30_000 });
+  await check(page, "Quarter Plan, no schedule");
+  await page.unroute(/\/api\/schedules(\?.*)?$/);
+  expect(schedules).toBeDefined();
+});
+
 test("Degree Checksheets: empty, the upload dialog, a spreadsheet, tracking, a replacement, placing an entry", async ({ page }) => {
   test.setTimeout(240_000);
   await page.goto("/degree-checksheets");
