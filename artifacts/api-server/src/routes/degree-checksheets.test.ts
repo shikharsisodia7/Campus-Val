@@ -880,6 +880,45 @@ describe("student tracking on a PDF, a picture and a Word document", () => {
     expect((await annotations(TRACK, pdfId)).body.annotations).toHaveLength(1);
   });
 
+  it("draws a page of a PDF to a PNG, for a client with no PDF renderer of its own", async () => {
+    const res = await as(TRACK, request(app).get(`/api/degree-checksheets/${pdfId}/pages/1/image`));
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.headers["content-type"]).toBe("image/png");
+    expect(res.headers["x-content-type-options"]).toBe("nosniff");
+    expect(res.headers["cache-control"]).toMatch(/no-store/);
+    expect((res.body as Buffer).subarray(0, 8)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    expect((res.body as Buffer).length).toBeGreaterThan(1_000);
+  });
+
+  it("draws a larger page at a higher scale, clamped to a sane range", async () => {
+    const at1 = await as(TRACK, request(app).get(`/api/degree-checksheets/${pdfId}/pages/1/image?scale=1`));
+    const at3 = await as(TRACK, request(app).get(`/api/degree-checksheets/${pdfId}/pages/1/image?scale=3`));
+    const beyond = await as(TRACK, request(app).get(`/api/degree-checksheets/${pdfId}/pages/1/image?scale=999`));
+    expect(at1.status).toBe(200);
+    expect(at3.status).toBe(200);
+    expect(beyond.status).toBe(200);
+    expect((at3.body as Buffer).length).toBeGreaterThan((at1.body as Buffer).length);
+    expect((beyond.body as Buffer).length).toBe((at3.body as Buffer).length);
+  });
+
+  it("refuses a page that does not exist, and a page number that is not a positive integer", async () => {
+    for (const page of ["0", "999", "1.5", "abc", "-1"]) {
+      const res = await as(TRACK, request(app).get(`/api/degree-checksheets/${pdfId}/pages/${page}/image`));
+      expect(res.status, page).toBe(404);
+    }
+  });
+
+  it("refuses a document that is not a PDF", async () => {
+    expect((await as(TRACK, request(app).get(`/api/degree-checksheets/${pngId}/pages/1/image`))).status).toBe(404);
+    expect((await as(TRACK, request(app).get(`/api/degree-checksheets/${docxId}/pages/1/image`))).status).toBe(404);
+  });
+
+  it("is owner-only: another student gets 404, not the image", async () => {
+    const res = await as(MULTI, request(app).get(`/api/degree-checksheets/${pdfId}/pages/1/image`));
+    expect(res.status).toBe(404);
+    expect(res.headers["content-type"]).not.toMatch(/image/);
+  });
+
   it("places a marker on a picture", async () => {
     const res = await annotate(TRACK, pngId, { anchorType: "point", anchor: { page: 0, x: 0.18, y: 0.18 }, status: "completed" });
     expect(res.status).toBe(201);

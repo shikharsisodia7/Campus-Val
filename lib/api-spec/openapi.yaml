@@ -1923,6 +1923,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DegreeChecksheetFailure"
+  /degree-checksheets/{id}/pages/{page}/image:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+      - name: page
+        in: path
+        required: true
+        description: 1-based page number
+        schema: { type: integer, minimum: 1 }
+      - name: scale
+        in: query
+        required: false
+        schema: { type: number, minimum: 1, maximum: 3 }
+    get:
+      operationId: downloadDegreeChecksheetPageImage
+      tags: [degree-checksheets]
+      summary: One PDF page, drawn to a PNG
+      description: |
+        For a client with no PDF renderer of its own (the mobile app). The web app draws PDF
+        pages itself, in the browser. Only for a document whose source format is PDF; only
+        for a page number the document actually has.
+      responses:
+        "200":
+          description: PNG image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: No such document, no such page, or the document is not a PDF
+        "422":
+          description: The page could not be drawn
   /degree-checksheets/{id}/annotations:
     parameters:
       - name: id

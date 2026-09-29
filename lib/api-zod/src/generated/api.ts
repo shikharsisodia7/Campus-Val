@@ -4388,6 +4388,29 @@ export const ReplaceDegreeChecksheetFileResponse = zod.object({
 });
 
 /**
+ * For a client with no PDF renderer of its own (the mobile app). The web app draws PDF
+pages itself, in the browser. Only for a document whose source format is PDF; only
+for a page number the document actually has.
+
+ * @summary One PDF page, drawn to a PNG
+ */
+
+export const DownloadDegreeChecksheetPageImageParams = zod.object({
+  id: zod.coerce.number().min(1),
+  page: zod.coerce.number().min(1).describe("1-based page number"),
+});
+
+export const downloadDegreeChecksheetPageImageQueryScaleMax = 3;
+
+export const DownloadDegreeChecksheetPageImageQueryParams = zod.object({
+  scale: zod.coerce
+    .number()
+    .min(1)
+    .max(downloadDegreeChecksheetPageImageQueryScaleMax)
+    .optional(),
+});
+
+/**
  * @summary The caller's tracking entries for one document
  */
 

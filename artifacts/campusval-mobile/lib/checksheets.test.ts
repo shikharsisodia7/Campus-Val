@@ -177,7 +177,7 @@ describe('what the mobile app offers for each kind of document', () => {
     expect(trackingWays(kinds.checklist)).toEqual({ inPlace: true, chooseCell: true, placeMarker: false, myList: true });
     expect(trackingWays(kinds.coursePlan)).toEqual({ inPlace: false, chooseCell: true, placeMarker: false, myList: true });
     expect(trackingWays(kinds.flowchart)).toEqual({ inPlace: false, chooseCell: false, placeMarker: true, myList: true });
-    expect(trackingWays(kinds.pdf)).toEqual({ inPlace: false, chooseCell: false, placeMarker: false, myList: true });
+    expect(trackingWays(kinds.pdf)).toEqual({ inPlace: false, chooseCell: false, placeMarker: true, myList: true });
     expect(trackingWays(kinds.noPreview)).toEqual({ inPlace: false, chooseCell: false, placeMarker: false, myList: true });
   });
 
@@ -196,7 +196,7 @@ describe('what the mobile app offers for each kind of document', () => {
     expect(canPlaceAgain({ anchorType: 'sheet_cell' }, kinds.coursePlan)).toBe(false);
     expect(canPlaceAgain({ anchorType: 'doc_item' }, kinds.coursePlan)).toBe(true);
     expect(canPlaceAgain({ anchorType: 'point' }, kinds.flowchart)).toBe(true);
-    expect(canPlaceAgain({ anchorType: 'point' }, kinds.pdf)).toBe(false);
+    expect(canPlaceAgain({ anchorType: 'point' }, kinds.pdf)).toBe(true);
     expect(canPlaceAgain({ anchorType: 'manual' }, kinds.checklist)).toBe(false);
   });
 

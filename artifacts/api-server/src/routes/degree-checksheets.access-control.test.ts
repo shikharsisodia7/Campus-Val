@@ -75,6 +75,7 @@ const ROUTES = [
   "delete /degree-checksheets/:id",
   "get /degree-checksheets/:id/render",
   "get /degree-checksheets/:id/file",
+  "get /degree-checksheets/:id/pages/:page/image",
   "get /degree-checksheets/:id/annotations",
   "post /degree-checksheets/:id/annotations",
   "patch /degree-checksheets/:id/annotations/:annotationId",

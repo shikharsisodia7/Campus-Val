@@ -2589,3 +2589,11 @@ export const SearchCoursesTerm = {
   spring: "spring",
   summer: "summer",
 } as const;
+
+export type DownloadDegreeChecksheetPageImageParams = {
+  /**
+   * @minimum 1
+   * @maximum 3
+   */
+  scale?: number;
+};

@@ -21,8 +21,8 @@ export function canPlaceAgain(entry: Pick<TrackingEntry, 'anchorType'>, document
   if (entry.anchorType === 'sheet_item') return document.previewKind === 'spreadsheet';
   if (entry.anchorType === 'doc_cell') return document.previewKind === 'document' && document.inlineTracking;
   if (entry.anchorType === 'doc_item') return document.previewKind === 'document';
-  // A marker can be placed by touch on a picture. PDF pages are not drawn in the mobile app.
-  if (entry.anchorType === 'point') return document.previewKind === 'image';
+  // A marker can be placed by touch on a picture or on a drawn PDF page.
+  if (entry.anchorType === 'point') return document.previewKind === 'image' || document.previewKind === 'pdf';
   return false;
 }
 
@@ -47,7 +47,7 @@ export function trackingWays(document: Kind & Pick<DegreeChecksheetDocument, 're
   return {
     inPlace: cells && document.inlineTracking,
     chooseCell: cells,
-    placeMarker: ready && document.previewKind === 'image',
+    placeMarker: ready && (document.previewKind === 'image' || document.previewKind === 'pdf'),
     myList: true,
   };
 }
@@ -57,7 +57,6 @@ export function trackingHint(document: Kind & Pick<DegreeChecksheetDocument, 're
   const ways = trackingWays(document);
   if (ways.inPlace) return 'Tap a “My tracking” cell to set your status and quarter. The document itself is never changed.';
   if (ways.chooseCell) return 'This document has no column for you to fill in. Use “Track a cell” to choose an item, or add it to My Tracking.';
-  if (ways.placeMarker) return 'Use “Add a marker” and tap the picture, or add items to My Tracking.';
-  if (document.previewKind === 'pdf') return 'Open the original to read it, and track items with My Tracking.';
+  if (ways.placeMarker) return 'Use “Add a marker” and tap where it belongs, or add items to My Tracking.';
   return 'This file has no preview. Open the original to read it, and track items with My Tracking.';
 }

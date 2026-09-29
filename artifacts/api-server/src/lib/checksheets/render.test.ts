@@ -311,7 +311,7 @@ describe("legacy .xls", () => {
     ]);
     expect(major!.merges).toEqual([{ r: 0, c: 0, rowSpan: 1, colSpan: 5 }]);
     expect(major!.columnWidths).toEqual([34, 14, 14, 20, 34]);
-    expect(major!.rows[0]!.cells).toEqual([{ c: 0, text: "Applied Widgetry Major Checksheet (sample)" }]);
+    expect(major!.rows[0]!.cells).toEqual([{ c: 0, text: "Applied Widgetry Major Checksheet (sample)", bold: true }]);
     expect(major!.rows.map((row) => row.cells[0]!.text).slice(1, 5)).toEqual([
       "Requirement",
       "Lower Division",
@@ -330,9 +330,9 @@ describe("legacy .xls", () => {
       [2, "status", "Status"],
       [3, "term", "Quarter Completed"],
     ]);
-    // The six courses are offered. The legacy format carries no bold, so its two
-    // section headings cannot be told from requirements and are offered too.
-    expect(tracking.cells.filter((c) => c.c === 2).map((c) => c.r)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+    // The six courses and the three lines under them. The two section headings
+    // are bold in the file, and are not offered: exactly as in an .xlsx.
+    expect(tracking.cells.filter((c) => c.c === 2).map((c) => c.r)).toEqual([4, 5, 6, 8, 9, 10, 11, 12, 13]);
     // Never the notes sheet, which has no header naming a column.
     expect(out.render.sheets[1]!.tracking.cells).toEqual([]);
   });
@@ -361,6 +361,22 @@ describe("legacy .xls", () => {
     const cells = out.render.sheets[0]!.rows.flatMap((row) => row.cells);
     expect(cells.every((cell) => Object.keys(cell).sort().join() === "c,text")).toBe(true);
     expect(cells.map((cell) => cell.text)).toContain('<img src=x onerror="alert(1)">');
+  });
+
+  it("reads bold from the file's own records: headings are bold, requirements are not", async () => {
+    const out = await buildChecksheetRender(await buildChecksheetFixture("legacy-workbook"), "xls");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    const bold = out.render.sheets[0]!.rows.filter((row) => row.cells.some((cell) => cell.bold)).map((row) => row.cells[0]!.text);
+    expect(bold).toEqual(["Applied Widgetry Major Checksheet (sample)", "Requirement", "Lower Division", "Upper Division"]);
+    // The header row is bold in every column; a requirement row in none.
+    expect(out.render.sheets[0]!.rows[1]!.cells.every((cell) => cell.bold)).toBe(true);
+    expect(out.render.sheets[0]!.rows[3]!.cells.some((cell) => cell.bold)).toBe(false);
+  });
+
+  it("shows a legacy file unformatted, and still shows it, when its formatting cannot be read", async () => {
+    const { readLegacyStyles } = await import("./xls-styles");
+    expect(readLegacyStyles(Buffer.from("not a workbook")).size).toBe(0);
+    expect(readLegacyStyles(Buffer.alloc(0)).size).toBe(0);
   });
 
   it("reports a password-protected workbook as such", async () => {

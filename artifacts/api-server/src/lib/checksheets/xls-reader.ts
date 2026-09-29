@@ -14,17 +14,17 @@
  * The bytes are checked to be an OLE2 workbook before this is called
  * (formats.ts), and the stored original is never written to.
  *
- * What the legacy reader cannot give: bold, italics, fills, alignment. Cell
- * text, order, merges, widths, hidden sheets and number formats are kept. A
- * section heading therefore cannot be told from a requirement by its weight,
- * so in a legacy file a heading row may be offered a tracking cell. Saving the
- * file as .xlsx keeps the formatting.
+ * Bold and italics are read from the file's own font records (xls-styles.ts),
+ * so a section heading is told from a requirement as it is in an .xlsx. Fills,
+ * alignment and indentation are not read: they change how a cell looks, not
+ * what is offered or what it says.
  */
 import * as XLSX from "xlsx";
 import { cleanCellText } from "../apr/cell-text";
 import { APR_LIMITS } from "../apr/limits";
 import type { AprCell, AprMerge, AprRow, AprSheet, AprStructureWarning } from "../apr/workbook-model";
 import { ChecksheetError } from "./model";
+import { readLegacyStyles, type LegacyCellStyle } from "./xls-styles";
 
 export interface LegacyWorkbook {
   sheets: AprSheet[];
@@ -68,6 +68,7 @@ function readSheet(
   hidden: boolean,
   budget: { rows: number; cells: number },
   warnings: Set<AprStructureWarning>,
+  styles: Map<string, LegacyCellStyle> | undefined,
 ): AprSheet {
   const merges: AprMerge[] = [];
   const covered = new Set<string>();
@@ -107,7 +108,13 @@ function readSheet(
       if (budget.rows > APR_LIMITS.maxRows) throw new ChecksheetError("too_large");
       byRow.set(at.r, cells);
     }
-    cells.push({ c: at.c, text: cleaned.text });
+    const style = styles?.get(`${at.r}:${at.c}`);
+    cells.push({
+      c: at.c,
+      text: cleaned.text,
+      ...(style?.bold ? { bold: true as const } : {}),
+      ...(style?.italic ? { italic: true as const } : {}),
+    });
     if (at.c + 1 > maxColumn) maxColumn = at.c + 1;
   }
 
@@ -171,12 +178,13 @@ export function readLegacyWorkbook(buf: Buffer): LegacyWorkbook {
   const warnings = new Set<AprStructureWarning>();
   if (buf.includes(VBA_STORAGE)) warnings.add("macros_ignored");
 
+  const styles = readLegacyStyles(buf);
   const budget = { rows: 0, cells: 0 };
   let sheets: AprSheet[];
   try {
     sheets = names.map((name, index) => {
       const hidden = (workbook.Workbook?.Sheets?.[index]?.Hidden ?? 0) !== 0;
-      return readSheet(workbook.Sheets[name] ?? {}, name, index, hidden, budget, warnings);
+      return readSheet(workbook.Sheets[name] ?? {}, name, index, hidden, budget, warnings, styles.get(index));
     });
   } catch (err) {
     if (err instanceof ChecksheetError) throw err;
