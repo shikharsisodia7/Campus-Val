@@ -44,6 +44,11 @@ async function buildAll() {
       "better-sqlite3",
       "sqlite3",
       "canvas",
+      // Native rendering package used only when a PDF page is drawn to an
+      // image for a client with no PDF renderer of its own (the mobile app).
+      // Kept external so its platform binary is resolved at runtime, the same
+      // way every other native module in this list is.
+      "@napi-rs/canvas",
       "bcrypt",
       "argon2",
       "fsevents",

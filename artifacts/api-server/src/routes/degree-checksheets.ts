@@ -71,6 +71,7 @@ import {
   type TrackingField,
 } from "../lib/checksheets/model";
 import { buildChecksheetRender } from "../lib/checksheets/render";
+import { clampPdfPageScale, renderChecksheetPdfPage } from "../lib/checksheets/pdf-render";
 
 const router: IRouter = Router();
 
@@ -919,6 +920,61 @@ router.get("/degree-checksheets/:id/file", requireAuth, async (req, res): Promis
     }
     req.log.error({ event: "checksheet_file_stream_failed", documentId: row.id }, "Failed to serve checksheet file");
     res.status(500).json({ error: "Failed to serve file." });
+  }
+});
+
+/**
+ * One PDF page, drawn to a PNG — for a client with no PDF renderer of its own
+ * (the mobile app; the web app draws pages itself, in the browser). Owner-only,
+ * like every other route here: ownership is checked before the file is even
+ * downloaded, and the response is never cached by a shared cache.
+ */
+router.get("/degree-checksheets/:id/pages/:page/image", requireAuth, async (req, res): Promise<void> => {
+  noStore(res);
+  if (!isPrivateStorageConfigured()) {
+    res.status(503).json({ error: "Object storage is not configured." });
+    return;
+  }
+  const userId = req.userId!;
+  const id = parseParam(req, "id");
+  const row = id ? await findOwned(userId, id) : null;
+  if (!row || row.sourceFormat !== "pdf") {
+    res.status(404).json(NOT_FOUND);
+    return;
+  }
+  const pageParam = Number(req.params["page"]);
+  const render = row.renderStatus === "ready" ? await renderOf(userId, row.id) : null;
+  const pageCount = render?.kind === "pdf" ? render.pages.length : 0;
+  if (!Number.isInteger(pageParam) || pageParam < 1 || pageParam > pageCount) {
+    res.status(404).json(NOT_FOUND);
+    return;
+  }
+
+  try {
+    const storage = await getPrivateObjectStorage();
+    if (!(await storage.canRead(row.objectPath, userId))) {
+      res.status(403).json({ error: "Forbidden." });
+      return;
+    }
+    const { stream } = await storage.downloadObject(row.objectPath);
+    const bytes = await readAll(stream, checksheetMaxUploadBytes());
+    const png = await renderChecksheetPdfPage(bytes, pageParam - 1, clampPdfPageScale(req.query["scale"]));
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    // A generated PNG buffer, not text: res.end (not res.send) writes it as
+    // raw bytes, matching the pattern already used for the plan-export route.
+    res.end(png);
+  } catch (err) {
+    if (err instanceof ObjectNotFoundError) {
+      res.status(404).json({ error: "File not found in storage." });
+      return;
+    }
+    if (err instanceof ChecksheetError) {
+      res.status(422).json({ error: "This page could not be drawn." });
+      return;
+    }
+    req.log.error({ event: "checksheet_processing_failed", documentId: row.id, category: "processing_failed" }, "Failed to render a PDF page");
+    res.status(500).json({ error: "Failed to draw this page." });
   }
 });
 

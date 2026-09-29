@@ -28,7 +28,7 @@ import {
   type TrackingEntry,
 } from '@workspace/api-client-react';
 import { fitPicture, ROW_NUMBER_WIDTH, sheetGrid, tableCellText, tableRowName, tableWidths, touchToFraction } from '@/lib/checksheet-layout';
-import { originalFileUrl } from '@/lib/checksheet-files';
+import { originalFileUrl, pdfPageImageUrl } from '@/lib/checksheet-files';
 import { Choice, MineBox, type EditorTarget } from './TrackingEditor';
 import type { Colors, Styles } from './theme';
 
@@ -561,21 +561,129 @@ export function markerTarget(tracking: ChecksheetTracking, key: string, fallback
 // ─── PDF ─────────────────────────────────────────────────────────────────────
 
 /**
- * A PDF is read in the phone's own viewer: CampusVal does not draw PDF pages
- * in the mobile app. Tracking for it is the My Tracking list below, and any
- * markers placed in the web app, listed by page.
+ * A PDF, page by page. The app has no PDF renderer of its own, so each page
+ * is drawn to a picture by the server (the same PDF.js the web app uses,
+ * running once on the server instead of once per browser) and shown here the
+ * same way a picture is: zoom, and a marker placed by touch. The original
+ * file is never changed; "Open original" still opens the file itself, for
+ * reading in the phone's own viewer.
  */
-export function PdfPreview({ render, styles }: PreviewProps) {
-  const pages = render.pages?.length ?? 0;
+export function PdfPreview({ document, render, tracking, showTracking, relink, onRelinkDone, placingMarker, onMarkerPlaced, edit, token, width, colors, styles }: PreviewProps) {
+  const pageCount = render.pages?.length ?? 0;
+  const [page, setPage] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [box, setBox] = useState({ width: 0, height: 0 });
+  const current = render.pages?.[page];
+  const size = fitPicture({ width: current?.width ?? 0, height: current?.height ?? 0 }, width, zoom);
+  const markers = showTracking ? tracking.entries.filter((entry) => entry.anchorType === 'point' && !entry.detached && (entry.anchor.page ?? 0) === page) : [];
+  const placing = placingMarker || relink?.anchorType === 'point';
+
+  const onLayout = (event: LayoutChangeEvent) => setBox(event.nativeEvent.layout);
+  const place = (event: GestureResponderEvent) => {
+    const at = touchToFraction({ x: event.nativeEvent.locationX, y: event.nativeEvent.locationY }, box);
+    if (!at) return;
+    if (relink?.anchorType === 'point') {
+      tracking.movePoint(relink.key, { page, ...at });
+      onRelinkDone();
+      return;
+    }
+    const key = tracking.addPoint({ page, ...at }, {});
+    onMarkerPlaced();
+    edit(markerTarget(tracking, key, `Marker on page ${page + 1}`));
+  };
+
+  if (pageCount === 0) {
+    return (
+      <Text style={styles.small} testID="pdf-preview">
+        This PDF could not be drawn. Use “Open original” to read it, and track it with My Tracking below.
+      </Text>
+    );
+  }
+  if (!token) return <Text style={styles.small}>Sign in again to see this document.</Text>;
+
   return (
-    <View style={styles.notice} testID="pdf-preview">
-      <Text style={[styles.body, styles.strong]}>
-        PDF, {pages} {pages === 1 ? 'page' : 'pages'}
-      </Text>
-      <Text style={styles.small}>
-        Use “Open original” to read this PDF in your phone's viewer. Track it with My Tracking below. Markers on a page are placed in
-        the CampusVal web app; the ones you have placed are listed below and can be edited here.
-      </Text>
+    <View style={{ gap: 8 }} testID="pdf-preview">
+      <View style={styles.actions}>
+        <Pressable
+          style={[styles.button, styles.outline, page <= 0 && styles.disabled]}
+          disabled={page <= 0}
+          onPress={() => setPage((p) => Math.max(0, p - 1))}
+          accessibilityRole="button"
+          accessibilityLabel="Previous page"
+        >
+          <Feather name="chevron-left" size={18} color={colors.foreground} />
+        </Pressable>
+        <Text style={[styles.body, { alignSelf: 'center' }]} accessibilityLabel={`Page ${page + 1} of ${pageCount}`}>
+          {page + 1} / {pageCount}
+        </Text>
+        <Pressable
+          style={[styles.button, styles.outline, page >= pageCount - 1 && styles.disabled]}
+          disabled={page >= pageCount - 1}
+          onPress={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+          accessibilityRole="button"
+          accessibilityLabel="Next page"
+        >
+          <Feather name="chevron-right" size={18} color={colors.foreground} />
+        </Pressable>
+        <View style={{ flex: 1 }} />
+        <Pressable
+          style={[styles.button, styles.outline, zoom <= 1 && styles.disabled]}
+          disabled={zoom <= 1}
+          onPress={() => setZoom((z) => Math.max(1, z - 0.5))}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom out"
+        >
+          <Feather name="zoom-out" size={18} color={colors.foreground} />
+        </Pressable>
+        <Pressable
+          style={[styles.button, styles.outline, zoom >= 3 && styles.disabled]}
+          disabled={zoom >= 3}
+          onPress={() => setZoom((z) => Math.min(3, z + 0.5))}
+          accessibilityRole="button"
+          accessibilityLabel="Zoom in"
+        >
+          <Feather name="zoom-in" size={18} color={colors.foreground} />
+        </Pressable>
+      </View>
+      {placing && (
+        <Text style={[styles.small, styles.strong]} accessibilityLiveRegion="polite">
+          Tap the place on this page where the marker belongs. Turn the page first if it belongs on another one.
+        </Text>
+      )}
+      <ScrollView horizontal style={styles.grid} testID="pdf-page">
+        <ScrollView nestedScrollEnabled style={{ maxHeight: 560 }}>
+          <Pressable
+            key={page}
+            onLayout={onLayout}
+            onPress={placing ? place : undefined}
+            disabled={!placing}
+            style={{ width: size.width, height: size.height }}
+            accessibilityRole={placing ? 'button' : 'image'}
+            accessibilityLabel={placing ? `Page ${page + 1}. Tap where the marker belongs.` : `${document.title}, page ${page + 1} of ${pageCount}`}
+          >
+            <Image
+              source={{ uri: pdfPageImageUrl(document.id, page + 1), headers: { Authorization: `Bearer ${token}` } }}
+              style={{ width: size.width, height: size.height }}
+              contentFit="fill"
+              cachePolicy="none"
+              accessible={false}
+            />
+            {markers.map((entry) => (
+              <Pressable
+                key={entry.key}
+                style={[styles.marker, { left: (entry.anchor.x ?? 0) * size.width, top: (entry.anchor.y ?? 0) * size.height }]}
+                onPress={() => edit(markerTarget(tracking, entry.key, `Marker on page ${page + 1}`))}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`My tracking marker: ${entrySummary(entry)}`}
+                testID={`marker-${entry.key}`}
+              >
+                <Text style={styles.markerText}>{markerLabel(entry)}</Text>
+              </Pressable>
+            ))}
+          </Pressable>
+        </ScrollView>
+      </ScrollView>
     </View>
   );
 }

@@ -98,6 +98,7 @@ export * from "./degreeRequirementsResponse";
 export * from "./degreeRequirementsResponseCollegeCode";
 export * from "./degreeRequirementsResponseUniversityRules";
 export * from "./deletedResponse";
+export * from "./downloadDegreeChecksheetPageImageParams";
 export * from "./duplicateScheduleBody";
 export * from "./errorEnvelope";
 export * from "./evaluateTransferBody";

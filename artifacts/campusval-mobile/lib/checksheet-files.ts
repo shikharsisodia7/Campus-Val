@@ -48,6 +48,11 @@ export function originalFileUrl(id: number): string {
   return `${apiBase()}/api/degree-checksheets/${id}/file`;
 }
 
+/** One PDF page, drawn to a PNG by the server (the app has no PDF renderer of its own). 1-based page number. */
+export function pdfPageImageUrl(id: number, page: number, scale = 2): string {
+  return `${apiBase()}/api/degree-checksheets/${id}/pages/${page}/image?scale=${scale}`;
+}
+
 /** Lets the student choose one document from the phone or a connected drive. */
 export async function pickChecksheetFile(maxBytes: number): Promise<PickResult> {
   const picked = await DocumentPicker.getDocumentAsync({

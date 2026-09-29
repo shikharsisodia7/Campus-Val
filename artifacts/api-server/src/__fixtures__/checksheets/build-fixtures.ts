@@ -153,6 +153,73 @@ async function checklist(rows: { text: string; heading?: boolean }[]): Promise<B
  * title, the usual header, a hidden second sheet, a total with a stored
  * result, a date and a percentage.
  */
+/**
+ * Makes cells of a legacy workbook bold, the way Excel stores it: a bold font,
+ * a cell format that uses it, and the cells pointing at that format. The
+ * library that writes the fixture writes no formatting, so it is added to the
+ * file's records here.
+ */
+function withBoldCells(workbook: Buffer, bold: (row: number, col: number) => boolean): Buffer {
+  const container = XLSX.CFB.read(workbook, { type: "buffer" });
+  const entry = XLSX.CFB.find(container, "Workbook") ?? XLSX.CFB.find(container, "Book");
+  if (!entry?.content) throw new Error("fixture: no workbook stream");
+  const stream = Buffer.from(entry.content as Uint8Array);
+
+  interface Rec { id: number; at: number; length: number }
+  const records: Rec[] = [];
+  for (let p = 0; p + 4 <= stream.length; ) {
+    const rec = { id: stream.readUInt16LE(p), at: p, length: stream.readUInt16LE(p + 2) };
+    records.push(rec);
+    p += 4 + rec.length;
+  }
+  const globalsEnd = records.findIndex((r) => r.id === 0x000a);
+  const globals = records.slice(0, globalsEnd + 1);
+  const fonts = globals.filter((r) => r.id === 0x0031);
+  const formats = globals.filter((r) => r.id === 0x00e0);
+  const lastFont = fonts[fonts.length - 1]!;
+  const lastFormat = formats[formats.length - 1]!;
+
+  const boldFont = Buffer.from(stream.subarray(fonts[0]!.at, fonts[0]!.at + 4 + fonts[0]!.length));
+  boldFont.writeUInt16LE(700, 4 + 6);
+  // Fonts are numbered 0-3, then 5 and up.
+  const boldFontIndex = fonts.length < 4 ? fonts.length : fonts.length + 1;
+
+  // One bold twin for each format a bold cell uses.
+  const twins = new Map<number, number>();
+  const twinRecords: Buffer[] = [];
+  const cellIds = new Set([0x0203, 0x027e, 0x00fd, 0x0204, 0x0006, 0x0205]);
+  for (const rec of records.slice(globalsEnd + 1)) {
+    if (!cellIds.has(rec.id)) continue;
+    const row = stream.readUInt16LE(rec.at + 4);
+    const col = stream.readUInt16LE(rec.at + 6);
+    if (!bold(row, col)) continue;
+    const format = stream.readUInt16LE(rec.at + 8);
+    if (!twins.has(format)) {
+      const source = formats[format]!;
+      const twin = Buffer.from(stream.subarray(source.at, source.at + 4 + source.length));
+      twin.writeUInt16LE(boldFontIndex, 4);
+      twins.set(format, formats.length + twinRecords.length);
+      twinRecords.push(twin);
+    }
+    stream.writeUInt16LE(twins.get(format)!, rec.at + 8);
+  }
+  const added = boldFont.length + twinRecords.reduce((n, r) => n + r.length, 0);
+  // Every worksheet starts that much later.
+  for (const rec of globals.filter((r) => r.id === 0x0085)) stream.writeUInt32LE(stream.readUInt32LE(rec.at + 4) + added, rec.at + 4);
+
+  const afterFont = lastFont.at + 4 + lastFont.length;
+  const afterFormat = lastFormat.at + 4 + lastFormat.length;
+  entry.content = Buffer.concat([
+    stream.subarray(0, afterFont),
+    boldFont,
+    stream.subarray(afterFont, afterFormat),
+    ...twinRecords,
+    stream.subarray(afterFormat),
+  ]);
+  entry.size = (entry.content as Buffer).length;
+  return Buffer.from(XLSX.CFB.write(container, { type: "buffer" }) as Uint8Array);
+}
+
 function legacyWorkbook(rows: Cell[][]): Buffer {
   const sheet = XLSX.utils.aoa_to_sheet([["Applied Widgetry Major Checksheet (sample)"], [], CHECKSHEET_HEADER, ...rows]);
   const last = 3 + rows.length;
@@ -169,7 +236,10 @@ function legacyWorkbook(rows: Cell[][]): Buffer {
   XLSX.utils.book_append_sheet(book, sheet, "Major");
   XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([["Department working notes (sample)"]]), "Notes");
   book.Workbook = { Sheets: [{ Hidden: 0 }, { Hidden: 1 }] };
-  return Buffer.from(XLSX.write(book, { bookType: "biff8", type: "buffer" }) as Uint8Array);
+  const plain = Buffer.from(XLSX.write(book, { bookType: "biff8", type: "buffer" }) as Uint8Array);
+  // As the .xlsx fixtures: the title, the header row and the section headings are bold.
+  const headings = new Set(rows.flatMap((cells, i) => (cells.filter((c) => c !== null).length === 1 ? [3 + i] : [])));
+  return withBoldCells(plain, (row) => row === 0 || row === 2 || headings.has(row));
 }
 
 /**

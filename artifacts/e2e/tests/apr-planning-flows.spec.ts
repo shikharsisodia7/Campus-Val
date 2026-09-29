@@ -1046,3 +1046,13 @@ test("I. deleting one APR leaves the others", async ({ page }) => {
   expect((await page.request.get(`/api/progress-reports/${gone.id}/file`)).status()).toBe(404);
   await shot(page, "I1-after-delete");
 });
+
+test("Z. leaves nothing behind: the test student's reports are removed", async ({ page }) => {
+  // The flows above upload synthetic reports and keep some to the end. They are
+  // the test student's own, and are removed through the app, which also removes
+  // the stored files. Nothing of any other account is touched.
+  await page.goto("/progress-report");
+  await sessionReady(page);
+  await deleteAllAprs(page);
+  expect(await listAprs(page)).toEqual([]);
+});

@@ -53,6 +53,7 @@ import type {
   DegreeChecksheetUploadUrlRequest,
   DegreeRequirementsResponse,
   DeletedResponse,
+  DownloadDegreeChecksheetPageImageParams,
   DuplicateScheduleBody,
   ErrorEnvelope,
   EvaluateTransferBody,
@@ -7470,6 +7471,136 @@ export const useReplaceDegreeChecksheetFile = <
 > => {
   return useMutation(getReplaceDegreeChecksheetFileMutationOptions(options));
 };
+
+/**
+ * For a client with no PDF renderer of its own (the mobile app). The web app draws PDF
+pages itself, in the browser. Only for a document whose source format is PDF; only
+for a page number the document actually has.
+
+ * @summary One PDF page, drawn to a PNG
+ */
+export const getDownloadDegreeChecksheetPageImageUrl = (
+  id: number,
+  page: number,
+  params?: DownloadDegreeChecksheetPageImageParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {});
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/degree-checksheets/${id}/pages/${page}/image?${stringifiedParams}`
+    : `/api/degree-checksheets/${id}/pages/${page}/image`;
+};
+
+export const downloadDegreeChecksheetPageImage = async (
+  id: number,
+  page: number,
+  params?: DownloadDegreeChecksheetPageImageParams,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(
+    getDownloadDegreeChecksheetPageImageUrl(id, page, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDownloadDegreeChecksheetPageImageQueryKey = (
+  id: number,
+  page: number,
+  params?: DownloadDegreeChecksheetPageImageParams,
+) => {
+  return [
+    `/api/degree-checksheets/${id}/pages/${page}/image`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getDownloadDegreeChecksheetPageImageQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadDegreeChecksheetPageImage>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  page: number,
+  params?: DownloadDegreeChecksheetPageImageParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadDegreeChecksheetPageImage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getDownloadDegreeChecksheetPageImageQueryKey(id, page, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof downloadDegreeChecksheetPageImage>>
+  > = ({ signal }) =>
+    downloadDegreeChecksheetPageImage(id, page, params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(id && page),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof downloadDegreeChecksheetPageImage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DownloadDegreeChecksheetPageImageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadDegreeChecksheetPageImage>>
+>;
+export type DownloadDegreeChecksheetPageImageQueryError = ErrorType<void>;
+
+/**
+ * @summary One PDF page, drawn to a PNG
+ */
+
+export function useDownloadDegreeChecksheetPageImage<
+  TData = Awaited<ReturnType<typeof downloadDegreeChecksheetPageImage>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  page: number,
+  params?: DownloadDegreeChecksheetPageImageParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof downloadDegreeChecksheetPageImage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDownloadDegreeChecksheetPageImageQueryOptions(
+    id,
+    page,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary The caller's tracking entries for one document
