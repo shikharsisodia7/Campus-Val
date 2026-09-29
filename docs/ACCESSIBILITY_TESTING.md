@@ -31,7 +31,7 @@ E2E_BASE_URL=http://localhost:18080 pnpm --filter @workspace/e2e run test:a11y
 
 ## Result on 2026-09-28
 
-34 page states, at 1440x900 and at 390x844: **no finding of any severity**
+36 page states, at 1440x900 and at 390x844: **no finding of any severity**
 after the fixes below. Before them the first run found these, all of which
 predate Degree Checksheets except the last two:
 
@@ -44,6 +44,7 @@ predate Degree Checksheets except the last two:
 | Red text and buttons, 3.8:1 | serious | Delete, errors, conflicts | A darker red, 6.5:1 on white |
 | Grey text at 60% strength, 2.5:1 | serious | Empty terms on the Degree Plan | Full strength, 5.7:1 |
 | Pinch zoom disabled | moderate | Every page | Allowed |
+| Text drawn at half strength | serious | Quarter Plan, before any schedule exists (found on production, where the test student had none) | Drawn in the muted text colour, 5.7:1 |
 | A button that held a file input | serious | Upload dialog | The area takes a click or a drop; a real button inside it is what the keyboard reaches |
 | A document that was already open was assumed closed | test | The spec | The spec now closes it first |
 

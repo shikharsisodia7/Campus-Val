@@ -12,6 +12,9 @@ export default defineConfig({
   testDir: "./tests",
   timeout: 30_000,
   fullyParallel: false,
+  // Every project signs in as the same few test students. Two projects at once
+  // would upload to, and clear, the same library.
+  workers: 1,
   retries: 0,
   reporter: [["list"]],
   use: {
