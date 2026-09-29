@@ -983,6 +983,22 @@ async function signedIn(browser: Browser, who: "student-b" | "advisor-y") {
   return { context, page };
 }
 
+/**
+ * A request made as a signed-in person. A stored session's token lasts about a
+ * minute and the page renews it; a request that falls between two renewals is
+ * answered 401, "not signed in", which says nothing about what that person may
+ * see. The session is waited for and the request made again, so the answer
+ * tested is the one a signed-in person gets.
+ */
+async function signedInRequest(page: Page, send: () => Promise<import("@playwright/test").APIResponse>) {
+  let res = await send();
+  for (let attempt = 0; attempt < 3 && res.status() === 401; attempt++) {
+    await sessionReady(page);
+    res = await send();
+  }
+  return res;
+}
+
 test("H. Privacy: another student and a plan-sharing advisor see nothing", async ({ page, browser }) => {
   test.setTimeout(150_000);
   await page.goto("/degree-checksheets");
@@ -1014,24 +1030,26 @@ test("H. Privacy: another student and a plan-sharing advisor see nothing", async
 
       for (const doc of mine) {
         for (const suffix of ["", "/render", "/file", "/annotations"]) {
-          const res = await other.page.request.get(`/api/degree-checksheets/${doc.id}${suffix}`);
+          const res = await signedInRequest(other.page, () => other.page.request.get(`/api/degree-checksheets/${doc.id}${suffix}`));
           expect(res.status(), `${who} GET ${suffix || "/"}`).toBe(404);
           expect(await res.text()).not.toMatch(SECRET);
         }
       }
       const attempts = [
-        other.page.request.patch(`/api/degree-checksheets/${major.id}`, { data: { title: "Hijacked" } }),
-        other.page.request.delete(`/api/degree-checksheets/${major.id}`),
-        other.page.request.post(`/api/degree-checksheets/${major.id}/annotations`, {
-          data: { anchorType: "manual", itemLabel: "Planted", status: "completed" },
-        }),
-        other.page.request.patch(`/api/degree-checksheets/${major.id}/annotations/${entry!.id}`, { data: { status: "not_started" } }),
-        other.page.request.delete(`/api/degree-checksheets/${major.id}/annotations/${entry!.id}`),
-        other.page.request.put(`/api/degree-checksheets/${major.id}/file`, {
-          data: { objectPath: "/objects/uploads/0000000000000000/00000000-0000-4000-8000-000000000000", fileName: "x.pdf", fileSize: 10, contentType: "application/pdf" },
-        }),
+        () => other.page.request.patch(`/api/degree-checksheets/${major.id}`, { data: { title: "Hijacked" } }),
+        () => other.page.request.delete(`/api/degree-checksheets/${major.id}`),
+        () =>
+          other.page.request.post(`/api/degree-checksheets/${major.id}/annotations`, {
+            data: { anchorType: "manual", itemLabel: "Planted", status: "completed" },
+          }),
+        () => other.page.request.patch(`/api/degree-checksheets/${major.id}/annotations/${entry!.id}`, { data: { status: "not_started" } }),
+        () => other.page.request.delete(`/api/degree-checksheets/${major.id}/annotations/${entry!.id}`),
+        () =>
+          other.page.request.put(`/api/degree-checksheets/${major.id}/file`, {
+            data: { objectPath: "/objects/uploads/0000000000000000/00000000-0000-4000-8000-000000000000", fileName: "x.pdf", fileSize: 10, contentType: "application/pdf" },
+          }),
       ];
-      for (const attempt of attempts) expect((await attempt).status(), who).toBe(404);
+      for (const attempt of attempts) expect((await signedInRequest(other.page, attempt)).status(), who).toBe(404);
 
       // In the browser: their page is their own, and shows none of it.
       await other.page.goto("/degree-checksheets");

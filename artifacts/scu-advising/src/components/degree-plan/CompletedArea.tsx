@@ -41,7 +41,7 @@ export function CompletedArea({ items, availableYears }: CompletedAreaProps) {
           data-testid="completed-area-dropzone"
         >
           {items.length === 0 && !isOver ? (
-            <div className="flex items-center justify-center h-full text-xs text-muted-foreground/60 italic py-4">
+            <div className="flex items-center justify-center h-full text-xs text-muted-foreground italic py-4">
               Drag completed courses here, or add them from the Palette.
             </div>
           ) : (

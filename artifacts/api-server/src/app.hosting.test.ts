@@ -24,6 +24,8 @@ beforeAll(async () => {
     '<html><head><!-- canonical injected server-side for the root route --></head><body><div id="root"><!--CAMPUSVAL_PRERENDER--></div><meta property="og:image" content="https://campus-val.vercel.app/og.png"></body></html>',
   );
   process.chdir(cwdDir);
+  // This test's own page, whatever build happens to be on the machine.
+  process.env["WEB_APP_DIR"] = pub;
 
   process.env["CLERK_SECRET_KEY"] = "sk_test_dummydummydummydummydummydummy";
   process.env["CLERK_PUBLISHABLE_KEY"] = "pk_test_ZHVtbXkuY2xlcmsuYWNjb3VudHMuZGV2JA";

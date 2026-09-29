@@ -317,3 +317,54 @@ differently (for example, where it puts the block title and summary lines). The
 importer is header-driven rather than position-driven for that reason: a
 different placement changes grouping at worst, and an unrecognised header fails
 visibly rather than showing the wrong columns.
+
+## Verifying a real Workday export
+
+_2026-09-28._
+
+The importer has been built and tested against synthetic workbooks that
+reproduce Workday's layout, and against one real Workday **PDF**. It has **not**
+been checked against a real Workday **Excel** export by anyone who could look at
+the result: exporting one needs an SCU sign-in, and a student's record is not
+something to pass around.
+
+So there is a tool that checks an export and reports **structure only**:
+
+```
+pnpm --filter @workspace/api-server run verify-apr -- <file.xlsx | file.pdf> [--json]
+```
+
+It reads the file where it is. It prints counts, Workday's column headers from
+a fixed list (any other header is printed as `(other)`), and codes. It never
+prints a cell, a name, a course, a grade or a date, so its output can be shared.
+A test runs it over every synthetic APR and searches the output for anything
+from the file.
+
+| It reports | Why |
+| --- | --- |
+| Worksheets, rows, columns, merged cells | The file opened, and how big it is |
+| Rows with a value in the file, and rows kept | **No row is silently dropped.** The file's rows are counted from the file itself, without the workbook library |
+| Formula cells, with and without a stored result | A formula with no stored result is shown blank, never calculated |
+| Whether Workday's table was recognised; program blocks; groups by kind | The planning sidebar |
+| Columns shown while planning, and columns withheld | Academic Period, Units and Grade must be withheld |
+| Anything that needs a look | In words, without quoting the file |
+
+Exit code 0: read completely. 1: something needs a look.
+
+**What is known from production.** Of the three reports students have uploaded,
+one `.xlsx` has been opened since the current importer was deployed (reports are
+imported when first read). It imported with 1 worksheet, 63 rows kept of 63, 1
+merged cell and no warnings. This was read from the counts in the database; the
+report itself was not opened or read, so **whether it is a Workday export is not
+known**.
+
+**What remains.** One person with an SCU sign-in exports their own Academic
+Progress report from Workday as Excel, runs the command above on it, and sends
+the output (not the file).
+
+## Stored formula results
+
+Since 2026-09-28 a formula whose stored result is `0` shows `0`. The workbook
+library reports such a result as missing; it is now read from the file
+(`lib/apr/formula-cache.ts`). Nothing is calculated. See
+`docs/DEGREE_CHECKSHEETS.md`, Formulas.

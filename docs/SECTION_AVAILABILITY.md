@@ -166,3 +166,29 @@ section: a course can be "lecture 01 open, lab 03 full, lab 04 open". A source
 may state each section's instructional format in the optional `component` field
 (`"Lecture"`, `"Laboratory"`, `"Discussion"`); when it does, that is used as
 published. See [COURSE_COMPONENTS.md](COURSE_COMPONENTS.md).
+
+## Seat data for the browser tests
+
+_2026-09-28._
+
+Browser test D (Quarter Plan: Open vs All Sections) needs four sections of one
+course with known seat counts: open, full, waitlisted and unknown. Real seat
+data comes from a student's Workday sync, which a test cannot depend on.
+
+```
+pnpm --filter @workspace/api-server run seed-e2e-seats
+```
+
+writes those four rows (MATH 11, Fall 2026) into a **local or staging** test
+database. It refuses any other host unless `E2E_SEED_DATABASE` names that host
+exactly. **It is never run against production**, and test D is not run there:
+making it pass would mean inventing registration data in the database students
+use.
+
+| Suite | Where it runs | Why |
+| --- | --- | --- |
+| Every browser test, D and H included | A local production build with a test database | Deterministic: the data it needs is put there |
+| Production check | Production, as the synthetic test student | Everything that needs no seeded data. D is left out. It changes nothing a real student has |
+
+The full API test suite empties `course_sections` in the database it runs
+against. Run the seed after it and before the browser tests.

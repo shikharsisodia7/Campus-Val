@@ -2,3 +2,4 @@ storage/
 test-results/
 playwright-report/
 node_modules/
+a11y-report/

@@ -113,6 +113,7 @@ export function AcademicYearOverview({
         >
           <SelectTrigger
             className="h-7 w-[116px] bg-card text-xs"
+            aria-label="Academic year"
             data-testid="select-academic-year"
           >
             <SelectValue />

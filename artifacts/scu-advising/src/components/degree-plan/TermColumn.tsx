@@ -137,7 +137,7 @@ export function TermColumn({
         </SortableContext>
 
         {items.length === 0 && !isOver && (
-          <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground/60 italic py-4">
+          <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground italic py-4">
             No courses planned yet.
           </div>
         )}

@@ -95,7 +95,8 @@
   --primary-foreground: 0 0% 100%;
 
   --secondary: 35 41% 50%; /* Gold */
-  --secondary-foreground: 0 0% 100%;
+  /* Dark text on gold: 5.5:1. White on this gold is 3.2:1, below WCAG AA. */
+  --secondary-foreground: 0 0% 10%;
 
   --muted: 35 20% 95%;
   --muted-foreground: 0 0% 40%;
@@ -103,7 +104,8 @@
   --accent: 35 30% 92%;
   --accent-foreground: 353 74% 32%;
 
-  --destructive: 0 84% 60%;
+  /* 6.5:1 on white and 5.5:1 on the accent tint. The brighter red was 3.8:1. */
+  --destructive: 0 72% 42%;
   --destructive-foreground: 0 0% 100%;
 
   --input: 35 20% 80%;

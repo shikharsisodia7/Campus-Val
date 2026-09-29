@@ -190,7 +190,7 @@ export default function CoreReqs() {
                   </div>
                 </div>
               </div>
-              <Progress value={pct} className="h-2" />
+              <Progress value={pct} className="h-2" aria-label="Core requirements completed" />
             </Card>
 
             <Card className="p-4 space-y-2">
