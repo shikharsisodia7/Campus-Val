@@ -241,7 +241,7 @@ export default function CoreReqs() {
                       </Badge>
                     </div>
                     <a
-                      href={group.sourceUrl}
+                      href={group.sourceUrl ?? undefined}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"

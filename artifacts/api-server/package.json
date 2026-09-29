@@ -13,6 +13,8 @@
     "import-registrar-tentatives": "tsx scripts/import-registrar-tentatives.ts",
     "extract-component-markers": "tsx scripts/extract-registrar-component-markers.ts",
     "audit-components": "tsx scripts/audit-course-components.ts",
+    "verify-apr": "tsx scripts/verify-apr-export.ts",
+    "seed-e2e-seats": "tsx scripts/seed-e2e-seat-data.ts",
     "test": "vitest run"
   },
   "dependencies": {

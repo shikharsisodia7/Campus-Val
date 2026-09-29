@@ -79,6 +79,19 @@ export default defineConfig({
       dependencies: ["setup"],
     },
     {
+      // Automated accessibility checks (axe-core). See tests/accessibility.spec.ts.
+      name: "a11y-desktop",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
+      testMatch: /accessibility\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
+      name: "a11y-phone",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 }, storageState: "storage/student-a.json", isMobile: true, hasTouch: true },
+      testMatch: /accessibility\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
       name: "security",
       use: { ...devices["Desktop Chrome"] },
       testMatch: /multi-account-security\.spec\.ts/,

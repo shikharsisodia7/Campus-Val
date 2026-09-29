@@ -1,205 +1,35 @@
-import type {
-  DegreeChecksheetCategory,
-  DegreeChecksheetDocument,
-  DegreeChecksheetFormat,
-  DegreeChecksheetProgramRole,
-  TrackingStatus,
-  TrackingTerm,
+/**
+ * The words, options and file checks of Degree Checksheets come from the shared
+ * API client, so the web app and the mobile app say the same things. Only what
+ * needs a browser is defined here.
+ */
+export {
+  SCU_CHECKSHEETS_URL,
+  CHECKSHEET_CATEGORY_OPTIONS,
+  checksheetCategoryLabel,
+  PROGRAM_ROLE_OPTIONS,
+  programRoleLabel,
+  TRACKING_STATUS_OPTIONS,
+  trackingStatusLabel,
+  TRACKING_TERM_OPTIONS,
+  termLabel,
+  termShortLabel,
+  currentAcademicYearAnchor,
+  defaultYearForTerm,
+  trackingYearOptions,
+  formatUploadDate,
+  formatBytes,
+  FORMAT_LABEL,
+  renderStatusLabel,
+  CHECKSHEET_ACCEPT,
+  SUPPORTED_FORMATS_TEXT,
+  validateChecksheetFile,
+  titleFromFileName,
+  safeExternalUrl,
 } from "@workspace/api-client-react";
-import { calendarYearFor } from "@/lib/academic-year";
-
-/** The official SCU page that lists department checksheets. Linked, never scraped. */
-export const SCU_CHECKSHEETS_URL = "https://www.scu.edu/drahmann/advising-toolkit/major-and-minor-checksheets/";
-
-/**
- * What the STUDENT says a document is. Any number of documents may share a
- * category; CampusVal never infers one from the file.
- */
-export const CHECKSHEET_CATEGORY_OPTIONS: { value: DegreeChecksheetCategory; label: string; plural: string }[] = [
-  { value: "major_checksheet", label: "Major Checksheet", plural: "Major checksheets" },
-  { value: "minor_checksheet", label: "Minor Checksheet", plural: "Minor checksheets" },
-  { value: "four_year_plan", label: "Four-Year Plan", plural: "Four-year plans" },
-  { value: "flowchart", label: "Flowchart", plural: "Flowcharts" },
-  { value: "advising_resource", label: "Department Advising Resource", plural: "Advising resources" },
-  { value: "other", label: "Other", plural: "Other" },
-];
-
-export function checksheetCategoryLabel(category: string): string {
-  return CHECKSHEET_CATEGORY_OPTIONS.find((o) => o.value === category)?.label ?? "Other";
-}
-
-export const PROGRAM_ROLE_OPTIONS: { value: DegreeChecksheetProgramRole; label: string }[] = [
-  { value: "major", label: "Major" },
-  { value: "additional_major", label: "Second / additional major" },
-  { value: "minor", label: "Minor" },
-  { value: "additional_minor", label: "Additional minor" },
-  { value: "general", label: "General planning resource" },
-];
-
-export function programRoleLabel(role: string | null | undefined): string | null {
-  return PROGRAM_ROLE_OPTIONS.find((o) => o.value === role)?.label ?? null;
-}
-
-/** The student's own status for an item. Deliberately has no "official" or "verified" value. */
-export const TRACKING_STATUS_OPTIONS: { value: TrackingStatus; label: string; short: string }[] = [
-  { value: "not_started", label: "Not Started", short: "Not started" },
-  { value: "planned", label: "Planned", short: "Planned" },
-  { value: "in_progress", label: "In Progress", short: "In progress" },
-  { value: "completed", label: "Completed", short: "Completed" },
-];
-
-export function trackingStatusLabel(status: string | null | undefined): string | null {
-  return TRACKING_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? null;
-}
-
-export const TRACKING_TERM_OPTIONS: { value: TrackingTerm; label: string; letter: string }[] = [
-  { value: "fall", label: "Fall", letter: "F" },
-  { value: "winter", label: "Winter", letter: "W" },
-  { value: "spring", label: "Spring", letter: "Sp" },
-  { value: "summer", label: "Summer", letter: "Su" },
-];
-
-/** "Fall 2026". The year is the calendar year the quarter falls in. */
-export function termLabel(term: string | null | undefined, year: number | null | undefined): string | null {
-  const option = TRACKING_TERM_OPTIONS.find((o) => o.value === term);
-  return option && year ? `${option.label} ${year}` : null;
-}
-
-/** "F26" — for the small markers drawn on a page. */
-export function termShortLabel(term: string | null | undefined, year: number | null | undefined): string | null {
-  const option = TRACKING_TERM_OPTIONS.find((o) => o.value === term);
-  return option && year ? `${option.letter}${String(year).slice(-2)}` : null;
-}
-
-/** The academic year in progress: 2026 for July 2026 through June 2027. */
-export function currentAcademicYearAnchor(now: Date = new Date()): number {
-  return now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-}
-
-/**
- * The year offered first when a student picks a quarter: that quarter's year
- * within the academic year in progress (Fall -> 2026, Winter -> 2027 during
- * 2026-27). Uses the same conversion as the Degree Plan, so "Winter 2027" here
- * is the Winter 2027 shown there.
- */
-export function defaultYearForTerm(term: TrackingTerm, now: Date = new Date()): number {
-  return calendarYearFor(term, currentAcademicYearAnchor(now));
-}
-
-/** Years a student can choose: past coursework back 12 years, plans 8 years ahead. */
-export function trackingYearOptions(now: Date = new Date(), selected?: number | null): number[] {
-  const current = currentAcademicYearAnchor(now);
-  const years: number[] = [];
-  for (let y = current + 8; y >= current - 12; y--) years.push(y);
-  if (selected && !years.includes(selected)) years.push(selected);
-  return years.sort((a, b) => b - a);
-}
-
-/**
- * "Uploaded Sep 28, 2026". This is when the file was added to CampusVal —
- * never worded as a department or "official version" date, which CampusVal
- * does not know.
- */
-export function formatUploadDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "Upload date unavailable";
-  return `Uploaded ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-}
-
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-export const FORMAT_LABEL: Record<DegreeChecksheetFormat, string> = {
-  pdf: "PDF",
-  xlsx: "Excel workbook",
-  xls: "Excel workbook (older .xls)",
-  docx: "Word document",
-  png: "PNG image",
-  jpg: "JPEG image",
-};
-
-/** The technical state of the FILE — never an academic statement. */
-export function renderStatusLabel(document: Pick<DegreeChecksheetDocument, "renderStatus">): string {
-  switch (document.renderStatus) {
-    case "ready":
-      return "Ready";
-    case "original_only":
-      return "Stored, no preview";
-    default:
-      return "Preview unavailable";
-  }
-}
 
 export function originalFileUrl(id: number): string {
   return `${import.meta.env.BASE_URL}api/degree-checksheets/${id}/file`;
-}
-
-const MIME: Record<string, string> = {
-  ".pdf": "application/pdf",
-  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  ".xls": "application/vnd.ms-excel",
-  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-};
-
-export const CHECKSHEET_ACCEPT = [...Object.keys(MIME), ...new Set(Object.values(MIME))].join(",");
-export const SUPPORTED_FORMATS_TEXT = "PDF, Excel (.xlsx, .xls), Word (.docx), PNG or JPEG";
-
-/**
- * Checked again, authoritatively, on the server (which also reads the file's
- * first bytes). This is only so a student learns about a wrong file before
- * waiting for an upload.
- */
-export function validateChecksheetFile(
-  file: { name: string; size: number },
-  maxBytes: number,
-): { contentType: string } | { error: string } {
-  const dot = file.name.lastIndexOf(".");
-  const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : "";
-  const contentType = MIME[ext];
-  if (!contentType) {
-    if (ext === ".doc") {
-      return { error: "This is the older Word format (.doc). Save it as .docx or PDF and upload that file." };
-    }
-    if (ext === ".gdoc" || ext === ".gsheet") {
-      return {
-        error:
-          "This is a shortcut to a Google file, not the document itself. In Google Docs or Sheets choose File, Download, then PDF, Word or Excel, and upload that file.",
-      };
-    }
-    return { error: `This file type isn't supported. Upload a ${SUPPORTED_FORMATS_TEXT} file.` };
-  }
-  if (file.size === 0) return { error: "This file is empty." };
-  if (file.size > maxBytes) {
-    return { error: `File exceeds the ${Math.round(maxBytes / (1024 * 1024))} MB limit.` };
-  }
-  return { contentType };
-}
-
-/**
- * A harmless starting title from a file name. It only tidies the name; it says
- * nothing about what the document is or whether it applies to the student.
- */
-export function titleFromFileName(fileName: string): string {
-  const dot = fileName.lastIndexOf(".");
-  const base = (dot > 0 ? fileName.slice(0, dot) : fileName).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
-  return base.slice(0, 120);
-}
-
-/** Only plain web addresses are shown as links. */
-export function safeExternalUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 /** First 12 hex characters of a file's SHA-256, or null where the browser cannot compute it. */

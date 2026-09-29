@@ -8,9 +8,11 @@
     "test": "playwright test",
     "test:responsive": "pnpm run pretest && playwright test responsive.spec.ts",
     "test:security": "pnpm run pretest && playwright test multi-account-security.spec.ts",
+    "test:a11y": "pnpm run pretest && playwright test accessibility.spec.ts --project=a11y-desktop --project=a11y-phone",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@clerk/backend": "^2.19.4",
     "@clerk/testing": "^2.2.33",
     "@playwright/test": "^1.56.0",

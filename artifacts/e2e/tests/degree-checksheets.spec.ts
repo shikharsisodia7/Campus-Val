@@ -1239,7 +1239,15 @@ test("J. A requirements checklist: both values in one column; a replacement; an 
  */
 const REAL_DIR = process.env.CHECKSHEET_REAL_DIR;
 const REAL_FILES = REAL_DIR && existsSync(REAL_DIR) ? readdirSync(REAL_DIR).sort() : [];
-const REAL_PDFS = REAL_FILES.filter((n) => /^(eng|cas|lsb)-.*\.pdf$/i.test(n));
+/** Leavey's documents: its PDF checklists, and its requirement pages saved as PDFs. */
+const LEAVEY_DIR = REAL_DIR ? path.join(REAL_DIR, "leavey") : "";
+const LEAVEY_PDFS = LEAVEY_DIR && existsSync(LEAVEY_DIR)
+  ? readdirSync(LEAVEY_DIR)
+      .filter((n) => /\.pdf$/i.test(n))
+      .sort()
+      .map((n) => path.join("leavey", n))
+  : [];
+const REAL_PDFS = [...REAL_FILES.filter((n) => /^(eng|cas|lsb)-.*\.pdf$/i.test(n)), ...LEAVEY_PDFS];
 const REAL_DOCS = REAL_FILES.filter((n) => /^cas-.*\.docx$/i.test(n));
 
 test("R. Real SCU department PDFs are drawn, tracked and left unchanged", async ({ page }) => {

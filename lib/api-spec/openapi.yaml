@@ -4222,10 +4222,15 @@ components:
           type: string
         kind:
           type: string
-          enum: [university_core, college, major]
+          description: >
+            What the group is. The server has always sent "minor" and
+            "professional_prep" as well as the first three; the contract now says so.
+          enum: [university_core, college, major, minor, professional_prep]
         sourceUrl:
-          type: string
-          description: Official SCU source URL this group's requirements were taken from.
+          type: [string, "null"]
+          description: >
+            Official SCU source URL this group's requirements were taken from. Null
+            for a group with no SCU source (a student's own professional preparation goals).
         sourceLabel:
           type: string
         academicYear:

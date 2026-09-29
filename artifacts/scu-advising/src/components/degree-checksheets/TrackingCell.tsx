@@ -3,23 +3,9 @@ import { Button } from "@/components/ui/button";
 import type { ChecksheetTracking, TrackingEntry, TrackingField } from "@/hooks/use-degree-checksheets";
 import type { TrackingValues } from "./tracking-save-queue";
 import { MyTrackingTag, StatusSelect, TermSelect } from "./TrackingControls";
-import { termLabel, trackingStatusLabel } from "./checksheet-format";
+import { canHold, entrySummary } from "@workspace/api-client-react";
 
-/**
- * Whether a student column can hold what an entry carries. A Status column
- * holds a status, a Quarter column a quarter, and a table's only student column
- * holds both. An entry is never put where part of it would be lost.
- */
-export function canHold(field: TrackingField, entry: Pick<TrackingEntry, "status" | "term">): boolean {
-  if (field === "both") return true;
-  if (field === "status") return !entry.term;
-  return !entry.status;
-}
-
-/** What an entry says, in a few words: "Completed, Fall 2025". */
-export function entrySummary(entry: Pick<TrackingEntry, "status" | "term" | "termYear">): string {
-  return [trackingStatusLabel(entry.status), termLabel(entry.term, entry.termYear)].filter(Boolean).join(", ") || "no status yet";
-}
+export { canHold, entrySummary };
 
 /**
  * The controls inside one cell the department left for the student. Which

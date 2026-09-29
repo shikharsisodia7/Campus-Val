@@ -1,3 +1,4 @@
+import { replacementSummary, type ReplacementResult } from "@workspace/api-client-react";
 import { lazy, Suspense, useId, useState } from "react";
 import {
   useDeleteDegreeChecksheet,
@@ -385,29 +386,7 @@ export function ChecksheetDocumentCard({
   );
 }
 
-/** What a replacement did with the student's tracking. */
-export interface ReplacementResult {
-  kept: number;
-  detached: number;
-  /** Of the kept entries, markers that followed their page to a new page number. */
-  moved?: number;
-}
-
-const entries = (n: number) => `${n} tracking ${n === 1 ? "entry" : "entries"}`;
-
-/** In words: what stayed, what followed its page, what needs the student. */
-export function replacementSummary({ kept, detached, moved = 0 }: ReplacementResult): string {
-  if (kept + detached === 0) return "There was no tracking to carry over.";
-  const followed =
-    moved > 0
-      ? ` ${moved === kept ? (moved === 1 ? "It" : "They") : `${moved} of them`} followed ${moved === 1 ? "its page" : "their pages"} to a new page number.`
-      : "";
-  if (detached === 0) {
-    return `All ${kept} of your tracking ${kept === 1 ? "entry is" : "entries are"} still in place.${followed}`;
-  }
-  const aside = `${detached} of your tracking ${detached === 1 ? "entry" : "entries"} could not be matched to the new file and ${detached === 1 ? "is" : "are"} listed under My Tracking, so nothing is shown against the wrong requirement. You can place ${detached === 1 ? "it" : "them"} on the new document yourself.`;
-  return kept > 0 ? `${aside} ${entries(kept)} stayed in place.${followed}` : aside;
-}
+export { replacementSummary, type ReplacementResult } from "@workspace/api-client-react";
 
 /** A cell entry can only go back into a document of the kind it came from. */
 function canPlaceInCell(entry: TrackingEntry, document: DegreeChecksheetDocument): boolean {

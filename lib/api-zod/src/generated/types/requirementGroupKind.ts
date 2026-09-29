@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * What the group is. The server has always sent "minor" and "professional_prep" as well as the first three; the contract now says so.
+
+ */
 export type RequirementGroupKind =
   (typeof RequirementGroupKind)[keyof typeof RequirementGroupKind];
 
@@ -13,4 +17,6 @@ export const RequirementGroupKind = {
   university_core: "university_core",
   college: "college",
   major: "major",
+  minor: "minor",
+  professional_prep: "professional_prep",
 } as const;
