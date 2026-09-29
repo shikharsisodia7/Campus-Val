@@ -64,6 +64,12 @@ async function check(page: Page, state: string, options: { scope?: string; skip?
   return findings;
 }
 
+/** The page has loaded what it asked for and finished fading in. Colours measured mid-fade are not the page's. */
+async function settled(page: Page) {
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page.waitForTimeout(800);
+}
+
 async function sessionReady(page: Page) {
   await expect.poll(async () => (await page.request.get("/api/degree-checksheets")).status(), { timeout: 30_000 }).toBe(200);
 }
@@ -106,7 +112,7 @@ test("the main pages", async ({ page }) => {
     await page.goto(route);
     await sessionReady(page);
     await expect(page.locator(ready).first()).toBeVisible({ timeout: 30_000 });
-    await page.waitForLoadState("networkidle").catch(() => undefined);
+    await settled(page);
     await check(page, name);
   }
 });
@@ -123,9 +129,33 @@ test("Quarter Plan before any schedule exists", async ({ page }) => {
   );
   await page.reload();
   await expect(page.getByText("Create a schedule above to search for sections.")).toBeVisible({ timeout: 30_000 });
+  await settled(page);
   await check(page, "Quarter Plan, no schedule");
   await page.unroute(/\/api\/schedules(\?.*)?$/);
   expect(schedules).toBeDefined();
+});
+
+test("Quarter Plan with a schedule that holds nothing yet", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/planner");
+  await sessionReady(page);
+  // The calendar of an empty week: nothing in it to tab to, and on a phone it scrolls sideways.
+  await page.route(/\/api\/schedules\/\d+(\?.*)?$/, async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    const response = await route.fetch();
+    const body = await response.json();
+    await route.fulfill({ response, json: { ...body, events: [] } });
+  });
+  await page.reload();
+  const calendar = page.getByRole("region", { name: "Weekly calendar, scrollable" });
+  const none = page.getByText("Create a schedule above to search for sections.");
+  await expect(calendar.first().or(none)).toBeVisible({ timeout: 30_000 });
+  if (await none.isVisible()) test.skip(true, "This test student has no schedule; the state before any schedule is checked above.");
+  await settled(page);
+  await check(page, "Quarter Plan, empty schedule");
+  await calendar.first().focus();
+  await expect(calendar.first()).toBeFocused();
+  await page.unroute(/\/api\/schedules\/\d+(\?.*)?$/);
 });
 
 test("Degree Checksheets: empty, the upload dialog, a spreadsheet, tracking, a replacement, placing an entry", async ({ page }) => {

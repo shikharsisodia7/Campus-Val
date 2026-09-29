@@ -91,7 +91,14 @@ export function CalendarGrid({
         </div>
       </div>
 
-      <Card className="p-4 overflow-x-auto shadow-sm cv-card-hover">
+      {/* On a narrow screen the week scrolls sideways. It must be reachable from
+          the keyboard even when it holds no events to tab to. */}
+      <Card
+        className="p-4 overflow-x-auto shadow-sm cv-card-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+        tabIndex={0}
+        role="region"
+        aria-label="Weekly calendar, scrollable"
+      >
         <div
           className="grid min-w-[600px]"
           style={{ gridTemplateColumns: `60px repeat(${displayedDays.length}, minmax(120px, 1fr))` }}
