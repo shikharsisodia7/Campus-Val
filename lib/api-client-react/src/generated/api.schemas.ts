@@ -1165,6 +1165,8 @@ export interface DegreeChecksheetAnnotationConflict {
 export type DegreeChecksheetReplaceResultTracking = {
   /** Entries still in place. */
   kept: number;
+  /** Of the kept entries, markers that followed their page to a new page number. */
+  moved?: number;
   /** Entries whose place could not be confirmed in the new file. */
   detached: number;
 };

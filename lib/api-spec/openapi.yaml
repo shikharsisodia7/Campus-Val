@@ -3125,6 +3125,9 @@ components:
           required: [kept, detached]
           properties:
             kept: { type: integer, description: Entries still in place. }
+            moved:
+              type: integer
+              description: Of the kept entries, markers that followed their page to a new page number.
             detached: { type: integer, description: Entries whose place could not be confirmed in the new file. }
 
     DeletedResponse:

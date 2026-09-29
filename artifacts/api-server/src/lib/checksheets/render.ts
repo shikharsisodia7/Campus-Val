@@ -5,13 +5,14 @@
  *   - a render, and the document is "ready"; or
  *   - no render, and the document is "original_only": stored, downloadable and
  *     trackable through the My Tracking list, with a plain statement that it
- *     has no preview.
+ *     has no preview. (A Word file with nothing to show.)
  * A file that is not what it claims to be, is damaged, or is password
  * protected is refused outright and nothing is stored.
  */
 import JSZip from "jszip";
 import { readAprWorkbook } from "../apr/workbook-reader";
 import { AprImportError, type AprImportErrorCode } from "../apr/workbook-model";
+import { jpegContentHash, pngContentHash } from "./content-hash";
 import { readChecksheetDocx } from "./docx-reader";
 import { assertBytesMatchFormat } from "./formats";
 import { readJpegSize, readPngSize } from "./image-info";
@@ -25,6 +26,7 @@ import {
   type SpreadsheetRender,
 } from "./model";
 import { readChecksheetPdf } from "./pdf-info";
+import { readLegacyWorkbook } from "./xls-reader";
 import { detectTrackingLayout, type LayoutRow } from "./tracking-layout";
 
 export interface RenderOutcome {
@@ -74,7 +76,9 @@ async function withReadableSheetNames(buf: Buffer): Promise<Buffer | null> {
   }
 }
 
-async function readSpreadsheet(buf: Buffer): Promise<SpreadsheetRender> {
+type StructuralWorkbook = Pick<Awaited<ReturnType<typeof readAprWorkbook>>, "sheets" | "warnings">;
+
+async function readModernWorkbook(buf: Buffer): Promise<StructuralWorkbook> {
   let workbook: Awaited<ReturnType<typeof readAprWorkbook>>;
   try {
     // The APR's workbook reader is a structural copier with no APR-specific
@@ -94,7 +98,11 @@ async function readSpreadsheet(buf: Buffer): Promise<SpreadsheetRender> {
     }
     for (const sheet of workbook.sheets) sheet.name = sheet.name.replace(STAND_IN_SUFFIX, "");
   }
+  return workbook;
+}
 
+/** The display copy of a workbook, whichever Excel format it was read from. */
+function spreadsheetRender(workbook: StructuralWorkbook): SpreadsheetRender {
   // A formula the export could not calculate leaves an error value ("#N/A")
   // where the spreadsheet itself shows a result or nothing. It is not the
   // department's text, so it is not shown; the preview says that calculated
@@ -152,11 +160,10 @@ export async function buildChecksheetRender(buf: Buffer, format: ChecksheetForma
     case "pdf":
       return { status: "ready", note: null, render: await readChecksheetPdf(buf) };
     case "xlsx":
-      return { status: "ready", note: null, render: await readSpreadsheet(buf) };
+      return { status: "ready", note: null, render: spreadsheetRender(await readModernWorkbook(buf)) };
     case "xls":
-      // No maintained, safe reader for the legacy binary format is in use here,
-      // so the file is kept as an original rather than parsed.
-      return { status: "original_only", note: "legacy_xls_no_preview", render: null };
+      // Read like any other workbook; a damaged one is refused like any other.
+      return { status: "ready", note: null, render: spreadsheetRender(readLegacyWorkbook(buf)) };
     case "docx":
       try {
         return { status: "ready", note: null, render: await readChecksheetDocx(buf) };
@@ -168,11 +175,19 @@ export async function buildChecksheetRender(buf: Buffer, format: ChecksheetForma
       }
     case "png": {
       const size = readPngSize(buf);
-      return { status: "ready", note: null, render: { version: CHECKSHEET_RENDER_VERSION, kind: "image", ...size } };
+      return {
+        status: "ready",
+        note: null,
+        render: { version: CHECKSHEET_RENDER_VERSION, kind: "image", ...size, contentHash: pngContentHash(buf) },
+      };
     }
     case "jpg": {
       const size = readJpegSize(buf);
-      return { status: "ready", note: null, render: { version: CHECKSHEET_RENDER_VERSION, kind: "image", ...size } };
+      return {
+        status: "ready",
+        note: null,
+        render: { version: CHECKSHEET_RENDER_VERSION, kind: "image", ...size, contentHash: jpegContentHash(buf) },
+      };
     }
   }
 }

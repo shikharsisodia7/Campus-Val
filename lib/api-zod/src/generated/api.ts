@@ -4364,6 +4364,12 @@ export const ReplaceDegreeChecksheetFileResponse = zod.object({
   }),
   tracking: zod.object({
     kept: zod.number().describe("Entries still in place."),
+    moved: zod
+      .number()
+      .optional()
+      .describe(
+        "Of the kept entries, markers that followed their page to a new page number.",
+      ),
     detached: zod
       .number()
       .describe("Entries whose place could not be confirmed in the new file."),

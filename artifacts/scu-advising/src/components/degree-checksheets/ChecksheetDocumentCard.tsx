@@ -98,7 +98,7 @@ export function ChecksheetDocumentCard({
   const [mode, setMode] = useState<Mode>("view");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showTracking, setShowTracking] = useState(true);
-  const [replaced, setReplaced] = useState<{ kept: number; detached: number } | null>(null);
+  const [replaced, setReplaced] = useState<ReplacementResult | null>(null);
   const [focus, setFocus] = useState<{ key: string; at: number } | null>(null);
   const [place, setPlace] = useState<{ key: string; at: number } | null>(null);
   /** The detached cell entry the student is putting back, while they choose its cell. */
@@ -261,14 +261,7 @@ export function ChecksheetDocumentCard({
                 ) : (
                   <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 )}
-                <p className="flex-1">
-                  The file was replaced.{" "}
-                  {replaced.kept + replaced.detached === 0
-                    ? "There was no tracking to carry over."
-                    : replaced.detached === 0
-                      ? `All ${replaced.kept} of your tracking ${replaced.kept === 1 ? "entry is" : "entries are"} still in place.`
-                      : `${replaced.detached} of your tracking ${replaced.detached === 1 ? "entry" : "entries"} could not be matched to the new file and ${replaced.detached === 1 ? "is" : "are"} listed under My Tracking, so nothing is shown against the wrong requirement.${replaced.kept > 0 ? ` ${replaced.kept} stayed in place.` : ""}`}
-                </p>
+                <p className="flex-1">The file was replaced. {replacementSummary(replaced)}</p>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setReplaced(null)} aria-label="Dismiss">
                   <X className="h-4 w-4" aria-hidden="true" />
                 </Button>
@@ -390,6 +383,30 @@ export function ChecksheetDocumentCard({
       </AlertDialog>
     </Card>
   );
+}
+
+/** What a replacement did with the student's tracking. */
+export interface ReplacementResult {
+  kept: number;
+  detached: number;
+  /** Of the kept entries, markers that followed their page to a new page number. */
+  moved?: number;
+}
+
+const entries = (n: number) => `${n} tracking ${n === 1 ? "entry" : "entries"}`;
+
+/** In words: what stayed, what followed its page, what needs the student. */
+export function replacementSummary({ kept, detached, moved = 0 }: ReplacementResult): string {
+  if (kept + detached === 0) return "There was no tracking to carry over.";
+  const followed =
+    moved > 0
+      ? ` ${moved === kept ? (moved === 1 ? "It" : "They") : `${moved} of them`} followed ${moved === 1 ? "its page" : "their pages"} to a new page number.`
+      : "";
+  if (detached === 0) {
+    return `All ${kept} of your tracking ${kept === 1 ? "entry is" : "entries are"} still in place.${followed}`;
+  }
+  const aside = `${detached} of your tracking ${detached === 1 ? "entry" : "entries"} could not be matched to the new file and ${detached === 1 ? "is" : "are"} listed under My Tracking, so nothing is shown against the wrong requirement. You can place ${detached === 1 ? "it" : "them"} on the new document yourself.`;
+  return kept > 0 ? `${aside} ${entries(kept)} stayed in place.${followed}` : aside;
 }
 
 /** A cell entry can only go back into a document of the kind it came from. */
@@ -627,7 +644,7 @@ function ReplaceForm({
   document: DegreeChecksheetDocument;
   maxUploadBytes?: number;
   tracking: ChecksheetTracking;
-  onDone: (result: { kept: number; detached: number } | null) => void;
+  onDone: (result: ReplacementResult | null) => void;
 }) {
   const [file, setFile] = useState<ChecksheetFileSelection | null>(null);
   const { replace, busy, phase, error } = useChecksheetUpload();

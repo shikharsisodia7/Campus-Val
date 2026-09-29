@@ -651,7 +651,7 @@ test("D. A PDF: drawn in the app, zoom, pages, and a marker that holds its place
   await again.getByTestId("checksheet-input-file").setInputFiles(await fixtureFile("major-pdf-revised"));
   await again.getByTestId("checksheet-replace-submit").click();
   await expect(again.locator('[data-testid^="checksheet-replaced-"]')).toContainText("1 of your tracking entry could not be matched", { timeout: 40_000 });
-  await expect(again.locator('[data-testid^="checksheet-replaced-"]')).toContainText("1 stayed in place");
+  await expect(again.locator('[data-testid^="checksheet-replaced-"]')).toContainText("1 tracking entry stayed in place");
   await expect(again.getByTestId("checksheet-detached")).toContainText("Marker on page 2 · Planned");
   await expect(again.getByTestId("checksheet-pdf-page-2").locator('button[data-testid^="checksheet-marker-"]')).toHaveCount(0);
   await expect(again.getByTestId("checksheet-pdf-page-1").locator('[data-testid^="checksheet-marker-id:"]')).toHaveCount(1);
@@ -1164,7 +1164,7 @@ test("J. A requirements checklist: both values in one column; a replacement; an 
   await form.getByTestId("checksheet-replace-submit").click();
   const notice = card.locator('[data-testid^="checksheet-replaced-"]');
   await expect(notice).toContainText("1 of your tracking entry could not be matched", { timeout: 40_000 });
-  await expect(notice).toContainText("1 stayed in place");
+  await expect(notice).toContainText("1 tracking entry stayed in place");
   await expect(grid).toContainText("History of Widgets", { timeout: 20_000 });
   // The new requirement did not inherit the old one's values.
   await expect(card.getByTestId("checksheet-cell-status-0-2-1")).toHaveValue("");

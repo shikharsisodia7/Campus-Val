@@ -239,7 +239,14 @@ describe("reconcileAnchor — what survives a replacement", () => {
     expect(reconcileAnchor(marker, pdf(["h1", "different"]), false)).not.toBeNull();
     expect(reconcileAnchor(marker, pdf(["changed"]), false)).toBeNull();
     expect(reconcileAnchor(marker, pdf(["h1"], { width: 792, height: 612 }), false)).toBeNull();
-    expect(reconcileAnchor({ ...marker, anchor: { page: 3, x: 0.4, y: 0.2 } }, pdf(["h1"]), false)).toBeNull();
+    // Its page is gone from where it was, and no page of the new file is that page.
+    expect(reconcileAnchor({ ...marker, anchor: { page: 3, x: 0.4, y: 0.2 } }, pdf(["other"]), false)).toBeNull();
+  });
+
+  it("lets a PDF marker follow its page to a new page number, when exactly one page is that page", () => {
+    const marker = { anchorType: "point", anchor: { page: 3, x: 0.4, y: 0.2 }, anchorFingerprint: "612x792:h1" };
+    expect(reconcileAnchor(marker, pdf(["cover", "h1"]), false)?.anchor).toEqual({ page: 1, x: 0.4, y: 0.2 });
+    expect(reconcileAnchor(marker, pdf(["h1", "cover", "h1"]), false)).toBeNull();
   });
 
   it("never keeps a marker that cannot be verified: a scanned page or a picture", () => {

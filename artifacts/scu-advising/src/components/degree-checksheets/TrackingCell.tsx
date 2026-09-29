@@ -112,8 +112,9 @@ export function CalculatedCellsNote({ warnings }: { warnings: string[] }) {
   if (!warnings.includes("calculated_cells_not_shown")) return null;
   return (
     <p className="text-xs text-muted-foreground" data-testid="checksheet-calculated-note">
-      Some cells of this spreadsheet are filled in by its own formulas. CampusVal does not run formulas, so those
-      cells are left empty here. Open the original to see them.
+      Some cells of this spreadsheet hold an error value such as #N/A, which a formula shows when it has nothing to
+      list. CampusVal does not run formulas, so those cells are left empty here. Every other formula shows the result
+      saved in the file. Open the original to see the spreadsheet as it is.
     </p>
   );
 }
