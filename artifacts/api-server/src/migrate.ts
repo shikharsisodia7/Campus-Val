@@ -4,7 +4,10 @@
  * drizzle-kit, no source tree):
  *
  *   node dist/migrate.mjs            apply every pending migration (idempotent)
- *   node dist/migrate.mjs --status   print applied / pending, change nothing
+ *   node dist/migrate.mjs --status   print applied / pending per migration, change
+ *                                    nothing. A migration recorded from a checkout
+ *                                    with other line endings counts as applied and
+ *                                    is marked (see lib/migration-status.ts).
  *   node dist/migrate.mjs --baseline mark ONLY THE FIRST (baseline) migration as
  *                                    applied WITHOUT running it — for a database
  *                                    created by `drizzle-kit push` before
@@ -31,6 +34,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { db, pool } from "@workspace/db";
 import { baselineTargets } from "./lib/baseline-targets";
+import { formatMigrationReport, migrationReport, type MigrationFile, type RecordedMigration } from "./lib/migration-status";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,11 +63,29 @@ async function appliedHashes(): Promise<string[] | null> {
   return rows.rows.map((r) => (r as { hash: string }).hash);
 }
 
+function migrationFiles(folder: string): MigrationFile[] {
+  const journal = JSON.parse(fs.readFileSync(path.join(folder, "meta", "_journal.json"), "utf8")) as {
+    entries: { tag: string; when: number }[];
+  };
+  return journal.entries.map((entry) => ({
+    tag: entry.tag,
+    content: fs.readFileSync(path.join(folder, `${entry.tag}.sql`), "utf8"),
+    folderMillis: entry.when,
+  }));
+}
+
+async function recordedMigrations(): Promise<RecordedMigration[]> {
+  if ((await appliedHashes()) === null) return [];
+  const rows = await db.execute(sql`select hash, created_at from drizzle.__drizzle_migrations order by id`);
+  return rows.rows.map((row) => {
+    const { hash, created_at } = row as { hash: string; created_at: string | number | null };
+    return { hash, createdAt: created_at === null ? null : Number(created_at) };
+  });
+}
+
 async function status(folder: string): Promise<void> {
-  const files = readMigrationFiles({ migrationsFolder: folder });
-  const applied = new Set((await appliedHashes()) ?? []);
-  const pending = files.filter((f) => !applied.has(f.hash));
-  console.log(`migrations: ${files.length} total, ${files.length - pending.length} applied, ${pending.length} pending`);
+  const report = migrationReport(migrationFiles(folder), await recordedMigrations());
+  for (const line of formatMigrationReport(report)) console.log(line);
 }
 
 async function baseline(folder: string, all: boolean): Promise<void> {

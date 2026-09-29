@@ -16,6 +16,7 @@
 import { deflateSync } from "node:zlib";
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
+import * as XLSX from "xlsx";
 
 export type ChecksheetFixtureName =
   | "major-workbook"
@@ -25,11 +26,18 @@ export type ChecksheetFixtureName =
   | "minor-workbook"
   | "official-status-workbook"
   | "no-header-workbook"
+  | "legacy-workbook"
+  | "legacy-workbook-reworded"
+  | "legacy-workbook-protected"
   | "checklist-workbook"
   | "checklist-workbook-reworded"
   | "major-pdf"
   | "major-pdf-revised"
   | "four-year-plan-pdf"
+  | "scanned-pdf"
+  | "scanned-pdf-page-inserted"
+  | "scanned-pdf-page-removed"
+  | "scanned-pdf-rescanned"
   | "flowchart-png"
   | "flowchart-jpg"
   | "advising-docx"
@@ -140,6 +148,48 @@ async function checklist(rows: { text: string; heading?: boolean }[]): Promise<B
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
+/**
+ * A workbook in the binary format Excel used until 2007 (.xls): a merged
+ * title, the usual header, a hidden second sheet, a total with a stored
+ * result, a date and a percentage.
+ */
+function legacyWorkbook(rows: Cell[][]): Buffer {
+  const sheet = XLSX.utils.aoa_to_sheet([["Applied Widgetry Major Checksheet (sample)"], [], CHECKSHEET_HEADER, ...rows]);
+  const last = 3 + rows.length;
+  sheet[`A${last + 1}`] = { t: "s", v: "Courses listed" };
+  sheet[`B${last + 1}`] = { t: "n", v: rows.length, f: `COUNTA(B4:B${last})` };
+  sheet[`A${last + 2}`] = { t: "s", v: "Revised" };
+  sheet[`B${last + 2}`] = { t: "n", v: 45901, z: "m/d/yyyy" };
+  sheet[`A${last + 3}`] = { t: "s", v: "Upper division share" };
+  sheet[`B${last + 3}`] = { t: "n", v: 0.5, z: "0%" };
+  sheet["!ref"] = `A1:E${last + 3}`;
+  sheet["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }];
+  sheet["!cols"] = [{ wch: 34 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 34 }];
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, sheet, "Major");
+  XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([["Department working notes (sample)"]]), "Notes");
+  book.Workbook = { Sheets: [{ Hidden: 0 }, { Hidden: 1 }] };
+  return Buffer.from(XLSX.write(book, { bookType: "biff8", type: "buffer" }) as Uint8Array);
+}
+
+/**
+ * The same workbook with a password set. Excel marks that with a FilePass
+ * record right after the workbook's first record; the rest is unreadable
+ * without the password.
+ */
+function protectedLegacyWorkbook(): Buffer {
+  const container = XLSX.CFB.read(legacyWorkbook(MAJOR_ROWS), { type: "buffer" });
+  const stream = XLSX.CFB.find(container, "Workbook") ?? XLSX.CFB.find(container, "Book");
+  if (!stream?.content) throw new Error("fixture: no workbook stream");
+  const content = Buffer.from(stream.content as Uint8Array);
+  const firstRecordEnd = 4 + content.readUInt16LE(2);
+  // FilePass (0x002F), XOR obfuscation: type 0, key, verifier.
+  const filePass = Buffer.from([0x2f, 0x00, 0x06, 0x00, 0x00, 0x00, 0x34, 0x12, 0x78, 0x56]);
+  stream.content = Buffer.concat([content.subarray(0, firstRecordEnd), filePass, content.subarray(firstRecordEnd)]);
+  stream.size = stream.content.length;
+  return Buffer.from(XLSX.CFB.write(container, { type: "buffer" }) as Uint8Array);
+}
+
 // ─── PDF ─────────────────────────────────────────────────────────────────────
 
 const escapePdf = (text: string) => text.replace(/([\\()])/g, "\\$1");
@@ -181,6 +231,68 @@ export function buildTextPdf(pages: string[][]): Buffer {
   out += `trailer\n<< /Size ${objects.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
   return Buffer.from(out, "latin1");
 }
+
+export interface ScannedPage {
+  width: number;
+  height: number;
+  /** Decides the picture: two pages with the same seed show the same picture. */
+  seed: number;
+}
+
+/**
+ * A PDF as a scanner makes it: each page is one picture and has no text.
+ * The pictures are small synthetic patterns.
+ */
+export function buildScannedPdf(pages: ScannedPage[]): Buffer {
+  const objects: Buffer[] = [];
+  const add = (body: Buffer | string) => {
+    objects.push(Buffer.isBuffer(body) ? body : Buffer.from(body, "latin1"));
+    return objects.length;
+  };
+  const catalog = add("");
+  const tree = add("");
+  const kids: number[] = [];
+  for (const page of pages) {
+    const pixels = Buffer.alloc(16 * 16 * 3);
+    for (let i = 0; i < pixels.length; i++) pixels[i] = (i * 37 + page.seed * 101) % 256;
+    const image = add(
+      Buffer.concat([
+        Buffer.from(
+          `<< /Type /XObject /Subtype /Image /Width 16 /Height 16 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length ${pixels.length} >>\nstream\n`,
+          "latin1",
+        ),
+        pixels,
+        Buffer.from("\nendstream", "latin1"),
+      ]),
+    );
+    const draw = `q ${page.width} 0 0 ${page.height} 0 0 cm /Im0 Do Q`;
+    const content = add(`<< /Length ${draw.length} >>\nstream\n${draw}\nendstream`);
+    kids.push(
+      add(
+        `<< /Type /Page /Parent ${tree} 0 R /MediaBox [0 0 ${page.width} ${page.height}] /Resources << /XObject << /Im0 ${image} 0 R >> >> /Contents ${content} 0 R >>`,
+      ),
+    );
+  }
+  objects[catalog - 1] = Buffer.from(`<< /Type /Catalog /Pages ${tree} 0 R >>`, "latin1");
+  objects[tree - 1] = Buffer.from(`<< /Type /Pages /Kids [${kids.map((k) => `${k} 0 R`).join(" ")}] /Count ${kids.length} >>`, "latin1");
+
+  const parts: Buffer[] = [Buffer.from("%PDF-1.4\n", "latin1")];
+  const offsets: number[] = [];
+  let at = parts[0]!.length;
+  objects.forEach((body, i) => {
+    offsets.push(at);
+    const chunk = Buffer.concat([Buffer.from(`${i + 1} 0 obj\n`, "latin1"), body, Buffer.from("\nendobj\n", "latin1")]);
+    parts.push(chunk);
+    at += chunk.length;
+  });
+  let tail = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (const offset of offsets) tail += `${String(offset).padStart(10, "0")} 00000 n \n`;
+  tail += `trailer\n<< /Size ${objects.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${at}\n%%EOF\n`;
+  parts.push(Buffer.from(tail, "latin1"));
+  return Buffer.concat(parts);
+}
+
+const LETTER = { width: 612, height: 792 };
 
 const MAJOR_PDF_PAGE_1 = [
   "Applied Widgetry Major Checksheet (sample)",
@@ -400,6 +512,12 @@ export async function buildChecksheetFixture(name: ChecksheetFixtureName): Promi
       return workbook([
         { name: "Plan", title: "Applied Widgetry planning sheet (sample)", header: null, rows: MAJOR_ROWS },
       ]);
+    case "legacy-workbook":
+      return legacyWorkbook(MAJOR_ROWS);
+    case "legacy-workbook-reworded":
+      return legacyWorkbook(MAJOR_ROWS.map((row, i) => (i === 1 ? ["History of Widgets", "WIDG 105", null, null, null] : row)));
+    case "legacy-workbook-protected":
+      return protectedLegacyWorkbook();
     case "checklist-workbook":
       return checklist(CHECKLIST_ROWS);
     case "checklist-workbook-reworded":
@@ -422,6 +540,16 @@ export async function buildChecksheetFixture(name: ChecksheetFixtureName): Promi
           "Fourth year    Fall: WIDG 190",
         ],
       ]);
+    case "scanned-pdf":
+      return buildScannedPdf([{ ...LETTER, seed: 1 }, { ...LETTER, seed: 2 }, { ...LETTER, seed: 3 }]);
+    case "scanned-pdf-page-inserted":
+      // A cover page in front; the three pages follow, unchanged.
+      return buildScannedPdf([{ ...LETTER, seed: 9 }, { ...LETTER, seed: 1 }, { ...LETTER, seed: 2 }, { ...LETTER, seed: 3 }]);
+    case "scanned-pdf-page-removed":
+      return buildScannedPdf([{ ...LETTER, seed: 1 }, { ...LETTER, seed: 3 }]);
+    case "scanned-pdf-rescanned":
+      // The same three sheets of paper through the scanner again: different pictures.
+      return buildScannedPdf([{ ...LETTER, seed: 11 }, { ...LETTER, seed: 12 }, { ...LETTER, seed: 13 }]);
     case "flowchart-png":
       return buildFlowchartPng();
     case "flowchart-jpg":
@@ -464,11 +592,18 @@ export const CHECKSHEET_FIXTURE_FILES: Record<ChecksheetFixtureName, { fileName:
   "minor-workbook": { fileName: "sprocket-studies-minor.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "official-status-workbook": { fileName: "official-status.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "no-header-workbook": { fileName: "no-header.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  "legacy-workbook": { fileName: "applied-widgetry-major.xls", contentType: "application/vnd.ms-excel" },
+  "legacy-workbook-reworded": { fileName: "applied-widgetry-major-reworded.xls", contentType: "application/vnd.ms-excel" },
+  "legacy-workbook-protected": { fileName: "applied-widgetry-major-protected.xls", contentType: "application/vnd.ms-excel" },
   "checklist-workbook": { fileName: "applied-widgetry-checklist.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "checklist-workbook-reworded": { fileName: "applied-widgetry-checklist-reworded.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "major-pdf": { fileName: "applied-widgetry-major.pdf", contentType: "application/pdf" },
   "major-pdf-revised": { fileName: "applied-widgetry-major-revised.pdf", contentType: "application/pdf" },
   "four-year-plan-pdf": { fileName: "widget-engineering-four-year-plan.pdf", contentType: "application/pdf" },
+  "scanned-pdf": { fileName: "scanned-checksheet.pdf", contentType: "application/pdf" },
+  "scanned-pdf-page-inserted": { fileName: "scanned-checksheet-with-cover.pdf", contentType: "application/pdf" },
+  "scanned-pdf-page-removed": { fileName: "scanned-checksheet-two-pages.pdf", contentType: "application/pdf" },
+  "scanned-pdf-rescanned": { fileName: "scanned-checksheet-rescanned.pdf", contentType: "application/pdf" },
   "flowchart-png": { fileName: "widget-flowchart.png", contentType: "image/png" },
   "flowchart-jpg": { fileName: "widget-flowchart.jpg", contentType: "image/jpeg" },
   "advising-docx": { fileName: "widgetry-advising-guide.docx", contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },

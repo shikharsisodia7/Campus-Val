@@ -22,6 +22,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: 'doc.text', selected: 'doc.text.fill' }} />
         <Label>Degree Plan</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="checksheets">
+        <Icon sf={{ default: 'checklist', selected: 'checklist' }} />
+        <Label>Checksheets</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="schedule">
         <Icon sf={{ default: 'calendar', selected: 'calendar' }} />
         <Label>Schedule</Label>
@@ -88,6 +92,19 @@ function ClassicTabLayout() {
               <SymbolView name="doc.text" tintColor={color} size={24} />
             ) : (
               <Feather name="list" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="checksheets"
+        options={{
+          title: 'Checksheets',
+          tabBarAccessibilityLabel: 'Degree Checksheets',
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="checklist" tintColor={color} size={24} />
+            ) : (
+              <Feather name="check-square" size={22} color={color} />
             ),
         }}
       />

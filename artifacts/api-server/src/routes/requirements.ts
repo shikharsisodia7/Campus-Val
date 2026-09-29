@@ -578,16 +578,18 @@ router.get("/requirements", requireAuth, async (req, res) => {
     return res.status(404).json({ error: "Complete onboarding first." });
   }
 
-  res.json(
-    buildRequirementsResponse(
-      profile,
-      parseScenarioList(req.query.scenarioMajors),
-      parseScenarioList(req.query.scenarioMinors),
-      parseProfessionalGoals(req.query.professionalGoals),
-      parseScenarioList(req.query.plannedCourses),
-      typeof req.query.primaryMajor === "string" ? req.query.primaryMajor : null,
-    ),
-  );
+  // The source of the sidebar is named in one place (lib/requirements-source).
+  // Only the response is sent; where each group came from stays on the server.
+  const { buildRequirements } = await import("../lib/requirements-source");
+  const { response } = buildRequirements({
+    profile,
+    scenarioMajors: parseScenarioList(req.query.scenarioMajors),
+    scenarioMinors: parseScenarioList(req.query.scenarioMinors),
+    professionalGoals: parseProfessionalGoals(req.query.professionalGoals),
+    plannedCourses: parseScenarioList(req.query.plannedCourses),
+    primaryMajor: typeof req.query.primaryMajor === "string" ? req.query.primaryMajor : null,
+  });
+  res.json(response);
 });
 
 export default router;

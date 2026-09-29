@@ -1,3 +1,4 @@
+import { replacementSummary, type ReplacementResult } from "@workspace/api-client-react";
 import { lazy, Suspense, useId, useState } from "react";
 import {
   useDeleteDegreeChecksheet,
@@ -98,7 +99,7 @@ export function ChecksheetDocumentCard({
   const [mode, setMode] = useState<Mode>("view");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showTracking, setShowTracking] = useState(true);
-  const [replaced, setReplaced] = useState<{ kept: number; detached: number } | null>(null);
+  const [replaced, setReplaced] = useState<ReplacementResult | null>(null);
   const [focus, setFocus] = useState<{ key: string; at: number } | null>(null);
   const [place, setPlace] = useState<{ key: string; at: number } | null>(null);
   /** The detached cell entry the student is putting back, while they choose its cell. */
@@ -261,14 +262,7 @@ export function ChecksheetDocumentCard({
                 ) : (
                   <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 )}
-                <p className="flex-1">
-                  The file was replaced.{" "}
-                  {replaced.kept + replaced.detached === 0
-                    ? "There was no tracking to carry over."
-                    : replaced.detached === 0
-                      ? `All ${replaced.kept} of your tracking ${replaced.kept === 1 ? "entry is" : "entries are"} still in place.`
-                      : `${replaced.detached} of your tracking ${replaced.detached === 1 ? "entry" : "entries"} could not be matched to the new file and ${replaced.detached === 1 ? "is" : "are"} listed under My Tracking, so nothing is shown against the wrong requirement.${replaced.kept > 0 ? ` ${replaced.kept} stayed in place.` : ""}`}
-                </p>
+                <p className="flex-1">The file was replaced. {replacementSummary(replaced)}</p>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setReplaced(null)} aria-label="Dismiss">
                   <X className="h-4 w-4" aria-hidden="true" />
                 </Button>
@@ -391,6 +385,8 @@ export function ChecksheetDocumentCard({
     </Card>
   );
 }
+
+export { replacementSummary, type ReplacementResult } from "@workspace/api-client-react";
 
 /** A cell entry can only go back into a document of the kind it came from. */
 function canPlaceInCell(entry: TrackingEntry, document: DegreeChecksheetDocument): boolean {
@@ -627,7 +623,7 @@ function ReplaceForm({
   document: DegreeChecksheetDocument;
   maxUploadBytes?: number;
   tracking: ChecksheetTracking;
-  onDone: (result: { kept: number; detached: number } | null) => void;
+  onDone: (result: ReplacementResult | null) => void;
 }) {
   const [file, setFile] = useState<ChecksheetFileSelection | null>(null);
   const { replace, busy, phase, error } = useChecksheetUpload();

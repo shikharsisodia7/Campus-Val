@@ -42,7 +42,7 @@ import {
   ObjectNotFoundError,
   type PrivateObjectStorage,
 } from "../lib/storage";
-import { describeAnchor, reconcileAnchor, resolveAnchor, type ResolvedAnchor } from "../lib/checksheets/anchors";
+import { describeAnchor, movedPage, reconcileAnchor, resolveAnchor, type ResolvedAnchor } from "../lib/checksheets/anchors";
 import { sendChecksheetFile } from "../lib/checksheets/file-response";
 import {
   CHECKSHEET_ACCEPTED_EXTENSIONS,
@@ -289,6 +289,10 @@ function renderForClient(render: ChecksheetRender): unknown {
   }
   if (render.kind === "pdf") {
     return { ...render, pages: render.pages.map(({ width, height }) => ({ width, height })) };
+  }
+  if (render.kind === "image") {
+    const { version, kind, width, height } = render;
+    return { version, kind, width, height };
   }
   return render;
 }
@@ -753,7 +757,8 @@ router.put("/degree-checksheets/:id/file", requireAuth, async (req, res): Promis
   const previousRender = await renderOf(userId, row.id);
   const sameFile = result.hash === row.fileHash;
   const nextVersion = row.sourceVersion + 1;
-  const tally = { kept: 0, detached: 0 };
+  // `moved` counts the kept markers that followed their page to a new page number.
+  const tally = { kept: 0, detached: 0, moved: 0 };
 
   // The file, its display copy and every entry's position change together, so
   // an entry can never be left pointing into a file it was not made against.
@@ -795,9 +800,15 @@ router.put("/degree-checksheets/:id/file", requireAuth, async (req, res): Promis
       );
       if (still) {
         tally.kept += 1;
+        if (movedPage(entry, still)) tally.moved += 1;
         await tx
           .update(degreeChecksheetAnnotationsTable)
-          .set({ sourceVersion: nextVersion, anchorFingerprint: still.fingerprint, anchorKey: still.key })
+          .set({
+            sourceVersion: nextVersion,
+            anchor: still.anchor,
+            anchorFingerprint: still.fingerprint,
+            anchorKey: still.key,
+          })
           .where(own);
       } else {
         tally.detached += 1;

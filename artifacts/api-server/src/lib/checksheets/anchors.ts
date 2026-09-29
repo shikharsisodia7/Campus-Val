@@ -22,6 +22,12 @@
  * document really offers. When the file is replaced, each anchor is checked
  * again against the NEW render (`reconcileAnchor`), and anything that cannot
  * be shown to mean the same thing is detached rather than left in place.
+ *
+ * A marker on a page or picture stays when the page is shown to be the same
+ * page: the same size and the same text, or, for a scan, the same drawn
+ * content. When pages were added or removed, a marker FOLLOWS its page to the
+ * page's new number, provided exactly one page of the new file is that page.
+ * Nothing is matched by likeness. Two candidate pages, or none, detach it.
  */
 import { createHash } from "node:crypto";
 import { CHECKSHEET_LIMITS } from "./limits";
@@ -75,10 +81,21 @@ function itemFingerprint(scope: string, text: string): string {
 }
 
 function pageFingerprint(render: ChecksheetRender, page: number): string | null {
+  if (render.kind === "image") {
+    return render.contentHash ? `${render.width}x${render.height}:picture:${render.contentHash}` : null;
+  }
   if (render.kind !== "pdf") return null;
   const info = render.pages[page];
-  if (!info?.textHash) return null;
-  return `${info.width}x${info.height}:${info.textHash}`;
+  if (!info) return null;
+  // The text form is the one stored since the first release; it must not change.
+  if (info.textHash) return `${info.width}x${info.height}:${info.textHash}`;
+  return info.contentHash ? `${info.width}x${info.height}:scan:${info.contentHash}` : null;
+}
+
+/** The pages of a file that are a given page, by fingerprint. */
+function pagesMatching(render: ChecksheetRender, fingerprint: string): number[] {
+  if (render.kind !== "pdf") return [];
+  return render.pages.map((_, index) => index).filter((index) => pageFingerprint(render, index) === fingerprint);
 }
 
 /**
@@ -197,11 +214,29 @@ export function reconcileAnchor(
 ): ResolvedAnchor | null {
   if (stored.anchorType === "manual") return resolveAnchor(next, "manual", {});
   const resolved = resolveAnchor(next, stored.anchorType, stored.anchor);
-  if (!resolved) return null;
   // The identical file: every position means exactly what it meant.
   if (sameFile) return resolved;
-  if (!stored.anchorFingerprint || !resolved.fingerprint) return null;
-  return stored.anchorFingerprint === resolved.fingerprint ? resolved : null;
+  if (resolved && stored.anchorFingerprint && resolved.fingerprint === stored.anchorFingerprint) return resolved;
+  return followPage(stored, next);
+}
+
+/**
+ * A marker whose page is no longer where it was: pages were added before it,
+ * or removed. It goes with its page when the new file has that page exactly
+ * once. The position on the page is unchanged.
+ */
+function followPage(stored: StoredAnchor, next: ChecksheetRender | null): ResolvedAnchor | null {
+  if (stored.anchorType !== "point" || next?.kind !== "pdf" || !stored.anchorFingerprint) return null;
+  const pages = pagesMatching(next, stored.anchorFingerprint);
+  if (pages.length !== 1) return null;
+  const from = (stored.anchor ?? {}) as Record<string, unknown>;
+  return resolveAnchor(next, "point", { page: pages[0], x: from["x"], y: from["y"] });
+}
+
+/** Whether a kept entry sits on a different page than it did. */
+export function movedPage(stored: StoredAnchor, kept: ResolvedAnchor): boolean {
+  if (kept.type !== "point") return false;
+  return Number((stored.anchor as Record<string, unknown> | null)?.["page"] ?? 0) !== (kept.anchor as PointAnchor).page;
 }
 
 function runsText(runs: DocTextRun[]): string {

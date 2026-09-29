@@ -406,38 +406,57 @@ describe("every supported format", () => {
     expect(docx.headers["content-disposition"]).toBe('attachment; filename="degree-checksheet.docx"');
   });
 
-  it("stores a legacy .xls as an original, says so, and still lets it be tracked", async () => {
-    const xls = Buffer.concat([
+  it("previews a legacy .xls and tracks in its Status and Quarter columns, like an .xlsx", async () => {
+    const { res, bytes } = await create(FORMATS, "legacy-workbook", { title: "Old format" });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body).toMatchObject({
+      sourceFormat: "xls",
+      fileName: "applied-widgetry-major.xls",
+      mimeType: "application/vnd.ms-excel",
+      renderStatus: "ready",
+      renderNoteCode: null,
+      previewKind: "spreadsheet",
+      inlineTracking: true,
+    });
+    const render = await as(FORMATS, request(app).get(`/api/degree-checksheets/${res.body.id}/render`));
+    expect(render.body.render.sheets.map((s: any) => s.name)).toEqual(["Major", "Notes"]);
+    expect(JSON.stringify(render.body)).toContain("Widget Mathematics I");
+    // The original is the file that was uploaded, byte for byte, as a download.
+    expect(sha(await originalOf(FORMATS, res.body.id))).toBe(sha(bytes));
+    const file = await as(FORMATS, request(app).get(`/api/degree-checksheets/${res.body.id}/file`));
+    expect(file.headers["content-disposition"]).toBe('attachment; filename="degree-checksheet.xls"');
+    expect(file.headers["x-content-type-options"]).toBe("nosniff");
+
+    const status = await annotate(FORMATS, res.body.id, { anchorType: "sheet_cell", anchor: STATUS_CELL, status: "completed" });
+    expect(status.status, JSON.stringify(status.body)).toBe(201);
+    expect(status.body).toMatchObject({ field: "status", status: "completed" });
+    const term = await annotate(FORMATS, res.body.id, { anchorType: "sheet_cell", anchor: TERM_CELL, term: "fall", termYear: 2025 });
+    expect(term.status).toBe(201);
+    // A filled cell is the department's; a page marker has no page to sit on.
+    expect((await annotate(FORMATS, res.body.id, { anchorType: "sheet_cell", anchor: { sheet: 0, row: 4, col: 0 }, status: "planned" })).status).toBe(400);
+    expect((await annotate(FORMATS, res.body.id, { anchorType: "point", anchor: { page: 0, x: 0.5, y: 0.5 }, status: "planned" })).status).toBe(400);
+
+    // A reworded replacement detaches the entries of the row that changed, as it does for .xlsx.
+    const replaced = await replaceWith(FORMATS, res.body.id, "legacy-workbook-reworded");
+    expect(replaced.res.status, JSON.stringify(replaced.res.body)).toBe(200);
+    expect(replaced.res.body.tracking).toEqual({ kept: 0, detached: 2, moved: 0 });
+    expect(sha(await originalOf(FORMATS, res.body.id))).toBe(sha(replaced.bytes));
+  });
+
+  it("refuses a password-protected or damaged legacy workbook, with the reason", async () => {
+    const locked = await create(FORMATS, "legacy-workbook-protected", { title: "Locked" });
+    expect(locked.res.status).toBe(422);
+    expect(locked.res.body.error).toMatch(/password-protected/);
+    const shell = Buffer.concat([
       Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
       Buffer.alloc(200),
       Buffer.from("Workbook", "utf16le"),
       Buffer.alloc(200),
     ]);
-    const res = await createRaw(FORMATS, xls, "old-checksheet.xls", "application/vnd.ms-excel", { title: "Old format" });
-    expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({
-      sourceFormat: "xls",
-      renderStatus: "original_only",
-      renderNoteCode: "legacy_xls_no_preview",
-      previewKind: null,
-      inlineTracking: false,
-    });
-    expect(res.body.renderNoteMessage).toMatch(/cannot preview/i);
-    const render = await as(FORMATS, request(app).get(`/api/degree-checksheets/${res.body.id}/render`));
-    expect(render.body.render).toBeNull();
-    expect(sha(await originalOf(FORMATS, res.body.id))).toBe(sha(xls));
-
-    const entry = await annotate(FORMATS, res.body.id, {
-      anchorType: "manual",
-      itemLabel: "WIDG 101",
-      status: "completed",
-      term: "fall",
-      termYear: 2025,
-    });
-    expect(entry.status).toBe(201);
-    // ...but it offers no place on a page that was never drawn.
-    const point = await annotate(FORMATS, res.body.id, { anchorType: "point", anchor: { page: 0, x: 0.5, y: 0.5 }, status: "planned" });
-    expect(point.status).toBe(400);
+    const damaged = await createRaw(FORMATS, shell, "old-checksheet.xls", "application/vnd.ms-excel", { title: "Damaged" });
+    expect(damaged.status).toBe(422);
+    expect(damaged.body.error).toMatch(/damaged/);
+    expect((await list(FORMATS)).body.documents.map((d: any) => d.title)).not.toContain("Damaged");
   });
 
   it("refuses files that are not what they claim, and keeps nothing of them", async () => {
@@ -799,7 +818,7 @@ describe("tracking a filled cell the student chose", () => {
     const changed = await annotate(REPLACE, doc, { anchorType: "sheet_item", anchor: { sheet: 0, row: 4, col: 0 }, status: "completed" });
     const same = await annotate(REPLACE, doc, { anchorType: "sheet_item", anchor: { sheet: 0, row: 5, col: 0 }, status: "planned" });
     const { res } = await replaceWith(REPLACE, doc, "major-workbook-reworded");
-    expect(res.body.tracking).toEqual({ kept: 1, detached: 1 });
+    expect(res.body.tracking).toEqual({ kept: 1, detached: 1, moved: 0 });
     const after = (await annotations(REPLACE, doc)).body.annotations;
     expect(after.find((a: any) => a.id === same.body.id)).toMatchObject({ detached: false, anchor: { sheet: 0, row: 5, col: 0 } });
     expect(after.find((a: any) => a.id === changed.body.id)).toMatchObject({
@@ -1015,7 +1034,7 @@ describe("replacing a document's file", () => {
 
     const { res, bytes } = await replaceWith(REPLACE, doc.id, "major-workbook-extended");
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.tracking).toEqual({ kept: 3, detached: 0 });
+    expect(res.body.tracking).toEqual({ kept: 3, detached: 0, moved: 0 });
     expect(res.body.document).toMatchObject({
       id: doc.id,
       title: "major-workbook",
@@ -1048,7 +1067,7 @@ describe("replacing a document's file", () => {
     const sameRow = await annotate(REPLACE, doc.id, { anchorType: "sheet_cell", anchor: NEXT_STATUS_CELL, status: "planned" });
 
     const { res } = await replaceWith(REPLACE, doc.id, "major-workbook-reworded");
-    expect(res.body.tracking).toEqual({ kept: 1, detached: 1 });
+    expect(res.body.tracking).toEqual({ kept: 1, detached: 1, moved: 0 });
 
     const after = (await annotations(REPLACE, doc.id)).body.annotations;
     const detached = after.find((a: any) => a.id === changedRow.body.id);
@@ -1099,7 +1118,7 @@ describe("replacing a document's file", () => {
     const manual = await annotate(REPLACE, doc.id, { anchorType: "manual", itemLabel: "Senior capstone", status: "planned" });
 
     const { res } = await replaceWith(REPLACE, doc.id, "major-pdf-revised");
-    expect(res.body.tracking).toEqual({ kept: 2, detached: 1 });
+    expect(res.body.tracking).toEqual({ kept: 2, detached: 1, moved: 0 });
     const after = (await annotations(REPLACE, doc.id)).body.annotations;
     expect(after.find((a: any) => a.id === onSamePage.body.id)).toMatchObject({ detached: false });
     expect(after.find((a: any) => a.id === onChangedPage.body.id)).toMatchObject({
@@ -1110,18 +1129,72 @@ describe("replacing a document's file", () => {
     expect(after.find((a: any) => a.id === manual.body.id)).toMatchObject({ detached: false, itemLabel: "Senior capstone" });
   });
 
+  it("scanned PDF with a cover page added: every marker follows its page, keeping status, quarter and note", async () => {
+    const doc = await tracked("scanned-pdf");
+    const first = await annotate(REPLACE, doc.id, {
+      anchorType: "point",
+      anchor: { page: 0, x: 0.2, y: 0.3 },
+      status: "completed",
+      term: "fall",
+      termYear: 2025,
+      note: "Took it with Dr. Sprocket",
+    });
+    const third = await annotate(REPLACE, doc.id, { anchorType: "point", anchor: { page: 2, x: 0.6, y: 0.7 }, status: "planned" });
+    expect(first.status, JSON.stringify(first.body)).toBe(201);
+
+    const { res } = await replaceWith(REPLACE, doc.id, "scanned-pdf-page-inserted");
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.tracking).toEqual({ kept: 2, detached: 0, moved: 2 });
+    const after = (await annotations(REPLACE, doc.id)).body.annotations;
+    expect(after.find((a: any) => a.id === first.body.id)).toMatchObject({
+      detached: false,
+      anchor: { page: 1, x: 0.2, y: 0.3 },
+      status: "completed",
+      term: "fall",
+      termYear: 2025,
+      note: "Took it with Dr. Sprocket",
+    });
+    expect(after.find((a: any) => a.id === third.body.id)).toMatchObject({ detached: false, anchor: { page: 3, x: 0.6, y: 0.7 } });
+
+    // A page removed: the marker on it is set aside; the student places it again, values intact.
+    const removed = await replaceWith(REPLACE, doc.id, "scanned-pdf-page-removed");
+    expect(removed.res.body.tracking).toEqual({ kept: 2, detached: 0, moved: 2 });
+    const rescanned = await replaceWith(REPLACE, doc.id, "scanned-pdf-rescanned");
+    expect(rescanned.res.body.tracking).toEqual({ kept: 0, detached: 2, moved: 0 });
+    const aside = (await annotations(REPLACE, doc.id)).body.annotations.find((a: any) => a.id === first.body.id);
+    expect(aside).toMatchObject({ detached: true, status: "completed", term: "fall", note: "Took it with Dr. Sprocket" });
+    const placed = await patch(REPLACE, doc.id, first.body.id, { anchor: { page: 2, x: 0.5, y: 0.5 } });
+    expect(placed.status, JSON.stringify(placed.body)).toBe(200);
+    expect(placed.body).toMatchObject({
+      detached: false,
+      anchor: { page: 2, x: 0.5, y: 0.5 },
+      status: "completed",
+      term: "fall",
+      termYear: 2025,
+      note: "Took it with Dr. Sprocket",
+    });
+  });
+
+  it("never sends a page's or a picture's fingerprint to the browser", async () => {
+    for (const name of ["scanned-pdf", "flowchart-png", "major-pdf"] as const) {
+      const doc = await tracked(name);
+      const render = await as(REPLACE, request(app).get(`/api/degree-checksheets/${doc.id}/render`));
+      expect(JSON.stringify(render.body.render), name).not.toMatch(/contentHash|textHash|fingerprint/i);
+    }
+  });
+
   it("unrelated PDF, and a change of format: every placed entry is detached, list entries stay", async () => {
     const doc = await tracked("major-pdf");
     await annotate(REPLACE, doc.id, { anchorType: "point", anchor: { page: 0, x: 0.1, y: 0.2 }, status: "completed" });
     await annotate(REPLACE, doc.id, { anchorType: "manual", itemLabel: "Mine", status: "planned" });
     const other = await replaceWith(REPLACE, doc.id, "four-year-plan-pdf");
-    expect(other.res.body.tracking).toEqual({ kept: 1, detached: 1 });
+    expect(other.res.body.tracking).toEqual({ kept: 1, detached: 1, moved: 0 });
 
     const sheet = await tracked("major-workbook");
     await annotate(REPLACE, sheet.id, { anchorType: "sheet_cell", anchor: STATUS_CELL, status: "completed" });
     await annotate(REPLACE, sheet.id, { anchorType: "sheet_cell", anchor: TERM_CELL, term: "fall", termYear: 2025 });
     const toPdf = await replaceWith(REPLACE, sheet.id, "major-pdf");
-    expect(toPdf.res.body.tracking).toEqual({ kept: 0, detached: 2 });
+    expect(toPdf.res.body.tracking).toEqual({ kept: 0, detached: 2, moved: 0 });
     expect(toPdf.res.body.document).toMatchObject({ sourceFormat: "pdf", previewKind: "pdf", inlineTracking: false });
     const after = (await annotations(REPLACE, sheet.id)).body.annotations;
     expect(after.every((a: any) => a.detached)).toBe(true);
@@ -1135,7 +1208,7 @@ describe("replacing a document's file", () => {
     await annotate(REPLACE, doc.id, { anchorType: "sheet_cell", anchor: STATUS_CELL, status: "completed" });
     await annotate(REPLACE, doc.id, { anchorType: "sheet_cell", anchor: NEXT_STATUS_CELL, status: "planned" });
     const { res } = await replaceWith(REPLACE, doc.id, "second-major-workbook");
-    expect(res.body.tracking).toEqual({ kept: 0, detached: 2 });
+    expect(res.body.tracking).toEqual({ kept: 0, detached: 2, moved: 0 });
     const placed = (await annotations(REPLACE, doc.id)).body.annotations.filter((a: any) => !a.detached);
     expect(placed).toEqual([]);
   });
@@ -1144,7 +1217,7 @@ describe("replacing a document's file", () => {
     const doc = await tracked("flowchart-png");
     await annotate(REPLACE, doc.id, { anchorType: "point", anchor: { page: 0, x: 0.2, y: 0.2 }, status: "completed" });
     const { res } = await replaceWith(REPLACE, doc.id, "flowchart-png");
-    expect(res.body.tracking).toEqual({ kept: 1, detached: 0 });
+    expect(res.body.tracking).toEqual({ kept: 1, detached: 0, moved: 0 });
     expect(res.body.document.sourceVersion).toBe(2);
   });
 
@@ -1348,7 +1421,7 @@ describe("a checklist with ONE student column, as the real ones have", () => {
       contentType: XLSX,
     });
     expect(replaced.status, JSON.stringify(replaced.body)).toBe(200);
-    expect(replaced.body.tracking).toEqual({ kept: 0, detached: 1 });
+    expect(replaced.body.tracking).toEqual({ kept: 0, detached: 1, moved: 0 });
 
     const detached = (await annotations(TRACK, id)).body.annotations[0];
     expect(detached).toMatchObject({
@@ -1387,7 +1460,7 @@ describe("a checklist with ONE student column, as the real ones have", () => {
       fileSize: bytes.length,
       contentType: XLSX,
     });
-    expect(same.body.tracking).toEqual({ kept: 2, detached: 0 });
+    expect(same.body.tracking).toEqual({ kept: 2, detached: 0, moved: 0 });
   });
 
   it("will not put an entry that holds a quarter into a Status-only column", async () => {

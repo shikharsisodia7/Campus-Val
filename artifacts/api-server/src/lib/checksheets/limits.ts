@@ -28,6 +28,8 @@ export const CHECKSHEET_LIMITS = {
   maxAnnotationsPerDocument: 500,
   maxPdfPages: 200,
   maxImagePixels: 80_000_000,
+  /** Decoded picture bytes read while fingerprinting the scanned pages of one PDF. */
+  maxScanFingerprintBytes: 400 * 1024 * 1024,
   maxDocxBlocks: 4_000,
   maxDocxTableRows: 2_000,
   maxDocxTextLength: 600_000,

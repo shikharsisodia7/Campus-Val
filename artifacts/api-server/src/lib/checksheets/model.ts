@@ -79,6 +79,12 @@ export interface PdfPageInfo {
   height: number;
   /** Hash of the page's text. Compared on replacement; never the text itself. */
   textHash: string | null;
+  /**
+   * For a page WITHOUT text (a scan): a hash of what the page draws, pictures
+   * included. Absent on documents stored before this existed, and null when the
+   * page was too large to fingerprint.
+   */
+  contentHash?: string | null;
 }
 
 export interface PdfRender {
@@ -92,6 +98,8 @@ export interface ImageRender {
   kind: "image";
   width: number;
   height: number;
+  /** A hash of the picture itself, whatever its file's metadata says. */
+  contentHash?: string | null;
 }
 
 export interface DocTextRun {
@@ -139,6 +147,7 @@ export type ChecksheetErrorCode =
   | "empty_workbook"
   | "malformed_document"
   | "malformed_image"
+  /** No longer produced: legacy .xls is read. Kept so a row stored with it still has a message. */
   | "legacy_xls_no_preview"
   | "preview_unavailable"
   | "storage_failure"
@@ -159,7 +168,7 @@ export const CHECKSHEET_ERROR_MESSAGE: Record<ChecksheetErrorCode, string> = {
   malformed_document: "This Word document is damaged and could not be opened. Download it again and re-upload.",
   malformed_image: "This image is damaged or is not a PNG or JPEG.",
   legacy_xls_no_preview:
-    "This is the older Excel format (.xls). It is stored and you can open the original, but CampusVal cannot preview it. Save it as .xlsx and use Replace to see it here.",
+    "CampusVal could not read this older Excel file (.xls), so it has no preview. It is stored and you can open the original. To see it here, open it in Excel, save it as .xlsx, and use Replace.",
   preview_unavailable:
     "CampusVal could not build a preview of this file. It is stored and you can open the original.",
   storage_failure: "The file could not be read from storage. Try uploading it again.",

@@ -183,3 +183,32 @@ the formal SCU declaration, or the uploaded Workday APR. Tentative Degree Plans
 carry their own primary major in isolation until promoted.
 [docs/PLANNING_MAJOR_AND_TENTATIVE.md](docs/PLANNING_MAJOR_AND_TENTATIVE.md)
 explains the four distinct major values and how promotion carries them.
+
+## Checking the whole repository
+
+```bash
+pnpm run typecheck                                    # every workspace
+pnpm run lint
+pnpm --filter @workspace/api-server run test          # needs DATABASE_URL (a test database)
+pnpm --filter @workspace/scu-advising run test
+pnpm --filter @workspace/campusval-mobile run test    # the mobile app's logic
+pnpm --filter @workspace/campusval-mobile run bundle  # compiles the app for iOS and Android
+```
+
+Browser tests run against a running server, signed in as synthetic test
+students (`artifacts/e2e`, keys in `artifacts/e2e/.env.e2e.local`):
+
+| Project | What |
+| --- | --- |
+| `qa-flows` | Academic Progress Report and planning, 11 flows |
+| `checksheets` | Degree Checksheets, 13 flows and 2 over real documents from a local folder |
+| `1440x900` … `390x844` | Every main page at seven sizes |
+| `security` | Accounts cannot read each other's plans, reports or documents |
+| `a11y-desktop`, `a11y-phone` | axe-core on every page and state; the keyboard |
+
+They are not part of CI: they need Clerk test keys and a running server, and CI
+must pass without any secret. CI runs everything in the first block, applies
+the migrations to an empty database, and boots the production bundle.
+
+More: `docs/DEGREE_CHECKSHEETS.md`, `docs/REQUIREMENTS_SOURCE.md`,
+`docs/ACCESSIBILITY_TESTING.md`, `docs/PILOT_QA_CHECKLIST.md`.

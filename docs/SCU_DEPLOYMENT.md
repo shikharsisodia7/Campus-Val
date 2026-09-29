@@ -87,6 +87,29 @@ node artifacts/api-server/dist/migrate.mjs --status   # applied / pending, chang
   commit the new file in `lib/db/drizzle/`. CI fails if the schema and the
   migrations disagree, and CI applies the migrations to an empty database.
 - Each migration runs in a transaction; a failing one changes nothing.
+- **Reading `--status`.** It lists every migration:
+
+  ```
+  migrations: 5 total, 5 applied, 0 pending
+    0000_baseline: applied (recorded from a checkout with different line endings; same statements)
+    0001_tiny_doctor_octopus: applied (recorded from a checkout with different line endings; same statements)
+    0002_apr_documents: applied
+    0003_section_component: applied
+    0004_degree_checksheets: applied
+  ```
+
+  A migration is recorded by the SHA-256 of its file's bytes. The same file
+  checked out with Windows line endings has other bytes and another hash,
+  though every statement in it is the same. A database migrated from such a
+  checkout is fully migrated, and `--status` counts it as applied and says how
+  it was recorded. (Before 2026-09-28 it compared one hash only and reported
+  such migrations as pending. That report was wrong; the runner itself was
+  never at risk of running one twice, because it goes by date, not by hash.)
+  `.gitattributes` pins the migration files to LF, so a new database records
+  the same hash on every machine.
+
+  "N recorded migration(s) match no file here" means the database was migrated
+  from different files. Stop and find out which before applying anything.
 - **Order of a release**: run migrations *before* starting the new app version.
   Migrations here are additive; the previous app version keeps working against
   them, which is what makes rollback (§9) safe.
@@ -290,3 +313,13 @@ development — see `docs/SECTION_AVAILABILITY.md`.
 See `docs/SECTION_AVAILABILITY.md#what-scu-must-provide`: the supported endpoint or
 report, authentication mechanism, section identifier, status semantics, refresh
 cadence and rate limits, and whether it may run from the SCU-hosted service.
+
+### State on 2026-09-28
+
+| Database | Migrations | Checked how |
+| --- | --- | --- |
+| Production (Neon) | 5 of 5 applied, 0 pending. Every recorded hash is the hash of the committed file. | The five rows of `drizzle.__drizzle_migrations` compared with `sha256` of each file |
+| Local test database | 5 of 5 applied, 0 pending. 0000 and 0001 were recorded from a CRLF checkout on 2026-09-19 and 2026-09-20, before the files were pinned to LF. | The two recorded hashes equal the hash of each file with CRLF line endings, and no other; the schema was then compared, with `pg_dump --schema-only`, against a database built fresh from the five files: identical |
+
+Nothing was changed in either database to reach this. No migration was pending
+and none was run.

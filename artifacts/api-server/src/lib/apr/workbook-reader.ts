@@ -10,11 +10,16 @@
  * Safety: the bytes are checked first (file-guard.ts); ExcelJS parses XML and
  * never runs macros or evaluates formulas; every limit is enforced while
  * reading so an oversized file is refused rather than held in memory.
+ *
+ * Formulas: a formula cell shows the result the file STORED for it. Where the
+ * library loses that result (it drops a stored 0), it is read from the file
+ * itself (formula-cache.ts). Nothing is ever calculated.
  */
 import ExcelJS from "exceljs";
 import { guardXlsxBytes } from "./file-guard";
 import { APR_LIMITS } from "./limits";
 import { cellDisplayText, cleanCellText } from "./cell-text";
+import { readFormulaCache, type FormulaCache } from "./formula-cache";
 import {
   APR_WORKBOOK_VERSION,
   AprImportError,
@@ -57,7 +62,9 @@ function readSheet(
   index: number,
   budget: { rows: number; cells: number },
   warnings: Set<AprStructureWarning>,
+  stored: FormulaCache,
 ): AprSheet {
+  const storedHere = stored.get(ws.name);
   const merges: AprMerge[] = [];
   const rawMerges = (ws.model as { merges?: string[] }).merges ?? [];
   // Cells covered by a merge (other than its anchor) repeat the anchor's value
@@ -86,8 +93,12 @@ function readSheet(
       if (covered.has(`${r}:${c}`)) return;
       if (c >= APR_LIMITS.maxColumns) throw new AprImportError("too_large");
 
-      const display = cellDisplayText({ value: cell.value, numFmt: cell.numFmt });
-      if (display.formulaWithoutValue) warnings.add("formula_without_cached_value");
+      let display = cellDisplayText({ value: cell.value, numFmt: cell.numFmt });
+      if (display.formulaWithoutValue) {
+        const value = storedHere?.get(cell.address);
+        if (value !== undefined) display = cellDisplayText({ value, numFmt: cell.numFmt });
+        else warnings.add("formula_without_cached_value");
+      }
       const cleaned = cleanCellText(display.text, APR_LIMITS.maxCellTextLength);
       if (cleaned.truncated) warnings.add("cell_text_truncated");
       if (cleaned.text.trim() === "") return;
@@ -159,10 +170,11 @@ export async function readAprWorkbook(buf: Buffer): Promise<AprWorkbook> {
   const warnings = new Set<AprStructureWarning>();
   if (guard.hasMacros) warnings.add("macros_ignored");
 
+  const stored = await readFormulaCache(buf);
   const budget = { rows: 0, cells: 0 };
   let sheets: AprSheet[];
   try {
-    sheets = wb.worksheets.map((ws, i) => readSheet(ws, i, budget, warnings));
+    sheets = wb.worksheets.map((ws, i) => readSheet(ws, i, budget, warnings, stored));
   } catch (err) {
     if (err instanceof AprImportError) throw err;
     throw new AprImportError("malformed_workbook");

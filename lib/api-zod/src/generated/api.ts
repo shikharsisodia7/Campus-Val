@@ -1106,11 +1106,22 @@ export const GetDegreeRequirementsResponse = zod.object({
     zod.object({
       id: zod.string(),
       title: zod.string(),
-      kind: zod.enum(["university_core", "college", "major"]),
+      kind: zod
+        .enum([
+          "university_core",
+          "college",
+          "major",
+          "minor",
+          "professional_prep",
+        ])
+        .describe(
+          'What the group is. The server has always sent \"minor\" and \"professional_prep\" as well as the first three; the contract now says so.\n',
+        ),
       sourceUrl: zod
         .string()
+        .nullable()
         .describe(
-          "Official SCU source URL this group's requirements were taken from.",
+          "Official SCU source URL this group's requirements were taken from. Null for a group with no SCU source (a student's own professional preparation goals).\n",
         ),
       sourceLabel: zod.string(),
       academicYear: zod.string(),
@@ -4364,6 +4375,12 @@ export const ReplaceDegreeChecksheetFileResponse = zod.object({
   }),
   tracking: zod.object({
     kept: zod.number().describe("Entries still in place."),
+    moved: zod
+      .number()
+      .optional()
+      .describe(
+        "Of the kept entries, markers that followed their page to a new page number.",
+      ),
     detached: zod
       .number()
       .describe("Entries whose place could not be confirmed in the new file."),

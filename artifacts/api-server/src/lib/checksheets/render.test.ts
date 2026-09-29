@@ -187,6 +187,57 @@ describe("spreadsheet", () => {
     expect(offered).toEqual([1, 3, 4, 5, 6]);
   });
 
+  it("shows a formula's stored result when it is zero, which the workbook library drops", async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Plan");
+    ws.addRow(["Course", "Units"]);
+    ws.addRow(["Total", { formula: "SUM(B3:B9)", result: 0 }]);
+    ws.addRow(["Nothing yet", { formula: 'IF(B2=0,"",B2)', result: "" }]);
+    ws.addRow(["Average", { formula: "B2/2", result: 2.5 }]);
+    const out = await buildChecksheetRender(Buffer.from(await wb.xlsx.writeBuffer()), "xlsx");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    const text = new Map(out.render.sheets[0]!.rows.map((row) => [row.cells[0]!.text, row.cells[1]?.text]));
+    expect(text.get("Total")).toBe("0");
+    expect(text.get("Average")).toBe("2.5");
+    // A stored empty string is a result too: the cell is empty, and nothing is missing.
+    expect(text.get("Nothing yet")).toBeUndefined();
+    expect(out.render.warnings).not.toContain("formula_without_cached_value");
+    expect(JSON.stringify(out.render)).not.toMatch(/SUM\(|IF\(/);
+  });
+
+  it("says so, and shows nothing, when a formula has NO stored result", async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Plan");
+    ws.addRow(["Course", "Units"]);
+    ws.addRow(["Total", { formula: "SUM(B3:B9)" }]);
+    ws.addRow(["Elsewhere", { formula: "[other.xlsx]Sheet1!A1" }]);
+    ws.addRow(["Custom", { formula: "MYFUNCTION(B2)" }]);
+    const out = await buildChecksheetRender(Buffer.from(await wb.xlsx.writeBuffer()), "xlsx");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    expect(out.render.sheets[0]!.rows.map((row) => row.cells.map((c) => c.text))).toEqual([
+      ["Course", "Units"],
+      ["Total"],
+      ["Elsewhere"],
+      ["Custom"],
+    ]);
+    expect(out.render.warnings).toContain("formula_without_cached_value");
+    expect(JSON.stringify(out.render)).not.toMatch(/other\.xlsx|MYFUNCTION/);
+  });
+
+  it("shows the stored result of a reference to another workbook, and fetches nothing", async () => {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Plan");
+    ws.addRow(["Course", "Units"]);
+    ws.addRow(["From the registrar", { formula: "'http://example.invalid/[units.xlsx]Sheet1'!A1", result: 4 }]);
+    const out = await buildChecksheetRender(Buffer.from(await wb.xlsx.writeBuffer()), "xlsx");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    expect(out.render.sheets[0]!.rows[1]!.cells.map((c) => c.text)).toEqual(["From the registrar", "4"]);
+    expect(JSON.stringify(out.render)).not.toContain("example.invalid");
+  });
+
   it("says nothing about calculated cells when there are none", async () => {
     const out = await buildChecksheetRender(await buildChecksheetFixture("major-workbook"), "xlsx");
     expect(out.render?.kind === "spreadsheet" && out.render.warnings).not.toContain("calculated_cells_not_shown");
@@ -248,18 +299,110 @@ describe("spreadsheet", () => {
 });
 
 describe("legacy .xls", () => {
-  it("is stored as an original, with a plain statement that it has no preview", async () => {
-    const xls = Buffer.concat([
+  it("is read into the same copy an .xlsx is: sheets, order, wording, merges, widths", async () => {
+    const out = await buildChecksheetRender(await buildChecksheetFixture("legacy-workbook"), "xls");
+    expect(out.status).toBe("ready");
+    expect(out.note).toBeNull();
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    const [major, notes] = out.render.sheets;
+    expect(out.render.sheets.map((s) => [s.name, s.visibility])).toEqual([
+      ["Major", "visible"],
+      ["Notes", "hidden"],
+    ]);
+    expect(major!.merges).toEqual([{ r: 0, c: 0, rowSpan: 1, colSpan: 5 }]);
+    expect(major!.columnWidths).toEqual([34, 14, 14, 20, 34]);
+    expect(major!.rows[0]!.cells).toEqual([{ c: 0, text: "Applied Widgetry Major Checksheet (sample)" }]);
+    expect(major!.rows.map((row) => row.cells[0]!.text).slice(1, 5)).toEqual([
+      "Requirement",
+      "Lower Division",
+      "Introduction to Widgetry",
+      "Widget Mathematics I",
+    ]);
+    expect(notes!.rows[0]!.cells[0]!.text).toBe("Department working notes (sample)");
+    expect(out.render.warnings).toContain("hidden_sheet");
+  });
+
+  it("marks the student's Status and Quarter columns, as in an .xlsx", async () => {
+    const out = await buildChecksheetRender(await buildChecksheetFixture("legacy-workbook"), "xls");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    const { tracking } = out.render.sheets[0]!;
+    expect(tracking.columns.map((c) => [c.c, c.field, c.header])).toEqual([
+      [2, "status", "Status"],
+      [3, "term", "Quarter Completed"],
+    ]);
+    // The six courses are offered. The legacy format carries no bold, so its two
+    // section headings cannot be told from requirements and are offered too.
+    expect(tracking.cells.filter((c) => c.c === 2).map((c) => c.r)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+    // Never the notes sheet, which has no header naming a column.
+    expect(out.render.sheets[1]!.tracking.cells).toEqual([]);
+  });
+
+  it("shows a formula's stored result, a date and a percentage as Excel displays them, and no formula", async () => {
+    const out = await buildChecksheetRender(await buildChecksheetFixture("legacy-workbook"), "xls");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    const text = new Map(out.render.sheets[0]!.rows.map((row) => [row.cells[0]!.text, row.cells[1]?.text]));
+    expect(text.get("Courses listed")).toBe("8");
+    expect(text.get("Revised")).toBe("9/1/2025");
+    expect(text.get("Upper division share")).toBe("50%");
+    expect(JSON.stringify(out.render)).not.toMatch(/COUNTA|formula/);
+  });
+
+  it("gives every cell plain text: markup in a cell stays text", async () => {
+    const XLSX = await import("xlsx");
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ["Course", "Status"],
+      ['<img src=x onerror="alert(1)">', null],
+      ["=HYPERLINK(\"http://example.invalid\",\"x\")", null],
+    ]);
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, "S");
+    const out = await buildChecksheetRender(Buffer.from(XLSX.write(book, { bookType: "biff8", type: "buffer" }) as Uint8Array), "xls");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    const cells = out.render.sheets[0]!.rows.flatMap((row) => row.cells);
+    expect(cells.every((cell) => Object.keys(cell).sort().join() === "c,text")).toBe(true);
+    expect(cells.map((cell) => cell.text)).toContain('<img src=x onerror="alert(1)">');
+  });
+
+  it("reports a password-protected workbook as such", async () => {
+    expect(await refuses(await buildChecksheetFixture("legacy-workbook-protected"), "xls")).toBe("encrypted");
+  });
+
+  it("refuses a damaged workbook, and one that only names a Workbook stream", async () => {
+    const whole = await buildChecksheetFixture("legacy-workbook");
+    // The container still names its streams; what the workbook stream holds is noise.
+    const damaged = Buffer.from(whole);
+    const start = damaged.indexOf(Buffer.from([0x09, 0x08, 0x10, 0x00]));
+    expect(start).toBeGreaterThan(0);
+    damaged.fill(0xff, start, start + 1024);
+    // Refused either way: unreadable, or readable with nothing left in it.
+    expect(["malformed_workbook", "empty_workbook"]).toContain(await refuses(damaged, "xls"));
+    const shell = Buffer.concat([
       Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]),
       Buffer.alloc(64),
       Buffer.from("Workbook", "utf16le"),
       Buffer.alloc(64),
     ]);
-    expect(await buildChecksheetRender(xls, "xls")).toEqual({
-      status: "original_only",
-      note: "legacy_xls_no_preview",
-      render: null,
-    });
+    expect(await refuses(shell, "xls")).toBe("malformed_workbook");
+  });
+
+  it("refuses a workbook with nothing in it", async () => {
+    const XLSX = await import("xlsx");
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([]), "Empty");
+    const bytes = Buffer.from(XLSX.write(book, { bookType: "biff8", type: "buffer" }) as Uint8Array);
+    expect(await refuses(bytes, "xls")).toBe("empty_workbook");
+  });
+
+  it("notes macros and never reads them", async () => {
+    const whole = await buildChecksheetFixture("legacy-workbook");
+    const XLSX = await import("xlsx");
+    const container = XLSX.CFB.read(whole, { type: "buffer" });
+    XLSX.CFB.utils.cfb_add(container, "/_VBA_PROJECT_CUR/VBA/Module1", Buffer.from("Sub Auto_Open()\nShell \"calc\"\nEnd Sub"));
+    const bytes = Buffer.from(XLSX.CFB.write(container, { type: "buffer" }) as Uint8Array);
+    const out = await buildChecksheetRender(bytes, "xls");
+    expect(out.status).toBe("ready");
+    expect(out.render?.kind === "spreadsheet" && out.render.warnings).toContain("macros_ignored");
+    expect(JSON.stringify(out.render)).not.toMatch(/Auto_Open|Shell/);
   });
 
   it("refuses an OLE2 file that is not a workbook", async () => {
@@ -306,7 +449,7 @@ describe("pictures", () => {
     expect(await buildChecksheetRender(await buildChecksheetFixture("flowchart-png"), "png")).toEqual({
       status: "ready",
       note: null,
-      render: { version: 1, kind: "image", width: 640, height: 420 },
+      render: { version: 1, kind: "image", width: 640, height: 420, contentHash: expect.stringMatching(/^[0-9a-f]{32}$/) },
     });
   });
 

@@ -3,23 +3,9 @@ import { Button } from "@/components/ui/button";
 import type { ChecksheetTracking, TrackingEntry, TrackingField } from "@/hooks/use-degree-checksheets";
 import type { TrackingValues } from "./tracking-save-queue";
 import { MyTrackingTag, StatusSelect, TermSelect } from "./TrackingControls";
-import { termLabel, trackingStatusLabel } from "./checksheet-format";
+import { canHold, entrySummary } from "@workspace/api-client-react";
 
-/**
- * Whether a student column can hold what an entry carries. A Status column
- * holds a status, a Quarter column a quarter, and a table's only student column
- * holds both. An entry is never put where part of it would be lost.
- */
-export function canHold(field: TrackingField, entry: Pick<TrackingEntry, "status" | "term">): boolean {
-  if (field === "both") return true;
-  if (field === "status") return !entry.term;
-  return !entry.status;
-}
-
-/** What an entry says, in a few words: "Completed, Fall 2025". */
-export function entrySummary(entry: Pick<TrackingEntry, "status" | "term" | "termYear">): string {
-  return [trackingStatusLabel(entry.status), termLabel(entry.term, entry.termYear)].filter(Boolean).join(", ") || "no status yet";
-}
+export { canHold, entrySummary };
 
 /**
  * The controls inside one cell the department left for the student. Which
@@ -112,8 +98,9 @@ export function CalculatedCellsNote({ warnings }: { warnings: string[] }) {
   if (!warnings.includes("calculated_cells_not_shown")) return null;
   return (
     <p className="text-xs text-muted-foreground" data-testid="checksheet-calculated-note">
-      Some cells of this spreadsheet are filled in by its own formulas. CampusVal does not run formulas, so those
-      cells are left empty here. Open the original to see them.
+      Some cells of this spreadsheet hold an error value such as #N/A, which a formula shows when it has nothing to
+      list. CampusVal does not run formulas, so those cells are left empty here. Every other formula shows the result
+      saved in the file. Open the original to see the spreadsheet as it is.
     </p>
   );
 }

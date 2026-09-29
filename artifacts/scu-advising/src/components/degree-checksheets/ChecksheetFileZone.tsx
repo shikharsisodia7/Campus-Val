@@ -55,26 +55,33 @@ export function ChecksheetFileZone({
           const file = e.dataTransfer.files?.[0];
           if (file && !disabled) processFile(file);
         }}
+        // The whole area takes a click or a drop, for a pointer. What is reached
+        // from the keyboard and announced is the button inside it: a button
+        // holding a file input would be one control inside another.
         onClick={() => !disabled && inputRef.current?.click()}
         className={cn(
           "flex cursor-pointer select-none flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-5 text-center transition-colors",
           dragOver ? "border-primary bg-primary/5" : "border-border bg-muted/30 hover:border-primary/50 hover:bg-primary/5",
           disabled && "pointer-events-none opacity-50",
         )}
-        role="button"
-        tabIndex={0}
-        aria-label="Choose the department document to upload"
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            inputRef.current?.click();
-          }
-        }}
       >
         <UploadCloud className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
         <div>
           <p className="text-sm font-medium text-foreground">
-            Drop the file here, or <span className="text-primary underline underline-offset-2">click to browse</span>
+            Drop the file here, or{" "}
+            <button
+              type="button"
+              className="rounded-sm text-primary underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+              aria-label="Choose the department document to upload"
+              disabled={disabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                inputRef.current?.click();
+              }}
+              data-testid="checksheet-browse"
+            >
+              click to browse
+            </button>
           </p>
           <p className="mt-1 text-xs text-muted-foreground" data-testid="checksheet-supported-formats">
             {SUPPORTED_FORMATS_TEXT} · max {Math.round(maxBytes / (1024 * 1024))} MB
@@ -93,8 +100,10 @@ export function ChecksheetFileZone({
             e.target.value = "";
           }}
           disabled={disabled}
-          aria-label="Select file"
+          // Reached through the button above; hidden from the keyboard and from assistive technology.
+          aria-hidden="true"
           tabIndex={-1}
+          onClick={(e) => e.stopPropagation()}
         />
       </div>
 

@@ -11,6 +11,10 @@ const Progress = React.forwardRef<
 >(({ className, value, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
+    // The value is given to the bar itself, so it is announced ("40 percent"),
+    // and the bar always has a name. A caller says what is progressing.
+    value={value}
+    aria-label={props["aria-labelledby"] ? undefined : (props["aria-label"] ?? "Progress")}
     className={cn(
       "relative h-2 w-full overflow-hidden rounded-full bg-primary/20",
       className

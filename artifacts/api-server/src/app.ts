@@ -96,6 +96,9 @@ app.use("/api", router);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const candidates = [
+  // Named explicitly (a test, or a host that keeps the web app elsewhere): used
+  // instead of looking for a build beside the server.
+  ...(process.env["WEB_APP_DIR"] ? [path.resolve(process.env["WEB_APP_DIR"])] : []),
   path.resolve(__dirname, "../../scu-advising/dist/public"),
   path.resolve(__dirname, "../../../artifacts/scu-advising/dist/public"),
   path.resolve(process.cwd(), "artifacts/scu-advising/dist/public"),

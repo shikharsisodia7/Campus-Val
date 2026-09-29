@@ -130,7 +130,7 @@ export default function Dashboard() {
                   {summary.totalUnitsAllSources} / 175 units
                 </span>
               </div>
-              <Progress value={summary.progressPercent} />
+              <Progress value={summary.progressPercent} aria-label="Progress toward your degree" />
             </div>
           </Card>
         )}

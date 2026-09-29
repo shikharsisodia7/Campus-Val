@@ -73,10 +73,20 @@ jobs:
       - name: Frontend tests
         run: pnpm --filter @workspace/scu-advising run test
 
-      - name: Mobile typecheck + smoke test
+      - name: Mobile typecheck and tests
         run: |
           pnpm --filter @workspace/campusval-mobile run typecheck
           pnpm --filter @workspace/campusval-mobile run test
+
+      - name: Mobile app compiles for iOS and Android
+        # The production transform of the whole app, for both platforms, and a
+        # check that Degree Checksheets is in each bundle. Needs no key or account.
+        run: pnpm --filter @workspace/campusval-mobile run bundle
+
+      # The browser suites (artifacts/e2e) are not run here on purpose: they sign
+      # in as test students, which needs Clerk test keys, and CI must pass
+      # without any secret. They are run against a local production build before
+      # a release; see README.md, "Checking the whole repository".
 
       - name: Build frontend
         run: pnpm --filter @workspace/scu-advising run build

@@ -651,7 +651,7 @@ test("D. A PDF: drawn in the app, zoom, pages, and a marker that holds its place
   await again.getByTestId("checksheet-input-file").setInputFiles(await fixtureFile("major-pdf-revised"));
   await again.getByTestId("checksheet-replace-submit").click();
   await expect(again.locator('[data-testid^="checksheet-replaced-"]')).toContainText("1 of your tracking entry could not be matched", { timeout: 40_000 });
-  await expect(again.locator('[data-testid^="checksheet-replaced-"]')).toContainText("1 stayed in place");
+  await expect(again.locator('[data-testid^="checksheet-replaced-"]')).toContainText("1 tracking entry stayed in place");
   await expect(again.getByTestId("checksheet-detached")).toContainText("Marker on page 2 · Planned");
   await expect(again.getByTestId("checksheet-pdf-page-2").locator('button[data-testid^="checksheet-marker-"]')).toHaveCount(0);
   await expect(again.getByTestId("checksheet-pdf-page-1").locator('[data-testid^="checksheet-marker-id:"]')).toHaveCount(1);
@@ -983,6 +983,22 @@ async function signedIn(browser: Browser, who: "student-b" | "advisor-y") {
   return { context, page };
 }
 
+/**
+ * A request made as a signed-in person. A stored session's token lasts about a
+ * minute and the page renews it; a request that falls between two renewals is
+ * answered 401, "not signed in", which says nothing about what that person may
+ * see. The session is waited for and the request made again, so the answer
+ * tested is the one a signed-in person gets.
+ */
+async function signedInRequest(page: Page, send: () => Promise<import("@playwright/test").APIResponse>) {
+  let res = await send();
+  for (let attempt = 0; attempt < 3 && res.status() === 401; attempt++) {
+    await sessionReady(page);
+    res = await send();
+  }
+  return res;
+}
+
 test("H. Privacy: another student and a plan-sharing advisor see nothing", async ({ page, browser }) => {
   test.setTimeout(150_000);
   await page.goto("/degree-checksheets");
@@ -1014,24 +1030,26 @@ test("H. Privacy: another student and a plan-sharing advisor see nothing", async
 
       for (const doc of mine) {
         for (const suffix of ["", "/render", "/file", "/annotations"]) {
-          const res = await other.page.request.get(`/api/degree-checksheets/${doc.id}${suffix}`);
+          const res = await signedInRequest(other.page, () => other.page.request.get(`/api/degree-checksheets/${doc.id}${suffix}`));
           expect(res.status(), `${who} GET ${suffix || "/"}`).toBe(404);
           expect(await res.text()).not.toMatch(SECRET);
         }
       }
       const attempts = [
-        other.page.request.patch(`/api/degree-checksheets/${major.id}`, { data: { title: "Hijacked" } }),
-        other.page.request.delete(`/api/degree-checksheets/${major.id}`),
-        other.page.request.post(`/api/degree-checksheets/${major.id}/annotations`, {
-          data: { anchorType: "manual", itemLabel: "Planted", status: "completed" },
-        }),
-        other.page.request.patch(`/api/degree-checksheets/${major.id}/annotations/${entry!.id}`, { data: { status: "not_started" } }),
-        other.page.request.delete(`/api/degree-checksheets/${major.id}/annotations/${entry!.id}`),
-        other.page.request.put(`/api/degree-checksheets/${major.id}/file`, {
-          data: { objectPath: "/objects/uploads/0000000000000000/00000000-0000-4000-8000-000000000000", fileName: "x.pdf", fileSize: 10, contentType: "application/pdf" },
-        }),
+        () => other.page.request.patch(`/api/degree-checksheets/${major.id}`, { data: { title: "Hijacked" } }),
+        () => other.page.request.delete(`/api/degree-checksheets/${major.id}`),
+        () =>
+          other.page.request.post(`/api/degree-checksheets/${major.id}/annotations`, {
+            data: { anchorType: "manual", itemLabel: "Planted", status: "completed" },
+          }),
+        () => other.page.request.patch(`/api/degree-checksheets/${major.id}/annotations/${entry!.id}`, { data: { status: "not_started" } }),
+        () => other.page.request.delete(`/api/degree-checksheets/${major.id}/annotations/${entry!.id}`),
+        () =>
+          other.page.request.put(`/api/degree-checksheets/${major.id}/file`, {
+            data: { objectPath: "/objects/uploads/0000000000000000/00000000-0000-4000-8000-000000000000", fileName: "x.pdf", fileSize: 10, contentType: "application/pdf" },
+          }),
       ];
-      for (const attempt of attempts) expect((await attempt).status(), who).toBe(404);
+      for (const attempt of attempts) expect((await signedInRequest(other.page, attempt)).status(), who).toBe(404);
 
       // In the browser: their page is their own, and shows none of it.
       await other.page.goto("/degree-checksheets");
@@ -1164,7 +1182,7 @@ test("J. A requirements checklist: both values in one column; a replacement; an 
   await form.getByTestId("checksheet-replace-submit").click();
   const notice = card.locator('[data-testid^="checksheet-replaced-"]');
   await expect(notice).toContainText("1 of your tracking entry could not be matched", { timeout: 40_000 });
-  await expect(notice).toContainText("1 stayed in place");
+  await expect(notice).toContainText("1 tracking entry stayed in place");
   await expect(grid).toContainText("History of Widgets", { timeout: 20_000 });
   // The new requirement did not inherit the old one's values.
   await expect(card.getByTestId("checksheet-cell-status-0-2-1")).toHaveValue("");
@@ -1239,7 +1257,15 @@ test("J. A requirements checklist: both values in one column; a replacement; an 
  */
 const REAL_DIR = process.env.CHECKSHEET_REAL_DIR;
 const REAL_FILES = REAL_DIR && existsSync(REAL_DIR) ? readdirSync(REAL_DIR).sort() : [];
-const REAL_PDFS = REAL_FILES.filter((n) => /^(eng|cas|lsb)-.*\.pdf$/i.test(n));
+/** Leavey's documents: its PDF checklists, and its requirement pages saved as PDFs. */
+const LEAVEY_DIR = REAL_DIR ? path.join(REAL_DIR, "leavey") : "";
+const LEAVEY_PDFS = LEAVEY_DIR && existsSync(LEAVEY_DIR)
+  ? readdirSync(LEAVEY_DIR)
+      .filter((n) => /\.pdf$/i.test(n))
+      .sort()
+      .map((n) => path.join("leavey", n))
+  : [];
+const REAL_PDFS = [...REAL_FILES.filter((n) => /^(eng|cas|lsb)-.*\.pdf$/i.test(n)), ...LEAVEY_PDFS];
 const REAL_DOCS = REAL_FILES.filter((n) => /^cas-.*\.docx$/i.test(n));
 
 test("R. Real SCU department PDFs are drawn, tracked and left unchanged", async ({ page }) => {

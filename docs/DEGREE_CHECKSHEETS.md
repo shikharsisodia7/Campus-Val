@@ -1,6 +1,6 @@
 # Degree Checksheets
 
-_2026-09-28. Added at the professor's request after the APR review._
+_2026-09-28. Added at the professor's request after the APR review. This page describes the feature as it is after the completion pass of the same date (legacy `.xls`, stored formula results, markers that follow their pages, the mobile app)._
 
 ## What it is
 
@@ -79,24 +79,74 @@ extension, the declared type **and the first bytes of the file** must agree.
 
 | Format | Preview | Tracking |
 | --- | --- | --- |
-| PDF `.pdf` | Every page drawn in the app by PDF.js from the original file, with selectable text; zoom 50–300%; page navigation | Markers placed on the page + My Tracking list |
-| Excel `.xlsx` | Every worksheet as a grid: source order, wording, merged cells, bold, fills, indentation; horizontal and vertical scrolling; sticky headers. Cells a formula fills in are left empty, and the preview says so | **In place**, in the document's own Status / Quarter columns + My Tracking list |
-| Word `.docx` | Headings, paragraphs, lists, tables, links and embedded PNG/JPEG/GIF pictures, in order. Word's page layout is not reproduced | **In place** in a table's Status / Quarter columns + My Tracking list |
-| PNG `.png`, JPEG `.jpg` `.jpeg` | The picture, with zoom and scrolling | Markers placed on the picture + My Tracking list |
-| Excel `.xls` (legacy) | **None.** The file is stored and can be opened; the card says it has no preview and suggests saving as `.xlsx` | My Tracking list |
+| Format | Upload | Preview (web) | In-place tracking | Markers | Track a chosen cell | My Tracking | On replacement |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PDF `.pdf` | yes | Every page drawn by PDF.js from the original, selectable text, zoom 50–300%, page navigation | no (a PDF has no cells) | yes | no | yes | A marker stays on a page that is the same page, and follows it to a new page number |
+| Excel `.xlsx` | yes | Every worksheet as a grid: source order, wording, merged cells, bold, fills, indentation; scrolling; sticky headers | yes, where the document has a Status / Quarter column | no | yes | yes | A cell entry stays when its row says the same; otherwise the student places it |
+| Excel `.xls` (legacy) | yes | The same grid, without bold, italics, fills or alignment, which the legacy reader cannot give | yes | no | yes | yes | As `.xlsx` |
+| Word `.docx` | yes | Headings, paragraphs, lists, tables, links, embedded PNG/JPEG/GIF pictures, in order | yes, in a table with a Status / Quarter column | no | yes, in tables | yes | As `.xlsx` |
+| PNG `.png`, JPEG `.jpg` `.jpeg` | yes | The picture, with zoom and scrolling | no | yes | no | yes | A marker stays when the picture is the same picture |
 
 Refused, with a message saying why: anything else (`.html`, `.svg`, `.doc`,
 `.xlsm`, `.zip` …), a file whose contents do not match its type, an empty or
 oversized file, a damaged file, and a **password-protected** file.
 
-Legacy `.xls` is not parsed because no maintained, safe reader for that binary
-format is in use here. It is kept as an original rather than refused, so the
-student can still store and track it.
-
 Nothing in an uploaded file is ever executed: macros are never run, formulas are
-never evaluated (the value Excel last showed is copied as text), scripts in a
-PDF are never run (the PDF library's scripting engine is not shipped), and no
-markup from a file reaches the page.
+never evaluated, scripts in a PDF are never run (the PDF library's scripting
+engine is not shipped), and no markup from a file reaches the page.
+
+### Legacy `.xls`
+
+Read by SheetJS 0.20.3 (`lib/checksheets/xls-reader.ts`) into the same copy an
+`.xlsx` becomes. It parses bytes into values and does nothing else: macros are
+not read (`bookVBA: false`), formulas are neither kept nor evaluated
+(`cellFormula: false`), links and embedded objects are not read, nothing is
+fetched, and every size limit that bounds an `.xlsx` bounds it too. A workbook
+with a password is refused as such; a damaged one is refused.
+
+The package comes from the vendor (`cdn.sheetjs.com`), pinned by its integrity
+hash in `pnpm-lock.yaml`. The copy on npm (`xlsx@0.18.5`) is abandoned and has
+two published vulnerabilities (CVE-2023-30533, CVE-2024-22363), both fixed in
+the vendor's release; it was a development dependency here and has been removed.
+
+One limit is real: the legacy reader gives no formatting. CampusVal tells a
+section heading from a requirement by its **bold** label, so in a legacy file a
+heading row may be offered a tracking cell. Saving the file as `.xlsx` keeps the
+formatting.
+
+### Formulas
+
+A formula cell shows the **result the file stored** for it, as Excel or Google
+Sheets last displayed it. Nothing is calculated, a formula's text is never
+kept, and a reference to another workbook or a web address is a stored value
+like any other: nothing is fetched.
+
+| The file holds | CampusVal shows |
+| --- | --- |
+| A formula with a stored result, including `0` and text | The result |
+| A formula with a stored empty text | An empty cell |
+| A formula with **no** stored result | An empty cell; the render carries `formula_without_cached_value` |
+| A stored error value (`#N/A`, `#REF!` …) | An empty cell that is never offered to the student; the preview says calculated cells are not shown (`calculated_cells_not_shown`) |
+
+The workbook library reports a stored result of `0` as no result. The stored
+result is therefore also read from the file itself, for formula cells only
+(`lib/apr/formula-cache.ts`). Before this, a total of zero units looked like a
+cell nobody had calculated. The APR import benefits from the same fix.
+
+In the real checklists, `#N/A` **is** the stored result: Google exports a
+`FILTER` that lists the courses a student assigned to a quarter, and with none
+assigned the list is `#N/A`. That cell is the spreadsheet's own working, not the
+department's wording.
+
+### Word documents
+
+Word's page layout (page breaks, columns, exact spacing, fonts) is not
+reproduced. What is kept is what an advising reference needs: every heading,
+paragraph, list item, table, link and picture, in the document's order and
+wording, with bold, italics and underline. Reproducing Word's pages would mean
+running a Word-compatible layout engine on the server, which is a larger and
+riskier dependency than this feature warrants. The original file, with its
+layout, is one tap away.
 
 ## Architecture
 
@@ -122,8 +172,10 @@ Expanded card ── GET …/render ──────► display copy (jsonb)  
 | `lib/checksheets/render.ts` | Builds the display copy for each format. |
 | `lib/checksheets/tracking-layout.ts` | Finds the cells a table left for the student (see below). |
 | `lib/checksheets/docx-reader.ts` | Word → display blocks. |
-| `lib/checksheets/pdf-info.ts` | PDF → page sizes and a hash of each page's text. |
+| `lib/checksheets/xls-reader.ts` | Legacy `.xls` → the same structural copy an `.xlsx` becomes. |
+| `lib/checksheets/pdf-info.ts` | PDF → page sizes, a hash of each page's text, and for a page without text a hash of what it draws. |
 | `lib/checksheets/image-info.ts` | PNG/JPEG → pixel size, read from the header. |
+| `lib/checksheets/content-hash.ts` | PNG/JPEG → a hash of the picture itself, whatever the file's metadata says. |
 | `lib/checksheets/anchors.ts` | Validates where an entry sits; decides what survives a replacement. |
 | `lib/checksheets/metadata.ts` | Cleans what the student types (titles, notes, links). |
 | `lib/checksheets/file-response.ts` | Serves the original privately. |
@@ -144,14 +196,26 @@ that they do not mention them.
 | File | Purpose |
 | --- | --- |
 | `pages/degree-checksheets.tsx` | The page: help text, actions, empty/loading/error states, library, filters. |
-| `hooks/use-degree-checksheets.ts` | Queries, the upload flow, and a document's tracking state with autosave. |
+| `hooks/use-degree-checksheets.ts` | The browser's upload flow; the queries and the tracking state come from the shared client (below). |
 | `components/degree-checksheets/ChecksheetDocumentCard.tsx` | One collapsible document and its actions. |
 | `…/ChecksheetSpreadsheetView.tsx`, `ChecksheetDocumentView.tsx`, `ChecksheetPdfView.tsx`, `ChecksheetImageView.tsx` | The four source viewers. |
 | `…/PointMarkerLayer.tsx`, `ViewerToolbar.tsx` | Markers on a page or picture; zoom, pages, placing a marker. |
 | `…/MyTrackingPanel.tsx`, `TrackingControls.tsx` | The student's list; the status and quarter controls; the save indicator. |
 | `…/ChecksheetUploadDialog.tsx`, `ChecksheetDetailsFields.tsx`, `ChecksheetFileZone.tsx` | Upload and details. |
-| `…/tracking-save-queue.ts` | Autosave ordering (see below). |
 | `…/tracking-geometry.ts` | Marker positions and zoom. |
+
+### Shared client
+
+`lib/api-client-react/src/checksheets/` holds what is the same on every client:
+the autosave queue (`save-queue.ts`), the hooks that read documents and keep a
+document's tracking (`tracking.ts`), and the words, options and file checks
+(`format.ts`). The web app and the mobile app both build their hooks from
+`createChecksheetHooks`, so tracking is saved, ordered and reconciled by one
+piece of code.
+
+### Mobile app
+
+`artifacts/campusval-mobile`: see [Mobile app](#mobile-app-1).
 
 A collapsed document loads only its metadata. Its preview and tracking are
 requested the first time it is opened. The PDF viewer (and the PDF library) is a
@@ -344,8 +408,9 @@ again**), announced to screen readers.
 | --- | --- |
 | Cell entry | The new file offers the same cell, for the same kind of value, **and** the row there has the same content (fingerprints match). |
 | Cell the student chose | The same cell exists and still says the same thing. |
-| Marker on a PDF | The page exists, has the same size, and has the same text. A page with no text (a scan) cannot be verified. |
-| Marker on a picture | Only when the very same file is uploaded again. |
+| Marker on a PDF page with text | The page has the same size and the same text. |
+| Marker on a scanned PDF page | The page has the same size and draws the same thing: the same instructions and the same picture, pixel for pixel. |
+| Marker on a picture | The picture is the same picture: the same size and the same pixels, whatever the file's date stamp, comment, colour profile or compression. |
 | List entry | Always. |
 
 Anything else is **detached**: kept, labelled with what it referred to, listed
@@ -359,6 +424,28 @@ different requirement. The student then decides, for each one:
 | **Place on the document** (a marker) | The student clicks where it belongs on the new page or picture. |
 | **Place in a cell** (a cell entry) | The preview shows **Place here** in every free cell that can hold the entry; the student picks the row it belongs to. For a cell the student had chosen, they click the cell it belongs to. |
 | Remove | It is deleted. |
+
+**A marker follows its page.** When pages were added or removed, a marker goes
+with its page to the page's new number, provided **exactly one** page of the new
+file is that page. Its place on the page does not change. The card says how
+many markers followed their pages.
+
+**Nothing is matched by likeness.** A picture that differs in one pixel, a page
+rescanned from the same paper, a page that appears twice in the new file: each
+detaches the marker. A marker saying "Completed" is never left beside a
+requirement it was not placed on. A marker made before pages and pictures were
+fingerprinted stays only when the identical file is uploaded again.
+
+| The new file | What happens to markers |
+| --- | --- |
+| The identical file | All stay |
+| The same picture, saved again with other metadata or compression | Stay |
+| A picture that differs at all, or in the other format | Detached |
+| The same PDF pages, more pages after them | Stay |
+| A page inserted before | Follow their pages to the new page numbers |
+| A page removed | The markers on it are detached; the others follow their pages |
+| A page whose size changed | Detached, even if it draws the same thing |
+| The same paper scanned again | Detached: different pictures |
 
 **Place in a cell** offers only cells that are free and that can hold
 everything the entry has: an entry with a status and a quarter is never put in
@@ -432,6 +519,62 @@ curriculum year, the APR, or a controlled combination?
 
 **The professor has not decided.** This is a product decision, not a technical
 gap. Until it is made, Degree Checksheets changes nothing about that sidebar.
+The engineering that the decision will need is done; see
+[REQUIREMENTS_SOURCE.md](REQUIREMENTS_SOURCE.md).
+
+## Mobile app
+
+The native app (`artifacts/campusval-mobile`, Expo) has Degree Checksheets as
+its own tab. It uses the same API, the same documents and the same tracking as
+the web app: what is set on a phone is there in a browser, and the other way
+round.
+
+| | Web | Mobile app |
+| --- | --- | --- |
+| List documents, empty state, several documents | yes | yes |
+| Upload, with title and details; duplicate notice | yes | yes (the phone's document picker) |
+| Open and close a document | yes | yes |
+| Spreadsheet (`.xlsx`, `.xls`) preview | grid | native grid, scrolled sideways at a readable size |
+| Word preview | yes | yes, native |
+| Picture preview, zoom | yes | yes |
+| PDF preview | drawn in the app | **opened in the phone's own viewer**; not drawn in the app |
+| Status and quarter in the document's own columns | yes | yes |
+| Track a cell the student chooses | yes | yes |
+| Markers on a picture | yes | yes, placed by touch |
+| Markers on a PDF page | yes | listed and editable; **placed in the web app** |
+| My Tracking list: add, rename, status, quarter, note, remove | yes | yes |
+| Saved automatically; "Saving / Saved / Could not save, try again" | yes | yes |
+| Entries set aside by a replacement: keep, place again, remove | yes | yes (a PDF marker is placed again in the web app) |
+| Rename, edit details | yes | yes |
+| Replace the file | yes | yes |
+| Delete | yes | yes |
+| Open the original | new tab | downloaded with the student's session into the app's cache and handed to the phone's viewer |
+| "Show original only" | yes | yes |
+| Link to SCU's checksheets page | yes | yes |
+
+The one difference is PDF pages. Drawing a PDF needs a native PDF renderer or
+an embedded browser, neither of which the app has; adding one is a native
+dependency and a new store build. My Tracking works for a PDF as for any
+document.
+
+A status list does not fit inside a table cell on a phone, so tapping a
+"MY TRACKING" cell opens a sheet with the status, the quarter and the year.
+What it saves is what the web app saves.
+
+Files: `app/(home)/checksheets.tsx` (the screen), `components/checksheets/*`
+(the card, the previews, My Tracking, the editor, upload and details),
+`hooks/useChecksheets.ts` (the shared hooks), `lib/checksheet-files.ts`
+(choosing, sending and opening files), `lib/checksheet-layout.ts` and
+`lib/checksheet-rules.ts` (layout and what is offered, tested without a phone).
+
+New native modules: `expo-document-picker`, `expo-file-system`, `expo-sharing`.
+They need a new build of the app; an over-the-air update cannot add them.
+
+Verified: types, 26 tests of layout, rules and saving, and a production
+compile of the whole app for iOS and Android (`pnpm --filter
+@workspace/campusval-mobile run bundle`). **Not verified: the app running on a
+phone or a simulator.** This machine has neither Xcode nor an Android emulator
+image set up for it.
 
 ## Tests
 
@@ -440,11 +583,15 @@ gap. Until it is made, Degree Checksheets changes nothing about that sidebar.
 | `lib/checksheets/tracking-layout.test.ts` | Which cells are offered, and which are not |
 | `lib/checksheets/render.test.ts` | Every format; every way a file is refused; hostile content |
 | `lib/checksheets/anchors.test.ts` | Anchor validation; what survives a replacement; typed input |
+| `lib/checksheets/marker-replacement.test.ts` | Markers on pictures, PDFs with text and scanned PDFs, through every kind of replacement |
+| `lib/apr/formula-cache.test` (in `render.test.ts`) | Stored formula results: zero, text, none, another workbook |
 | `routes/degree-checksheets.test.ts` | Full lifecycle against the real database and storage |
 | `routes/degree-checksheets.access-control.test.ts` | Cross-user access, plan sharing, scope guards |
 | `components/degree-checksheets/*.test.ts(x)` | Autosave ordering, marker geometry, formatting, the viewers |
 | `pages/degree-checksheets.test.tsx` | The page |
 | `artifacts/e2e/tests/degree-checksheets.spec.ts` | The real app in a browser, desktop, tablet and phone |
+| `artifacts/e2e/tests/accessibility.spec.ts` | axe-core on every state of the page, and the keyboard |
+| `campusval-mobile/lib/checksheets.test.ts` | The mobile app's layout, rules and saving |
 
 Fixtures are synthetic (`api-server/src/__fixtures__/checksheets`): invented
 programs and courses. No real department document or student file is committed.
@@ -463,15 +610,18 @@ repository:
 | Gender and Sexuality Studies first-year course plans, Word and PDF (2 pages) | Same |
 | Leavey School of Business core curriculum, the web page saved as a PDF (6 pages) | Drawn, text selectable, marker placed, stored byte for byte |
 | A saved sign-in page named `.pdf` | Refused: "contents don't match its file type" |
+| Leavey: Economics A&S checklist, Fall 2013 to 2024 (real PDF, scu.edu) | Drawn, text selectable, marker placed, stored byte for byte |
+| Leavey: Economics A&S checklist, Fall 2025 and later (real PDF, scu.edu) | Same |
+| Leavey: Accounting, Finance, Management, Marketing, MIS and Business Analytics, Economics major requirements, each web page saved as a PDF | Same |
 | **All 40** College of Arts and Sciences "Requirements Checklist" spreadsheets (Anthropology … Women's and Gender Studies) | All 40 shown; all 40 tracked **in place**, 1,708 cells in total; first cell of each given a status and a quarter in the browser; each stored byte for byte |
 | **All 33** College of Arts and Sciences first-year course plans, Word | All 33 shown; a course cell chosen and tracked in each; each stored byte for byte |
 
 The College of Arts and Sciences publishes its documents as Google Docs that
 require an SCU sign-in. The two above were downloaded by the repository owner
 with their own SCU account. The Leavey School of Business publishes its core
-curriculum as a web page (scu.edu/business/undergraduates/core), not as a file.
-A student saves that page as a PDF from the browser's Print dialog and uploads
-it; CampusVal does not fetch it.
+curriculum and its majors' requirements as web pages, not as files. A student
+saves a page as a PDF from the browser's Print dialog and uploads it; CampusVal
+does not fetch it. See [Leavey](#leavey) below.
 
 The 40 checklists and 33 course plans are Google Sheets and Google Docs behind
 an SCU sign-in; they were downloaded through the repository owner's own signed-in
@@ -519,7 +669,7 @@ CHECKSHEET_REAL_DIR=<folder> E2E_BASE_URL=http://localhost:18080 \
   pnpm --filter @workspace/e2e exec playwright test degree-checksheets.spec.ts --project=checksheets
 ```
 
-Without that folder the real-document tests skip themselves. The same layout
+Leavey's documents go in `leavey/*.pdf`. Without that folder the real-document tests skip themselves. The same layout
 is covered without any real file by the synthetic `checklist-workbook`
 fixtures and browser test J.
 
@@ -528,3 +678,27 @@ pnpm --filter @workspace/api-server exec tsx src/__fixtures__/checksheets/write-
 ```
 
 writes them to disk for manual QA.
+
+### Leavey
+
+Every Leavey undergraduate major page and the core page were looked at for
+documents (2026-09-28, public pages only). Economics links two PDF checklists.
+The others publish their requirements as the text of a web page.
+
+| Resource | Source format | Preview | Status / quarter in place | Markers | My Tracking | Original | Replacement |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Core curriculum | web page, saved as PDF | PDF | no | yes | yes | yes | tested (PDF rules) |
+| Accounting major | web page, saved as PDF | PDF | no | yes | yes | yes | PDF rules |
+| Finance major | web page, saved as PDF | PDF | no | yes | yes | yes | PDF rules |
+| Management major | web page, saved as PDF | PDF | no | yes | yes | yes | PDF rules |
+| Marketing major | web page, saved as PDF | PDF | no | yes | yes | yes | PDF rules |
+| MIS and Business Analytics | web page, saved as PDF | PDF | no | yes | yes | yes | PDF rules |
+| Economics major (Leavey) | web page, saved as PDF | PDF | no | yes | yes | yes | PDF rules |
+| Economics A&S checklist, 2013 to 2024 | PDF from scu.edu | PDF | no | yes | yes | yes | PDF rules |
+| Economics A&S checklist, 2025 and later | PDF from scu.edu | PDF | no | yes | yes | yes | PDF rules |
+
+Every Leavey resource is a PDF, so none has cells: a business student tracks
+with markers on the page (in the web app) and with My Tracking. The formats do
+not differ between Leavey majors, and no Leavey document needed a change to the
+reader. Replacement is covered by the PDF replacement tests, which do not
+depend on which department wrote the page.

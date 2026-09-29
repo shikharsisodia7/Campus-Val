@@ -11,9 +11,15 @@ import type { RequirementItem } from "./requirementItem";
 export interface RequirementGroup {
   id: string;
   title: string;
+  /** What the group is. The server has always sent "minor" and "professional_prep" as well as the first three; the contract now says so.
+   */
   kind: RequirementGroupKind;
-  /** Official SCU source URL this group's requirements were taken from. */
-  sourceUrl: string;
+  /**
+   * Official SCU source URL this group's requirements were taken from. Null for a group with no SCU source (a student's own professional preparation goals).
+
+   * @nullable
+   */
+  sourceUrl: string | null;
   sourceLabel: string;
   academicYear: string;
   /** Date the requirements were last verified against the official SCU source (YYYY-MM-DD). */

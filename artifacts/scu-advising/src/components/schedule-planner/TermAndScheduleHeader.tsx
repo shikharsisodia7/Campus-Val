@@ -192,7 +192,7 @@ export function TermAndScheduleHeader({
                 onValueChange={(val) => workspace.setActiveScheduleId(Number(val))}
                 disabled={workspace.schedules.length === 0}
               >
-                <SelectTrigger className="w-[200px] bg-card">
+                <SelectTrigger className="w-[200px] bg-card" aria-label="Schedule">
                   <SelectValue placeholder="No schedules" />
                 </SelectTrigger>
                 <SelectContent>

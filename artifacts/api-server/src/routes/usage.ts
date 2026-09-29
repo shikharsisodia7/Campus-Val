@@ -59,6 +59,13 @@ router.post("/usage-events", requireAuth, async (req, res) => {
   res.status(200).json({ recorded: true });
 });
 
+// Admin-only: which source the requirements sidebar is built from, and that
+// the benchmark policy is still to be decided. Says nothing about any student.
+router.get("/admin/requirements-source", requireAuth, requireAdmin, async (_req, res) => {
+  const { requirementsSourceStatus } = await import("../lib/requirements-source");
+  res.json(requirementsSourceStatus());
+});
+
 // Admin-only: who is using CampusVal, how often, and which high-level
 // features they use. No course codes, grades, APR content, or file content
 // are ever stored, so there is nothing sensitive to redact here.

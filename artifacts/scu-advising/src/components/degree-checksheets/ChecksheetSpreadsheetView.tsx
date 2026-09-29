@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { ChecksheetSheet, ChecksheetTrackingCell } from "@workspace/api-client-react";
+import { sheetRowName } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { buildGrid, columnLetter } from "@/components/progress-report/AprWorkbookTable";
 import { entriesByPlace, type ChecksheetTracking, type TrackingEntry, type TrackingField } from "@/hooks/use-degree-checksheets";
@@ -132,23 +133,9 @@ function SheetGrid({
   const trackingColumns = useMemo(() => [...new Set(sheet.tracking.columns.map((c) => c.c))].sort((a, b) => a - b), [sheet.tracking.columns]);
   const entries = useMemo(() => entriesByPlace(tracking.entries), [tracking.entries]);
 
-  /**
-   * What a row is about, in the department's own words: the text in the
-   * columns that belong to this student column, which are the ones between the
-   * previous student column and it. (A sheet may hold two tables side by side.)
-   */
-  const rowName = (r: number, column: number): string => {
-    const row = sheet.rows.find((candidate) => candidate.r === r);
-    const previous = [...trackingColumns].reverse().find((c) => c < column) ?? -1;
-    const filled = (row?.cells ?? []).filter((cell) => !trackingColumns.includes(cell.c) && cell.text.trim() !== "");
-    const own = filled.filter((cell) => cell.c > previous && cell.c < column);
-    const parts = own.length > 0 ? own : filled;
-    const name = parts
-      .slice(0, 2)
-      .map((cell) => cell.text.trim())
-      .join(", ");
-    return name ? name.slice(0, 120) : `row ${r + 1}`;
-  };
+  /** What a row is about, in the department's own words. */
+  const rowName = (r: number, column: number): string =>
+    sheetRowName(sheet.rows.find((candidate) => candidate.r === r)?.cells ?? [], r, column, trackingColumns);
 
   if (sheet.rows.length === 0) {
     return (
