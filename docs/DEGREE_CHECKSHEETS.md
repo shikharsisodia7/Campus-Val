@@ -1,6 +1,6 @@
 # Degree Checksheets
 
-_2026-09-28. Added at the professor's request after the APR review. This page describes the feature as it is after the completion pass of the same date (legacy `.xls`, stored formula results, markers that follow their pages, the mobile app)._
+_2026-09-28, updated 2026-09-29. Added at the professor's request after the APR review. This page describes the feature as it is after the completion pass of 2026-09-28 (legacy `.xls`, stored formula results, markers that follow their pages, the mobile app) plus a follow-up pass on 2026-09-29 (legacy `.xls` bold/italic, the mobile app drawing PDF pages itself)._
 
 ## What it is
 
@@ -83,7 +83,7 @@ extension, the declared type **and the first bytes of the file** must agree.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | PDF `.pdf` | yes | Every page drawn by PDF.js from the original, selectable text, zoom 50–300%, page navigation | no (a PDF has no cells) | yes | no | yes | A marker stays on a page that is the same page, and follows it to a new page number |
 | Excel `.xlsx` | yes | Every worksheet as a grid: source order, wording, merged cells, bold, fills, indentation; scrolling; sticky headers | yes, where the document has a Status / Quarter column | no | yes | yes | A cell entry stays when its row says the same; otherwise the student places it |
-| Excel `.xls` (legacy) | yes | The same grid, without bold, italics, fills or alignment, which the legacy reader cannot give | yes | no | yes | yes | As `.xlsx` |
+| Excel `.xls` (legacy) | yes | The same grid, including bold and italics read from the file's own font records; no fills or alignment, which the legacy reader cannot give | yes | no | yes | yes | As `.xlsx` |
 | Word `.docx` | yes | Headings, paragraphs, lists, tables, links, embedded PNG/JPEG/GIF pictures, in order | yes, in a table with a Status / Quarter column | no | yes, in tables | yes | As `.xlsx` |
 | PNG `.png`, JPEG `.jpg` `.jpeg` | yes | The picture, with zoom and scrolling | no | yes | no | yes | A marker stays when the picture is the same picture |
 
@@ -109,10 +109,15 @@ hash in `pnpm-lock.yaml`. The copy on npm (`xlsx@0.18.5`) is abandoned and has
 two published vulnerabilities (CVE-2023-30533, CVE-2024-22363), both fixed in
 the vendor's release; it was a development dependency here and has been removed.
 
-One limit is real: the legacy reader gives no formatting. CampusVal tells a
-section heading from a requirement by its **bold** label, so in a legacy file a
-heading row may be offered a tracking cell. Saving the file as `.xlsx` keeps the
-formatting.
+SheetJS itself discards bold and italic when it reads a legacy file, so
+CampusVal reads those directly from the workbook's own BIFF8 font records
+(`lib/checksheets/xls-styles.ts`), a small binary parser reading only FONT, XF
+and cell-format records — nothing else in the file is touched. CampusVal tells
+a section heading from a requirement by its **bold** label; this is what lets
+a legacy file's heading rows be told apart from its requirement rows, the same
+as an `.xlsx`. Verified against all 40 real SCU checklists, each converted to
+a genuine `.xls` and compared cell-by-cell against its own `.xlsx`. Fills and
+alignment are still not read; saving the file as `.xlsx` keeps those too.
 
 ### Formulas
 
@@ -537,11 +542,11 @@ round.
 | Spreadsheet (`.xlsx`, `.xls`) preview | grid | native grid, scrolled sideways at a readable size |
 | Word preview | yes | yes, native |
 | Picture preview, zoom | yes | yes |
-| PDF preview | drawn in the app | **opened in the phone's own viewer**; not drawn in the app |
+| PDF preview | drawn in the app | drawn in the app (the server renders each page to a PNG, since the phone has no PDF renderer of its own) |
 | Status and quarter in the document's own columns | yes | yes |
 | Track a cell the student chooses | yes | yes |
 | Markers on a picture | yes | yes, placed by touch |
-| Markers on a PDF page | yes | listed and editable; **placed in the web app** |
+| Markers on a PDF page | yes | yes, placed by touch on the drawn page |
 | My Tracking list: add, rename, status, quarter, note, remove | yes | yes |
 | Saved automatically; "Saving / Saved / Could not save, try again" | yes | yes |
 | Entries set aside by a replacement: keep, place again, remove | yes | yes (a PDF marker is placed again in the web app) |
