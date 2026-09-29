@@ -1,4 +1,4 @@
-﻿# Accessibility testing
+# Accessibility testing
 
 _2026-09-28._
 
