@@ -911,6 +911,215 @@ paths:
                 $ref: "#/components/schemas/AcademicPlan"
         "404":
           description: Not found
+  /plans/{id}/requirements:
+    get:
+      operationId: getPlanRequirements
+      tags: [requirements]
+      summary: The requirements sidebar for one plan, with that plan's planning customizations applied
+      description: >-
+        The same requirements GET /requirements builds for this plan's programs
+        and planned courses, with the student's PLAN-SCOPED planning
+        customizations composed on top (renamed or annotated requirements,
+        requirements hidden from the student's own view, custom requirements
+        the student added). Customizations never change what is required or
+        what counts as complete, and never change the source: the original of
+        every edited requirement is returned alongside it. Owner only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Requirement groups with customizations applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanRequirementsResponse"
+        "404":
+          description: Plan not found, or no profile yet
+  /plans/{id}/requirement-customizations:
+    put:
+      operationId: saveRequirementEdit
+      tags: [requirements]
+      summary: Rename, annotate or hide one source requirement in this plan's planning view
+      description: >-
+        Upserts the student's planning edit for one SOURCE requirement, named by
+        its stable key. A field that is omitted is left as it was; null or an
+        empty string clears it. An edit that leaves nothing set removes the row.
+        Never modifies the source requirement. Owner only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequirementEditInput"
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequirementCustomizationSummary"
+        "400":
+          description: Invalid edit
+        "404":
+          description: Plan not found, or the requirement is not in this plan's sidebar
+    delete:
+      operationId: resetRequirementEdits
+      tags: [requirements]
+      summary: Reset one requirement (sourceKey) or every customization (all=true) to the source
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: sourceKey
+          in: query
+          schema:
+            type: string
+        - name: all
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequirementCustomizationSummary"
+        "400":
+          description: Neither sourceKey nor all=true was given
+        "404":
+          description: Plan not found
+  /plans/{id}/requirement-customizations/resolve:
+    post:
+      operationId: resolveRequirementSourceChange
+      tags: [requirements]
+      summary: Decide what to do with an edit whose source requirement has changed
+      description: >-
+        keep_mine re-bases the student's edit onto the updated source;
+        use_source discards the edit. Never applies an old edit silently.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequirementResolveInput"
+      responses:
+        "200":
+          description: Resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequirementCustomizationSummary"
+        "400":
+          description: Invalid request
+        "404":
+          description: Plan not found
+  /plans/{id}/custom-requirements:
+    post:
+      operationId: createCustomRequirement
+      tags: [requirements]
+      summary: Add the student's own planning requirement to a sidebar group
+      description: >-
+        A custom requirement is the student's own note, marked as such. It is
+        never institution-authored and never counts toward a degree.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomRequirementInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequirementCustomizationSummary"
+        "400":
+          description: Invalid requirement, or too many
+        "404":
+          description: Plan not found, or the group is not in this plan's sidebar
+  /plans/{id}/custom-requirements/{customId}:
+    patch:
+      operationId: updateCustomRequirement
+      tags: [requirements]
+      summary: Edit a custom requirement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: customId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomRequirementPatch"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequirementCustomizationSummary"
+        "400":
+          description: Invalid edit
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteCustomRequirement
+      tags: [requirements]
+      summary: Delete a custom requirement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: customId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequirementCustomizationSummary"
+        "404":
+          description: Not found
   /plans/{id}/promote:
     post:
       operationId: promotePlan
@@ -4175,6 +4384,11 @@ components:
       properties:
         id:
           type: string
+        stableKey:
+          type: string
+          description: Present on GET /plans/{id}/requirements. The identifier customizations are anchored to.
+        customization:
+          $ref: "#/components/schemas/RequirementItemCustomization"
         label:
           type: string
         description:
@@ -4248,11 +4462,181 @@ components:
         - needsVerification
         - satisfiedBy
         - complete
+    RequirementItemCustomization:
+      type: object
+      description: >-
+        The student's PLANNING customization of a requirement. Not an SCU
+        requirement and never a claim about the degree.
+      required: [kind, titleEdited, title, note, hidden, done, sourceChanged, originalLabel, originalDescription, updatedAt]
+      properties:
+        kind:
+          type: string
+          enum: [edit, custom]
+        titleEdited:
+          type: boolean
+          description: The label shown is the student's, not the source's.
+        title:
+          type: [string, "null"]
+        note:
+          type: [string, "null"]
+        hidden:
+          type: boolean
+          description: The student chose to hide it from their own view of this plan (restorable). In effect only while sourceChanged is false.
+        done:
+          type: boolean
+          description: Custom requirements only. The student's own tick, never official completion.
+        sourceChanged:
+          type: boolean
+          description: The source requirement changed since this was edited, so the edit is not applied until the student reviews it.
+        originalLabel:
+          type: string
+        originalDescription:
+          type: string
+        labelAtEdit:
+          type: [string, "null"]
+        sourceVersionAtEdit:
+          type: [string, "null"]
+        sourceVersionNow:
+          type: [string, "null"]
+        updatedAt:
+          type: string
+    OrphanedCustomization:
+      type: object
+      required: [entryType, targetKey, groupKey, reason, title, note, updatedAt]
+      properties:
+        entryType:
+          type: string
+          enum: [source_edit, custom]
+        targetKey:
+          type: string
+        groupKey:
+          type: [string, "null"]
+        reason:
+          type: string
+          enum: [requirement_not_in_source, program_not_in_plan]
+        title:
+          type: [string, "null"]
+        note:
+          type: [string, "null"]
+        updatedAt:
+          type: string
+    RequirementCustomizationSummary:
+      type: object
+      required: [edited, hidden, custom, sourceChanged, orphaned]
+      properties:
+        edited:
+          type: integer
+        hidden:
+          type: integer
+        custom:
+          type: integer
+        sourceChanged:
+          type: integer
+        orphaned:
+          type: integer
+    RequirementEditInput:
+      type: object
+      required: [sourceKey]
+      properties:
+        sourceKey:
+          type: string
+          maxLength: 300
+        title:
+          type: [string, "null"]
+          maxLength: 160
+        note:
+          type: [string, "null"]
+          maxLength: 600
+        hidden:
+          type: boolean
+    RequirementResolveInput:
+      type: object
+      required: [action]
+      properties:
+        sourceKey:
+          type: string
+          maxLength: 300
+        all:
+          type: boolean
+        action:
+          type: string
+          enum: [keep_mine, use_source]
+    CustomRequirementInput:
+      type: object
+      required: [groupKey, title]
+      properties:
+        courseCodes:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            maxLength: 32
+        groupKey:
+          type: string
+          maxLength: 300
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        note:
+          type: [string, "null"]
+          maxLength: 600
+    CustomRequirementPatch:
+      type: object
+      properties:
+        courseCodes:
+          type: array
+          maxItems: 8
+          items:
+            type: string
+            maxLength: 32
+        move:
+          type: string
+          enum: [up, down]
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        note:
+          type: [string, "null"]
+          maxLength: 600
+        done:
+          type: boolean
+    PlanRequirementsResponse:
+      allOf:
+        - $ref: "#/components/schemas/DegreeRequirementsResponse"
+        - type: object
+          required: [requirementsSource, customizations]
+          properties:
+            requirementsSource:
+              type: object
+              required: [label, policyDecided]
+              description: >-
+                Plain wording for what these requirements are, so the sidebar
+                never claims more authority than its source supports.
+              properties:
+                label:
+                  type: string
+                policyDecided:
+                  type: boolean
+            customizations:
+              type: object
+              required: [summary, orphaned]
+              properties:
+                summary:
+                  $ref: "#/components/schemas/RequirementCustomizationSummary"
+                orphaned:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/OrphanedCustomization"
     RequirementGroup:
       type: object
       properties:
         id:
           type: string
+        stableKey:
+          type: string
+          description: Present on GET /plans/{id}/requirements. The identifier custom requirements attach to.
         title:
           type: string
         kind:

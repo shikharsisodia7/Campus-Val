@@ -18,7 +18,8 @@ One row per feature visit, in the `usage_events` table
   (`USAGE_FEATURES` in `artifacts/api-server/src/routes/usage.ts`):
   `dashboard`, `degree_plan`, `tentative_degree_plan`, `quarter_plan`,
   `apr_upload`, `four_year_plan`, `plan_controls`, `find_courses`,
-  `workday_handoff`.
+  `workday_handoff`, `feedback_submit`, `requirement_customization` (edit mode
+  opened on the requirements sidebar; no requirement content).
 - `createdAt` — timestamp.
 
 That's the entire schema. There is no free-text field.

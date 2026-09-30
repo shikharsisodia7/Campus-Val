@@ -134,18 +134,17 @@ export function UploadZone({ onFileSelected, disabled, maxBytes = DEFAULT_MAX_BY
             Workday export: Excel (.xlsx) or PDF · max {Math.round(maxBytes / (1024 * 1024))} MB
           </p>
         </div>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={`.xlsx,.pdf,${XLSX_TYPE},${PDF_TYPE}`}
-          className="sr-only"
-          data-testid="input-file"
-          onChange={handleChange}
-          disabled={disabled}
-          aria-label="Select file"
-        />
       </div>
-
+      <input
+        ref={inputRef}
+        type="file"
+        accept={`.xlsx,.pdf,${XLSX_TYPE},${PDF_TYPE}`}
+        className="sr-only"
+        data-testid="input-file"
+        onChange={handleChange}
+        disabled={disabled}
+        aria-label="Select file"
+      />
       {error && (
         <p
           data-testid="upload-error"

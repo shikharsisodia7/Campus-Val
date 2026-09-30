@@ -263,6 +263,14 @@ export function buildRequirementsResponse(
               .join(", ")}. Requirement course lists aren't loaded for concentrations yet — see the official source for exact requirements.`,
           ]
         : [];
+    // getMajorRequirements ends with an informational "University Core (areas)"
+    // group whose entries are Core area NAMES with a fake course code ("Critical
+    // Thinking & Writing 1"), meant for the graduation-paths page. They are not
+    // major requirements: the University Core has its own group in this sidebar,
+    // the recipe's own totals already leave them out, and no course can ever
+    // satisfy them here. They are left out of the major group.
+    const majorItemGroups = majorReqs.groups.filter((g) => !g.courses.every((c) => c.category === "university-core"));
+    const usedItemIds = new Map<string, number>();
     return {
       id: `major-${idSuffix}`,
       title: `Major Requirements — ${majorReqs.title}${isScenarioOnly ? " (proposed)" : ""}`,
@@ -272,11 +280,18 @@ export function buildRequirementsResponse(
       academicYear: universityCore.academicYear,
       lastVerified: universityCore.lastVerified,
       notes: [...scenarioNote, ...majorReqs.notes, ...concentrationNote],
-      items: majorReqs.groups.flatMap((g) =>
+      items: majorItemGroups.flatMap((g) =>
         g.courses.map((c) => {
           const isPlanned = !c.completed && planned.has(normalize(c.code));
+          // A course the recipe lists under two headings (e.g. MATH 11 in both
+          // the math sequence and the lower division) keeps its original id
+          // the first time and gets a numbered one after, so no two items in a
+          // group share an id.
+          const baseId = `major-${idSuffix}-${c.code.replace(/\s+/g, "-").toLowerCase()}`;
+          const seen = (usedItemIds.get(baseId) ?? 0) + 1;
+          usedItemIds.set(baseId, seen);
           return {
-            id: `major-${idSuffix}-${c.code.replace(/\s+/g, "-").toLowerCase()}`,
+            id: seen === 1 ? baseId : `${baseId}-${seen}`,
             label: `${c.code} — ${c.title}`,
             description: `${g.label} · ${c.units} unit${c.units === 1 ? "" : "s"}`,
             courses: [c.code],
@@ -531,6 +546,20 @@ export function buildRequirementsResponse(
   };
 }
 
+/**
+ * Course codes the student has planned. This was parsed with the scenario-program
+ * list, which stops at 10 entries: a plan with more than ten courses had every
+ * course after the tenth ignored when marking Core requirements "planned". That
+ * limit was meant for the short list of proposed majors and minors, not courses.
+ */
+function parseCourseList(raw: unknown): string[] {
+  return String(raw ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 500);
+}
+
 function parseScenarioList(raw: unknown): string[] {
   return String(raw ?? "")
     .split(",")
@@ -586,7 +615,7 @@ router.get("/requirements", requireAuth, async (req, res) => {
     scenarioMajors: parseScenarioList(req.query.scenarioMajors),
     scenarioMinors: parseScenarioList(req.query.scenarioMinors),
     professionalGoals: parseProfessionalGoals(req.query.professionalGoals),
-    plannedCourses: parseScenarioList(req.query.plannedCourses),
+    plannedCourses: parseCourseList(req.query.plannedCourses),
     primaryMajor: typeof req.query.primaryMajor === "string" ? req.query.primaryMajor : null,
   });
   res.json(response);

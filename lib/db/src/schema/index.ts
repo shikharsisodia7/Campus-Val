@@ -30,3 +30,4 @@ export * from "./progress-report-mappings";
 export * from "./usage-events";
 export * from "./plan-shares";
 export * from "./degree-checksheets";
+export * from "./requirement-customizations";

@@ -23,6 +23,7 @@ export const USAGE_FEATURES = [
   "find_courses",
   "workday_handoff",
   "feedback_submit",
+  "requirement_customization",
 ] as const;
 export type UsageFeature = (typeof USAGE_FEATURES)[number];
 const FEATURE_SET = new Set<string>(USAGE_FEATURES);
@@ -64,6 +65,18 @@ router.post("/usage-events", requireAuth, async (req, res) => {
 router.get("/admin/requirements-source", requireAuth, requireAdmin, async (_req, res) => {
   const { requirementsSourceStatus } = await import("../lib/requirements-source");
   res.json(requirementsSourceStatus());
+});
+
+// Admin-only provenance inspector: every group and requirement one program
+// produces, with its stable key, fingerprint and where the data came from.
+// Synthetic profile: no student data is read.
+router.get("/admin/requirements-inspector", requireAuth, requireAdmin, async (req, res) => {
+  const { inspectProgramRequirements } = await import("../lib/requirements-source/inspect");
+  const major = typeof req.query.major === "string" ? req.query.major : "";
+  const minor = typeof req.query.minor === "string" && req.query.minor ? req.query.minor : null;
+  const result = inspectProgramRequirements(major, minor);
+  if (!result) return res.status(404).json({ error: "Unknown major or minor code." });
+  res.json(result);
 });
 
 // Admin-only: who is using CampusVal, how often, and which high-level

@@ -177,3 +177,23 @@ with no public URL, never disclosed by plan sharing, no content in logs, and no
 file content rendered as markup. The full table of what was checked, with the
 test that enforces each line, is in
 [DEGREE_CHECKSHEETS.md](DEGREE_CHECKSHEETS.md#security).
+
+## Requirement customizations
+
+A student can rename, annotate or hide a requirement in their own view of one plan
+and add requirements of their own (`requirement_customizations`; see
+[REQUIREMENTS_SOURCE.md](REQUIREMENTS_SOURCE.md#c-planning-customizations-the-editable-sidebar)).
+They are an overlay: no route lets a student change a source requirement, the APR or
+a Degree Checksheet, and none can make a requirement complete.
+
+- Owner-only on every route: the user comes from the session, the plan is loaded
+  only when `academic_plans.user_id` matches (404 otherwise), and a `userId` or
+  `planId` in a body is ignored. Tested with two accounts
+  (`routes/requirement-customizations.test.ts`).
+- Read-only advisor shares never reach these routes and never include customizations.
+- There is no row-level security in this project's database layer; the checks above
+  are the enforcement, as for every plan route. The plan foreign key cascades, so
+  deleting a plan deletes its customizations.
+- Plain text only, length-capped, rendered escaped. Logs record counts and the
+  provider name, never plan or requirement text.
+

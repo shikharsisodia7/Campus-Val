@@ -40,6 +40,13 @@ export interface RequirementsRequest {
   professionalGoals: { id: string; name: string; notes: string; courseCodes: string[]; placeholders: string[] }[];
   plannedCourses: string[];
   primaryMajor: string | null;
+  /**
+   * Context a source may one day select or version by. NO current provider
+   * reads it, and none may be inferred from it (in particular the student's
+   * entry year is NOT used to pick a Bulletin): it exists so a future
+   * provider can accept a curriculum year without the callers changing.
+   */
+  context?: { planId?: number | null; curriculumYear?: string | null };
 }
 
 /**
@@ -66,6 +73,23 @@ export interface RequirementProvenance {
   academicYearBasis: "stated_for_this_group" | "inherited_from_university_core" | "not_stated";
   /** When a person last checked the data against the source. */
   lastVerified: string | null;
+  /**
+   * A future document-based source (a canonical checksheet, an exported APR)
+   * names the exact document here. Null for the current data, which is code,
+   * not a document. Never a student's private upload.
+   */
+  sourceDocumentId: string | null;
+  /** Where inside the source: the group's own title. */
+  sourceSection: string | null;
+  /** When CampusVal imported it. Null: the current data is compiled in, not imported. */
+  importedAt: string | null;
+  /**
+   * documented: the data names its document, edition and verification date.
+   * partial: some of those are missing. unknown: none is stated.
+   * student_authored: written by the student (a Professional Preparation goal);
+   * it has no SCU source and never claims one.
+   */
+  provenanceStatus: "documented" | "partial" | "unknown" | "student_authored";
 }
 
 export interface RequirementsResult<Response> {

@@ -205,10 +205,12 @@ students (`artifacts/e2e`, keys in `artifacts/e2e/.env.e2e.local`):
 | `1440x900` … `390x844` | Every main page at seven sizes |
 | `security` | Accounts cannot read each other's plans, reports or documents |
 | `a11y-desktop`, `a11y-phone` | axe-core on every page and state; the keyboard |
+| `req-customization` | The requirements sidebar's planning edits: persistence, reset, hide, own requirements, plan isolation, phone, axe |
 
 They are not part of CI: they need Clerk test keys and a running server, and CI
 must pass without any secret. CI runs everything in the first block, applies
 the migrations to an empty database, and boots the production bundle.
 
-More: `docs/DEGREE_CHECKSHEETS.md`, `docs/REQUIREMENTS_SOURCE.md`,
+More: `docs/DEGREE_CHECKSHEETS.md`, `docs/REQUIREMENTS_SOURCE.md` (where the sidebar comes from,
+planning edits, `pnpm run audit:requirements`), `docs/audits/`,
 `docs/ACCESSIBILITY_TESTING.md`, `docs/PILOT_QA_CHECKLIST.md`.

@@ -1105,6 +1105,12 @@ export const GetDegreeRequirementsResponse = zod.object({
   groups: zod.array(
     zod.object({
       id: zod.string(),
+      stableKey: zod
+        .string()
+        .optional()
+        .describe(
+          "Present on GET \/plans\/{id}\/requirements. The identifier custom requirements attach to.",
+        ),
       title: zod.string(),
       kind: zod
         .enum([
@@ -1134,6 +1140,48 @@ export const GetDegreeRequirementsResponse = zod.object({
       items: zod.array(
         zod.object({
           id: zod.string(),
+          stableKey: zod
+            .string()
+            .optional()
+            .describe(
+              "Present on GET \/plans\/{id}\/requirements. The identifier customizations are anchored to.",
+            ),
+          customization: zod
+            .object({
+              kind: zod.enum(["edit", "custom"]),
+              titleEdited: zod
+                .boolean()
+                .describe(
+                  "The label shown is the student's, not the source's.",
+                ),
+              title: zod.string().nullable(),
+              note: zod.string().nullable(),
+              hidden: zod
+                .boolean()
+                .describe(
+                  "The student chose to hide it from their own view of this plan (restorable). In effect only while sourceChanged is false.",
+                ),
+              done: zod
+                .boolean()
+                .describe(
+                  "Custom requirements only. The student's own tick, never official completion.",
+                ),
+              sourceChanged: zod
+                .boolean()
+                .describe(
+                  "The source requirement changed since this was edited, so the edit is not applied until the student reviews it.",
+                ),
+              originalLabel: zod.string(),
+              originalDescription: zod.string(),
+              labelAtEdit: zod.string().nullish(),
+              sourceVersionAtEdit: zod.string().nullish(),
+              sourceVersionNow: zod.string().nullish(),
+              updatedAt: zod.string(),
+            })
+            .optional()
+            .describe(
+              "The student's PLANNING customization of a requirement. Not an SCU requirement and never a claim about the degree.",
+            ),
           label: zod.string(),
           description: zod.string(),
           courses: zod
@@ -1876,6 +1924,378 @@ export const duplicatePlanBodyNameMax = 80;
 
 export const DuplicatePlanBody = zod.object({
   name: zod.string().min(1).max(duplicatePlanBodyNameMax),
+});
+
+/**
+ * The same requirements GET /requirements builds for this plan's programs and planned courses, with the student's PLAN-SCOPED planning customizations composed on top (renamed or annotated requirements, requirements hidden from the student's own view, custom requirements the student added). Customizations never change what is required or what counts as complete, and never change the source: the original of every edited requirement is returned alongside it. Owner only.
+ * @summary The requirements sidebar for one plan, with that plan's planning customizations applied
+ */
+export const GetPlanRequirementsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetPlanRequirementsResponse = zod
+  .object({
+    college: zod
+      .string()
+      .describe(
+        "The effective college for these requirement groups. Follows the effective primary major's college when a plan-scoped primaryMajor in a different school\/college is supplied; otherwise the profile college.",
+      ),
+    collegeCode: zod.enum(["CAS", "LSB", "SOE"]),
+    major: zod
+      .string()
+      .nullable()
+      .describe(
+        "The effective PRIMARY major these requirements were built for (the plan's primaryMajor when supplied, else the profile major).",
+      ),
+    declaredMajor: zod
+      .string()
+      .nullish()
+      .describe(
+        "The profile\/onboarding major (aligned with the Workday APR record). Present so callers can tell when the planning primary major differs from the university record.",
+      ),
+    universityRules: zod.object({
+      rules: zod.array(zod.string()),
+      sourceUrl: zod.string(),
+      sourceLabel: zod.string(),
+    }),
+    groups: zod.array(
+      zod.object({
+        id: zod.string(),
+        stableKey: zod
+          .string()
+          .optional()
+          .describe(
+            "Present on GET \/plans\/{id}\/requirements. The identifier custom requirements attach to.",
+          ),
+        title: zod.string(),
+        kind: zod
+          .enum([
+            "university_core",
+            "college",
+            "major",
+            "minor",
+            "professional_prep",
+          ])
+          .describe(
+            'What the group is. The server has always sent \"minor\" and \"professional_prep\" as well as the first three; the contract now says so.\n',
+          ),
+        sourceUrl: zod
+          .string()
+          .nullable()
+          .describe(
+            "Official SCU source URL this group's requirements were taken from. Null for a group with no SCU source (a student's own professional preparation goals).\n",
+          ),
+        sourceLabel: zod.string(),
+        academicYear: zod.string(),
+        lastVerified: zod
+          .string()
+          .describe(
+            "Date the requirements were last verified against the official SCU source (YYYY-MM-DD).",
+          ),
+        notes: zod.array(zod.string()),
+        items: zod.array(
+          zod.object({
+            id: zod.string(),
+            stableKey: zod
+              .string()
+              .optional()
+              .describe(
+                "Present on GET \/plans\/{id}\/requirements. The identifier customizations are anchored to.",
+              ),
+            customization: zod
+              .object({
+                kind: zod.enum(["edit", "custom"]),
+                titleEdited: zod
+                  .boolean()
+                  .describe(
+                    "The label shown is the student's, not the source's.",
+                  ),
+                title: zod.string().nullable(),
+                note: zod.string().nullable(),
+                hidden: zod
+                  .boolean()
+                  .describe(
+                    "The student chose to hide it from their own view of this plan (restorable). In effect only while sourceChanged is false.",
+                  ),
+                done: zod
+                  .boolean()
+                  .describe(
+                    "Custom requirements only. The student's own tick, never official completion.",
+                  ),
+                sourceChanged: zod
+                  .boolean()
+                  .describe(
+                    "The source requirement changed since this was edited, so the edit is not applied until the student reviews it.",
+                  ),
+                originalLabel: zod.string(),
+                originalDescription: zod.string(),
+                labelAtEdit: zod.string().nullish(),
+                sourceVersionAtEdit: zod.string().nullish(),
+                sourceVersionNow: zod.string().nullish(),
+                updatedAt: zod.string(),
+              })
+              .optional()
+              .describe(
+                "The student's PLANNING customization of a requirement. Not an SCU requirement and never a claim about the degree.",
+              ),
+            label: zod.string(),
+            description: zod.string(),
+            courses: zod
+              .array(zod.string())
+              .describe(
+                'Concrete SCU course codes that satisfy this item (any one). Empty when SCU says \"choose from an approved list\".',
+              ),
+            phase: zod
+              .string()
+              .nullish()
+              .describe(
+                "Core Curriculum phase (Foundations \/ Explorations \/ Integrations) when applicable.",
+              ),
+            autoTracked: zod
+              .boolean()
+              .describe(
+                "True when completion is computed automatically from the profile's completed courses.",
+              ),
+            needsVerification: zod
+              .boolean()
+              .describe(
+                'True when SCU defines this as \"choose from an approved list\" — the student tracks it manually rather than the app inventing a course list.',
+              ),
+            coreArea: zod
+              .object({
+                tag: zod.string(),
+                code: zod.string().optional(),
+                courseCount: zod.number(),
+                catalogStatedCount: zod.number(),
+              })
+              .nullish()
+              .describe(
+                "The canonical Core area whose catalog courses satisfy this requirement, when CampusVal has a mapping for it. Null for requirements with no mapping (e.g. Pathways) — the UI must say so rather than offer an empty or invented list.",
+              ),
+            satisfiedBy: zod
+              .array(zod.string())
+              .describe("Completed course codes that satisfy this item."),
+            plannedBy: zod
+              .array(zod.string())
+              .optional()
+              .describe(
+                'Planned-but-not-yet-completed course codes that would satisfy this item. Present so the UI can show \"Planned in Schedule\" — a planned course is never reported as completed.',
+              ),
+            crossSatisfiedBy: zod
+              .array(zod.string())
+              .optional()
+              .describe(
+                "Courses matched to this requirement through the catalog's derived Core-area tagging rather than an explicit SCU course list. SCU's bulletin scrape did not capture per-course Core designations, so these matches always set needsVerification and the student must confirm them.",
+              ),
+            status: zod
+              .enum(["completed", "planned", "open"])
+              .optional()
+              .describe(
+                "completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither.",
+              ),
+            complete: zod.boolean(),
+          }),
+        ),
+        autoTrackedCount: zod.number(),
+        autoCompletedCount: zod.number(),
+        manualCount: zod.number(),
+      }),
+    ),
+  })
+  .and(
+    zod.object({
+      requirementsSource: zod
+        .object({
+          label: zod.string(),
+          policyDecided: zod.boolean(),
+        })
+        .describe(
+          "Plain wording for what these requirements are, so the sidebar never claims more authority than its source supports.",
+        ),
+      customizations: zod.object({
+        summary: zod.object({
+          edited: zod.number(),
+          hidden: zod.number(),
+          custom: zod.number(),
+          sourceChanged: zod.number(),
+          orphaned: zod.number(),
+        }),
+        orphaned: zod.array(
+          zod.object({
+            entryType: zod.enum(["source_edit", "custom"]),
+            targetKey: zod.string(),
+            groupKey: zod.string().nullable(),
+            reason: zod.enum([
+              "requirement_not_in_source",
+              "program_not_in_plan",
+            ]),
+            title: zod.string().nullable(),
+            note: zod.string().nullable(),
+            updatedAt: zod.string(),
+          }),
+        ),
+      }),
+    }),
+  );
+
+/**
+ * Upserts the student's planning edit for one SOURCE requirement, named by its stable key. A field that is omitted is left as it was; null or an empty string clears it. An edit that leaves nothing set removes the row. Never modifies the source requirement. Owner only.
+ * @summary Rename, annotate or hide one source requirement in this plan's planning view
+ */
+export const SaveRequirementEditParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const saveRequirementEditBodySourceKeyMax = 300;
+
+export const saveRequirementEditBodyTitleMax = 160;
+
+export const saveRequirementEditBodyNoteMax = 600;
+
+export const SaveRequirementEditBody = zod.object({
+  sourceKey: zod.string().max(saveRequirementEditBodySourceKeyMax),
+  title: zod.string().max(saveRequirementEditBodyTitleMax).nullish(),
+  note: zod.string().max(saveRequirementEditBodyNoteMax).nullish(),
+  hidden: zod.boolean().optional(),
+});
+
+export const SaveRequirementEditResponse = zod.object({
+  edited: zod.number(),
+  hidden: zod.number(),
+  custom: zod.number(),
+  sourceChanged: zod.number(),
+  orphaned: zod.number(),
+});
+
+/**
+ * @summary Reset one requirement (sourceKey) or every customization (all=true) to the source
+ */
+export const ResetRequirementEditsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResetRequirementEditsQueryParams = zod.object({
+  sourceKey: zod.coerce.string().optional(),
+  all: zod.coerce.boolean().optional(),
+});
+
+export const ResetRequirementEditsResponse = zod.object({
+  edited: zod.number(),
+  hidden: zod.number(),
+  custom: zod.number(),
+  sourceChanged: zod.number(),
+  orphaned: zod.number(),
+});
+
+/**
+ * keep_mine re-bases the student's edit onto the updated source; use_source discards the edit. Never applies an old edit silently.
+ * @summary Decide what to do with an edit whose source requirement has changed
+ */
+export const ResolveRequirementSourceChangeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const resolveRequirementSourceChangeBodySourceKeyMax = 300;
+
+export const ResolveRequirementSourceChangeBody = zod.object({
+  sourceKey: zod
+    .string()
+    .max(resolveRequirementSourceChangeBodySourceKeyMax)
+    .optional(),
+  all: zod.boolean().optional(),
+  action: zod.enum(["keep_mine", "use_source"]),
+});
+
+export const ResolveRequirementSourceChangeResponse = zod.object({
+  edited: zod.number(),
+  hidden: zod.number(),
+  custom: zod.number(),
+  sourceChanged: zod.number(),
+  orphaned: zod.number(),
+});
+
+/**
+ * A custom requirement is the student's own note, marked as such. It is never institution-authored and never counts toward a degree.
+ * @summary Add the student's own planning requirement to a sidebar group
+ */
+export const CreateCustomRequirementParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createCustomRequirementBodyCourseCodesItemMax = 32;
+
+export const createCustomRequirementBodyCourseCodesMax = 8;
+
+export const createCustomRequirementBodyGroupKeyMax = 300;
+
+export const createCustomRequirementBodyTitleMax = 160;
+
+export const createCustomRequirementBodyNoteMax = 600;
+
+export const CreateCustomRequirementBody = zod.object({
+  courseCodes: zod
+    .array(zod.string().max(createCustomRequirementBodyCourseCodesItemMax))
+    .max(createCustomRequirementBodyCourseCodesMax)
+    .optional(),
+  groupKey: zod.string().max(createCustomRequirementBodyGroupKeyMax),
+  title: zod.string().min(1).max(createCustomRequirementBodyTitleMax),
+  note: zod.string().max(createCustomRequirementBodyNoteMax).nullish(),
+});
+
+/**
+ * @summary Edit a custom requirement
+ */
+export const UpdateCustomRequirementParams = zod.object({
+  id: zod.coerce.number(),
+  customId: zod.coerce.string(),
+});
+
+export const updateCustomRequirementBodyCourseCodesItemMax = 32;
+
+export const updateCustomRequirementBodyCourseCodesMax = 8;
+
+export const updateCustomRequirementBodyTitleMax = 160;
+
+export const updateCustomRequirementBodyNoteMax = 600;
+
+export const UpdateCustomRequirementBody = zod.object({
+  courseCodes: zod
+    .array(zod.string().max(updateCustomRequirementBodyCourseCodesItemMax))
+    .max(updateCustomRequirementBodyCourseCodesMax)
+    .optional(),
+  move: zod.enum(["up", "down"]).optional(),
+  title: zod
+    .string()
+    .min(1)
+    .max(updateCustomRequirementBodyTitleMax)
+    .optional(),
+  note: zod.string().max(updateCustomRequirementBodyNoteMax).nullish(),
+  done: zod.boolean().optional(),
+});
+
+export const UpdateCustomRequirementResponse = zod.object({
+  edited: zod.number(),
+  hidden: zod.number(),
+  custom: zod.number(),
+  sourceChanged: zod.number(),
+  orphaned: zod.number(),
+});
+
+/**
+ * @summary Delete a custom requirement
+ */
+export const DeleteCustomRequirementParams = zod.object({
+  id: zod.coerce.number(),
+  customId: zod.coerce.string(),
+});
+
+export const DeleteCustomRequirementResponse = zod.object({
+  edited: zod.number(),
+  hidden: zod.number(),
+  custom: zod.number(),
+  sourceChanged: zod.number(),
+  orphaned: zod.number(),
 });
 
 /**

@@ -1852,8 +1852,47 @@ export const RequirementItemStatus = {
   open: "open",
 } as const;
 
+export type RequirementItemCustomizationKind =
+  (typeof RequirementItemCustomizationKind)[keyof typeof RequirementItemCustomizationKind];
+
+export const RequirementItemCustomizationKind = {
+  edit: "edit",
+  custom: "custom",
+} as const;
+
+/**
+ * The student's PLANNING customization of a requirement. Not an SCU requirement and never a claim about the degree.
+ */
+export interface RequirementItemCustomization {
+  kind: RequirementItemCustomizationKind;
+  /** The label shown is the student's, not the source's. */
+  titleEdited: boolean;
+  /** @nullable */
+  title: string | null;
+  /** @nullable */
+  note: string | null;
+  /** The student chose to hide it from their own view of this plan (restorable). In effect only while sourceChanged is false. */
+  hidden: boolean;
+  /** Custom requirements only. The student's own tick, never official completion. */
+  done: boolean;
+  /** The source requirement changed since this was edited, so the edit is not applied until the student reviews it. */
+  sourceChanged: boolean;
+  originalLabel: string;
+  originalDescription: string;
+  /** @nullable */
+  labelAtEdit?: string | null;
+  /** @nullable */
+  sourceVersionAtEdit?: string | null;
+  /** @nullable */
+  sourceVersionNow?: string | null;
+  updatedAt: string;
+}
+
 export interface RequirementItem {
   id: string;
+  /** Present on GET /plans/{id}/requirements. The identifier customizations are anchored to. */
+  stableKey?: string;
+  customization?: RequirementItemCustomization;
   label: string;
   description: string;
   /** Concrete SCU course codes that satisfy this item (any one). Empty when SCU says "choose from an approved list". */
@@ -1877,6 +1916,138 @@ export interface RequirementItem {
   complete: boolean;
 }
 
+export type OrphanedCustomizationEntryType =
+  (typeof OrphanedCustomizationEntryType)[keyof typeof OrphanedCustomizationEntryType];
+
+export const OrphanedCustomizationEntryType = {
+  source_edit: "source_edit",
+  custom: "custom",
+} as const;
+
+export type OrphanedCustomizationReason =
+  (typeof OrphanedCustomizationReason)[keyof typeof OrphanedCustomizationReason];
+
+export const OrphanedCustomizationReason = {
+  requirement_not_in_source: "requirement_not_in_source",
+  program_not_in_plan: "program_not_in_plan",
+} as const;
+
+export interface OrphanedCustomization {
+  entryType: OrphanedCustomizationEntryType;
+  targetKey: string;
+  /** @nullable */
+  groupKey: string | null;
+  reason: OrphanedCustomizationReason;
+  /** @nullable */
+  title: string | null;
+  /** @nullable */
+  note: string | null;
+  updatedAt: string;
+}
+
+export interface RequirementCustomizationSummary {
+  edited: number;
+  hidden: number;
+  custom: number;
+  sourceChanged: number;
+  orphaned: number;
+}
+
+export interface RequirementEditInput {
+  /** @maxLength 300 */
+  sourceKey: string;
+  /**
+   * @maxLength 160
+   * @nullable
+   */
+  title?: string | null;
+  /**
+   * @maxLength 600
+   * @nullable
+   */
+  note?: string | null;
+  hidden?: boolean;
+}
+
+export type RequirementResolveInputAction =
+  (typeof RequirementResolveInputAction)[keyof typeof RequirementResolveInputAction];
+
+export const RequirementResolveInputAction = {
+  keep_mine: "keep_mine",
+  use_source: "use_source",
+} as const;
+
+export interface RequirementResolveInput {
+  /** @maxLength 300 */
+  sourceKey?: string;
+  all?: boolean;
+  action: RequirementResolveInputAction;
+}
+
+export interface CustomRequirementInput {
+  /** @maxItems 8 */
+  courseCodes?: string[];
+  /** @maxLength 300 */
+  groupKey: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  title: string;
+  /**
+   * @maxLength 600
+   * @nullable
+   */
+  note?: string | null;
+}
+
+export type CustomRequirementPatchMove =
+  (typeof CustomRequirementPatchMove)[keyof typeof CustomRequirementPatchMove];
+
+export const CustomRequirementPatchMove = {
+  up: "up",
+  down: "down",
+} as const;
+
+export interface CustomRequirementPatch {
+  /** @maxItems 8 */
+  courseCodes?: string[];
+  move?: CustomRequirementPatchMove;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  title?: string;
+  /**
+   * @maxLength 600
+   * @nullable
+   */
+  note?: string | null;
+  done?: boolean;
+}
+
+/**
+ * Plain wording for what these requirements are, so the sidebar never claims more authority than its source supports.
+ */
+export type PlanRequirementsResponseRequirementsSource = {
+  label: string;
+  policyDecided: boolean;
+};
+
+export type PlanRequirementsResponseCustomizations = {
+  summary: RequirementCustomizationSummary;
+  orphaned: OrphanedCustomization[];
+};
+
+export type DegreeRequirementsResponseCollegeCode =
+  (typeof DegreeRequirementsResponseCollegeCode)[keyof typeof DegreeRequirementsResponseCollegeCode];
+
+export const DegreeRequirementsResponseCollegeCode = {
+  CAS: "CAS",
+  LSB: "LSB",
+  SOE: "SOE",
+} as const;
+
 /**
  * What the group is. The server has always sent "minor" and "professional_prep" as well as the first three; the contract now says so.
 
@@ -1894,6 +2065,8 @@ export const RequirementGroupKind = {
 
 export interface RequirementGroup {
   id: string;
+  /** Present on GET /plans/{id}/requirements. The identifier custom requirements attach to. */
+  stableKey?: string;
   title: string;
   /** What the group is. The server has always sent "minor" and "professional_prep" as well as the first three; the contract now says so.
    */
@@ -1915,31 +2088,6 @@ export interface RequirementGroup {
   manualCount: number;
 }
 
-export interface RequirementCompletion {
-  collegeCode: string;
-  groupId: string;
-  requirementId: string;
-  /** Provenance of the completion claim ("manual" = marked complete by the student). */
-  source: string;
-  completedAt: string;
-}
-
-export interface SetRequirementCompletionBody {
-  collegeCode: string;
-  groupId: string;
-  requirementId: string;
-  completed: boolean;
-}
-
-export type DegreeRequirementsResponseCollegeCode =
-  (typeof DegreeRequirementsResponseCollegeCode)[keyof typeof DegreeRequirementsResponseCollegeCode];
-
-export const DegreeRequirementsResponseCollegeCode = {
-  CAS: "CAS",
-  LSB: "LSB",
-  SOE: "SOE",
-} as const;
-
 export type DegreeRequirementsResponseUniversityRules = {
   rules: string[];
   sourceUrl: string;
@@ -1956,6 +2104,28 @@ export interface DegreeRequirementsResponse {
   declaredMajor?: string | null;
   universityRules: DegreeRequirementsResponseUniversityRules;
   groups: RequirementGroup[];
+}
+
+export type PlanRequirementsResponse = DegreeRequirementsResponse & {
+  /** Plain wording for what these requirements are, so the sidebar never claims more authority than its source supports. */
+  requirementsSource: PlanRequirementsResponseRequirementsSource;
+  customizations: PlanRequirementsResponseCustomizations;
+};
+
+export interface RequirementCompletion {
+  collegeCode: string;
+  groupId: string;
+  requirementId: string;
+  /** Provenance of the completion claim ("manual" = marked complete by the student). */
+  source: string;
+  completedAt: string;
+}
+
+export interface SetRequirementCompletionBody {
+  collegeCode: string;
+  groupId: string;
+  requirementId: string;
+  completed: boolean;
 }
 
 export interface OpenaiConversation {
@@ -2496,6 +2666,11 @@ export type ListRequirementCompletionsParams = {
 
 export type ResetRequirementCompletionsParams = {
   collegeCode: string;
+};
+
+export type ResetRequirementEditsParams = {
+  sourceKey?: string;
+  all?: boolean;
 };
 
 export type ListSchedulesParams = {
