@@ -149,13 +149,19 @@ const cardFor = (page: Page, title: string): Locator =>
 const toggleOf = (card: Locator) => card.locator('[data-testid^="checksheet-toggle-"]').first();
 const isOpen = async (card: Locator) => (await toggleOf(card).getAttribute("aria-expanded")) === "true";
 
+// A card that was just added opens by itself, at a moment the test cannot know. Reading the state and
+// then clicking can land the click after that auto-open and close the card again, so check and retry.
 async function open(card: Locator) {
-  if (!(await isOpen(card))) await toggleOf(card).click();
-  await expect(toggleOf(card)).toHaveAttribute("aria-expanded", "true");
+  await expect(async () => {
+    if (!(await isOpen(card))) await toggleOf(card).click();
+    await expect(toggleOf(card)).toHaveAttribute("aria-expanded", "true", { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
 }
 async function collapse(card: Locator) {
-  if (await isOpen(card)) await toggleOf(card).click();
-  await expect(toggleOf(card)).toHaveAttribute("aria-expanded", "false");
+  await expect(async () => {
+    if (await isOpen(card)) await toggleOf(card).click();
+    await expect(toggleOf(card)).toHaveAttribute("aria-expanded", "false", { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
 }
 
 const saved = (card: Locator) =>
@@ -483,6 +489,23 @@ async function markerFraction(page: Page, marker: Locator, pageBox: Locator) {
   return { x: (m.x + m.width / 2 - p.x) / p.width, y: (m.y + m.height / 2 - p.y) / p.height, width: p.width };
 }
 
+/**
+ * The marker is on the same spot of the page. The marker and the page are measured by two separate
+ * calls, so a page that is still laying out (after a reload, a zoom or a resize) can be read between
+ * the two; the guarantee is that the marker ENDS UP on the spot, so wait for that instead of racing it.
+ */
+async function expectMarkerAt(page: Page, marker: Locator, pageBox: Locator, want: { x: number; y: number }) {
+  await expect
+    .poll(
+      async () => {
+        const at = await markerFraction(page, marker, pageBox);
+        return Math.max(Math.abs(at.x - want.x), Math.abs(at.y - want.y)) < 0.005;
+      },
+      { timeout: 10_000, message: `marker did not settle at ${want.x.toFixed(3)}, ${want.y.toFixed(3)}` },
+    )
+    .toBe(true);
+}
+
 test("D. A PDF: drawn in the app, zoom, pages, and a marker that holds its place", async ({ page }) => {
   test.setTimeout(180_000);
   const errors = watchErrors(page);
@@ -552,25 +575,20 @@ test("D. A PDF: drawn in the app, zoom, pages, and a marker that holds its place
     await expect(card.getByTestId("checksheet-zoom-level")).toHaveText(step);
     const at = await markerFraction(page, marker, page1);
     expect(at.width).toBeGreaterThan(placed.width);
-    expect(at.x).toBeCloseTo(placed.x, 2);
-    expect(at.y).toBeCloseTo(placed.y, 2);
+    await expectMarkerAt(page, marker, page1, placed);
   }
   await expect(page1).toHaveAttribute("data-page-drawn", "true");
   await shot(page, "D3-zoomed-200");
   await card.getByTestId("checksheet-zoom-level").click();
   await card.getByTestId("checksheet-zoom-out").click();
   await expect(card.getByTestId("checksheet-zoom-level")).toHaveText("75%");
-  const small = await markerFraction(page, marker, page1);
-  expect(small.x).toBeCloseTo(placed.x, 2);
-  expect(small.y).toBeCloseTo(placed.y, 2);
+  await expectMarkerAt(page, marker, page1, placed);
   await card.getByTestId("checksheet-zoom-level").click();
 
   // RESIZE the window: same spot.
   await page.setViewportSize({ width: 900, height: 900 });
   await expect.poll(async () => (await markerFraction(page, marker, page1)).width).toBeLessThan(placed.width);
-  const narrow = await markerFraction(page, marker, page1);
-  expect(narrow.x).toBeCloseTo(placed.x, 2);
-  expect(narrow.y).toBeCloseTo(placed.y, 2);
+  await expectMarkerAt(page, marker, page1, placed);
   await page.setViewportSize({ width: 1440, height: 900 });
 
   // RELOAD: same spot, same values.
@@ -579,9 +597,8 @@ test("D. A PDF: drawn in the app, zoom, pages, and a marker that holds its place
   await open(again);
   const reloaded = again.locator('[data-testid^="checksheet-marker-id:"]').first();
   await expect(reloaded).toBeVisible({ timeout: 40_000 });
-  const back = await markerFraction(page, reloaded, again.getByTestId("checksheet-pdf-page-1"));
-  expect(back.x).toBeCloseTo(placed.x, 2);
-  expect(back.y).toBeCloseTo(placed.y, 2);
+  await expect(again.getByTestId("checksheet-pdf-page-1")).toHaveAttribute("data-page-drawn", "true", { timeout: 40_000 });
+  await expectMarkerAt(page, reloaded, again.getByTestId("checksheet-pdf-page-1"), placed);
   const doc = (await listDocuments(page)).find((d) => d.title === "Applied Widgetry (PDF)")!;
   let stored = await entriesOf(page, doc.id);
   expect(stored).toHaveLength(1);
@@ -706,10 +723,8 @@ test("E. A flowchart picture and a Word document", async ({ page }) => {
   expect(placed.y).toBeCloseTo(0.32, 2);
   await flow.getByTestId("checksheet-zoom-in").click();
   await flow.getByTestId("checksheet-zoom-in").click();
-  const zoomed = await markerFraction(page, marker, picture);
-  expect(zoomed.width).toBeGreaterThan(placed.width);
-  expect(zoomed.x).toBeCloseTo(placed.x, 2);
-  expect(zoomed.y).toBeCloseTo(placed.y, 2);
+  await expect.poll(async () => (await markerFraction(page, marker, picture)).width).toBeGreaterThan(placed.width);
+  await expectMarkerAt(page, marker, picture, placed);
   await shot(page, "E1-flowchart-zoomed-with-marker");
   await collapse(flow);
 
