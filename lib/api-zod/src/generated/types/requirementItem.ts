@@ -6,10 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RequirementItemCoreArea } from "./requirementItemCoreArea";
+import type { RequirementItemCustomization } from "./requirementItemCustomization";
 import type { RequirementItemStatus } from "./requirementItemStatus";
 
 export interface RequirementItem {
   id: string;
+  /** Present on GET /plans/{id}/requirements. The identifier customizations are anchored to. */
+  stableKey?: string;
+  customization?: RequirementItemCustomization;
   label: string;
   description: string;
   /** Concrete SCU course codes that satisfy this item (any one). Empty when SCU says "choose from an approved list". */

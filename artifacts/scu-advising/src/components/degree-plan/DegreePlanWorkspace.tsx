@@ -1,13 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   useListPlans,
   useGetPlan,
   useGetProfile,
   useGetDegreeRequirements,
+  useGetPlanRequirements,
   useGetScheduleAvailability,
   useListCourses,
   useCreatePlan,
   getGetPlanQueryKey,
+  getGetPlanRequirementsQueryKey,
 } from "@workspace/api-client-react";
 import { DegreePlanProvider } from "./DegreePlanContext";
 import { Palette } from "./Palette";
@@ -145,7 +147,26 @@ export function DegreePlanWorkspace({
   // Plan. Part of the query key so rapid A→B→C switching always renders the
   // latest selection — a slower earlier response can never overwrite it.
   const primaryMajorQuery = activePlan?.programs?.primaryMajor || undefined;
-  const { data: reqsData } = useGetDegreeRequirements(
+  // Requirements come from the ACTIVE PLAN when there is one: the server builds
+  // them from that plan's programs and planned courses and composes the plan's
+  // planning customizations over them. The query key still carries the plan
+  // inputs, so a change to any of them refetches (and rapid A→B→C switching
+  // always renders the latest). Without a plan (first load, empty tentative
+  // state) the plan-less endpoint answers exactly as before.
+  const { data: planReqsData, isError: planReqsError } = useGetPlanRequirements(activePlanId ?? 0, {
+    query: {
+      enabled: activePlanId !== null,
+      queryKey: [
+        ...getGetPlanRequirementsQueryKey(activePlanId ?? 0),
+        primaryMajorQuery,
+        scenarioMajorQuery,
+        scenarioMinorQuery,
+        professionalGoalsQuery,
+        plannedCoursesQuery,
+      ],
+    },
+  });
+  const { data: legacyReqsData } = useGetDegreeRequirements(
     {
       ...(primaryMajorQuery ? { primaryMajor: primaryMajorQuery } : {}),
       ...(scenarioMajorQuery ? { scenarioMajors: scenarioMajorQuery } : {}),
@@ -159,6 +180,10 @@ export function DegreePlanWorkspace({
     },
     {
       query: {
+        // Only when there is no plan at all to read requirements from. While
+        // plans are loading, or a plan is about to be selected, the plan
+        // endpoint answers: asking here too would flash the un-customized list.
+        enabled: activePlanId === null && !plansLoading && (plansList?.plans?.length ?? 0) === 0,
         queryKey: [
           "/api/requirements",
           primaryMajorQuery,
@@ -169,6 +194,19 @@ export function DegreePlanWorkspace({
         ],
       },
     },
+  );
+  const reqsData = activePlanId !== null ? planReqsData : legacyReqsData;
+  const requirementsMeta = useMemo(
+    () =>
+      activePlanId !== null && planReqsData
+        ? {
+            sourceLabel: planReqsData.requirementsSource.label,
+            policyDecided: planReqsData.requirementsSource.policyDecided,
+            summary: planReqsData.customizations.summary,
+            orphaned: planReqsData.customizations.orphaned,
+          }
+        : null,
+    [activePlanId, planReqsData],
   );
   const { data: scheduleAvailability } = useGetScheduleAvailability();
   const { data: catalog } = useListCourses({});
@@ -231,6 +269,8 @@ export function DegreePlanWorkspace({
               onClick={() => handleCreateTentative(degreePlan.id)}
               disabled={creating}
               data-testid="button-copy-degree-plan"
+              // The label is long: let it wrap on a phone instead of pushing the page wider than the screen.
+              className="h-auto max-w-full whitespace-normal py-2 text-center"
             >
               <Plus className="h-4 w-4 mr-2" />
               Copy my Degree Plan into a Tentative Degree Plan
@@ -267,6 +307,8 @@ export function DegreePlanWorkspace({
         setActivePlanId: selectPlan,
         profile,
         requirements: reqsData?.groups,
+        requirementsMeta,
+        requirementsError: activePlanId !== null && planReqsError,
         scheduleAvailability,
         catalog,
       }}

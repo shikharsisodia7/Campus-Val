@@ -40,6 +40,13 @@ export default defineConfig({
       dependencies: ["setup"],
     },
     {
+      // Live QA of the requirements sidebar's planning customizations. See tests/requirement-customization.spec.ts.
+      name: "req-customization",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
+      testMatch: /requirement-customization\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
       name: "1440x900",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
       testMatch: /responsive\.spec\.ts/,

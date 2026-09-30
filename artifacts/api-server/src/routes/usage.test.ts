@@ -133,3 +133,23 @@ describe("GET /api/admin/usage/summary", () => {
     expect(body).not.toContain("grade");
   });
 });
+
+describe("GET /api/admin/requirements-inspector", () => {
+  it("shows an administrator where each requirement of a program comes from, and reads no student data", async () => {
+    const res = await asAdmin(request(app).get("/api/admin/requirements-inspector")).query({ major: "CSE", minor: "ANTH-MIN" }).expect(200);
+    expect(res.body.provider).toBe("current_bulletin");
+    expect(res.body.source.policyDecided).toBe(false);
+    const kinds = res.body.groups.map((g: any) => g.kind);
+    expect(kinds).toEqual(expect.arrayContaining(["major", "university_core", "college", "minor"]));
+    for (const group of res.body.groups) {
+      expect(group.stableKey).toBeTruthy();
+      expect(group.provenance).toMatchObject({ sourceType: "current_bulletin", provenanceStatus: "documented" });
+      for (const item of group.items) expect(item.stableKey.startsWith(group.stableKey + "#")).toBe(true);
+    }
+  });
+  it("refuses everyone else, and unknown programs", async () => {
+    await asScuUser(request(app).get("/api/admin/requirements-inspector")).query({ major: "CSE" }).expect(403);
+    await request(app).get("/api/admin/requirements-inspector").query({ major: "CSE" }).expect(401);
+    await asAdmin(request(app).get("/api/admin/requirements-inspector")).query({ major: "NOPE" }).expect(404);
+  });
+});

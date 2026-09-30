@@ -10,6 +10,8 @@ import type { RequirementItem } from "./requirementItem";
 
 export interface RequirementGroup {
   id: string;
+  /** Present on GET /plans/{id}/requirements. The identifier custom requirements attach to. */
+  stableKey?: string;
   title: string;
   /** What the group is. The server has always sent "minor" and "professional_prep" as well as the first three; the contract now says so.
    */

@@ -34,6 +34,17 @@ function provenanceOf(group: Group, universityCoreYear: string | null): Requirem
           ? "inherited_from_university_core"
           : "stated_for_this_group",
     lastVerified: text(group.lastVerified),
+    sourceDocumentId: null,
+    sourceSection: text(group.title),
+    importedAt: null,
+    provenanceStatus:
+      group.kind === "professional_prep"
+        ? "student_authored"
+        : text(group.sourceUrl) && academicYear && text(group.lastVerified)
+          ? "documented"
+          : text(group.sourceUrl) || academicYear || text(group.lastVerified)
+            ? "partial"
+            : "unknown",
   };
 }
 

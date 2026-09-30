@@ -35,6 +35,8 @@ import type {
   CourseSearchResult,
   CourseSection,
   CreateOpenaiConversationBody,
+  CustomRequirementInput,
+  CustomRequirementPatch,
   DashboardSummary,
   DegreeChecksheetAnnotation,
   DegreeChecksheetAnnotationConflict,
@@ -89,6 +91,7 @@ import type {
   PlanItem,
   PlanItemInput,
   PlanItemUpdate,
+  PlanRequirementsResponse,
   Policy,
   PrereqCheckResult,
   ProfessorList,
@@ -106,7 +109,11 @@ import type {
   QuarterScheduleUpdate,
   RemoveCourseFromSchedule200,
   RequirementCompletion,
+  RequirementCustomizationSummary,
+  RequirementEditInput,
+  RequirementResolveInput,
   ResetRequirementCompletionsParams,
+  ResetRequirementEditsParams,
   RunEvaluationBody,
   ScheduleAvailability,
   ScheduleEvent,
@@ -3861,6 +3868,652 @@ export const useDuplicatePlan = <
   TContext
 > => {
   return useMutation(getDuplicatePlanMutationOptions(options));
+};
+
+/**
+ * The same requirements GET /requirements builds for this plan's programs and planned courses, with the student's PLAN-SCOPED planning customizations composed on top (renamed or annotated requirements, requirements hidden from the student's own view, custom requirements the student added). Customizations never change what is required or what counts as complete, and never change the source: the original of every edited requirement is returned alongside it. Owner only.
+ * @summary The requirements sidebar for one plan, with that plan's planning customizations applied
+ */
+export const getGetPlanRequirementsUrl = (id: number) => {
+  return `/api/plans/${id}/requirements`;
+};
+
+export const getPlanRequirements = async (
+  id: number,
+  options?: RequestInit,
+): Promise<PlanRequirementsResponse> => {
+  return customFetch<PlanRequirementsResponse>(getGetPlanRequirementsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPlanRequirementsQueryKey = (id: number) => {
+  return [`/api/plans/${id}/requirements`] as const;
+};
+
+export const getGetPlanRequirementsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPlanRequirements>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPlanRequirements>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPlanRequirementsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPlanRequirements>>
+  > = ({ signal }) => getPlanRequirements(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPlanRequirements>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPlanRequirementsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPlanRequirements>>
+>;
+export type GetPlanRequirementsQueryError = ErrorType<void>;
+
+/**
+ * @summary The requirements sidebar for one plan, with that plan's planning customizations applied
+ */
+
+export function useGetPlanRequirements<
+  TData = Awaited<ReturnType<typeof getPlanRequirements>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPlanRequirements>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPlanRequirementsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Upserts the student's planning edit for one SOURCE requirement, named by its stable key. A field that is omitted is left as it was; null or an empty string clears it. An edit that leaves nothing set removes the row. Never modifies the source requirement. Owner only.
+ * @summary Rename, annotate or hide one source requirement in this plan's planning view
+ */
+export const getSaveRequirementEditUrl = (id: number) => {
+  return `/api/plans/${id}/requirement-customizations`;
+};
+
+export const saveRequirementEdit = async (
+  id: number,
+  requirementEditInput: RequirementEditInput,
+  options?: RequestInit,
+): Promise<RequirementCustomizationSummary> => {
+  return customFetch<RequirementCustomizationSummary>(
+    getSaveRequirementEditUrl(id),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(requirementEditInput),
+    },
+  );
+};
+
+export const getSaveRequirementEditMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveRequirementEdit>>,
+    TError,
+    { id: number; data: BodyType<RequirementEditInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveRequirementEdit>>,
+  TError,
+  { id: number; data: BodyType<RequirementEditInput> },
+  TContext
+> => {
+  const mutationKey = ["saveRequirementEdit"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveRequirementEdit>>,
+    { id: number; data: BodyType<RequirementEditInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return saveRequirementEdit(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveRequirementEditMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveRequirementEdit>>
+>;
+export type SaveRequirementEditMutationBody = BodyType<RequirementEditInput>;
+export type SaveRequirementEditMutationError = ErrorType<void>;
+
+/**
+ * @summary Rename, annotate or hide one source requirement in this plan's planning view
+ */
+export const useSaveRequirementEdit = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveRequirementEdit>>,
+    TError,
+    { id: number; data: BodyType<RequirementEditInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof saveRequirementEdit>>,
+  TError,
+  { id: number; data: BodyType<RequirementEditInput> },
+  TContext
+> => {
+  return useMutation(getSaveRequirementEditMutationOptions(options));
+};
+
+/**
+ * @summary Reset one requirement (sourceKey) or every customization (all=true) to the source
+ */
+export const getResetRequirementEditsUrl = (
+  id: number,
+  params?: ResetRequirementEditsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/plans/${id}/requirement-customizations?${stringifiedParams}`
+    : `/api/plans/${id}/requirement-customizations`;
+};
+
+export const resetRequirementEdits = async (
+  id: number,
+  params?: ResetRequirementEditsParams,
+  options?: RequestInit,
+): Promise<RequirementCustomizationSummary> => {
+  return customFetch<RequirementCustomizationSummary>(
+    getResetRequirementEditsUrl(id, params),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getResetRequirementEditsMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetRequirementEdits>>,
+    TError,
+    { id: number; params?: ResetRequirementEditsParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resetRequirementEdits>>,
+  TError,
+  { id: number; params?: ResetRequirementEditsParams },
+  TContext
+> => {
+  const mutationKey = ["resetRequirementEdits"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resetRequirementEdits>>,
+    { id: number; params?: ResetRequirementEditsParams }
+  > = (props) => {
+    const { id, params } = props ?? {};
+
+    return resetRequirementEdits(id, params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResetRequirementEditsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resetRequirementEdits>>
+>;
+
+export type ResetRequirementEditsMutationError = ErrorType<void>;
+
+/**
+ * @summary Reset one requirement (sourceKey) or every customization (all=true) to the source
+ */
+export const useResetRequirementEdits = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetRequirementEdits>>,
+    TError,
+    { id: number; params?: ResetRequirementEditsParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resetRequirementEdits>>,
+  TError,
+  { id: number; params?: ResetRequirementEditsParams },
+  TContext
+> => {
+  return useMutation(getResetRequirementEditsMutationOptions(options));
+};
+
+/**
+ * keep_mine re-bases the student's edit onto the updated source; use_source discards the edit. Never applies an old edit silently.
+ * @summary Decide what to do with an edit whose source requirement has changed
+ */
+export const getResolveRequirementSourceChangeUrl = (id: number) => {
+  return `/api/plans/${id}/requirement-customizations/resolve`;
+};
+
+export const resolveRequirementSourceChange = async (
+  id: number,
+  requirementResolveInput: RequirementResolveInput,
+  options?: RequestInit,
+): Promise<RequirementCustomizationSummary> => {
+  return customFetch<RequirementCustomizationSummary>(
+    getResolveRequirementSourceChangeUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(requirementResolveInput),
+    },
+  );
+};
+
+export const getResolveRequirementSourceChangeMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveRequirementSourceChange>>,
+    TError,
+    { id: number; data: BodyType<RequirementResolveInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resolveRequirementSourceChange>>,
+  TError,
+  { id: number; data: BodyType<RequirementResolveInput> },
+  TContext
+> => {
+  const mutationKey = ["resolveRequirementSourceChange"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resolveRequirementSourceChange>>,
+    { id: number; data: BodyType<RequirementResolveInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return resolveRequirementSourceChange(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResolveRequirementSourceChangeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resolveRequirementSourceChange>>
+>;
+export type ResolveRequirementSourceChangeMutationBody =
+  BodyType<RequirementResolveInput>;
+export type ResolveRequirementSourceChangeMutationError = ErrorType<void>;
+
+/**
+ * @summary Decide what to do with an edit whose source requirement has changed
+ */
+export const useResolveRequirementSourceChange = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveRequirementSourceChange>>,
+    TError,
+    { id: number; data: BodyType<RequirementResolveInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resolveRequirementSourceChange>>,
+  TError,
+  { id: number; data: BodyType<RequirementResolveInput> },
+  TContext
+> => {
+  return useMutation(getResolveRequirementSourceChangeMutationOptions(options));
+};
+
+/**
+ * A custom requirement is the student's own note, marked as such. It is never institution-authored and never counts toward a degree.
+ * @summary Add the student's own planning requirement to a sidebar group
+ */
+export const getCreateCustomRequirementUrl = (id: number) => {
+  return `/api/plans/${id}/custom-requirements`;
+};
+
+export const createCustomRequirement = async (
+  id: number,
+  customRequirementInput: CustomRequirementInput,
+  options?: RequestInit,
+): Promise<RequirementCustomizationSummary> => {
+  return customFetch<RequirementCustomizationSummary>(
+    getCreateCustomRequirementUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(customRequirementInput),
+    },
+  );
+};
+
+export const getCreateCustomRequirementMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCustomRequirement>>,
+    TError,
+    { id: number; data: BodyType<CustomRequirementInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createCustomRequirement>>,
+  TError,
+  { id: number; data: BodyType<CustomRequirementInput> },
+  TContext
+> => {
+  const mutationKey = ["createCustomRequirement"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createCustomRequirement>>,
+    { id: number; data: BodyType<CustomRequirementInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createCustomRequirement(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateCustomRequirementMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCustomRequirement>>
+>;
+export type CreateCustomRequirementMutationBody =
+  BodyType<CustomRequirementInput>;
+export type CreateCustomRequirementMutationError = ErrorType<void>;
+
+/**
+ * @summary Add the student's own planning requirement to a sidebar group
+ */
+export const useCreateCustomRequirement = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCustomRequirement>>,
+    TError,
+    { id: number; data: BodyType<CustomRequirementInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createCustomRequirement>>,
+  TError,
+  { id: number; data: BodyType<CustomRequirementInput> },
+  TContext
+> => {
+  return useMutation(getCreateCustomRequirementMutationOptions(options));
+};
+
+/**
+ * @summary Edit a custom requirement
+ */
+export const getUpdateCustomRequirementUrl = (id: number, customId: string) => {
+  return `/api/plans/${id}/custom-requirements/${customId}`;
+};
+
+export const updateCustomRequirement = async (
+  id: number,
+  customId: string,
+  customRequirementPatch: CustomRequirementPatch,
+  options?: RequestInit,
+): Promise<RequirementCustomizationSummary> => {
+  return customFetch<RequirementCustomizationSummary>(
+    getUpdateCustomRequirementUrl(id, customId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(customRequirementPatch),
+    },
+  );
+};
+
+export const getUpdateCustomRequirementMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomRequirement>>,
+    TError,
+    { id: number; customId: string; data: BodyType<CustomRequirementPatch> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCustomRequirement>>,
+  TError,
+  { id: number; customId: string; data: BodyType<CustomRequirementPatch> },
+  TContext
+> => {
+  const mutationKey = ["updateCustomRequirement"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCustomRequirement>>,
+    { id: number; customId: string; data: BodyType<CustomRequirementPatch> }
+  > = (props) => {
+    const { id, customId, data } = props ?? {};
+
+    return updateCustomRequirement(id, customId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCustomRequirementMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCustomRequirement>>
+>;
+export type UpdateCustomRequirementMutationBody =
+  BodyType<CustomRequirementPatch>;
+export type UpdateCustomRequirementMutationError = ErrorType<void>;
+
+/**
+ * @summary Edit a custom requirement
+ */
+export const useUpdateCustomRequirement = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomRequirement>>,
+    TError,
+    { id: number; customId: string; data: BodyType<CustomRequirementPatch> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCustomRequirement>>,
+  TError,
+  { id: number; customId: string; data: BodyType<CustomRequirementPatch> },
+  TContext
+> => {
+  return useMutation(getUpdateCustomRequirementMutationOptions(options));
+};
+
+/**
+ * @summary Delete a custom requirement
+ */
+export const getDeleteCustomRequirementUrl = (id: number, customId: string) => {
+  return `/api/plans/${id}/custom-requirements/${customId}`;
+};
+
+export const deleteCustomRequirement = async (
+  id: number,
+  customId: string,
+  options?: RequestInit,
+): Promise<RequirementCustomizationSummary> => {
+  return customFetch<RequirementCustomizationSummary>(
+    getDeleteCustomRequirementUrl(id, customId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteCustomRequirementMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCustomRequirement>>,
+    TError,
+    { id: number; customId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteCustomRequirement>>,
+  TError,
+  { id: number; customId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteCustomRequirement"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteCustomRequirement>>,
+    { id: number; customId: string }
+  > = (props) => {
+    const { id, customId } = props ?? {};
+
+    return deleteCustomRequirement(id, customId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCustomRequirementMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCustomRequirement>>
+>;
+
+export type DeleteCustomRequirementMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete a custom requirement
+ */
+export const useDeleteCustomRequirement = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCustomRequirement>>,
+    TError,
+    { id: number; customId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteCustomRequirement>>,
+  TError,
+  { id: number; customId: string },
+  TContext
+> => {
+  return useMutation(getDeleteCustomRequirementMutationOptions(options));
 };
 
 /**

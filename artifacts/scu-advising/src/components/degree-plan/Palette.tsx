@@ -32,13 +32,57 @@ import {
   REQUIREMENT_CATEGORY_STYLE,
 } from "@/lib/requirement-category";
 import { RequirementCourseDiscovery } from "./RequirementCourseDiscovery";
+import {
+  AddRequirementButton,
+  CustomizationMarks,
+  CustomizationNote,
+  EditControls,
+  OrphanedList,
+  RequirementEditDialog,
+  ResetAllDialog,
+  SourceChangeDialog,
+  SourceChangedNotice,
+  SourceLine,
+  customIdOf,
+  useRequirementActions,
+} from "./RequirementCustomization";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useTrackUsage } from "@/hooks/use-track-usage";
+import { Pencil } from "lucide-react";
+import type { RequirementGroup } from "@workspace/api-client-react";
 
 const COMPLETED_DESTINATION = "0:completed";
 
 export function Palette() {
-  const { requirements, activePlan, catalog, profile, scheduleAvailability } =
-    useDegreePlanContext();
+  const {
+    requirements,
+    requirementsMeta,
+    requirementsError,
+    activePlan,
+    catalog,
+    profile,
+    scheduleAvailability,
+  } = useDegreePlanContext();
   const [search, setSearch] = useState("");
+  // "Edit requirements": planning customizations of THIS plan's sidebar. Off
+  // by default so the sidebar keeps its clean planning appearance.
+  const [editing, setEditing] = useState(false);
+  const [dialog, setDialog] = useState<
+    | { kind: "edit" | "review"; item: RequirementItem; group: RequirementGroup }
+    | { kind: "add"; item: null; group: RequirementGroup }
+    | null
+  >(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const canCustomize = !!activePlan && !!requirementsMeta;
+  // Privacy-preserving feature event (no requirement text), once per visit that opens edit mode.
+  useTrackUsage("requirement_customization", editing);
+  const actions = useRequirementActions(activePlan?.id ?? 0);
+  const activePlanId = activePlan?.id ?? null;
+  useEffect(() => {
+    // A dialog belongs to the plan it was opened in.
+    setDialog(null);
+    setConfirmReset(false);
+  }, [activePlanId]);
   const [destination, setDestination] = useState("");
   const queryClient = useQueryClient();
   const addPlanItem = useAddPlanItem();
@@ -189,10 +233,73 @@ export function Palette() {
       data-testid="requirements-palette"
     >
       <div className="border-b border-border/60 px-3 py-2">
-        <h2 className="font-serif text-base font-bold">Planning Requirements</h2>
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="font-serif text-base font-bold">Planning Requirements</h2>
+          {canCustomize && (
+            <Button
+              type="button"
+              size="sm"
+              variant={editing ? "default" : "outline"}
+              className="h-8 shrink-0 gap-1 px-2 text-xs"
+              onClick={() => setEditing((v) => !v)}
+              aria-pressed={editing}
+              data-testid="toggle-edit-requirements"
+            >
+              {editing ? (
+                "Done"
+              ) : (
+                <>
+                  <Pencil className="h-3 w-3" /> Edit requirements
+                </>
+              )}
+            </Button>
+          )}
+        </div>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           Declared and proposed majors, minors &amp; Professional Preparation — editable planning space, distinct from your official APR on the right.
         </p>
+        {editing && requirementsMeta && (
+          <div className="mt-2 space-y-1.5 rounded-md border border-sky-200 bg-sky-50/60 p-2 text-[10px] leading-relaxed text-sky-950" data-testid="edit-requirements-panel">
+            <p>
+              Editing <strong>this plan only</strong>. Edits save as you go and never change SCU&apos;s requirements,
+              your Workday APR, your Degree Checksheets or what counts as complete.
+            </p>
+            <details className="text-sky-900/80">
+              <summary className="cursor-pointer underline-offset-2 hover:underline">Where these requirements come from</summary>
+              <p className="mt-1" data-testid="requirements-source-label">{requirementsMeta.sourceLabel}</p>
+            </details>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span data-testid="customization-summary">
+                {requirementsMeta.summary.edited} edited · {requirementsMeta.summary.hidden} hidden · {requirementsMeta.summary.custom} of my own
+                {requirementsMeta.summary.sourceChanged > 0 ? ` · ${requirementsMeta.summary.sourceChanged} to review` : ""}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 px-2 text-xs"
+                disabled={
+                  actions.busy ||
+                  requirementsMeta.summary.edited +
+                    requirementsMeta.summary.hidden +
+                    requirementsMeta.summary.custom +
+                    requirementsMeta.summary.sourceChanged +
+                    requirementsMeta.summary.orphaned ===
+                    0
+                }
+                onClick={() => setConfirmReset(true)}
+                data-testid="reset-all-requirements"
+              >
+                Reset all my edits
+              </Button>
+            </div>
+            {actions.error && (
+              <p role="alert" className="text-destructive" data-testid="requirements-action-error">
+                {actions.error}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="border-b border-border/60 bg-muted/10 px-3 py-2.5">
@@ -289,8 +396,19 @@ export function Palette() {
             )}
           </div>
         ) : (
+          <>
+          {editing && requirementsMeta && (
+            <div className="pt-2">
+              <OrphanedList orphaned={requirementsMeta.orphaned} actions={actions} />
+            </div>
+          )}
           <Accordion type="multiple" className="px-1.5 pb-3">
-            {/* Official degree requirements — titles come from the API (major/second major/minor). */}
+            {requirementsError && !requirements && (
+              <p role="alert" className="mx-1.5 mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900" data-testid="requirements-load-error">
+                The requirements couldn&apos;t be loaded right now. Your plan and any edits you made are safe. Reload to try again.
+              </p>
+            )}
+            {/* Requirement groups — titles come from the API (major/second major/minor). */}
             {requirements?.map((group) => {
               const categoryKind = requirementCategoryKindFor(group.title);
               const categoryStyle = REQUIREMENT_CATEGORY_STYLE[categoryKind];
@@ -337,6 +455,13 @@ export function Palette() {
                       </p>
                     )}
                     {group.items.map((req) => {
+                      const custom = req.customization;
+                      const isCustom = custom?.kind === "custom";
+                      const isHidden =
+                        custom?.kind === "edit" && custom.hidden && !custom.sourceChanged;
+                      // "Hide from my plan": gone from the student's own view,
+                      // still there (dimmed, with Restore) while editing.
+                      if (isHidden && !editing) return null;
                       // The server resolves cross-satisfaction: a planned major
                       // course carrying a Core designation marks that Core
                       // requirement "planned" (never "completed"). Fall back to
@@ -357,11 +482,14 @@ export function Palette() {
                       return (
                         <div
                           key={req.id}
-                          className={`rounded-md border p-2 text-xs ${status === "completed" ? "border-emerald-200 bg-emerald-50/50" : status === "planned" ? "border-blue-200 bg-blue-50/50" : "border-border bg-card"}`}
+                          data-stable-key={req.stableKey}
+                          data-customized={custom ? custom.kind : undefined}
+                          className={`rounded-md border p-2 text-xs ${isHidden ? "border-dashed opacity-60" : ""} ${isCustom ? "border-violet-200 bg-violet-50/30" : status === "completed" ? "border-emerald-200 bg-emerald-50/50" : status === "planned" ? "border-blue-200 bg-blue-50/50" : "border-border bg-card"}`}
                         >
                           <div className="flex items-start justify-between gap-1.5">
                             <div className="font-medium leading-snug">
                               {req.label}
+                              <CustomizationMarks item={req} />
                             </div>
                             {status === "completed" && (
                               <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
@@ -371,7 +499,40 @@ export function Palette() {
                             )}
                           </div>
 
-                          {status !== "completed" && status !== "planned" && (
+                          {isCustom && (
+                            <label className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <Checkbox
+                                checked={custom?.done ?? false}
+                                disabled={actions.busy}
+                                onCheckedChange={(v) =>
+                                  actions.updateCustom(customIdOf(req), { done: v === true })
+                                }
+                                data-testid={`custom-done-${req.id}`}
+                              />
+                              Done <span>(my own tracking — not an SCU record)</span>
+                            </label>
+                          )}
+
+                          {isCustom && req.courses.length > 0 && (
+                            <div className="mt-1.5" data-testid={`custom-courses-${req.id}`}>
+                              <div className="mb-1 text-[10px] font-medium uppercase text-muted-foreground">Add course:</div>
+                              <div className="flex flex-wrap gap-1">
+                                {req.courses.map((c) => (
+                                  <button
+                                    key={c}
+                                    type="button"
+                                    className="min-h-6 rounded-md bg-secondary px-2 font-mono text-[10px] transition-colors hover:bg-primary hover:text-primary-foreground"
+                                    onClick={() => handleAddCourse(c)}
+                                    aria-label={`Add ${c} to the plan`}
+                                  >
+                                    {c}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {!isCustom && !isHidden && status !== "completed" && status !== "planned" && (
                             <div className="mt-2 space-y-1.5">
                               {/* Hide placeholder button when destination is completed area */}
                               {!isCompletedDestination && (
@@ -458,16 +619,64 @@ export function Palette() {
                                 Bulletin.
                               </div>
                             )}
+
+                          <CustomizationNote item={req} />
+                          <SourceChangedNotice
+                            item={req}
+                            actions={actions}
+                            onReview={() => setDialog({ kind: "review", item: req, group })}
+                          />
+                          {editing && canCustomize && (
+                            <EditControls
+                              item={req}
+                              actions={actions}
+                              onEdit={() => setDialog({ kind: "edit", item: req, group })}
+                            />
+                          )}
                         </div>
                       );
                     })}
+                    <div className="space-y-1.5 pt-1">
+                      {editing && canCustomize && group.stableKey && (
+                        <AddRequirementButton onClick={() => setDialog({ kind: "add", item: null, group })} />
+                      )}
+                      <SourceLine group={group} />
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               );
             })}
           </Accordion>
+          </>
         )}
       </ScrollArea>
+
+      {dialog && dialog.kind !== "review" && (
+        <RequirementEditDialog
+          key={`${dialog.kind}:${dialog.item?.id ?? dialog.group.id}`}
+          mode={dialog.kind}
+          item={dialog.item}
+          group={dialog.group}
+          open
+          onClose={() => {
+            actions.clearError();
+            setDialog(null);
+          }}
+          actions={actions}
+        />
+      )}
+      {dialog?.kind === "review" && (
+        <SourceChangeDialog
+          item={dialog.item}
+          open
+          onClose={() => {
+            actions.clearError();
+            setDialog(null);
+          }}
+          actions={actions}
+        />
+      )}
+      <ResetAllDialog open={confirmReset} onClose={() => setConfirmReset(false)} actions={actions} />
     </Card>
   );
 }

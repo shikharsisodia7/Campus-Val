@@ -23,6 +23,7 @@ import { OFFERED_TERMS, OFFERED_SECTIONS, scheduleFreshness } from "../data/offe
 import { courseSectionsTable } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { buildRequirementsResponse } from "./requirements";
+import { copyCustomizations } from "../lib/requirement-customizations";
 
 const router: IRouter = Router();
 
@@ -157,7 +158,7 @@ function normalizeProfessionalGoals(raw: unknown): ProfessionalGoal[] | string {
   return goals;
 }
 
-function validatePrograms(raw: unknown): { ok: true; value: PlanPrograms } | { ok: false; error: string } {
+export function validatePrograms(raw: unknown): { ok: true; value: PlanPrograms } | { ok: false; error: string } {
   if (raw === null || raw === undefined) {
     return { ok: true, value: { additionalMajors: [], minors: [], professionalGoals: [] } };
   }
@@ -287,7 +288,7 @@ function bucketError(
 }
 
 /** Load a plan and verify the requesting user owns it. */
-async function ownedPlan(
+export async function ownedPlan(
   planId: number,
   userId: string,
 ): Promise<AcademicPlanRow | null> {
@@ -418,7 +419,10 @@ router.post("/plans", requireAuth, async (req, res) => {
       programs: sourcePlan?.programs ?? { additionalMajors: [], minors: [], professionalGoals: [] },
     })
     .returning();
-  if (sourcePlanId !== null) await copyItems(sourcePlanId, created!.id);
+  if (sourcePlanId !== null) {
+    await copyItems(sourcePlanId, created!.id);
+    await copyCustomizations(sourcePlanId, created!.id, userId);
+  }
   const items = await itemsOf(created!.id);
   res.status(201).json(planDto(created!, items.length));
 });
@@ -554,6 +558,7 @@ router.post("/plans/:id/duplicate", requireAuth, async (req, res) => {
     })
     .returning();
   await copyItems(plan.id, created!.id);
+  await copyCustomizations(plan.id, created!.id, req.userId!);
   const items = await itemsOf(created!.id);
   res.status(201).json(planDto(created!, items.length));
 });

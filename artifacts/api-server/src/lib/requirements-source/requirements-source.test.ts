@@ -102,15 +102,18 @@ describe("no policy has been chosen", () => {
     }
   });
 
-  it("cannot be switched by a setting, a flag or a request", () => {
-    const source = ["index.ts", "model.ts", "current-bulletin.ts"].map((file) => readFileSync(path.join(here, file), "utf8")).join("\n");
-    expect(source).not.toMatch(/process\.env|req\.query|req\.body|localStorage/);
-    const route = readFileSync(path.resolve(here, "../../routes/requirements.ts"), "utf8");
-    expect(route).not.toMatch(/req\.query\.(source|benchmark|provider)/);
+  it("is chosen by server configuration only: never by a request, a flag in the browser, or the providers themselves", () => {
+    // Only config.ts and index.ts (which hands the environment to config.ts) may read the environment.
+    for (const file of ["model.ts", "current-bulletin.ts", "normalize.ts", "overlay.ts", "stable-keys.ts"]) {
+      expect(readFileSync(path.join(here, file), "utf8"), file).not.toMatch(/process\.env|req\.query|req\.body|localStorage/);
+    }
+    expect(readFileSync(path.join(here, "config.ts"), "utf8")).not.toMatch(/req\.query|req\.body|localStorage/);
+    const routes = ["requirements.ts", "requirement-customizations.ts"].map((f) => readFileSync(path.resolve(here, "../../routes", f), "utf8")).join(" ");
+    expect(routes).not.toMatch(/req\.(query|body)\.(source|benchmark|provider)/);
   });
 
   it("reads nothing from the APR or from Degree Checksheets", () => {
-    for (const file of ["index.ts", "model.ts", "current-bulletin.ts"]) {
+    for (const file of ["index.ts", "model.ts", "current-bulletin.ts", "normalize.ts", "overlay.ts", "stable-keys.ts", "config.ts"]) {
       const imports = (readFileSync(path.join(here, file), "utf8").match(/from "[^"]+"/g) ?? []).join(" ");
       expect(imports, file).not.toMatch(/apr|checksheet|progress-report/i);
     }

@@ -90,12 +90,13 @@ node artifacts/api-server/dist/migrate.mjs --status   # applied / pending, chang
 - **Reading `--status`.** It lists every migration:
 
   ```
-  migrations: 5 total, 5 applied, 0 pending
+  migrations: 6 total, 6 applied, 0 pending
     0000_baseline: applied (recorded from a checkout with different line endings; same statements)
     0001_tiny_doctor_octopus: applied (recorded from a checkout with different line endings; same statements)
     0002_apr_documents: applied
     0003_section_component: applied
     0004_degree_checksheets: applied
+    0005_requirement_customizations: applied
   ```
 
   A migration is recorded by the SHA-256 of its file's bytes. The same file
@@ -121,7 +122,14 @@ sensitive: encrypt at rest, restrict access, never commit them. Restore =
 `pg_restore` into an empty database, then `node dist/migrate.mjs --status` (a
 restored dump already carries its migration records).
 
-### Migrations in this release (2026-09-26)
+### Migration 0005 (2026-09-30): `requirement_customizations`
+
+One new table (plan-scoped planning edits of the requirements sidebar) and one index
+pair; no existing table is touched. Apply it before deploying the code that reads it,
+though the code degrades safely if it is not there yet
+([REQUIREMENTS_SOURCE.md](REQUIREMENTS_SOURCE.md#deploying)).
+
+### Migrations in the 2026-09-26 release
 
 | Migration | Change | Notes |
 | --- | --- | --- |
