@@ -39,10 +39,37 @@ interface Finding {
 }
 
 /**
+ * Waits until nothing visible is partly transparent because it is still fading in. Colour contrast is
+ * measured against the colours on screen at that instant, so text caught mid-fade reads as low contrast
+ * and fails a page that is fine once it has finished drawing. A fixed pause only hides that on a fast
+ * machine; this waits for the actual condition, and gives up after a few seconds so a page that never
+ * settles is still checked (and reported) as it is.
+ */
+async function fullyDrawn(page: Page) {
+  const stillFading = () =>
+    page.evaluate(() => {
+      const selector = "p, h1, h2, h3, h4, h5, h6, a, button, span, label, li, td, th, dt, dd, legend, summary";
+      let fading = 0;
+      for (const el of Array.from(document.querySelectorAll(selector))) {
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) continue;
+        let opacity = 1;
+        for (let node: Element | null = el; node; node = node.parentElement) {
+          opacity *= Number(getComputedStyle(node).opacity);
+        }
+        if (opacity > 0.01 && opacity < 0.995) fading += 1;
+      }
+      return fading;
+    });
+  await expect.poll(stillFading, { timeout: 5_000, intervals: [100, 200, 300] }).toBe(0).catch(() => undefined);
+}
+
+/**
  * Runs axe on what is on screen now. Fails on serious and critical findings;
  * moderate and minor ones are written to the report, not hidden.
  */
 async function check(page: Page, state: string, options: { scope?: string; skip?: string[] } = {}) {
+  await fullyDrawn(page);
   let builder = new AxeBuilder({ page }).withTags(TAGS);
   if (options.scope) builder = builder.include(options.scope);
   if (options.skip) builder = builder.disableRules(options.skip);
