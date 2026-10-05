@@ -8,6 +8,7 @@ import { ObjectNotFoundError, getPrivateObjectStorage, isPrivateStorageConfigure
 import { resolveStorageProvider } from '../lib/config';
 import { sendPrivateFile } from '../lib/private-file-response';
 import { aprMaxUploadBytes } from '../lib/apr/limits';
+import { isAppProxiedUploadReceiver } from '../lib/storage/uploadToken';
 
 import { requireAuth } from '../middlewares/requireAuth';
 
@@ -115,20 +116,22 @@ router.get(
  * cloud URL, possession of the unexpired, HMAC-signed token IS the
  * authorization (the token is only ever minted for an authenticated user
  * by /storage/uploads/request-url, is bound to one objectPath, one size cap
- * and one content type, and expires in 15 minutes). Returns 404 unless the
- * local provider is the one in use, so it is inert on other platforms.
+ * and one content type, and expires in 15 minutes). Serves the providers that
+ * receive uploads through the app — "local" (filesystem) and "gcs" (Google
+ * Cloud Storage). Returns 404 for every other provider, so it is inert on
+ * platforms that use cloud presigned URLs.
  */
 router.put(
   '/storage/local-upload/:token',
   async (req: Request, res: Response) => {
-    if (resolveStorageProvider() !== 'local' || !isPrivateStorageConfigured()) {
+    const provider = resolveStorageProvider();
+    if ((provider !== 'local' && provider !== 'gcs') || !isPrivateStorageConfigured()) {
       res.status(404).json({ error: 'Not Found' });
       return;
     }
     try {
       const storage = await getPrivateObjectStorage();
-      const { LocalFilesystemObjectStorageProvider } = await import('../lib/storage/localProvider');
-      if (!(storage instanceof LocalFilesystemObjectStorageProvider)) {
+      if (!isAppProxiedUploadReceiver(storage)) {
         res.status(404).json({ error: 'Not Found' });
         return;
       }
