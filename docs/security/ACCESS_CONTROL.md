@@ -1,6 +1,6 @@
 # Access Control — who can access what
 
-Covers **CampusVal** and **PeerHeld Educator** (PreHealth Advisor). Kept identical in both repositories.
+Covers **CampusVal** and **PreHealth Advisor**. Kept identical in both repositories.
 
 > **Terms**
 > - **Authentication** — proving who you are (signing in).
@@ -16,11 +16,11 @@ Covers **CampusVal** and **PeerHeld Educator** (PreHealth Advisor). Kept identic
 - **CampusVal:** yes, a narrow one. Accounts whose email is listed in the `ADMIN_EMAILS` environment variable may open `/admin/usage` and `/admin/feedback` (usage counts and the feedback/error-report queue; `routes/usage.ts`, `routes/feedback.ts`, enforced by `requireRole("admin")` in `lib/auth`). **Admins cannot see any student's APR, grades, plans, schedules or conversations** — no admin route reads them. The list is empty unless someone sets it; there is no default admin and none was created in this work.
 - **CampusVal data steward:** the single account named by `WORKDAY_SYNC_ADMIN_EMAIL` may replace the shared course-section data by pasting a Workday section list (`POST /api/sections/sync`). It grants no access to any student's data. Unset = nobody can.
 - **CampusVal advisors:** not a role. A student may share their degree plan and/or tentative plan with a named advisor email (`plan_shares`). The advisor sees only that student's shared plan(s), checked on every request. APR sharing does not exist.
-- **PeerHeld Educator:** **no administrator feature exists.** Every signed-in user has the same access: the public prerequisite database plus their own planner rows.
+- **PreHealth Advisor:** **no administrator feature exists.** Every signed-in user has the same access: the public prerequisite database plus their own planner rows.
 
 ### What a signed-in user can reach
 
-| | CampusVal | PeerHeld Educator |
+| | CampusVal | PreHealth Advisor |
 |---|---|---|
 | Who may sign in | `@scu.edu` accounts + invited reviewers (`GUEST_REVIEWER_EMAILS`) | Any account that can sign in to its Clerk app (pilot group) |
 | Own data | Profile, APRs, plans, schedules, checksheets, conversations — owner only | Prerequisite tracker, target schools — owner only |
@@ -42,7 +42,7 @@ Covers **CampusVal** and **PeerHeld Educator** (PreHealth Advisor). Kept identic
 | **GCP administrator** (SCU) | Can deploy/configure | Can grant themselves access | Can grant themselves access | Full | Full | 
 | **Service account** (Cloud Run runtime) | Is the app | Connects as the app's DB user | `roles/storage.objectUser` on the APR bucket only | Writes logs | Reads only its own secrets |
 | **Cloud Build service account** | Deploys new versions | Runs migrations (CampusVal) via a job using the runtime SA | No | Writes build logs | No (deploy references secret *names*) |
-| **External tester / reviewer** | CampusVal: only if on `GUEST_REVIEWER_EMAILS`; PeerHeld: pilot account | No | No (only their own uploads) | No | No |
+| **External tester / reviewer** | CampusVal: only if on `GUEST_REVIEWER_EMAILS`; PreHealth Advisor: pilot account | No | No (only their own uploads) | No | No |
 
 Notes:
 - The AI provider (CampusVal) receives only the minimized advisor context per request; it has no standing access to any store.

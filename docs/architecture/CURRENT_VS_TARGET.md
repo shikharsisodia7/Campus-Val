@@ -1,6 +1,6 @@
 # Current vs. Target Architecture
 
-Covers **CampusVal** and **PeerHeld Educator** (PreHealth Advisor). Kept identical in both repositories.
+Covers **CampusVal** and **PreHealth Advisor**. Kept identical in both repositories.
 
 ## In one sentence
 Both apps keep their code and features; what changes is **where they run** (Vercel → SCU's Google Cloud), **where data lives** (Neon/Vercel Blob → Cloud SQL/Cloud Storage in SCU's project), **how people sign in** (Clerk → SCU SSO), **who can reach them** (public internet → SCU network/VPN only) and, for CampusVal, **which AI** answers questions (OpenAI → Gemini/Claude).
@@ -25,7 +25,7 @@ AI: OpenAI via Replit proxy —             AI: Gemini on Vertex AI (recommended
 GitHub → Vercel auto-deploy               GitHub → Cloud Build → Artifact Registry → Cloud Run
 ```
 
-## PeerHeld Educator (PreHealth Advisor)
+## PreHealth Advisor
 
 ```
 CURRENT                                   TARGET
@@ -46,7 +46,7 @@ GitHub → Vercel auto-deploy               GitHub → Cloud Build → Artifact 
 
 ## What changes, by part
 
-| Part | CampusVal now → target | PeerHeld Educator now → target | Status |
+| Part | CampusVal now → target | PreHealth Advisor now → target | Status |
 |---|---|---|---|
 | Hosting | Vercel → Cloud Run | Vercel → Cloud Run | **Code ready** (Dockerfile, `cloudbuild.yaml`, both images built and smoke-tested); needs SCU GCP project |
 | Database | Neon → Cloud SQL | Neon → Cloud SQL | **Code ready** (no code change needed); needs instance + data move |
@@ -57,4 +57,4 @@ GitHub → Vercel auto-deploy               GitHub → Cloud Build → Artifact 
 | Secrets | Vercel → Secret Manager | Vercel → Secret Manager | **Names defined**; SCU creates them |
 | Deploys | Vercel Git integration → Cloud Build | same | **Pipeline written**; needs trigger |
 
-Diagrams: [CAMPUSVAL_ARCHITECTURE.md](CAMPUSVAL_ARCHITECTURE.md) (this repository) and PEERHELD_EDUCATOR_ARCHITECTURE.md (in the prehealth-Advisor repository).
+Diagrams: [CAMPUSVAL_ARCHITECTURE.md](CAMPUSVAL_ARCHITECTURE.md) (this repository) and PREHEALTH_ADVISOR_ARCHITECTURE.md (in the prehealth-Advisor repository).

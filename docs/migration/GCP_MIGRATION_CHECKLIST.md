@@ -1,10 +1,10 @@
 # GCP Migration Checklist
 
-Covers **CampusVal** and **PeerHeld Educator** (PreHealth Advisor). Kept identical in both repositories. No SCU values (project IDs, hostnames, ranges, client IDs) are assumed anywhere.
+Covers **CampusVal** and **PreHealth Advisor**. Kept identical in both repositories. No SCU values (project IDs, hostnames, ranges, client IDs) are assumed anywhere.
 
 ## Can be completed in code now — status
 
-| Item | CampusVal | PeerHeld Educator |
+| Item | CampusVal | PreHealth Advisor |
 |---|---|---|
 | Production Dockerfile (multi-stage, non-root, `PORT`, `0.0.0.0`, health check) | [x] built + smoke-tested | [x] built + smoke-tested |
 | `.dockerignore` keeps `.env`/secrets/data out | [x] | [x] (new) |
@@ -13,6 +13,8 @@ Covers **CampusVal** and **PeerHeld Educator** (PreHealth Advisor). Kept identic
 | Serves web app from the container | [x] (existing) | [x] (new) |
 | Startup config validation naming missing variables | [x] (extended: auth, AI, GCS) | [x] (new) |
 | Cloud SQL compatible (Unix socket via `DATABASE_URL`) | [x] no change needed | [x] no change needed; pool size configurable |
+| Versioned database migrations | [x] (existing; Cloud Run Job in the pipeline) | [x] adopted; production baselined |
+| User can delete all their data | [x] "Delete account" (fixed) | [x] "Delete my data" (new) |
 | Cloud Storage provider | [x] `gcs` provider | n/a — stores no files |
 | Internal auth interface (Clerk behind it) | [x] | [x] |
 | AI on SCU-approved providers only | [x] Gemini/Vertex/Claude; OpenAI removed | n/a — web app has no AI |
@@ -47,5 +49,5 @@ Covers **CampusVal** and **PeerHeld Educator** (PreHealth Advisor). Kept identic
 2. Restore data to Cloud SQL; copy files to the bucket.
 3. Run the Cloud Build trigger (CampusVal runs migrations as a job first).
 4. Put the load balancer in front; set DNS; confirm campus/VPN-only reachability and that `*.run.app` is not reachable directly.
-5. Smoke-test with synthetic accounts: `/api/healthz`, sign-in, a plan edit, a synthetic APR upload/download/delete (CampusVal), a prerequisite search + tracker row (PeerHeld).
+5. Smoke-test with synthetic accounts: `/api/healthz`, sign-in, a plan edit, a synthetic APR upload/download/delete (CampusVal), a prerequisite search + tracker row (PreHealth Advisor).
 6. Switch SSO when the OIDC adapter is delivered and tested in staging.

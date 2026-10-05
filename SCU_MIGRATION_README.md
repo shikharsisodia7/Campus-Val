@@ -4,7 +4,7 @@
 
 ## Applications
 
-| | **CampusVal** | **PeerHeld Educator** (PreHealth Advisor) |
+| | **CampusVal** | **PreHealth Advisor** |
 |---|---|---|
 | What it is | SCU degree & quarter planning; shows the student's Workday Academic Progress Report (APR); AI planning advisor | Health-professions prerequisite lookup + personal planner for SCU Health Professions Peer Advisors |
 | Repository | `shikharsisodia7/Campus-Val` (private) | `shikharsisodia7/prehealth-Advisor` (private) |
@@ -13,7 +13,7 @@
 
 ## What Was Completed
 - Full audit of both codebases; every statement in the documentation cites the code that implements it.
-- **Security fixes** (each with tests): APR ownership check hardened against path traversal; CampusVal "Delete account" now deletes all of a student's data and files (it previously left APRs, grades and plans behind); PeerHeld Educator planner data made private per user (it was shared by every signed-in user, including self-reported grades); generic error messages; CORS allowlist for PeerHeld Educator.
+- **Security fixes** (each with tests): APR ownership check hardened against path traversal; CampusVal "Delete account" now deletes all of a student's data and files (it previously left APRs, grades and plans behind); PreHealth Advisor planner data made private per user (it was shared by every signed-in user, including self-reported grades); generic error messages; CORS allowlist for PreHealth Advisor.
 - **AI migration** (CampusVal): OpenAI removed entirely; Gemini (API or Vertex AI) or Claude behind one interface; student name, ID, GPA and grades no longer sent to the model.
 - **SSO readiness:** both apps now depend on an internal auth interface with Clerk behind it, ready for an SCU OIDC adapter.
 - **GCP readiness:** production Dockerfiles, Cloud Build pipelines, a private Google Cloud Storage provider (CampusVal), Cloud SQL guidance; both images built and smoke-tested.
@@ -29,7 +29,7 @@
 - **Target:** a private Cloud Storage bucket + Cloud SQL in SCU's project. Details: [docs/security/APR_STORAGE_AUDIT.md](docs/security/APR_STORAGE_AUDIT.md).
 
 ## Current Authentication
-Clerk (a third-party sign-in service) for both apps. Both production deployments run Clerk **development** instances. CampusVal admits only `@scu.edu` accounts and invited reviewers; PeerHeld Educator admits any account that can sign in.
+Clerk (a third-party sign-in service) for both apps. Both production deployments run Clerk **development** instances. CampusVal admits only `@scu.edu` accounts and invited reviewers; PreHealth Advisor admits any account that can sign in.
 
 ## Target Authentication
 SCU SSO over OpenID Connect, with Duo handled by SCU's identity provider. The apps already call an internal interface (`getCurrentUser`, `requireUser`, `getUserId`, `requireRole`), so only one adapter file changes. Building it needs SCU's details: [docs/migration/SSO_INFORMATION_NEEDED.md](docs/migration/SSO_INFORMATION_NEEDED.md) (ready to send to SCU's identity team). No password store exists or will be created.
@@ -41,8 +41,8 @@ Vercel (serverless) + Neon PostgreSQL for both; Vercel Blob for CampusVal files;
 Google Cloud Run (one container per app) → Cloud SQL for PostgreSQL (private IP) + Cloud Storage (CampusVal only) + Secret Manager + Cloud Logging; built by Cloud Build into Artifact Registry; reachable only from the SCU network/VPN through an SCU-designed load balancer. See [docs/architecture/CURRENT_VS_TARGET.md](docs/architecture/CURRENT_VS_TARGET.md).
 
 ## AI Migration
-- **Which AI provider is used?** CampusVal: **Gemini** (Vertex AI recommended — no API key, stays under SCU's Google Cloud agreement) or **Claude**, chosen by `AI_PROVIDER`; off until SCU sets it. PeerHeld Educator's web app uses **no AI**.
-- **Is OpenAI still called?** **No.** OpenAI code and packages are removed; `AI_PROVIDER=openai` refuses to start. (Production never had OpenAI credentials configured, so the AI advisor was not working there.) PeerHeld's offline data-research scripts can use OpenAI if a key is set — for SCU use, run them with Gemini only.
+- **Which AI provider is used?** CampusVal: **Gemini** (Vertex AI recommended — no API key, stays under SCU's Google Cloud agreement) or **Claude**, chosen by `AI_PROVIDER`; off until SCU sets it. PreHealth Advisor's web app uses **no AI**.
+- **Is OpenAI still called?** **No.** OpenAI code and packages are removed; `AI_PROVIDER=openai` refuses to start. (Production never had OpenAI credentials configured, so the AI advisor was not working there.) PreHealth Advisor's offline data-research scripts can use OpenAI if a key is set — for SCU use, run them with Gemini only.
 - **What is sent?** Program, timeline, units, completed course codes and the conversation. Never name, IDs, GPA, grades, APRs or schedules. [docs/migration/AI_PROVIDER_MIGRATION.md](docs/migration/AI_PROVIDER_MIGRATION.md)
 
 ## FERPA / Security Changes
@@ -53,17 +53,17 @@ Google Cloud Run (one container per app) → Cloud SQL for PostgreSQL (private I
 | "Delete account" deletes every row + stored file of the student | CampusVal | `routes/profile.delete-account.test.ts` |
 | Name/ID/GPA removed from AI prompts; provider errors hidden from browser | CampusVal | `lib/ai/ai.test.ts`, `routes/ai-routes.test.ts` |
 | Generic JSON error handler (no SQL/stack/paths to clients) | both | `app.error-handling.test.ts` / `app.security.test.ts` |
-| Planner rows (incl. grades) owned per user; dashboard scoped | PeerHeld | `routes/ownership.integration.test.ts` (real Postgres) |
-| CORS allowlist, security headers, startup config validation | PeerHeld | `app.security.test.ts` |
+| Planner rows (incl. grades) owned per user; dashboard scoped | PreHealth Advisor | `routes/ownership.integration.test.ts` (real Postgres) |
+| CORS allowlist, security headers, startup config validation | PreHealth Advisor | `app.security.test.ts` |
 | Startup refuses `AUTH_PROVIDER=oidc` (until built) and `AI_PROVIDER=openai` | both / CampusVal | `lib/auth/auth.test.ts` |
 
 FERPA inventory: [docs/security/FERPA_DATA_INVENTORY.md](docs/security/FERPA_DATA_INVENTORY.md). Who can access what: [docs/security/ACCESS_CONTROL.md](docs/security/ACCESS_CONTROL.md).
 
-**⚠ Action before sharing the PeerHeld repository:** a production database password exists in its git history (`scripts/run-chain.sh`, commit `9077bf8`). Rotate it. [docs/migration/SECRET_MANAGER.md](docs/migration/SECRET_MANAGER.md)
+**⚠ Open owner action:** a production database password exists in PreHealth Advisor's git history (`scripts/run-chain.sh`, commit `9077bf8`) and has **not been rotated yet** (it is shared with ResumeForge). Rotate it before sharing the repository. [docs/migration/SECRET_MANAGER.md](docs/migration/SECRET_MANAGER.md)
 
 ## Architecture Diagrams
 - CampusVal: [docs/architecture/CAMPUSVAL_ARCHITECTURE.md](docs/architecture/CAMPUSVAL_ARCHITECTURE.md), [docs/architecture/CAMPUSVAL_DATA_FLOW.md](docs/architecture/CAMPUSVAL_DATA_FLOW.md), [docs/security/TRUST_BOUNDARIES.md](docs/security/TRUST_BOUNDARIES.md), [docs/architecture/SCU_BULLETIN_DATA_FLOW.md](docs/architecture/SCU_BULLETIN_DATA_FLOW.md)
-- PeerHeld Educator: `prehealth-Advisor/docs/architecture/PEERHELD_EDUCATOR_ARCHITECTURE.md`, `prehealth-Advisor/docs/security/TRUST_BOUNDARIES.md`
+- PreHealth Advisor: `prehealth-Advisor/docs/architecture/PREHEALTH_ADVISOR_ARCHITECTURE.md`, `prehealth-Advisor/docs/security/TRUST_BOUNDARIES.md`
 - Both: [docs/architecture/CURRENT_VS_TARGET.md](docs/architecture/CURRENT_VS_TARGET.md), [docs/migration/NETWORK_ACCESS.md](docs/migration/NETWORK_ACCESS.md)
 - Rendered SVGs: `docs/architecture/generated/` in each repository.
 
@@ -72,16 +72,18 @@ GCP project + IAM · Cloud SQL instance · Cloud Storage bucket (CampusVal) · S
 
 ## How To Run Each Application
 - CampusVal: [docs/SCU_TECHNICAL_HANDOFF.md](docs/SCU_TECHNICAL_HANDOFF.md) §5
-- PeerHeld Educator: `prehealth-Advisor/docs/SCU_TECHNICAL_HANDOFF.md` §5
+- PreHealth Advisor: `prehealth-Advisor/docs/SCU_TECHNICAL_HANDOFF.md` §5
 
 ## How To Test
 Each handoff document §6. No test calls a paid AI API, sends email, or touches production data.
 
 ## How To Deploy To GCP
-Create the resources in [docs/migration/GCP_MIGRATION_CHECKLIST.md](docs/migration/GCP_MIGRATION_CHECKLIST.md), set the trigger substitutions in each `cloudbuild.yaml`, run the trigger. PeerHeld Educator: apply `docs/migration/sql/2026-10-planner-owner.sql` to its database first.
+Create the resources in [docs/migration/GCP_MIGRATION_CHECKLIST.md](docs/migration/GCP_MIGRATION_CHECKLIST.md), set the trigger substitutions in each `cloudbuild.yaml`, run the trigger. PreHealth Advisor: run `pnpm --filter @workspace/db run migrate` against its database first.
 
 ## Final Status
 - **Code-side work: complete** for everything that does not need SCU-controlled values.
-- **Tests/builds: passing** — CampusVal lint, typecheck, 1,039 API + 556 web + 26 mobile tests, builds, Docker build; PeerHeld Educator typecheck, 31 API + 127 web + 107 scripts tests, builds, Docker build.
+- **Tests/builds: passing** — CampusVal lint, typecheck, 1,039 API + 556 web + 26 mobile tests, builds, Docker build; PreHealth Advisor typecheck, 32 API + 127 web + 107 scripts tests, builds, Docker build.
 - **Not yet done (needs SCU):** SSO adapter, GCP provisioning, network restriction, AI provider approval and a live AI smoke test, data migration.
-- Changes are on branch `scu/gcp-migration-readiness` in each repository (not merged to `main`, so production is unchanged until reviewed).
+- **Merged and deployed** to production on Vercel for both apps (CampusVal PR #65, PreHealth Advisor PR #7, plus a follow-up PR each) and verified in a browser.
+- PreHealth Advisor additionally gained **"Delete my data"** and **versioned database migrations** (production baselined).
+- **Open owner action:** rotate the leaked Neon password (see above).

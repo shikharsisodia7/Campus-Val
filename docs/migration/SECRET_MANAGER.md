@@ -1,13 +1,13 @@
 # Secrets and Google Secret Manager
 
-Covers **CampusVal** and **PeerHeld Educator** (PreHealth Advisor). Kept identical in both repositories. **No secret values appear in this document or anywhere in git.**
+Covers **CampusVal** and **PreHealth Advisor**. Kept identical in both repositories. **No secret values appear in this document or anywhere in git.**
 
 > **Terms**
 > - **Secret** — a value that grants access (password, API key, signing key). Anyone holding it can act as the application.
 > - **Secret Manager** — Google Cloud's encrypted, access-controlled, versioned secret store. Cloud Run reads secrets at startup and exposes them to the app as environment variables.
 > - **Rotation** — replacing a secret with a new value and revoking the old one.
 
-## ⚠ Finding: a database password in PeerHeld Educator's git history
+## ⚠ Finding: a database password in PreHealth Advisor's git history
 
 `scripts/run-chain.sh` in the **prehealth-Advisor** repository, as committed in `9077bf8` (2026-08-19), contained a full PostgreSQL connection string **including the production database password** (Neon, `neondb_owner` role). The current version of the file no longer contains it, but git history does, on `origin/main` and `origin/cursor/completion-checkpoint`. The repository is private.
 
@@ -33,11 +33,11 @@ Vercel project environment variables (both apps). CampusVal's Clerk keys and all
 | Workday availability token (only if SCU enables it) | CampusVal | `WORKDAY_AVAILABILITY_AUTH_TOKEN` | `campusval-workday-availability-token` |
 | ElevenLabs key (optional; leave unset unless approved) | CampusVal | `ELEVENLABS_API_KEY` | `campusval-elevenlabs-api-key` |
 | Vercel Blob token (old platform only) | CampusVal | `BLOB_READ_WRITE_TOKEN` | — not migrated; revoke after files are copied |
-| Database connection string | PeerHeld Educator | `DATABASE_URL` | `prehealth-database-url` |
-| Clerk secret key (temporary) | PeerHeld Educator | `CLERK_SECRET_KEY` | `prehealth-clerk-secret-key` |
-| Clerk publishable key (public) | PeerHeld Educator | `CLERK_PUBLISHABLE_KEY` | `prehealth-clerk-publishable-key` |
-| SCU OIDC client secret (future) | PeerHeld Educator | `SCU_OIDC_CLIENT_SECRET` | `prehealth-oidc-client-secret` |
-| Research-pipeline keys (Gemini, OpenAI, Groq, Serper, Tavily, Firecrawl, Jina, Keenable, Browserbase) | PeerHeld Educator — **offline tools only** | `GEMINI_API_KEY`, `OPENAI_API_KEY`, … | **Not deployed** — keep on the operator's machine; not needed in GCP |
+| Database connection string | PreHealth Advisor | `DATABASE_URL` | `prehealth-database-url` |
+| Clerk secret key (temporary) | PreHealth Advisor | `CLERK_SECRET_KEY` | `prehealth-clerk-secret-key` |
+| Clerk publishable key (public) | PreHealth Advisor | `CLERK_PUBLISHABLE_KEY` | `prehealth-clerk-publishable-key` |
+| SCU OIDC client secret (future) | PreHealth Advisor | `SCU_OIDC_CLIENT_SECRET` | `prehealth-oidc-client-secret` |
+| Research-pipeline keys (Gemini, OpenAI, Groq, Serper, Tavily, Firecrawl, Jina, Keenable, Browserbase) | PreHealth Advisor — **offline tools only** | `GEMINI_API_KEY`, `OPENAI_API_KEY`, … | **Not deployed** — keep on the operator's machine; not needed in GCP |
 
 Configuration that is **not** secret stays in plain env vars: `AI_PROVIDER`, model names, `GCS_BUCKET`, `PUBLIC_APP_URL`, `ADMIN_EMAILS`, `GUEST_REVIEWER_EMAILS`, `VITE_CLERK_PUBLISHABLE_KEY` (baked into the public web bundle).
 `ADMIN_EMAILS` / `GUEST_REVIEWER_EMAILS` / `WORKDAY_SYNC_ADMIN_EMAIL` are not credentials but they list people; SCU may keep them in Secret Manager to limit who can read them.

@@ -1,6 +1,6 @@
 # Environment Variables
 
-Covers **CampusVal** (CV) and **PeerHeld Educator** / PreHealth Advisor (PH). Kept identical in both repositories. **No values here.** Templates: `.env.example` in each repository. Secrets go in Secret Manager ([SECRET_MANAGER.md](migration/SECRET_MANAGER.md)).
+Covers **CampusVal** (CV) and **PreHealth Advisor** (PH). Kept identical in both repositories. **No values here.** Templates: `.env.example` in each repository. Secrets go in Secret Manager ([SECRET_MANAGER.md](migration/SECRET_MANAGER.md)).
 
 Built from the variables the code actually reads (`process.env` / `import.meta.env` search), October 2026.
 
@@ -64,7 +64,7 @@ Built from the variables the code actually reads (`process.env` / `import.meta.e
 | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_CLERK_PROXY_URL` | CV mobile | Mobile only | No | Expo app (not part of the web deployment) |
 | `VERCEL`, `VERCEL_URL`, `VERCEL_ENV`, `VERCEL_PROJECT_PRODUCTION_URL` | CV, PH | Set by Vercel | No | Platform-provided on Vercel only |
 
-## PeerHeld Educator only — offline research pipeline (`scripts/`, not deployed)
+## PreHealth Advisor only — offline research pipeline (`scripts/`, not deployed)
 
 | Variable | Application | Required | Secret? | Purpose |
 |---|---|---|---|---|

@@ -1,6 +1,6 @@
 # Production Network Access — SCU Network / VPN Only
 
-Covers **CampusVal** and **PeerHeld Educator**. Kept identical in both repositories.
+Covers **CampusVal** and **PreHealth Advisor**. Kept identical in both repositories.
 
 > **Terms**
 > - **Ingress** — which network traffic is allowed *into* a service.
@@ -20,7 +20,7 @@ flowchart TB
   VPN["SCU VPN users"] --> LB
   LB["Approved ingress<br/>(SCU-designed load balancer:<br/>internal LB, or external LB + Cloud Armor allowlist)"] --> CR
   subgraph GCP["SCU GCP project (VPC)"]
-    CR["Cloud Run<br/>CampusVal / PeerHeld Educator<br/>ingress = internal-and-cloud-load-balancing"]
+    CR["Cloud Run<br/>CampusVal / PreHealth Advisor<br/>ingress = internal-and-cloud-load-balancing"]
     CR --> SQL[("Cloud SQL<br/>private IP")]
     CR --> GCS[("Cloud Storage<br/>private bucket — CampusVal")]
     CR --> SM["Secret Manager"]
