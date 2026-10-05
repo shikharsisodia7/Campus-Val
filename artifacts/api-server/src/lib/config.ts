@@ -12,6 +12,8 @@
  * Nothing here logs values — only variable NAMES appear in error text.
  */
 import path from "node:path";
+import { missingAIConfig, resolveAIProviderName } from "./ai";
+import { OIDC_NOT_READY_MESSAGE, resolveAuthProviderName } from "./auth";
 
 export interface ConfigProblem {
   variable: string;
@@ -41,7 +43,7 @@ function present(env: Env, name: string): boolean {
   return typeof v === "string" && v.trim().length > 0;
 }
 
-export type StorageProviderName = "vercel-blob" | "replit" | "local";
+export type StorageProviderName = "vercel-blob" | "replit" | "local" | "gcs";
 
 /**
  * Which private object-storage backend applies to this environment.
@@ -51,7 +53,7 @@ export type StorageProviderName = "vercel-blob" | "replit" | "local";
  */
 export function resolveStorageProvider(env: Env = process.env): StorageProviderName | null {
   const explicit = env["PRIVATE_STORAGE_PROVIDER"]?.trim().toLowerCase();
-  if (explicit === "vercel-blob" || explicit === "replit" || explicit === "local") {
+  if (explicit === "vercel-blob" || explicit === "replit" || explicit === "local" || explicit === "gcs") {
     return explicit;
   }
   if (present(env, "VERCEL")) return "vercel-blob";
@@ -70,6 +72,8 @@ export function isStorageProviderConfigured(env: Env = process.env): boolean {
       return present(env, "PRIVATE_STORAGE_DIR") && present(env, "STORAGE_SIGNING_SECRET");
     case "replit":
       return present(env, "PRIVATE_OBJECT_DIR");
+    case "gcs":
+      return present(env, "GCS_BUCKET") && present(env, "STORAGE_SIGNING_SECRET");
     default:
       return false;
   }
@@ -111,8 +115,14 @@ export function collectConfigProblems(env: Env = process.env): ConfigProblem[] {
     }
   }
 
-  // --- Authentication (Clerk) ----------------------------------------------
-  if (isProduction) {
+  // --- Authentication -----------------------------------------------------
+  const authProvider = resolveAuthProviderName(env);
+  if (authProvider === null) {
+    err("AUTH_PROVIDER", 'must be "clerk" (default) or "oidc".');
+  } else if (authProvider === "oidc") {
+    err("AUTH_PROVIDER", OIDC_NOT_READY_MESSAGE);
+  }
+  if (authProvider === "clerk" && isProduction) {
     if (!present(env, "CLERK_SECRET_KEY")) {
       err("CLERK_SECRET_KEY", "is required in production (server-side Clerk secret key).");
     }
@@ -162,6 +172,13 @@ export function collectConfigProblems(env: Env = process.env): ConfigProblem[] {
       err("BLOB_READ_WRITE_TOKEN", "is required when PRIVATE_STORAGE_PROVIDER=vercel-blob.");
     } else if (provider === "replit") {
       err("PRIVATE_OBJECT_DIR", "is required when PRIVATE_STORAGE_PROVIDER=replit.");
+    } else if (provider === "gcs") {
+      if (!present(env, "GCS_BUCKET")) {
+        err("GCS_BUCKET", "is required when PRIVATE_STORAGE_PROVIDER=gcs (the name of a PRIVATE Cloud Storage bucket).");
+      }
+      if (!present(env, "STORAGE_SIGNING_SECRET")) {
+        err("STORAGE_SIGNING_SECRET", "is required when PRIVATE_STORAGE_PROVIDER=gcs (32+ random characters; signs upload tokens).");
+      }
     }
   }
   if (provider === "local" && present(env, "PRIVATE_STORAGE_DIR")) {
@@ -174,10 +191,22 @@ export function collectConfigProblems(env: Env = process.env): ConfigProblem[] {
       );
     }
   }
-  if (provider === "local" && present(env, "STORAGE_SIGNING_SECRET")) {
+  if ((provider === "local" || provider === "gcs") && present(env, "STORAGE_SIGNING_SECRET")) {
     if (env["STORAGE_SIGNING_SECRET"]!.trim().length < 32) {
       err("STORAGE_SIGNING_SECRET", "must be at least 32 characters.");
     }
+  }
+
+  // --- AI provider (optional) ----------------------------------------------
+  const rawAI = env["AI_PROVIDER"]?.trim();
+  if (rawAI && !resolveAIProviderName(env)) {
+    err("AI_PROVIDER", 'must be "gemini", "vertex" or "anthropic" (OpenAI is not a supported provider). Leave unset to turn AI features off.');
+  }
+  for (const name of missingAIConfig(env)) {
+    err(name, `is required when AI_PROVIDER=${rawAI!.toLowerCase()}.`);
+  }
+  if (!rawAI) {
+    warn("AI_PROVIDER", "is not set — the AI advisor, voice questions and the evaluation bench are turned off.");
   }
 
   // --- Workday availability integration ------------------------------------
