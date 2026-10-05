@@ -27,6 +27,7 @@ export function resetPrivateObjectStorageForTests(): void {
  *   - "vercel-blob": Vercel Blob, private access, signed per-pathname URLs.
  *   - "local": a private directory on the host's filesystem (universities,
  *     VMs, containers with a persistent volume) — no cloud dependency.
+ *   - "gcs": a private Google Cloud Storage bucket (SCU's GCP / Cloud Run).
  *   - "replit": the original Replit object-storage sidecar.
  * An explicit PRIVATE_STORAGE_PROVIDER always wins; otherwise the platform
  * is inferred (VERCEL → blob, PRIVATE_STORAGE_DIR → local, PRIVATE_OBJECT_DIR
@@ -45,6 +46,12 @@ export async function getPrivateObjectStorage(): Promise<PrivateObjectStorage> {
   if (provider === "vercel-blob") {
     const { VercelBlobObjectStorageProvider } = await import("./vercelBlobProvider");
     cached = new VercelBlobObjectStorageProvider();
+    return cached;
+  }
+
+  if (provider === "gcs") {
+    const { GcsObjectStorageProvider } = await import("./gcsProvider");
+    cached = new GcsObjectStorageProvider();
     return cached;
   }
 

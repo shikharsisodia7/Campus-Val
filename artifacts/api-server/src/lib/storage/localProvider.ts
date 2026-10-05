@@ -1,4 +1,4 @@
-import { createHmac, randomUUID, timingSafeEqual } from "crypto";
+import { randomUUID } from "crypto";
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
@@ -6,7 +6,14 @@ import type { IncomingMessage } from "http";
 import { pipeline } from "stream/promises";
 import { Transform } from "stream";
 
-import { uploadPathOwnerSegment, isUploadPathOwnedBy } from "../uploadPath";
+import { uploadPathOwnerSegment, isUploadPathOwnedBy, UPLOAD_OBJECT_PATH_RE as OBJECT_PATH_RE } from "../uploadPath";
+import {
+  mintUploadToken,
+  verifyUploadToken,
+  UPLOAD_TOKEN_TTL_MS,
+  type AppUploadResult,
+  type UploadTokenPayload,
+} from "./uploadToken";
 import type {
   DownloadedObject,
   PrivateObjectStorage,
@@ -15,29 +22,7 @@ import type {
 } from "./types";
 import { ObjectNotFoundError } from "./types";
 
-const UPLOAD_TOKEN_TTL_MS = 15 * 60 * 1000; // matches the Vercel Blob / Replit PUT-URL lifetime
-
-/** /objects/uploads/<16-hex owner segment>/<uuid> — the ONLY shape this provider will touch. */
-const OBJECT_PATH_RE = /^\/objects\/uploads\/([0-9a-f]{16})\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
-
-interface UploadTokenPayload {
-  /** objectPath the token may write to. */
-  p: string;
-  /** Expiry, epoch ms. */
-  exp: number;
-  /** Max accepted size in bytes. */
-  max: number;
-  /** The one content type the upload must declare (empty = any). */
-  ct: string;
-}
-
-export type LocalUploadResult =
-  | { ok: true; size: number }
-  | { ok: false; status: 400 | 401 | 413 | 415 | 500; error: string };
-
-function b64url(buf: Buffer): string {
-  return buf.toString("base64url");
-}
+export type LocalUploadResult = AppUploadResult;
 
 /**
  * Filesystem-backed private object storage for hosts with no cloud blob
@@ -70,42 +55,15 @@ export class LocalFilesystemObjectStorageProvider implements PrivateObjectStorag
     this.secret = secret;
   }
 
-  // ----- token helpers ---------------------------------------------------
-
-  private sign(body: string): string {
-    return b64url(createHmac("sha256", this.secret).update(body).digest());
-  }
+  // ----- token helpers (shared with the GCS provider: ./uploadToken.ts) ----
 
   private mintToken(payload: UploadTokenPayload): string {
-    const body = b64url(Buffer.from(JSON.stringify(payload), "utf8"));
-    return `${body}.${this.sign(body)}`;
+    return mintUploadToken(this.secret, payload);
   }
 
   /** Returns the payload for a valid, unexpired token; null otherwise. */
   verifyToken(token: string): UploadTokenPayload | null {
-    const parts = token.split(".");
-    if (parts.length !== 2) return null;
-    const [body, sig] = parts as [string, string];
-    const expected = this.sign(body);
-    const a = Buffer.from(sig);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-    try {
-      const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as UploadTokenPayload;
-      if (
-        typeof payload.p !== "string" ||
-        typeof payload.exp !== "number" ||
-        typeof payload.max !== "number" ||
-        typeof payload.ct !== "string"
-      ) {
-        return null;
-      }
-      if (payload.exp < Date.now()) return null;
-      if (!OBJECT_PATH_RE.test(payload.p)) return null;
-      return payload;
-    } catch {
-      return null;
-    }
+    return verifyUploadToken(this.secret, token);
   }
 
   // ----- path helpers ----------------------------------------------------

@@ -84,8 +84,13 @@ const ROUTES = [
 
 describe("structural guards", () => {
   it("routes/degree-checksheets.ts is the ONLY server module that reads these tables", () => {
-    const readers = SERVER.filter((p) => /degreeChecksheet(Documents|Annotations)Table/.test(text(p))).map(rel);
-    expect(readers).toEqual(["routes/degree-checksheets.ts"]);
+    const users = SERVER.filter((p) => /degreeChecksheet(Documents|Annotations)Table/.test(text(p))).map(rel);
+    // routes/profile.ts ("Delete account") may DELETE the student's checksheets —
+    // and nothing else: no select, no update, no insert.
+    expect(users.filter((p) => p !== "routes/profile.ts")).toEqual(["routes/degree-checksheets.ts"]);
+    const profile = text(join(SRC, "routes", "profile.ts"));
+    expect(profile).not.toMatch(/(from|update|insert)\(\s*degreeChecksheet(Documents|Annotations)Table\s*\)/);
+    expect(profile).toMatch(/\.delete\(degreeChecksheetDocumentsTable\)/);
   });
 
   it("every route sits behind requireAuth", () => {

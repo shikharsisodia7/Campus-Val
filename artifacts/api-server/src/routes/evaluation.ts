@@ -1,12 +1,10 @@
 import { Router, type IRouter } from "express";
 import { EVALUATION_SCENARIOS } from "../data/evaluation-bench";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { getAIProvider, AIUnavailableError, AI_UNAVAILABLE_PUBLIC_MESSAGE } from "../lib/ai";
 import { buildSystemPrompt } from "../data/advisor-prompt";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
-
-const MODEL = "gpt-5.2";
 
 router.get("/evaluation/scenarios", (_req, res) => {
   res.json(EVALUATION_SCENARIOS);
@@ -24,6 +22,15 @@ router.post("/evaluation/run", requireAuth, async (req, res) => {
   }
 
   const systemPrompt = buildSystemPrompt();
+  let ai;
+  try {
+    ai = getAIProvider();
+  } catch (err) {
+    if (err instanceof AIUnavailableError) {
+      return res.status(503).json({ error: AI_UNAVAILABLE_PUBLIC_MESSAGE });
+    }
+    throw err;
+  }
 
   // Risk-weighted scoring:
   // - Higher-risk scenarios contribute more to the weighted average (critical = 4x).
@@ -53,17 +60,14 @@ router.post("/evaluation/run", requireAuth, async (req, res) => {
       const startedAt = Date.now();
       let response = "";
       try {
-        const completion = await openai.chat.completions.create({
-          model: MODEL,
-          max_completion_tokens: 800,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: scenario.prompt },
-          ],
+        response = await ai.generateText({
+          system: systemPrompt,
+          messages: [{ role: "user", content: scenario.prompt }],
+          maxOutputTokens: 800,
         });
-        response = completion.choices[0]?.message?.content ?? "";
-      } catch (err) {
-        response = `[error] ${err instanceof Error ? err.message : "unknown"}`;
+      } catch {
+        // Fixed text: provider error bodies never reach the response.
+        response = "[error] AI request failed";
       }
       const latencyMs = Date.now() - startedAt;
 
@@ -125,7 +129,7 @@ router.post("/evaluation/run", requireAuth, async (req, res) => {
 
   res.json({
     ranAt: new Date().toISOString(),
-    model: MODEL,
+    model: `${ai.name}:${ai.model}`,
     totalScenarios: results.length,
     passed,
     failed,

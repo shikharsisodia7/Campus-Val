@@ -1,0 +1,114 @@
+# CampusVal — Google Cloud Build pipeline: build image → push to Artifact
+# Registry → run database migrations (Cloud Run Job) → deploy to Cloud Run.
+#
+# NOTHING SCU-specific is hardcoded. Every value below is a substitution that
+# SCU IT sets on the Cloud Build trigger (or with --substitutions). The project
+# ID comes from Cloud Build's built-in $PROJECT_ID. See
+# docs/migration/GCP_MIGRATION_CHECKLIST.md for what each value must be.
+#
+#   gcloud builds submit --config cloudbuild.yaml \
+#     --substitutions=_REGION=us-west1,_CLOUDSQL_INSTANCE=PROJECT:REGION:INSTANCE,...
+#
+# Secrets are NOT in this file. They live in Secret Manager and are mounted
+# into the service as environment variables by name (_SECRETS below).
+
+substitutions:
+  _REGION: us-west1                       # Cloud Run / Artifact Registry region (SCU decides)
+  _AR_REPO: campusval                     # Artifact Registry Docker repository name
+  _SERVICE: campusval                     # Cloud Run service name
+  _SERVICE_ACCOUNT: ""                    # REQUIRED: runtime service account email (least privilege)
+  _CLOUDSQL_INSTANCE: ""                  # REQUIRED: Cloud SQL instance connection name PROJECT:REGION:INSTANCE
+  _VPC_CONNECTOR_ARGS: ""                 # e.g. "--network=scu-vpc --subnet=campusval --vpc-egress=private-ranges-only"
+  # Network ingress. Default keeps the service OFF the public internet: only
+  # internal VPC traffic and a Google Cloud load balancer (which SCU fronts
+  # with its network / VPN controls) can reach it. See docs/migration/NETWORK_ACCESS.md.
+  _INGRESS: internal-and-cloud-load-balancing
+  # Whether Cloud Run itself requires a Google IAM identity on every request.
+  # Default is the safest; SCU switches it only once its load balancer /
+  # network path is in place. CampusVal still requires its own sign-in either way.
+  _INVOKER_AUTH: --no-allow-unauthenticated
+  # Public (non-secret) Clerk publishable key baked into the web bundle while
+  # Clerk is the temporary sign-in provider. Empty once SCU SSO replaces it.
+  _VITE_CLERK_PUBLISHABLE_KEY: ""
+  # Plain (non-secret) runtime settings. Comma-separated KEY=VALUE.
+  _ENV_VARS: "NODE_ENV=production,AUTH_PROVIDER=clerk,AI_PROVIDER=vertex,VERTEX_LOCATION=us-west1,PRIVATE_STORAGE_PROVIDER=gcs,DATABASE_POOL_MAX=10,TRUST_PROXY=1"
+  # ENV_VAR=secret-name:version, comma-separated. Secret NAMES only; values stay in Secret Manager.
+  _SECRETS: "DATABASE_URL=campusval-database-url:latest,CLERK_SECRET_KEY=campusval-clerk-secret-key:latest,CLERK_PUBLISHABLE_KEY=campusval-clerk-publishable-key:latest,STORAGE_SIGNING_SECRET=campusval-storage-signing-secret:latest"
+  _GCS_BUCKET: ""                         # REQUIRED: name of the PRIVATE APR bucket (docs/migration/CLOUD_STORAGE.md)
+  _PUBLIC_APP_URL: ""                     # REQUIRED: the https:// origin students use (SCU DNS)
+  _RUN_MIGRATIONS: "true"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
+
+steps:
+  - id: check-required
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        missing=""
+        [ -z "${_SERVICE_ACCOUNT}" ] && missing="$missing _SERVICE_ACCOUNT"
+        [ -z "${_CLOUDSQL_INSTANCE}" ] && missing="$missing _CLOUDSQL_INSTANCE"
+        [ -z "${_GCS_BUCKET}" ] && missing="$missing _GCS_BUCKET"
+        [ -z "${_PUBLIC_APP_URL}" ] && missing="$missing _PUBLIC_APP_URL"
+        if [ -n "$missing" ]; then echo "Set these substitutions on the trigger:$missing"; exit 1; fi
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg=VITE_CLERK_PUBLISHABLE_KEY=${_VITE_CLERK_PUBLISHABLE_KEY}
+      - -t=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA"]
+
+  # Migrations run as a one-off Cloud Run Job from the SAME image, BEFORE the
+  # new code receives traffic. The runner records applied migrations and only
+  # applies new ones (artifacts/api-server/src/migrate.ts).
+  - id: migrate
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        if [ "${_RUN_MIGRATIONS}" != "true" ]; then echo "skipping migrations"; exit 0; fi
+        gcloud run jobs deploy ${_SERVICE}-migrate \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA \
+          --region=${_REGION} \
+          --service-account=${_SERVICE_ACCOUNT} \
+          --set-cloudsql-instances=${_CLOUDSQL_INSTANCE} \
+          --set-secrets=DATABASE_URL=campusval-database-url:latest \
+          --command=node --args=artifacts/api-server/dist/migrate.mjs \
+          --max-retries=0 --task-timeout=600s ${_VPC_CONNECTOR_ARGS} \
+          --execute-now --wait
+
+  - id: deploy
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud run deploy ${_SERVICE} \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA \
+          --region=${_REGION} \
+          --service-account=${_SERVICE_ACCOUNT} \
+          --add-cloudsql-instances=${_CLOUDSQL_INSTANCE} \
+          --ingress=${_INGRESS} \
+          ${_INVOKER_AUTH} \
+          --port=8080 \
+          --cpu=1 --memory=1Gi --concurrency=40 --min-instances=0 --max-instances=10 \
+          --timeout=300 \
+          --set-env-vars=${_ENV_VARS},GCS_BUCKET=${_GCS_BUCKET},PUBLIC_APP_URL=${_PUBLIC_APP_URL},GOOGLE_CLOUD_PROJECT=$PROJECT_ID \
+          --set-secrets=${_SECRETS} \
+          --startup-probe=httpGet.path=/api/healthz,initialDelaySeconds=0,periodSeconds=5,failureThreshold=12 \
+          --liveness-probe=httpGet.path=/api/healthz,periodSeconds=30 \
+          ${_VPC_CONNECTOR_ARGS}
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE}:$SHORT_SHA

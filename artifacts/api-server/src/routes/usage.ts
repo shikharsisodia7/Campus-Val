@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, gte, sql } from "drizzle-orm";
 import { db, usageEventsTable } from "@workspace/db";
 import { requireAuth, campusValUserType } from "../middlewares/requireAuth";
-import { isAdminUser } from "../lib/admin";
+import { requireRole } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -28,16 +28,8 @@ export const USAGE_FEATURES = [
 export type UsageFeature = (typeof USAGE_FEATURES)[number];
 const FEATURE_SET = new Set<string>(USAGE_FEATURES);
 
-function requireAdmin(
-  req: import("express").Request,
-  res: import("express").Response,
-  next: import("express").NextFunction,
-) {
-  if (!req.userEmail || !isAdminUser(req.userEmail)) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
-  next();
-}
+/** Admin dashboards: ADMIN_EMAILS allowlist (lib/auth/policy.ts). */
+const requireAdmin = requireRole("admin");
 
 // Fire-and-forget event from an authenticated client. Identity is taken from
 // the verified session (req.userId/req.userEmail), never from the request

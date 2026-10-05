@@ -1,16 +1,11 @@
-import express, { type Express, type Request, type Response } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
-import {
-  CLERK_PROXY_PATH,
-  clerkProxyMiddleware,
-  getClerkProxyHost,
-} from "./middlewares/clerkProxyMiddleware";
+import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
+import { authSessionMiddleware } from "./lib/auth";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { sanitizeLoggedUrl } from "./lib/log-url";
@@ -82,14 +77,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env["CLERK_PUBLISHABLE_KEY"],
-    ),
-  })),
-);
+// Session verification for the configured identity provider (AUTH_PROVIDER;
+// Clerk today, SCU SSO later — see lib/auth). Routes only see req.userId.
+app.use(authSessionMiddleware());
 
 app.use("/api", router);
 
@@ -324,5 +314,26 @@ if (staticDir) {
 } else {
   logger.warn({ candidates }, "Frontend build not found; only /api will be served");
 }
+
+/**
+ * Last-resort error handler. Anything a route did not handle becomes a generic
+ * JSON response — never a stack trace, SQL text, file path, or a third-party
+ * error body. The detail stays in the server log (error name + request id),
+ * which is where operators look. Malformed request bodies keep their 4xx.
+ */
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  const status = (err as { status?: number; statusCode?: number }).status ?? (err as { statusCode?: number }).statusCode;
+  const clientError = typeof status === "number" && status >= 400 && status < 500;
+  if (!clientError) {
+    req.log?.error({ event: "unhandled_error", errorName: err instanceof Error ? err.name : "unknown", err }, "Unhandled error");
+  }
+  if (res.headersSent) {
+    res.end();
+    return;
+  }
+  res
+    .status(clientError ? status : 500)
+    .json({ error: clientError ? "The request could not be processed." : "Something went wrong. Please try again." });
+});
 
 export default app;

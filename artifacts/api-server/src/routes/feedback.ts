@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db, feedbackTable } from "@workspace/db";
 import { z } from "zod/v4";
 import { requireAuth } from "../middlewares/requireAuth";
-import { isAdminUser } from "../lib/admin";
+import { requireRole } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -111,16 +111,8 @@ router.get("/feedback/mine", requireAuth, async (req, res) => {
   });
 });
 
-function requireAdmin(
-  req: import("express").Request,
-  res: import("express").Response,
-  next: import("express").NextFunction,
-) {
-  if (!req.userEmail || !isAdminUser(req.userEmail)) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
-  next();
-}
+/** Admin dashboards: ADMIN_EMAILS allowlist (lib/auth/policy.ts). */
+const requireAdmin = requireRole("admin");
 
 const listQuerySchema = z.object({
   status: z.enum(FEEDBACK_STATUSES).optional(),
