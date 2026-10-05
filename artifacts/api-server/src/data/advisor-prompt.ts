@@ -84,7 +84,7 @@ ${policiesBlock}
 
 ${TRAP_SCENARIOS}
 
-${profileSummary ? `## Current Student Profile\n\n${profileSummary}\n\nUse this profile to personalize answers (e.g. flag overload eligibility automatically based on GPA, warn about transfer cap if close).` : "## No student profile available\n\nIf a question depends on the student's specific situation (units completed, GPA, transfer status), ASK them for the missing detail."}
+${profileSummary ? `## Current Student Profile\n\n${profileSummary}\n\nUse this profile to personalize answers (e.g. warn about the transfer cap if close). GPA is deliberately not included: if an answer depends on it (overload eligibility, probation, Dean's List), ask the student.` : "## No student profile available\n\nIf a question depends on the student's specific situation (units completed, GPA, transfer status), ASK them for the missing detail."}
 ${offeredScheduleBlock ? `\n## Offered schedule for your remaining requirements\n\nThese are the courses still required for this student's declared major(s) that they have NOT yet completed, mapped to the terms each is offered in SCU's published 2026-2027 schedule. Use this to build an accelerated graduation plan on request. "(tentative)" terms can still change.\n\n${offeredScheduleBlock}` : ""}
 
 ## SCU Campus Help Resources (cite by name with link when relevant)

@@ -10,7 +10,8 @@ import {
   CreateOpenaiConversationBody,
   SendOpenaiMessageBody,
 } from "@workspace/api-zod";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { getAIProvider, publicAIErrorMessage, AIUnavailableError } from "../lib/ai";
+import { buildAIStudentContext } from "../lib/ai/student-context";
 import { buildSystemPrompt } from "../data/advisor-prompt";
 import { requireAuth } from "../middlewares/requireAuth";
 import { getMajorRequirements } from "../data/graduation-paths";
@@ -234,20 +235,8 @@ router.post("/openai/conversations/:id/messages", requireAuth, async (req, res) 
       majors,
       p.completedCourseCodes ?? [],
     );
-    profileSummary = [
-      `- Name: ${p.name}`,
-      `- Student type: ${p.studentType}`,
-      `- College: ${p.college}`,
-      `- Major: ${p.major}${p.secondMajor ? ` + ${p.secondMajor}` : ""}${p.minor ? ` (minor: ${p.minor})` : ""}`,
-      `- Start: ${p.startTerm} ${p.startYear}; expected graduation ${p.expectedGradTerm} ${p.expectedGradYear}`,
-      `- Units completed at SCU: ${Number(p.unitsCompletedAtScu)}`,
-      `- Units transferred in: ${Number(p.unitsTransferredIn)}`,
-      `- Cumulative GPA: ${p.cumulativeGpa === null ? "(not provided)" : Number(p.cumulativeGpa).toFixed(3)}`,
-      `- Major GPA: ${p.majorGpa === null ? "(not provided)" : Number(p.majorGpa).toFixed(3)}`,
-      `- Priority registration: ${p.priorityRegistration ? "yes" : "no"}`,
-      `- Currently in: ${p.currentTerm} ${p.currentYear}`,
-      `- Completed courses: ${(p.completedCourseCodes ?? []).join(", ") || "(none provided)"}`,
-    ].join("\n");
+    // Minimized: no name, IDs or GPA leave CampusVal (lib/ai/student-context.ts).
+    profileSummary = buildAIStudentContext(p);
   }
 
   const allMsgs = await db
@@ -256,16 +245,10 @@ router.post("/openai/conversations/:id/messages", requireAuth, async (req, res) 
     .where(eq(messages.conversationId, id))
     .orderBy(asc(messages.createdAt));
 
-  const chatMessages = [
-    {
-      role: "system" as const,
-      content: buildSystemPrompt(profileSummary, offeredScheduleBlock),
-    },
-    ...allMsgs.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
-  ];
+  const history = allMsgs.map((m) => ({
+    role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+    content: m.content,
+  }));
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -274,19 +257,14 @@ router.post("/openai/conversations/:id/messages", requireAuth, async (req, res) 
   let fullResponse = "";
 
   try {
-    const stream = await openai.chat.completions.create({
-      model: "gpt-5.2",
-      max_completion_tokens: 8192,
-      messages: chatMessages,
-      stream: true,
-    });
-
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        fullResponse += content;
-        res.write(`data: ${JSON.stringify({ content })}\n\n`);
-      }
+    const ai = getAIProvider();
+    for await (const content of ai.streamText({
+      system: buildSystemPrompt(profileSummary, offeredScheduleBlock),
+      messages: history,
+      maxOutputTokens: 8192,
+    })) {
+      fullResponse += content;
+      res.write(`data: ${JSON.stringify({ content })}\n\n`);
     }
 
     if (fullResponse) {
@@ -300,8 +278,18 @@ router.post("/openai/conversations/:id/messages", requireAuth, async (req, res) 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+    // Category only — never the prompt, the reply, or the provider's error body.
+    if (!(err instanceof AIUnavailableError)) {
+      req.log.error(
+        {
+          event: "ai_request_failed",
+          errorName: err instanceof Error ? err.name : "unknown",
+          status: (err as { status?: number }).status,
+        },
+        "AI advisor request failed",
+      );
+    }
+    res.write(`data: ${JSON.stringify({ error: publicAIErrorMessage(err) })}\n\n`);
     res.end();
   }
 });

@@ -1,74 +1,61 @@
 import { Router, type IRouter } from "express";
 import express from "express";
-import {
-  speechToText,
-  textToSpeech,
-  ensureCompatibleFormat,
-  openai,
-} from "@workspace/integrations-openai-ai-server/audio";
 import { db, studentProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { buildSystemPrompt } from "../data/advisor-prompt";
 import { requireAuth } from "../middlewares/requireAuth";
+import {
+  AIUnavailableError,
+  getAIProvider,
+  publicAIErrorMessage,
+  type AIProvider,
+  type SynthesizedSpeech,
+} from "../lib/ai";
+import { buildAIStudentContext } from "../lib/ai/student-context";
 
 const router: IRouter = Router();
 
-
-// ElevenLabs TTS — natural-sounding voices. Falls back to OpenAI on failure.
-// Voice "Bella" (hpp4J3VqNfWAUOO0d1Us) — professional, bright, warm; tagged
-// for "informative_educational" — fits an academic advisor.
-// Override with VOICE_TTS_VOICE_ID env var to swap voices without redeploy.
-const ELEVENLABS_VOICE_ID =
-  process.env["VOICE_TTS_VOICE_ID"] || "hpp4J3VqNfWAUOO0d1Us";
+/**
+ * Voice advisor: speech-to-text → advisor answer → text-to-speech, all through
+ * the configured SCU-approved AI provider (lib/ai). Audio is held in memory for
+ * the one request and never written to disk or stored.
+ *
+ * Optional: if ELEVENLABS_API_KEY is set, ElevenLabs voices the answer instead
+ * of the AI provider. It is an additional external service — leave it unset
+ * unless SCU has approved it. With it unset nothing is sent to ElevenLabs.
+ */
+const ELEVENLABS_VOICE_ID = process.env["VOICE_TTS_VOICE_ID"] || "hpp4J3VqNfWAUOO0d1Us";
 const ELEVENLABS_MODEL = "eleven_turbo_v2_5";
 
-async function elevenLabsTts(text: string): Promise<Buffer> {
-  const apiKey = process.env["ELEVENLABS_API_KEY"];
-  if (!apiKey) throw new Error("ELEVENLABS_API_KEY not configured");
+class VoiceUnavailableError extends Error {}
+
+async function elevenLabsTts(text: string, apiKey: string): Promise<SynthesizedSpeech> {
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}?output_format=mp3_44100_128`;
   const resp = await fetch(url, {
     method: "POST",
-    headers: {
-      "xi-api-key": apiKey,
-      "Content-Type": "application/json",
-      Accept: "audio/mpeg",
-    },
+    headers: { "xi-api-key": apiKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
     body: JSON.stringify({
       text,
       model_id: ELEVENLABS_MODEL,
-      voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.75,
-        style: 0.0,
-        use_speaker_boost: true,
-      },
+      voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.0, use_speaker_boost: true },
     }),
+    signal: AbortSignal.timeout(60_000),
   });
   if (!resp.ok) {
-    const detail = await resp.text().catch(() => "");
-    throw new Error(`ElevenLabs ${resp.status}: ${detail.slice(0, 300)}`);
+    await resp.body?.cancel().catch(() => undefined);
+    throw new Error(`ElevenLabs request failed (${resp.status})`);
   }
-  const ab = await resp.arrayBuffer();
-  return Buffer.from(ab);
+  return { audio: Buffer.from(await resp.arrayBuffer()), mimeType: "audio/mpeg" };
 }
 
-// Synthesize speech with ElevenLabs first; on any error, fall back to OpenAI's
-// gpt-audio so the voice flow keeps working even if the EL key is rate-limited
-// or revoked. Returns the audio buffer plus the provider name for logging.
 async function synthesizeSpeech(
+  ai: AIProvider,
   text: string,
-  log: { warn: (...args: unknown[]) => void },
-): Promise<{ audio: Buffer; provider: "elevenlabs" | "openai" }> {
-  if (process.env["ELEVENLABS_API_KEY"]) {
-    try {
-      const audio = await elevenLabsTts(text);
-      return { audio, provider: "elevenlabs" };
-    } catch (err) {
-      log.warn({ err }, "elevenlabs TTS failed; falling back to openai");
-    }
-  }
-  const audio = await textToSpeech(text, "alloy", "mp3");
-  return { audio, provider: "openai" };
+): Promise<SynthesizedSpeech & { provider: string }> {
+  const elevenLabsKey = process.env["ELEVENLABS_API_KEY"];
+  if (elevenLabsKey) return { ...(await elevenLabsTts(text, elevenLabsKey)), provider: "elevenlabs" };
+  if (!ai.synthesizeSpeech) throw new VoiceUnavailableError();
+  return { ...(await ai.synthesizeSpeech(text)), provider: ai.name };
 }
 
 const RAW_AUDIO = express.raw({
@@ -76,25 +63,29 @@ const RAW_AUDIO = express.raw({
   limit: "25mb",
 });
 
-// Sniff actual audio format from magic bytes (handles Safari mp4/m4a, OGG, etc.).
-// Returns a buffer + format that OpenAI's transcription accepts.
-async function normalizeAudio(
-  buf: Buffer,
-): Promise<{ buffer: Buffer; format: "wav" | "mp3" | "webm" }> {
-  // Fast path for native webm — Whisper accepts it directly, skip ffmpeg.
-  if (
-    buf.length >= 4 &&
-    buf[0] === 0x1a &&
-    buf[1] === 0x45 &&
-    buf[2] === 0xdf &&
-    buf[3] === 0xa3
-  ) {
-    return { buffer: buf, format: "webm" };
-  }
-  // ensureCompatibleFormat sniffs magic bytes and converts mp4/m4a/ogg → wav.
-  const out = await ensureCompatibleFormat(buf);
-  return out;
+/**
+ * MIME type from magic bytes — the browser's declared type is not trusted.
+ * Chrome/Firefox record WebM, Safari records MP4/AAC.
+ */
+export function sniffAudioMime(buf: Buffer): string | null {
+  if (buf.length < 12) return null;
+  if (buf.subarray(0, 4).toString("latin1") === "RIFF" && buf.subarray(8, 12).toString("latin1") === "WAVE") return "audio/wav";
+  if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return "audio/webm";
+  if (buf.subarray(0, 4).toString("latin1") === "OggS") return "audio/ogg";
+  if (buf.subarray(0, 4).toString("latin1") === "fLaC") return "audio/flac";
+  if (buf.subarray(4, 8).toString("latin1") === "ftyp") return "audio/mp4";
+  if (buf.subarray(0, 3).toString("latin1") === "ID3" || (buf[0] === 0xff && (buf[1]! & 0xe0) === 0xe0)) return "audio/mp3";
+  return null;
 }
+
+async function transcribe(ai: AIProvider, buf: Buffer): Promise<string> {
+  if (!ai.transcribeAudio) throw new VoiceUnavailableError();
+  const mime = sniffAudioMime(buf);
+  if (!mime) throw new UnsupportedAudioError();
+  return (await ai.transcribeAudio(buf, mime)).trim();
+}
+
+class UnsupportedAudioError extends Error {}
 
 async function buildProfileSummary(userId: string): Promise<string | undefined> {
   const rows = await db
@@ -102,18 +93,23 @@ async function buildProfileSummary(userId: string): Promise<string | undefined> 
     .from(studentProfilesTable)
     .where(eq(studentProfilesTable.userId, userId))
     .limit(1);
-  if (rows.length === 0) return undefined;
-  const p = rows[0]!;
-  return [
-    `- Name: ${p.name}`,
-    `- Student type: ${p.studentType}`,
-    `- College: ${p.college}`,
-    `- Major: ${p.major}${p.secondMajor ? ` + ${p.secondMajor}` : ""}${p.minor ? ` (minor: ${p.minor})` : ""}`,
-    `- Currently in: ${p.currentTerm} ${p.currentYear}`,
-    `- Cumulative GPA: ${p.cumulativeGpa === null ? "(not provided)" : Number(p.cumulativeGpa).toFixed(3)}`,
-    `- Priority registration: ${p.priorityRegistration ? "yes" : "no"}`,
-    `- Completed courses: ${(p.completedCourseCodes ?? []).join(", ") || "(none)"}`,
-  ].join("\n");
+  // Same minimized context as the text advisor: no name, IDs or GPA.
+  return rows[0] ? buildAIStudentContext(rows[0], { includeTransferUnits: false }) : undefined;
+}
+
+/** One place that turns any failure into a status + a message safe for the browser. */
+function sendVoiceError(req: express.Request, res: express.Response, err: unknown, route: string) {
+  if (err instanceof UnsupportedAudioError) {
+    return res.status(415).json({ error: "Unsupported audio format. Please try recording again." });
+  }
+  if (err instanceof VoiceUnavailableError || err instanceof AIUnavailableError) {
+    return res.status(503).json({ error: "Voice questions are not enabled on this server." });
+  }
+  req.log.error(
+    { event: "voice_request_failed", route, errorName: err instanceof Error ? err.name : "unknown" },
+    "Voice request failed",
+  );
+  return res.status(502).json({ error: publicAIErrorMessage(err) });
 }
 
 // POST /voice/transcribe — raw audio in body, returns { text }
@@ -123,36 +119,32 @@ router.post("/voice/transcribe", requireAuth, RAW_AUDIO, async (req, res) => {
     if (!Buffer.isBuffer(buf) || buf.length === 0) {
       return res.status(400).json({ error: "Empty audio body" });
     }
-    const { buffer, format } = await normalizeAudio(buf);
-    const text = await speechToText(buffer, format);
-    return res.json({ text, format });
+    const text = await transcribe(getAIProvider(), buf);
+    return res.json({ text });
   } catch (err) {
-    req.log.error({ err }, "voice/transcribe failed");
-    const message = err instanceof Error ? err.message : "Transcription failed";
-    return res.status(500).json({ error: message });
+    return sendVoiceError(req, res, err, "transcribe");
   }
 });
 
-// POST /voice/speak — { text } in JSON, returns audio/mpeg buffer
+// POST /voice/speak — { text } in JSON, returns audio bytes
 router.post("/voice/speak", requireAuth, express.json({ limit: "1mb" }), async (req, res) => {
   try {
     const text = String((req.body ?? {}).text ?? "").trim();
     if (!text) return res.status(400).json({ error: "text required" });
-    if (text.length > 4000)
-      return res.status(400).json({ error: "text too long (max 4000 chars)" });
-    const { audio, provider } = await synthesizeSpeech(text, req.log);
-    res.setHeader("Content-Type", "audio/mpeg");
+    if (text.length > 4000) return res.status(400).json({ error: "text too long (max 4000 chars)" });
+    const speech = await synthesizeSpeech(getAIProvider(), text);
+    // Binary audio with a fixed audio/* type and nosniff: never rendered as HTML.
+    res.setHeader("Content-Type", speech.mimeType);
+    res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "no-store");
-    res.setHeader("X-Voice-Provider", provider);
-    return res.send(audio);
+    res.setHeader("X-Voice-Provider", speech.provider);
+    return res.send(speech.audio);
   } catch (err) {
-    req.log.error({ err }, "voice/speak failed");
-    const message = err instanceof Error ? err.message : "Speech synth failed";
-    return res.status(500).json({ error: message });
+    return sendVoiceError(req, res, err, "speak");
   }
 });
 
-// POST /voice/ask — raw audio → { transcript, answer, audioBase64 }
+// POST /voice/ask — raw audio → { transcript, answer, audioBase64, audioMime }
 // One-shot: transcribe → ask advisor → synthesize answer.
 router.post("/voice/ask", requireAuth, RAW_AUDIO, async (req, res) => {
   try {
@@ -160,44 +152,34 @@ router.post("/voice/ask", requireAuth, RAW_AUDIO, async (req, res) => {
     if (!Buffer.isBuffer(buf) || buf.length === 0) {
       return res.status(400).json({ error: "Empty audio body" });
     }
-    const { buffer, format } = await normalizeAudio(buf);
-    const transcript = (await speechToText(buffer, format)).trim();
+    const ai = getAIProvider();
+    const transcript = await transcribe(ai, buf);
     if (!transcript) {
-      return res.status(422).json({
-        error: "Could not transcribe audio. Try speaking more clearly.",
-      });
+      return res.status(422).json({ error: "Could not transcribe audio. Try speaking more clearly." });
     }
 
     const profileSummary = await buildProfileSummary(req.userId!);
-    const completion = await openai.chat.completions.create({
-      model: "gpt-5.2",
-      max_completion_tokens: 1200,
-      messages: [
-        {
-          role: "system",
-          content:
+    const answer =
+      (
+        await ai.generateText({
+          system:
             buildSystemPrompt(profileSummary) +
             "\n\nThe student is asking by VOICE. Keep answers concise (under 120 words) and conversational. Avoid lists, headings, and markdown — speak as if on the phone. If a precise rule must be cited, say it briefly.",
-        },
-        { role: "user", content: transcript },
-      ],
-    });
-    const answer =
-      completion.choices[0]?.message?.content?.trim() ||
-      "Sorry, I couldn't generate an answer.";
+          messages: [{ role: "user", content: transcript }],
+          maxOutputTokens: 1200,
+        })
+      ).trim() || "Sorry, I couldn't generate an answer.";
 
-    const { audio, provider } = await synthesizeSpeech(answer, req.log);
+    const speech = await synthesizeSpeech(ai, answer);
     return res.json({
       transcript,
       answer,
-      audioBase64: audio.toString("base64"),
-      audioMime: "audio/mpeg",
-      voiceProvider: provider,
+      audioBase64: speech.audio.toString("base64"),
+      audioMime: speech.mimeType,
+      voiceProvider: speech.provider,
     });
   } catch (err) {
-    req.log.error({ err }, "voice/ask failed");
-    const message = err instanceof Error ? err.message : "Voice ask failed";
-    return res.status(500).json({ error: message });
+    return sendVoiceError(req, res, err, "ask");
   }
 });
 
