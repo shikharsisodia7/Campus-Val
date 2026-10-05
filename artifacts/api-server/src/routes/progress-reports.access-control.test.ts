@@ -53,8 +53,13 @@ const APR = text(join(SRC, "routes", "progress-reports.ts"));
 
 describe("structural guards", () => {
   it("routes/progress-reports.ts is the ONLY server module that reads the APR table", () => {
-    const readers = ALL.filter((p) => /progressReportsTable/.test(text(p))).map(rel);
-    expect(readers).toEqual(["routes/progress-reports.ts"]);
+    const users = ALL.filter((p) => /progressReportsTable/.test(text(p))).map(rel);
+    // routes/profile.ts ("Delete account") may DELETE the student's APR rows —
+    // and nothing else: no select, no update, no insert.
+    expect(users.filter((p) => p !== "routes/profile.ts")).toEqual(["routes/progress-reports.ts"]);
+    const profile = text(join(SRC, "routes", "profile.ts"));
+    expect(profile).not.toMatch(/(from|update|insert)\(\s*progressReportsTable\s*\)/);
+    expect(profile).toMatch(/\.delete\(progressReportsTable\)/);
   });
 
   it("every APR route (and the generic object route) sits behind requireAuth", () => {
