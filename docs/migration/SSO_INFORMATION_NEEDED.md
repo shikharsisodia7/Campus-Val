@@ -6,7 +6,7 @@
 | Application | Purpose | Who signs in |
 |---|---|---|
 | **CampusVal** | SCU academic/degree planning (handles FERPA data: Academic Progress Reports, completed courses, plans) | SCU undergraduate students; SCU advisors; a small number of invited external reviewers (if SCU permits guest accounts) |
-| **PeerHeld Educator** (PreHealth Advisor) | Health-professions prerequisite lookup and personal planner for SCU Health Professions Peer Advisors and the students they advise | SCU students and peer advisors |
+| **PreHealth Advisor** | Health-professions prerequisite lookup and personal planner for SCU Health Professions Peer Advisors and the students they advise | SCU students and peer advisors |
 
 Both will run on Google Cloud Run inside an SCU GCP project, reachable only from the SCU network/VPN. Neither application stores passwords, and **we are not asking for any passwords or credentials of individuals**.
 
@@ -51,4 +51,4 @@ Please answer for a **staging/test** registration first, then **production**.
 23. Is there a **test IdP / test accounts** we can use in staging (so we never use a real student account for testing)?
 
 ---
-*Engineering contact: the CampusVal / PeerHeld Educator developer. Technical detail: `docs/migration/SCU_SSO_MIGRATION.md` in each repository.*
+*Engineering contact: the CampusVal / PreHealth Advisor developer. Technical detail: `docs/migration/SCU_SSO_MIGRATION.md` in each repository.*

@@ -1,6 +1,6 @@
 # FERPA / Sensitive Data Inventory
 
-Covers **both** SCU applications: **CampusVal** (`Campus-Val` repository) and **PeerHeld Educator** — the SCU Health Professions Peer Advisors prerequisite tool (`prehealth-Advisor` repository). The same file is kept in both repositories.
+Covers **both** SCU applications: **CampusVal** (`Campus-Val` repository) and **PreHealth Advisor** — the SCU Health Professions Peer Advisors prerequisite tool (`prehealth-Advisor` repository). The same file is kept in both repositories.
 
 Built from the database schemas and routes, not from assumptions. October 2026.
 
@@ -36,20 +36,20 @@ Built from the database schemas and routes, not from assumptions. October 2026.
 | Browser-local planner drafts | CampusVal | Student's browser | `localStorage` keys `campusval.apib.v1`, `campusval.planner.v1`, `campusval.schedule.v2` | Until cleared / "Delete account" | That browser only | FERPA (on shared lab machines) | Cleared by "Delete account" |
 | Course catalog, sections, requirements | CampusVal | SCU Bulletin + Registrar (public) | Bundled JSON + `course_sections` | Release lifetime | Everyone signed in | Public | [SCU_BULLETIN_DATA_FLOW.md](../architecture/SCU_BULLETIN_DATA_FLOW.md) |
 
-## PeerHeld Educator (PreHealth Advisor)
+## PreHealth Advisor
 
-PeerHeld Educator stores **no health information**, no APRs, no transcripts and no uploaded files. It is a lookup tool over **public** program prerequisites plus a small personal planner.
+PreHealth Advisor stores **no health information**, no APRs, no transcripts and no uploaded files. It is a lookup tool over **public** program prerequisites plus a small personal planner.
 
 | Data | Application | Source | Stored Where | Persistence | Access (in the app) | FERPA/Sensitive | Notes |
 |---|---|---|---|---|---|---|---|
-| Account identity (user ID, session) | PeerHeld Educator | Clerk sign-in (its own Clerk app) | Clerk; Clerk user ID stored as `owner_user_id` / `reporter_user_id` | Until Clerk account removal | The user; Clerk admins | Sensitive | |
-| Email, name, profile photo | PeerHeld Educator | Clerk (Google sign-in may supply name/photo) | **Clerk only** — not stored in the app database | Clerk's retention | The user | PII | Privacy page: `artifacts/prehealth-advisor/src/pages/privacy.tsx` |
-| Prerequisite tracker (course, status, **grade**, credits, notes) | PeerHeld Educator | User types it | `prereq_courses` | Until the user deletes the row | **Owner only** (fixed this pass — was visible to every signed-in user) | **Sensitive / FERPA-like** (self-reported grades) | 5 legacy rows with no owner exist in production; hidden from everyone |
-| Target schools (program, status, deadline, notes) | PeerHeld Educator | User types it | `target_schools` | Until deleted | **Owner only** (fixed this pass) | Sensitive (application plans) | 3 legacy unowned rows in production; hidden |
-| Error reports | PeerHeld Educator | User submits "Report an Error" | `program_error_reports` (issue, description, program, optional contact email, reporter ID) | Until resolved/purged by an operator | Submitter writes; reviewed by the developer via database tooling | Low–PII | No in-app admin screen |
-| Prerequisite database (programs, schools, requirements, sources) | PeerHeld Educator | Public program web pages + accreditor directories | `professions`, `program_schools`, `directory_sources` | Release lifetime | Everyone signed in | Public | Built by the offline research pipeline in `scripts/` |
+| Account identity (user ID, session) | PreHealth Advisor | Clerk sign-in (its own Clerk app) | Clerk; Clerk user ID stored as `owner_user_id` / `reporter_user_id` | Until Clerk account removal | The user; Clerk admins | Sensitive | |
+| Email, name, profile photo | PreHealth Advisor | Clerk (Google sign-in may supply name/photo) | **Clerk only** — not stored in the app database | Clerk's retention | The user | PII | Privacy page: `artifacts/prehealth-advisor/src/pages/privacy.tsx` |
+| Prerequisite tracker (course, status, **grade**, credits, notes) | PreHealth Advisor | User types it | `prereq_courses` | Until the user deletes it (per row or "Delete my data") | **Owner only** (fixed this pass — was visible to every signed-in user) | **Sensitive / FERPA-like** (self-reported grades) | 5 legacy rows with no owner exist in production; hidden from everyone |
+| Target schools (program, status, deadline, notes) | PreHealth Advisor | User types it | `target_schools` | Until deleted (per row or "Delete my data") | **Owner only** (fixed this pass) | Sensitive (application plans) | 3 legacy unowned rows in production; hidden |
+| Error reports | PreHealth Advisor | User submits "Report an Error" | `program_error_reports` (issue, description, program, optional contact email, reporter ID) | Until resolved/purged by an operator; "Delete my data" removes the email and reporter ID | Submitter writes; reviewed by the developer via database tooling | Low–PII | No in-app admin screen |
+| Prerequisite database (programs, schools, requirements, sources) | PreHealth Advisor | Public program web pages + accreditor directories | `professions`, `program_schools`, `directory_sources` | Release lifetime | Everyone signed in | Public | Built by the offline research pipeline in `scripts/` |
 
-**Not collected by PeerHeld Educator:** health information, student IDs, GPA, transcripts, APRs, schedules, uploaded files, AI conversations. The web app makes no AI calls.
+**Not collected by PreHealth Advisor:** health information, student IDs, GPA, transcripts, APRs, schedules, uploaded files, AI conversations. The web app makes no AI calls.
 
 ## Summary for reviewers
 

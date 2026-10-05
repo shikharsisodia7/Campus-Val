@@ -1,13 +1,13 @@
 # Implementation Report — SCU Migration Readiness
 
-*October 5, 2026. Branch `scu/gcp-migration-readiness` in both repositories. This same report is in both repositories.*
+*October 5, 2026. Merged to `main` in both repositories (see Follow-up at the end). This same report is in both repositories.*
 
 ## Repositories Audited
 
 | Repository | Local path | Base | Stack found |
 |---|---|---|---|
 | `shikharsisodia7/Campus-Val` (CampusVal) | `Desktop/Campus-Val` | `main` @ `25a94d6` | pnpm 11 monorepo; React 19 + Vite web; Express 5 + TypeScript API (esbuild); Drizzle + PostgreSQL (Neon) with versioned migrations; Clerk; Vercel Blob; OpenAI via Replit proxy (unconfigured in prod); Expo mobile; Vitest + Playwright; GitHub Actions CI; existing hardened Dockerfile |
-| `shikharsisodia7/prehealth-Advisor` (PeerHeld Educator) | `Desktop/prehealth-Advisor` | `main` @ `c5dc47a` | pnpm monorepo; React 19 + Vite web; Express 5 API; Drizzle + PostgreSQL (Neon) via `drizzle-kit push`; Clerk; no file storage; no AI in the app (offline research pipeline uses LLMs on public pages); Vitest; no CI, no lint script, no Dockerfile |
+| `shikharsisodia7/prehealth-Advisor` (PreHealth Advisor) | `Desktop/prehealth-Advisor` | `main` @ `c5dc47a` | pnpm monorepo; React 19 + Vite web; Express 5 API; Drizzle + PostgreSQL (Neon) via `drizzle-kit push`; Clerk; no file storage; no AI in the app (offline research pipeline uses LLMs on public pages); Vitest; no CI, no lint script, no Dockerfile |
 
 ## Files Added
 
@@ -19,19 +19,19 @@
 - `cloudbuild.yaml`
 - Docs: `docs/SCU_TECHNICAL_HANDOFF.md`, `docs/ENVIRONMENT_VARIABLES.md`, `docs/architecture/{CAMPUSVAL_ARCHITECTURE,CAMPUSVAL_DATA_FLOW,CURRENT_VS_TARGET,SCU_BULLETIN_DATA_FLOW}.md`, `docs/architecture/generated/*.svg` (6), `docs/security/{APR_STORAGE_AUDIT,FERPA_DATA_INVENTORY,ACCESS_CONTROL,TRUST_BOUNDARIES,DATA_RETENTION,LOGGING,FILE_UPLOAD_HARDENING,SCU_SECURITY_CHECKLIST}.md`, `docs/migration/{SCU_SSO_MIGRATION,SSO_INFORMATION_NEEDED,AI_PROVIDER_MIGRATION,CLOUD_SQL,CLOUD_STORAGE,SECRET_MANAGER,NETWORK_ACCESS,GCP_MIGRATION_CHECKLIST}.md`, `SCU_MIGRATION_README.md`, `IMPLEMENTATION_REPORT.md`
 
-**PeerHeld Educator**
+**PreHealth Advisor**
 - `artifacts/api-server/src/lib/auth.ts`, `lib/config.ts`
 - Tests: `artifacts/api-server/src/app.security.test.ts`, `routes/ownership.integration.test.ts`
 - `Dockerfile`, `.dockerignore`, `cloudbuild.yaml`
 - `docs/migration/sql/2026-10-planner-owner.sql`
-- Docs: `docs/SCU_TECHNICAL_HANDOFF.md`, `docs/ENVIRONMENT_VARIABLES.md`, `docs/architecture/{PEERHELD_EDUCATOR_ARCHITECTURE,CURRENT_VS_TARGET}.md`, `docs/architecture/generated/*.svg` (5), `docs/security/{FERPA_DATA_INVENTORY,ACCESS_CONTROL,TRUST_BOUNDARIES,DATA_RETENTION,LOGGING,SCU_SECURITY_CHECKLIST}.md`, `docs/migration/{SCU_SSO_MIGRATION,SSO_INFORMATION_NEEDED,AI_PROVIDER_MIGRATION,CLOUD_SQL,CLOUD_STORAGE,SECRET_MANAGER,NETWORK_ACCESS,GCP_MIGRATION_CHECKLIST}.md`, `SCU_MIGRATION_README.md`, `IMPLEMENTATION_REPORT.md`
+- Docs: `docs/SCU_TECHNICAL_HANDOFF.md`, `docs/ENVIRONMENT_VARIABLES.md`, `docs/architecture/{PREHEALTH_ADVISOR_ARCHITECTURE,CURRENT_VS_TARGET}.md`, `docs/architecture/generated/*.svg` (5), `docs/security/{FERPA_DATA_INVENTORY,ACCESS_CONTROL,TRUST_BOUNDARIES,DATA_RETENTION,LOGGING,SCU_SECURITY_CHECKLIST}.md`, `docs/migration/{SCU_SSO_MIGRATION,SSO_INFORMATION_NEEDED,AI_PROVIDER_MIGRATION,CLOUD_SQL,CLOUD_STORAGE,SECRET_MANAGER,NETWORK_ACCESS,GCP_MIGRATION_CHECKLIST}.md`, `SCU_MIGRATION_README.md`, `IMPLEMENTATION_REPORT.md`
 
 ## Files Modified
 
 **CampusVal:** `artifacts/api-server/src/{app.ts, lib/config.ts, lib/uploadPath.ts, lib/storage/index.ts, lib/storage/localProvider.ts, middlewares/requireAuth.ts, data/advisor-prompt.ts}`, `routes/{openai,voice,evaluation,profile,storage,usage,feedback}.ts`, `routes/{progress-reports,degree-checksheets}.access-control.test.ts`, `artifacts/api-server/{package.json,tsconfig.json}`, `tsconfig.json`, `pnpm-lock.yaml` (−152 lines, nothing added), `Dockerfile`, `.env.example`.
 **Deleted:** `lib/integrations-openai-ai-server/`, `lib/integrations-openai-ai-react/`, `lib/integrations/openai_ai_integrations/`.
 
-**PeerHeld Educator:** `artifacts/api-server/src/{app.ts, index.ts, middlewares/requireAuth.ts}`, `routes/{target-schools,prereq-courses,dashboard}.ts`, `lib/db/src/{index.ts, schema/targetSchools.ts, schema/prereqCourses.ts}`, `.env.example`.
+**PreHealth Advisor:** `artifacts/api-server/src/{app.ts, index.ts, middlewares/requireAuth.ts}`, `routes/{target-schools,prereq-courses,dashboard}.ts`, `lib/db/src/{index.ts, schema/targetSchools.ts, schema/prereqCourses.ts}`, `.env.example`.
 
 ## Security Fixes
 
@@ -43,11 +43,11 @@
 | 4 | CampusVal | Raw provider/env error text streamed to the browser (AI chat, voice, evaluation) | Fixed public messages; category-only logs | `routes/ai-routes.test.ts` |
 | 5 | CampusVal | No final error handler (Express default) | Generic JSON 4xx/500 | `app.error-handling.test.ts` |
 | 6 | CampusVal | Voice converted audio through ffmpeg temp files in `/tmp` | Removed; audio held in memory only | `routes/ai-routes.test.ts` |
-| 7 | PeerHeld | `prereq_courses` (incl. grades) and `target_schools` had no owner — every signed-in user could read, edit and delete everyone's rows; dashboard aggregated all users | `owner_user_id` column + every query scoped; legacy rows fail closed | `routes/ownership.integration.test.ts` (real PostgreSQL) |
-| 8 | PeerHeld | `cors()` allowed any origin | Allowlist (`PUBLIC_APP_URL`, `CORS_ALLOWED_ORIGINS`) | `app.security.test.ts` |
-| 9 | PeerHeld | No security headers, no error handler, no startup validation | Added | `app.security.test.ts` |
+| 7 | PreHealth Advisor | `prereq_courses` (incl. grades) and `target_schools` had no owner — every signed-in user could read, edit and delete everyone's rows; dashboard aggregated all users | `owner_user_id` column + every query scoped; legacy rows fail closed | `routes/ownership.integration.test.ts` (real PostgreSQL) |
+| 8 | PreHealth Advisor | `cors()` allowed any origin | Allowlist (`PUBLIC_APP_URL`, `CORS_ALLOWED_ORIGINS`) | `app.security.test.ts` |
+| 9 | PreHealth Advisor | No security headers, no error handler, no startup validation | Added | `app.security.test.ts` |
 
-**Found, not changed (needs the owner's decision):** a real Neon production database password in prehealth-Advisor git history (`scripts/run-chain.sh` @ `9077bf8`) — **rotate it**; PeerHeld privacy page claims planner selections are saved to the account (they are not — page memory only); both production apps run Clerk *development* instances; CampusVal's Neon/Blob credentials are stored as non-sensitive Vercel variables.
+**Found, not changed (needs the owner's decision):** a real Neon production database password in prehealth-Advisor git history (`scripts/run-chain.sh` @ `9077bf8`) — **rotate it** (still open); PreHealth Advisor privacy page claimed planner selections were saved (fixed in the follow-up); both production apps run Clerk *development* instances; CampusVal's Neon/Blob credentials are stored as non-sensitive Vercel variables.
 
 ## APR Storage Findings
 Original file: **private Vercel Blob**, kept until the student deletes/replaces it or deletes their account; never on server disk or `/tmp`. Structured copy incl. grades: `progress_reports.workbook` (PostgreSQL). Access: owner only through the app (every route signed-in + `WHERE user_id`); advisors and admins cannot read APRs; technically, holders of production DB/Blob credentials (today the developer). No public or browser-visible storage URLs. Full trace: [docs/security/APR_STORAGE_AUDIT.md](docs/security/APR_STORAGE_AUDIT.md).
@@ -56,13 +56,13 @@ Original file: **private Vercel Blob**, kept until the student deletes/replaces 
 OpenAI → **Gemini** (Gemini API or **Vertex AI**, recommended) or **Claude**, via `AI_PROVIDER`; no fallback; OpenAI packages deleted. Covers advisor chat (streaming), voice (Gemini speech-to-text and text-to-speech, WAV), evaluation bench. No new dependencies (REST via `fetch`; Vertex auth via existing `google-auth-library`). Verified with mocked responses only — no paid API calls. [docs/migration/AI_PROVIDER_MIGRATION.md](docs/migration/AI_PROVIDER_MIGRATION.md)
 
 ## Auth/SSO Preparation
-Internal interface in both apps (`getCurrentUser`, `requireUser`, `getUserId`, plus `requireRole` in CampusVal); Clerk confined to one adapter file per app; `AUTH_PROVIDER` selection; OIDC deliberately refused at startup until SCU supplies issuer/client/claims; `SCU_OIDC_*` placeholders; mapping plan for Clerk user IDs (14 CampusVal columns, 3 PeerHeld columns). [docs/migration/SSO_INFORMATION_NEEDED.md](docs/migration/SSO_INFORMATION_NEEDED.md)
+Internal interface in both apps (`getCurrentUser`, `requireUser`, `getUserId`, plus `requireRole` in CampusVal); Clerk confined to one adapter file per app; `AUTH_PROVIDER` selection; OIDC deliberately refused at startup until SCU supplies issuer/client/claims; `SCU_OIDC_*` placeholders; mapping plan for Clerk user IDs (14 CampusVal columns, 3 PreHealth Advisor columns). [docs/migration/SSO_INFORMATION_NEEDED.md](docs/migration/SSO_INFORMATION_NEEDED.md)
 
 ## GCP Preparation
-Dockerfiles (multi-stage, non-root UID 10001, no dev deps, `PORT`/`0.0.0.0`, health checks; CampusVal now ships its one native module so PDF page rendering works in the container); `cloudbuild.yaml` for both (no hardcoded project; ingress `internal-and-cloud-load-balancing`; `--no-allow-unauthenticated`; secrets by name; CampusVal runs migrations as a Cloud Run Job first); `gcs` storage provider; Cloud SQL socket guidance (no code change); PeerHeld container now serves the web app and validates config at startup.
+Dockerfiles (multi-stage, non-root UID 10001, no dev deps, `PORT`/`0.0.0.0`, health checks; CampusVal now ships its one native module so PDF page rendering works in the container); `cloudbuild.yaml` for both (no hardcoded project; ingress `internal-and-cloud-load-balancing`; `--no-allow-unauthenticated`; secrets by name; CampusVal runs migrations as a Cloud Run Job first); `gcs` storage provider; Cloud SQL socket guidance (no code change); PreHealth Advisor container now serves the web app and validates config at startup.
 
 ## Architecture Documentation
-11 Mermaid diagrams (all rendered to SVG with Mermaid CLI 11 — which also validated their syntax): CampusVal architecture, deployment, data flow, Bulletin flow, trust boundaries; PeerHeld architecture, deployment, data flow, trust boundaries; network access (both).
+11 Mermaid diagrams (all rendered to SVG with Mermaid CLI 11 — which also validated their syntax): CampusVal architecture, deployment, data flow, Bulletin flow, trust boundaries; PreHealth Advisor architecture, deployment, data flow, trust boundaries; network access (both).
 
 ## Tests Run
 Exact results from the final runs on this branch (Windows 11, Node 24.19, pnpm 11.20; database tests against a throwaway local PostgreSQL 16 — never production):
@@ -81,10 +81,10 @@ CampusVal
                                     AUTH_PROVIDER=oidc and AI_PROVIDER=openai refuse to start,
                                     migrations --status against Postgres: all applied
 
-PeerHeld Educator
+PreHealth Advisor
   Lint:                             N/A (no lint script exists in this repository)
   TypeScript (all packages):        PASS
-  API tests:                        31/31 PASS (5 files, incl. ownership test on real PostgreSQL)   [baseline: 20/20]
+  API tests:                        32/32 PASS (5 files, incl. ownership + delete-my-data on real PostgreSQL)   [baseline: 20/20]
   Web tests:                        127/127 PASS (6 files)
   Scripts tests:                    107/107 PASS (4 files)
   Web build:                        PASS
@@ -146,8 +146,27 @@ Where it is used: DATA_RETENTION.md; optional purge job + bucket lifecycle rule
 What happens after receiving it: implement the scheduled purge using the existing account-deletion code
 ```
 ```text
-Need: Owner decisions — rotate the Neon password in prehealth-Advisor history; fix the PeerHeld privacy page wording; review and merge branch scu/gcp-migration-readiness (PeerHeld: apply docs/migration/sql/2026-10-planner-owner.sql BEFORE deploying)
-Who provides it: Application owner
-Where it is used: SECRET_MANAGER.md, PeerHeld privacy page, both repositories
-What happens after receiving it: production on Vercel picks up the fixes; SCU receives the repositories
+Need: Owner action — rotate the Neon password leaked in prehealth-Advisor history (shared with ResumeForge)
+Who provides it: Application owner (Vercel → resumeforge → Storage → neon-green-ball → Rotate Secrets)
+Where it is used: PreHealth Advisor and ResumeForge DATABASE_URL; SECRET_MANAGER.md
+What happens after receiving it: update PreHealth Advisor's DATABASE_URL, redeploy both apps, verify
 ```
+
+## Follow-up — October 5, 2026 (afternoon)
+
+Done after the first pass, all verified on production in Chrome:
+
+| Item | Result |
+|---|---|
+| Owner-column SQL applied to PreHealth Advisor production **before** its merge | Columns + indexes present; no data changed (3 target schools, 5 tracker rows) |
+| Both branches merged and deployed (CampusVal #65, PreHealth Advisor #7) | CampusVal: signed in, `/api/readyz` ok, existing APR opens (PDF, `no-store`), AI returns the clean "not enabled" message, no console errors. PreHealth Advisor: all APIs 200, same-origin write reaches the server, security headers present, no console errors |
+| PreHealth Advisor privacy page corrected | Live: planner selections are described as not saved |
+| PreHealth Advisor **"Delete my data"** (account menu → Privacy & your data) | New `DELETE /api/me/data`; deletes tracker + target schools, strips email/ID from error reports; real-PostgreSQL test |
+| PreHealth Advisor **versioned migrations** | `lib/db/drizzle/0000_baseline.sql` + `run migrate`; full API suite passes on a database built only from migrations; production **baselined** after confirming its 78 columns and indexes match |
+| Naming | "PeerHeld Educator" (from the original brief) replaced by the real name, **PreHealth Advisor**, in every document, file name and diagram |
+
+Still open, by the owner's choice or outside the code:
+- **Leaked Neon password not rotated yet.** It is shared by PreHealth Advisor and ResumeForge (same Neon project and role, managed by ResumeForge's Vercel integration). Rotation = Vercel → resumeforge → Storage → neon-green-ball → Settings → **Rotate Secrets**, then update PreHealth Advisor's `DATABASE_URL` and redeploy both. Claude Code's safety policy does not allow the agent to perform secret-store writes, so the owner must click it.
+- **GitHub Actions** jobs are not starting (account billing / spending limit); all checks were run locally instead.
+- The 3 + 5 legacy unowned PreHealth Advisor rows remain hidden (cannot be attributed to a user).
+
