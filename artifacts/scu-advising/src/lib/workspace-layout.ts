@@ -19,6 +19,6 @@ export const PLANNING_RIGHT_ONLY_COLUMNS = "xl:grid-cols-[minmax(0,1fr)_minmax(3
  * regions fill the screen and each scrolls on its own. Below `xl` the page
  * scrolls normally instead.
  */
-export const COMPARISON_HEIGHT = "xl:h-[calc(100dvh-12.25rem)] xl:min-h-[26rem]";
+export const COMPARISON_HEIGHT = "xl:h-[calc(100dvh-14.5rem)] xl:min-h-[26rem]";
 /** Width of the drawer the Planning Requirements open in below `xl`. */
 export const REQUIREMENTS_DRAWER_WIDTH = "w-[min(24rem,92vw)]";

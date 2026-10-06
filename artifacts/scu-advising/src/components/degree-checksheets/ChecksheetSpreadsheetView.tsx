@@ -176,11 +176,13 @@ function SheetGrid({
             : "Shown as uploaded, without your tracking."}
         </caption>
         <colgroup>
-          <col style={{ width: transfer ? "4.25rem" : "2.75rem" }} />
+          <col style={{ width: transfer ? "3.75rem" : "2.75rem" }} />
           {columns.map((c) => {
             const width = sheet.columnWidths[c];
-            // Excel widths are in characters; ~0.6rem per character, within sane bounds.
-            const rem = width ? Math.min(Math.max(width * 0.6, 4), 34) : 9;
+            // Excel widths are in characters of the workbook's default font (about 7px). At the 12px
+            // shown here that is ~0.48rem a character: the file's own proportions, without the extra
+            // width that pushed the department's last columns out of view beside the two side panels.
+            const rem = width ? Math.min(Math.max(width * 0.48, 4), 28) : 8;
             // A tracking column must fit its control, whatever the file's width.
             const column = sheet.tracking.columns.find((t) => t.c === c);
             const min = showTracking && column ? CONTROL_WIDTH[column.field] : Math.min(rem, 8);

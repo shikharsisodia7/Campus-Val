@@ -68,14 +68,28 @@ export function reliableTarget(text: string, candidates: Candidate[]): { candida
   return hits.size === 1 ? [...hits.values()][0]! : null;
 }
 
+/**
+ * Put focus back on the control that opened the dialog. Radix only does this for its own
+ * Trigger, and "Add to planning" is opened from many places (a row, a My Tracking entry, the
+ * toolbar). If that control was re-rendered meanwhile, the same control is found again by its test id.
+ */
+function returnFocus(to: HTMLElement | null | undefined) {
+  if (!to) return;
+  const target = to.isConnected ? to : to.dataset.testid ? document.querySelector<HTMLElement>(`[data-testid="${CSS.escape(to.dataset.testid)}"]`) : null;
+  target?.focus();
+}
+
 export function AddToPlanningDialog({
   open,
   onOpenChange,
   source,
+  returnFocusTo,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   source: TransferSource | null;
+  /** The control that opened the dialog; focus goes back to it when the dialog closes. */
+  returnFocusTo?: HTMLElement | null;
 }) {
   const { activePlan, requirements } = useDegreePlanContext();
   const actions = useRequirementActions(activePlan?.id ?? 0);
@@ -165,7 +179,14 @@ export function AddToPlanningDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto" data-testid="add-to-planning-dialog">
+      <DialogContent
+        className="max-h-[90vh] max-w-xl overflow-y-auto"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          returnFocus(returnFocusTo);
+        }}
+        data-testid="add-to-planning-dialog"
+      >
         <DialogHeader>
           <DialogTitle>Add to Planning Requirements</DialogTitle>
           <DialogDescription>

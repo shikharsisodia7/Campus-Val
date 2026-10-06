@@ -111,7 +111,14 @@ export function ChecksheetDocumentCard({
   // "Add to planning" exists only where Planning Requirements are mounted beside this document.
   const planning = useOptionalDegreePlanContext();
   const [transfer, setTransfer] = useState<TransferSource | null>(null);
-  const startTransfer = planning?.activePlan ? (source: TransferStart) => setTransfer({ ...source, documentId: document.id, documentTitle: document.title }) : null;
+  /** The control that opened "Add to planning", to give focus back to when it closes. */
+  const transferOpener = useRef<HTMLElement | null>(null);
+  const startTransfer = planning?.activePlan
+    ? (source: TransferStart) => {
+        transferOpener.current = window.document.activeElement instanceof HTMLElement ? window.document.activeElement : null;
+        setTransfer({ ...source, documentId: document.id, documentTitle: document.title });
+      }
+    : null;
   const cardRef = useRef<HTMLDivElement>(null);
   /** Text selected inside THIS document when the toolbar button was pressed (pressing it can clear a selection). */
   const pressedSelection = useRef("");
@@ -209,7 +216,7 @@ export function ChecksheetDocumentCard({
         </button>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <Button asChild variant="outline" size="sm" className="h-9 text-xs">
+          <Button asChild variant="outline" size="sm" className="h-9 text-xs md:h-8">
             <a
               href={originalFileUrl(document.id)}
               target="_blank"
@@ -221,22 +228,22 @@ export function ChecksheetDocumentCard({
               Open original
             </a>
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => show("rename")} data-testid={`checksheet-rename-${document.id}`}>
+          <Button variant="outline" size="sm" className="h-9 text-xs md:h-8" onClick={() => show("rename")} data-testid={`checksheet-rename-${document.id}`}>
             <Pencil className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Rename
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => show("details")} data-testid={`checksheet-details-${document.id}`}>
+          <Button variant="outline" size="sm" className="h-9 text-xs md:h-8" onClick={() => show("details")} data-testid={`checksheet-details-${document.id}`}>
             <Settings2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Edit details
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => show("replace")} data-testid={`checksheet-replace-${document.id}`}>
+          <Button variant="outline" size="sm" className="h-9 text-xs md:h-8" onClick={() => show("replace")} data-testid={`checksheet-replace-${document.id}`}>
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Replace
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-9 text-xs text-destructive hover:text-destructive"
+            className="h-9 text-xs text-destructive hover:text-destructive md:h-8"
             onClick={() => setConfirmDelete(true)}
             disabled={deleteMutation.isPending}
             data-testid={`checksheet-delete-${document.id}`}
@@ -312,7 +319,7 @@ export function ChecksheetDocumentCard({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 gap-1.5 text-xs"
+                    className="h-9 gap-1.5 text-xs md:h-8"
                     onPointerDown={() => (pressedSelection.current = selectedInDocument())}
                     onClick={() => {
                       // Whatever the student has selected in this document, to start from (or nothing: they write the note).
@@ -331,7 +338,7 @@ export function ChecksheetDocumentCard({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs"
+                  className="h-9 gap-1.5 text-xs md:h-8"
                   aria-pressed={!showTracking}
                   onClick={() => setShowTracking((v) => !v)}
                   data-testid={`checksheet-toggle-tracking-${document.id}`}
@@ -398,7 +405,9 @@ export function ChecksheetDocumentCard({
         )}
       </div>
 
-      {startTransfer && <AddToPlanningDialog open={!!transfer} onOpenChange={(o) => !o && setTransfer(null)} source={transfer} />}
+      {startTransfer && (
+        <AddToPlanningDialog open={!!transfer} onOpenChange={(o) => !o && setTransfer(null)} source={transfer} returnFocusTo={transferOpener.current} />
+      )}
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent data-testid="checksheet-delete-dialog">
