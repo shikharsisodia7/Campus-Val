@@ -135,7 +135,7 @@ guessed. A file is matched to a program by the exact title of its "<Program> Maj
 curriculum ("Prior to ...") is reported and skipped. Re-running is idempotent; a note a person has edited, reviewed or archived is never overwritten.
 A student's private upload is never a source of global notes.
 
-Result on the 40 real CAS checklists (QA database): 25 programs matched, 15 files skipped (each with its reason in the report), **187 published**, **2 draft**, **145 unmapped**.
+Result on the 40 real CAS checklists (QA database): 30 programs matched, 10 files skipped (each with its reason in the report), **225 published**, **2 draft**, **179 unmapped**.
 Imported notes are published *unreviewed* and labelled so; the department's own administrators review them in Program Requirements Admin.
 
 ## Department administration

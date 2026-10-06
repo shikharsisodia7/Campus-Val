@@ -112,6 +112,8 @@ export function extractChecklistNotes(
   programTitle: string,
   programGroup: NormalizedGroup,
   tree: NormalizedGroup[],
+  /** For a file matched to its program by a named alias: every table that is not University Core is the program's. */
+  options: { everyTableIsProgram?: boolean } = {},
 ): NoteCandidate[] {
   const candidates: NoteCandidate[] = [];
   const core = tree.find((g) => g.group.kind === "university_core");
@@ -131,7 +133,7 @@ export function extractChecklistNotes(
         name,
         kind: CORE_SECTIONS.has(lower)
           ? "core"
-          : /requirements?$/.test(lower) && lower.includes(programTitle.toLowerCase())
+          : options.everyTableIsProgram || (/requirements?$/.test(lower) && lower.includes(programTitle.toLowerCase()))
             ? "program"
             : "other",
       };

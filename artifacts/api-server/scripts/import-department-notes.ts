@@ -36,6 +36,16 @@ const actor = (arg("--actor") ?? "importer@campusval.local").toLowerCase();
 const edition = latestBulletinEdition().id;
 const norm = (s: string) => s.toLowerCase().replace(/\(.*?\)/g, "").replace(/\b(b\.?[as]\.?|bachelor of (arts|science))\b/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 
+// Files whose own title does not equal a CampusVal program title, matched by name with the evidence for each.
+// A name is only listed when it is the same program: the department renamed it, or only the punctuation differs.
+const FILE_ALIASES: { file: RegExp; programKey: string; why: string }[] = [
+  { file: /^Studio Art Checklist/i, programKey: "major:studio-art", why: 'the checklist says "Studio Arts"; the program is Studio Art' },
+  { file: /^French and Francophone Studies Checklist/i, programKey: "major:french-francophone-studies", why: '"and" and "&" only' },
+  { file: /^Gender and Sexuality Studies Checklist/i, programKey: "major:women-s-gender-studies", why: "SCU Bulletin 2026-27: Gender and Sexuality Studies, formerly Women's and Gender Studies" },
+  { file: /^BA in Chemistry Checklist/i, programKey: "major:chemistry-b-a", why: "BA in Chemistry is the Chemistry (B.A.) major" },
+  { file: /^Public Health - Health Science Checklist/i, programKey: "major:public-health-science", why: "the Health Science emphasis of the Public Health Science major" },
+];
+
 const majors = listPrograms().filter((p) => p.type === "major" && p.college === "CAS");
 const report = { edition, files: [] as unknown[], totals: { published: 0, draft: 0, unmapped: 0, skippedFiles: 0, written: 0 } };
 
@@ -59,7 +69,8 @@ for (const file of readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".xls
   // The program is named by the table that holds the major's courses: "<Program> Major Requirements".
   const titleCell = sheet?.rows.flatMap((r) => r.cells.filter((c) => c.c === 0)).map((c) => c.text.trim()).find((t) => /\bMajor Requirements$/i.test(t));
   const named = titleCell?.replace(/\s*Major Requirements$/i, "");
-  const match = named ? majors.filter((m) => norm(m.title) === norm(named)) : [];
+  const alias = FILE_ALIASES.find((a) => a.file.test(file));
+  const match = alias ? listPrograms().filter((m) => m.programKey === alias.programKey) : named ? majors.filter((m) => norm(m.title) === norm(named)) : [];
   if (!sheet || match.length !== 1) {
     report.files.push({ file, skipped: named ? `"${named}" matches ${match.length} CampusVal majors` : "no \"<Program> Major Requirements\" table" });
     report.totals.skippedFiles += 1;
@@ -68,7 +79,7 @@ for (const file of readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".xls
   const program = match[0]!;
   const tree = programTree(program.programKey)!;
   const programGroup = tree.tree.find((g) => g.stableKey === program.programKey)!;
-  const candidates: NoteCandidate[] = extractChecklistNotes(sheet, program.title, programGroup, tree.tree);
+  const candidates: NoteCandidate[] = extractChecklistNotes(sheet, program.title, programGroup, tree.tree, { everyTableIsProgram: !!alias });
   const counts = { published: 0, draft: 0, unmapped: 0 };
   for (const c of candidates) counts[c.status] += 1;
   report.totals.published += counts.published;
