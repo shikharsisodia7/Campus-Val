@@ -37,6 +37,10 @@ vi.mock("@/components/AppShell", () => ({
   PageContent: ({ children }: any) => <main>{children}</main>,
 }));
 vi.mock("@/hooks/use-track-usage", () => ({ useTrackUsage: () => {} }));
+// These tests are about the page's own content (the center region). The comparison shell, the Planning Requirements and the compact APR have their own tests.
+vi.mock("@/components/degree-plan/PlanningComparisonWorkspace", () => ({
+  PlanningComparisonWorkspace: ({ main }: { main: React.ReactNode }) => <>{main}</>,
+}));
 
 import ProgressReportPage from "./progress-report";
 

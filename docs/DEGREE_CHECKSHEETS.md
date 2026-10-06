@@ -40,7 +40,7 @@ any document shows the source with nothing of the student's on it.
 
 | It does not | Why |
 | --- | --- |
-| Change the requirements sidebar beside the Degree Plan, or any requirement calculation | The professor has not decided what that sidebar should be benchmarked against. See [The open question](#the-open-question). |
+| Change the requirements sidebar beside the Degree Plan, or any requirement calculation, **by itself** | Tracking is separate. The only way a checksheet reaches the sidebar is the student's own explicit **Add to planning** action, which saves a My Note or a My requirement on the plan they chose ([CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md)). It never changes a calculation, and never creates a Department Note. See also [The open question](#the-open-question). |
 | Decide which checksheet applies to a student, or pick a "latest" one | A student may be allowed to follow a different curriculum than their entry year suggests. The student chooses. |
 | Add, complete or move a course on the Degree Plan, Quarter Plan or Tentative Degree Plan | Tracking is reference-only. |
 | Read, change or appear in an Academic Progress Report | The APR feature is separate and unchanged. |
@@ -53,6 +53,8 @@ These are enforced by tests, not only by intent: see
 `degree-checksheets.access-control.test.ts` ("scope guards").
 
 ## Where it is
+
+The page is a three-way comparison workspace (2026-10-06): **Planning Requirements | Degree Checksheet | Workday APR**, with the student's own **Add to planning** action from a checksheet row or tracking note into a My Note or My requirement ([CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md)). The checksheet cards below are unchanged apart from tighter tracking columns.
 
 Additional Features → Planning tools → **Degree Checksheets** (`/degree-checksheets`).
 It is registered in `lib/pilot-features.ts` as `PILOT_VISIBLE`. It may later move

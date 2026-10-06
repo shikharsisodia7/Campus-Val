@@ -102,6 +102,10 @@ vi.mock("@/components/AppShell", () => ({
   PageContent: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
 }));
 vi.mock("@/hooks/use-track-usage", () => ({ useTrackUsage: () => {} }));
+// These tests are about the page's own content (the center region). The comparison shell, the Planning Requirements and the compact APR have their own tests.
+vi.mock("@/components/degree-plan/PlanningComparisonWorkspace", () => ({
+  PlanningComparisonWorkspace: ({ main }: { main: React.ReactNode }) => <>{main}</>,
+}));
 // The PDF library needs a real browser; its viewer is covered by the browser tests.
 vi.mock("@/components/degree-checksheets/ChecksheetPdfView", () => ({
   default: ({ documentId, pages, showTracking }: { documentId: number; pages: unknown[]; showTracking: boolean }) => (

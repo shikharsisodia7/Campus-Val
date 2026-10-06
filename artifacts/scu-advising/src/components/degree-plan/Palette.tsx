@@ -50,6 +50,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTrackUsage } from "@/hooks/use-track-usage";
 import { useIsDepartmentAdmin } from "@/hooks/use-is-admin";
+import { FOCUS_REQUIREMENT_EVENT, groupKeyOfStableKey, type FocusRequirementDetail } from "@/lib/planning-focus";
 import { Link } from "wouter";
 import { Pencil } from "lucide-react";
 import type { RequirementGroup } from "@workspace/api-client-react";
@@ -87,6 +88,9 @@ export function Palette() {
     setDialog(null);
     setConfirmReset(false);
   }, [activePlanId]);
+  // Which groups are open. Controlled, so "show me where that went" can open one.
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [flashKey, setFlashKey] = useState<string | null>(null);
   const [destination, setDestination] = useState("");
   const queryClient = useQueryClient();
   const addPlanItem = useAddPlanItem();
@@ -126,6 +130,25 @@ export function Palette() {
   }, [destination, destinationOptions]);
 
   const isCompletedDestination = destination === COMPLETED_DESTINATION;
+
+  // Another region asked to show a requirement (a note was just saved onto it): open its
+  // group, scroll to it and mark it briefly. Fragile on purpose-free: if it is not found, nothing happens.
+  useEffect(() => {
+    const onFocus = (event: Event) => {
+      const { stableKey } = (event as CustomEvent<FocusRequirementDetail>).detail;
+      const groupKey = groupKeyOfStableKey(stableKey);
+      const group = requirements?.find((g) => g.stableKey === groupKey);
+      if (group) setOpenGroups((open) => (open.includes(group.id) ? open : [...open, group.id]));
+      setFlashKey(stableKey);
+      window.setTimeout(() => {
+        const el = document.querySelector<HTMLElement>(`[data-testid="requirements-palette"] [data-stable-key="${CSS.escape(stableKey)}"]`);
+        el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      }, 60);
+      window.setTimeout(() => setFlashKey((k) => (k === stableKey ? null : k)), 2500);
+    };
+    window.addEventListener(FOCUS_REQUIREMENT_EVENT, onFocus);
+    return () => window.removeEventListener(FOCUS_REQUIREMENT_EVENT, onFocus);
+  }, [requirements]);
 
   const [academicYear, term] = destination.split(":");
   const placement = {
@@ -411,7 +434,7 @@ export function Palette() {
               <OrphanedList orphaned={requirementsMeta.orphaned} actions={actions} />
             </div>
           )}
-          <Accordion type="multiple" className="px-1.5 pb-3">
+          <Accordion type="multiple" value={openGroups} onValueChange={setOpenGroups} className="px-1.5 pb-3">
             {requirementsError && !requirements && (
               <p role="alert" className="mx-1.5 mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900" data-testid="requirements-load-error">
                 The requirements couldn&apos;t be loaded right now. Your plan and any edits you made are safe. Reload to try again.
@@ -497,7 +520,8 @@ export function Palette() {
                           key={req.id}
                           data-stable-key={req.stableKey}
                           data-customized={custom ? custom.kind : undefined}
-                          className={`rounded-md border p-2 text-xs ${isHidden ? "border-dashed opacity-60" : ""} ${isCustom ? "border-violet-200 bg-violet-50/30" : status === "completed" ? "border-emerald-200 bg-emerald-50/50" : status === "planned" ? "border-blue-200 bg-blue-50/50" : "border-border bg-card"}`}
+                          data-flash={flashKey === req.stableKey ? "true" : undefined}
+                          className={`rounded-md border p-2 text-xs ${flashKey === req.stableKey ? "ring-2 ring-amber-400 ring-offset-1" : ""} ${isHidden ? "border-dashed opacity-60" : ""} ${isCustom ? "border-violet-200 bg-violet-50/30" : status === "completed" ? "border-emerald-200 bg-emerald-50/50" : status === "planned" ? "border-blue-200 bg-blue-50/50" : "border-border bg-card"}`}
                         >
                           <div className="flex items-start justify-between gap-1.5">
                             <div className="font-medium leading-snug">

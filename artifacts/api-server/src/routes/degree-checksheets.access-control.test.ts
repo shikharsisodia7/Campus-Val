@@ -87,10 +87,23 @@ describe("structural guards", () => {
     const users = SERVER.filter((p) => /degreeChecksheet(Documents|Annotations)Table/.test(text(p))).map(rel);
     // routes/profile.ts ("Delete account") may DELETE the student's checksheets —
     // and nothing else: no select, no update, no insert.
-    expect(users.filter((p) => p !== "routes/profile.ts")).toEqual(["routes/degree-checksheets.ts"]);
+    // lib/checksheets/note-source.ts is the one other reader: provenance for a student's own
+    // My Note ("From: Finance Checksheet"). It is pinned by the next test.
+    expect(users.filter((p) => p !== "routes/profile.ts" && p !== "lib/checksheets/note-source.ts")).toEqual(["routes/degree-checksheets.ts"]);
     const profile = text(join(SRC, "routes", "profile.ts"));
     expect(profile).not.toMatch(/(from|update|insert)\(\s*degreeChecksheet(Documents|Annotations)Table\s*\)/);
     expect(profile).toMatch(/\.delete\(degreeChecksheetDocumentsTable\)/);
+  });
+
+  it("note provenance reads only id + title, and only the signed-in student's own documents", () => {
+    const src = text(join(SRC, "lib", "checksheets", "note-source.ts"));
+    const queries = src.split(/\n(?=export async function)/).slice(1);
+    expect(queries).toHaveLength(2);
+    for (const q of queries) {
+      expect(q).toMatch(/eq\(degreeChecksheetDocumentsTable\.userId, userId\)/);
+      expect(q).not.toMatch(/degreeChecksheetAnnotationsTable|storageKey|\.select\(\)/);
+    }
+    expect(src).not.toMatch(/\.(insert|update|delete)\(/);
   });
 
   it("every route sits behind requireAuth", () => {

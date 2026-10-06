@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RequirementItemCustomizationKind } from "./requirementItemCustomizationKind";
+import type { RequirementItemCustomizationNoteSource } from "./requirementItemCustomizationNoteSource";
 
 /**
  * The student's PLANNING customization of a requirement. Not an SCU requirement and never a claim about the degree.
@@ -32,5 +33,7 @@ export interface RequirementItemCustomization {
   sourceVersionAtEdit?: string | null;
   /** @nullable */
   sourceVersionNow?: string | null;
+  /** Set when the note was transferred from the student's own Degree Checksheet. */
+  noteSource?: RequirementItemCustomizationNoteSource;
   updatedAt: string;
 }

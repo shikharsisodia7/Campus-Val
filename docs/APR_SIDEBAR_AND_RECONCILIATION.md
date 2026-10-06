@@ -7,6 +7,8 @@
 > as exported and is not re-evaluated. The code this document refers to has been
 > removed. See [APR_SOURCE_FIDELITY.md](APR_SOURCE_FIDELITY.md). Kept for history only.
 
+> **2026-10-06:** the full APR page now sits beside the Planning Requirements sidebar, and the compact APR sidebar also appears beside Degree Checksheets. The APR itself (data, rendering, parsing, privacy) is unchanged. See [CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md).
+
 ## What changed
 
 The professor's correction: the right-hand APR column in Degree Plan and

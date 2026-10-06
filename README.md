@@ -161,6 +161,8 @@ for each item are stored separately. They are private to the student, are not sh
 with a plan, and do not change any plan or requirement
 ([docs/DEGREE_CHECKSHEETS.md](docs/DEGREE_CHECKSHEETS.md)).
 
+The Degree Checksheets page is a three-way comparison — **Planning Requirements | Degree Checksheet | Workday APR** — and the Academic Progress Report page puts the same Planning Requirements beside the full APR. A student can explicitly add information from a checksheet to a My Note or a My requirement on the plan they choose; nothing is matched or ticked automatically, and the checksheet, the APR and Department Notes are never changed by it ([docs/CROSS_REFERENCE_WORKSPACE.md](docs/CROSS_REFERENCE_WORKSPACE.md)).
+
 ## Workday integration
 
 **Status: ready for SCU authorization — not connected.** CampusVal has no Workday

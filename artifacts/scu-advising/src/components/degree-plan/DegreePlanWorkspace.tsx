@@ -1,16 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
-import {
-  useListPlans,
-  useGetPlan,
-  useGetProfile,
-  useGetDegreeRequirements,
-  useGetPlanRequirements,
-  useGetScheduleAvailability,
-  useListCourses,
-  useCreatePlan,
-  getGetPlanQueryKey,
-  getGetPlanRequirementsQueryKey,
-} from "@workspace/api-client-react";
+import { useState } from "react";
+import { useCreatePlan } from "@workspace/api-client-react";
+import { usePlanningWorkspace } from "./usePlanningWorkspace";
+import { PLANNING_THREE_COLUMNS, REQUIREMENTS_DRAWER_WIDTH } from "@/lib/workspace-layout";
 import { DegreePlanProvider } from "./DegreePlanContext";
 import { Palette } from "./Palette";
 import { Board } from "./Board";
@@ -33,185 +24,25 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
-const LAST_TENTATIVE_PLAN_KEY = "campusval.lastTentativePlanId";
-
 export function DegreePlanWorkspace({
   mode = "degree",
 }: DegreePlanWorkspaceProps) {
-  const { data: plansList, isLoading: plansLoading } = useListPlans();
-  const [activePlanId, setActivePlanId] = useState<number | null>(null);
+  // The plan list, the active plan and its requirements are the shared planning
+  // data (usePlanningWorkspace): the same hook feeds the comparison pages.
+  const {
+    plans,
+    degreePlan,
+    plansLoading,
+    planLoading,
+    activePlan,
+    activePlanId,
+    selectPlan,
+    contextValue,
+  } = usePlanningWorkspace(mode);
   const queryClient = useQueryClient();
-
   const [leftOpen, setLeftOpen] = useState(false);
-
   const createPlan = useCreatePlan();
   const [creating, setCreating] = useState(false);
-
-  useEffect(() => {
-    if (!activePlanId && plansList?.plans) {
-      if (mode === "tentative") {
-        // Prefer the plan the user was last working on (survives reloads).
-        // Fall back to the first tentative plan only if the remembered one
-        // no longer exists (e.g. it was deleted or promoted).
-        const rememberedRaw = sessionStorage.getItem(LAST_TENTATIVE_PLAN_KEY);
-        const rememberedId = rememberedRaw ? Number(rememberedRaw) : null;
-        const remembered = rememberedId
-          ? plansList.plans.find(
-              (p) => p.id === rememberedId && p.planType === "tentative",
-            )
-          : undefined;
-        const tentativePlan =
-          remembered ?? plansList.plans.find((p) => p.planType === "tentative");
-        if (tentativePlan) {
-          setActivePlanId(tentativePlan.id);
-        }
-        // else: show starter state (activePlanId stays null)
-      } else {
-        const defaultPlan =
-          plansList.plans.find((p) => p.planType === "degree") ||
-          plansList.plans[0];
-        if (defaultPlan) {
-          setActivePlanId(defaultPlan.id);
-        }
-      }
-    }
-  }, [plansList, activePlanId, mode]);
-
-  const { data: activePlan, isLoading: planLoading } = useGetPlan(
-    activePlanId!,
-    {
-      query: {
-        enabled: !!activePlanId,
-        queryKey: getGetPlanQueryKey(activePlanId!),
-      },
-    },
-  );
-
-  const selectPlan = (planId: number | null) => {
-    setActivePlanId(planId);
-    if (mode === "tentative") {
-      // Only remember an id that's actually a tentative plan — selecting the
-      // Degree Plan (e.g. via the Degree Plan entry, or the post-delete
-      // fallback) must not poison the remembered-tentative-plan key.
-      const isTentative =
-        planId !== null &&
-        plansList?.plans.some(
-          (p) => p.id === planId && p.planType === "tentative",
-        );
-      if (isTentative) {
-        sessionStorage.setItem(LAST_TENTATIVE_PLAN_KEY, String(planId));
-      } else {
-        sessionStorage.removeItem(LAST_TENTATIVE_PLAN_KEY);
-      }
-    }
-    if (planId !== null) {
-      // A tentative plan must always render from its own detail query. This
-      // prevents the previous plan's cached detail from briefly appearing
-      // after a duplicate/create/switch operation.
-      queryClient.invalidateQueries({ queryKey: getGetPlanQueryKey(planId) });
-    }
-  };
-
-  const { data: profile } = useGetProfile();
-  // Plan-scoped scenario programs come from the "Programs for this plan"
-  // editor (activePlan.programs); legacy metadata.scenarioMajors/Minors are
-  // still honored for previously saved scenarios.
-  const scenarioMajorQuery =
-    [
-      ...(activePlan?.programs?.additionalMajors ?? []),
-      ...(activePlan?.metadata?.scenarioMajors ?? []),
-    ].join(",") || undefined;
-  const scenarioMinorQuery =
-    [
-      ...(activePlan?.programs?.minors ?? []),
-      ...(activePlan?.metadata?.scenarioMinors ?? []),
-    ].join(",") || undefined;
-  const professionalGoalsQuery = activePlan?.programs?.professionalGoals?.length
-    ? JSON.stringify(activePlan.programs.professionalGoals)
-    : undefined;
-  // Courses planned in THIS plan, so a major course that carries a Core
-  // designation marks the matching Core requirement as planned instead of
-  // leaving it open and pushing the student toward a duplicate course.
-  // Plan-scoped by construction: a tentative scenario sends its own items.
-  const plannedCoursesQuery =
-    Array.from(
-      new Set(
-        (activePlan?.items ?? [])
-          .filter((i) => i.itemType === "course" && !!i.courseCode)
-          .map((i) => i.courseCode!.toUpperCase()),
-      ),
-    ).join(",") || undefined;
-  // Plan-scoped PRIMARY major (from "Set / Change Primary Major"). It REPLACES
-  // the profile major as the primary for THIS plan's requirement view, so a
-  // tentative scenario workshops a different major without touching the Degree
-  // Plan. Part of the query key so rapid A→B→C switching always renders the
-  // latest selection — a slower earlier response can never overwrite it.
-  const primaryMajorQuery = activePlan?.programs?.primaryMajor || undefined;
-  // Requirements come from the ACTIVE PLAN when there is one: the server builds
-  // them from that plan's programs and planned courses and composes the plan's
-  // planning customizations over them. The query key still carries the plan
-  // inputs, so a change to any of them refetches (and rapid A→B→C switching
-  // always renders the latest). Without a plan (first load, empty tentative
-  // state) the plan-less endpoint answers exactly as before.
-  const { data: planReqsData, isError: planReqsError } = useGetPlanRequirements(activePlanId ?? 0, {
-    query: {
-      enabled: activePlanId !== null,
-      queryKey: [
-        ...getGetPlanRequirementsQueryKey(activePlanId ?? 0),
-        primaryMajorQuery,
-        scenarioMajorQuery,
-        scenarioMinorQuery,
-        professionalGoalsQuery,
-        plannedCoursesQuery,
-      ],
-    },
-  });
-  const { data: legacyReqsData } = useGetDegreeRequirements(
-    {
-      ...(primaryMajorQuery ? { primaryMajor: primaryMajorQuery } : {}),
-      ...(scenarioMajorQuery ? { scenarioMajors: scenarioMajorQuery } : {}),
-      ...(scenarioMinorQuery ? { scenarioMinors: scenarioMinorQuery } : {}),
-      ...(professionalGoalsQuery
-        ? { professionalGoals: professionalGoalsQuery }
-        : {}),
-      ...(plannedCoursesQuery
-        ? { plannedCourses: plannedCoursesQuery }
-        : {}),
-    },
-    {
-      query: {
-        // Only when there is no plan at all to read requirements from. While
-        // plans are loading, or a plan is about to be selected, the plan
-        // endpoint answers: asking here too would flash the un-customized list.
-        enabled: activePlanId === null && !plansLoading && (plansList?.plans?.length ?? 0) === 0,
-        queryKey: [
-          "/api/requirements",
-          primaryMajorQuery,
-          scenarioMajorQuery,
-          scenarioMinorQuery,
-          professionalGoalsQuery,
-          plannedCoursesQuery,
-        ],
-      },
-    },
-  );
-  const reqsData = activePlanId !== null ? planReqsData : legacyReqsData;
-  const requirementsMeta = useMemo(
-    () =>
-      activePlanId !== null && planReqsData
-        ? {
-            sourceLabel: planReqsData.requirementsSource.label,
-            policyDecided: planReqsData.requirementsSource.policyDecided,
-            summary: planReqsData.customizations.summary,
-            orphaned: planReqsData.customizations.orphaned,
-          }
-        : null,
-    [activePlanId, planReqsData],
-  );
-  const { data: scheduleAvailability } = useGetScheduleAvailability();
-  const { data: catalog } = useListCourses({});
-
-  const degreePlan = plansList?.plans.find((p) => p.planType === "degree");
 
   const handleCreateTentative = (copyFromPlanId?: number) => {
     setCreating(true);
@@ -237,7 +68,7 @@ export function DegreePlanWorkspace({
 
   if (plansLoading || (activePlanId && planLoading)) {
     return (
-      <div className="grid h-[calc(100vh-14rem)] gap-3 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)_minmax(330px,380px)] 2xl:grid-cols-[minmax(320px,400px)_minmax(0,1fr)_minmax(400px,460px)]">
+      <div className={`grid h-[calc(100vh-14rem)] gap-3 ${PLANNING_THREE_COLUMNS}`}>
         <Skeleton className="hidden h-full rounded-md xl:block" />
         <Skeleton className="h-full min-w-0 rounded-md" />
         <Skeleton className="hidden h-full rounded-md xl:block" />
@@ -300,19 +131,7 @@ export function DegreePlanWorkspace({
   }
 
   return (
-    <DegreePlanProvider
-      value={{
-        activePlan,
-        activePlanId,
-        setActivePlanId: selectPlan,
-        profile,
-        requirements: reqsData?.groups,
-        requirementsMeta,
-        requirementsError: activePlanId !== null && planReqsError,
-        scheduleAvailability,
-        catalog,
-      }}
-    >
+    <DegreePlanProvider value={contextValue}>
       <div className="xl:hidden flex items-center justify-between mb-4 bg-card border border-border p-2 rounded-md shadow-sm">
         <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
           <SheetTrigger asChild>
@@ -322,7 +141,7 @@ export function DegreePlanWorkspace({
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-[min(24rem,92vw)] p-0"
+            className={`${REQUIREMENTS_DRAWER_WIDTH} p-0`}
             onEscapeKeyDown={() => setLeftOpen(false)}
             onPointerDownOutside={() => setLeftOpen(false)}
           >
@@ -341,10 +160,10 @@ export function DegreePlanWorkspace({
         </AprReferenceSheet>
       </div>
 
-      <DegreePlanToolbar plans={plansList?.plans ?? []} mode={mode} />
+      <DegreePlanToolbar plans={plans} mode={mode} />
 
       <div
-        className="flex h-[calc(100vh-19rem)] flex-col items-stretch gap-3 xl:grid xl:h-[calc(100vh-14rem)] xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)_minmax(330px,380px)] 2xl:grid-cols-[minmax(320px,400px)_minmax(0,1fr)_minmax(400px,460px)]"
+        className={`flex h-[calc(100vh-19rem)] flex-col items-stretch gap-3 xl:grid xl:h-[calc(100vh-14rem)] ${PLANNING_THREE_COLUMNS}`}
         data-testid="degree-plan-layout"
       >
         <div
@@ -357,7 +176,7 @@ export function DegreePlanWorkspace({
           className="h-full min-w-0 overflow-hidden"
           data-testid="degree-plan-board-column"
         >
-          <Board plans={plansList?.plans ?? []} />
+          <Board plans={plans} />
         </div>
         <div
           className="hidden h-full min-w-0 overflow-hidden xl:block"

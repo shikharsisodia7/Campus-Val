@@ -7,6 +7,8 @@ import { entriesByPlace, type ChecksheetTracking, type TrackingEntry, type Track
 import { cellKey, itemKey } from "@/hooks/use-degree-checksheets";
 import { TRACKING_HINT } from "./TrackingControls";
 import { PICKABLE, PickItemToolbar, TrackedItem } from "./TrackedItem";
+import { useTransfer } from "./TransferContext";
+import { ListPlus } from "lucide-react";
 import { CalculatedCellsNote, PlaceHere, RelinkBanner, TrackingCellControls, canHold } from "./TrackingCell";
 
 /**
@@ -100,7 +102,8 @@ export function ChecksheetSpreadsheetView({
 }
 
 /** The width a student column needs for its controls, in rem. */
-const CONTROL_WIDTH: Record<TrackingField, number> = { status: 9.5, term: 13, both: 13 };
+// Compact: the controls are small selects that open as overlays, so a column no longer needs the room of a form.
+const CONTROL_WIDTH: Record<TrackingField, number> = { status: 7.5, term: 9.5, both: 9.5 };
 
 function SheetGrid({
   sheet,
@@ -124,6 +127,12 @@ function SheetGrid({
   onRelinkDone: () => void;
 }) {
   const grid = useMemo(() => buildGrid(sheet), [sheet]);
+  const transfer = useTransfer();
+  /** One row's text in the department's own words, for "Add to planning". */
+  const rowText = (r: number): string =>
+    Array.from({ length: sheet.columnCount }, (_, c) => grid.cellAt.get(`${r}:${c}`)?.text.trim() ?? "")
+      .filter(Boolean)
+      .join("  ·  ");
   const columns = useMemo(() => Array.from({ length: sheet.columnCount }, (_, c) => c), [sheet.columnCount]);
   const trackingCells = useMemo(() => {
     const map = new Map<string, ChecksheetTrackingCell>();
@@ -167,7 +176,7 @@ function SheetGrid({
             : "Shown as uploaded, without your tracking."}
         </caption>
         <colgroup>
-          <col style={{ width: "2.75rem" }} />
+          <col style={{ width: transfer ? "4.25rem" : "2.75rem" }} />
           {columns.map((c) => {
             const width = sheet.columnWidths[c];
             // Excel widths are in characters; ~0.6rem per character, within sane bounds.
@@ -205,6 +214,18 @@ function SheetGrid({
                 className="sticky left-0 z-10 border border-border bg-muted px-1 py-0.5 text-right text-[10px] font-normal tabular-nums text-muted-foreground"
               >
                 {r + 1}
+                {transfer && rowText(r) && (
+                  <button
+                    type="button"
+                    className="ml-0.5 inline-flex h-5 w-5 items-center justify-center rounded align-middle text-primary hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                    aria-label={`Add row ${r + 1} to my Planning Requirements`}
+                    title="Add to planning"
+                    onClick={() => transfer({ text: rowText(r), anchor: `${sheet.name}!row ${r + 1}` })}
+                    data-testid={`checksheet-row-transfer-${sheetPosition}-${r}`}
+                  >
+                    <ListPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                )}
               </th>
               {columns.map((c) => {
                 const key = `${r}:${c}`;

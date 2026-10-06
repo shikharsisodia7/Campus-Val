@@ -265,6 +265,8 @@ export function MyTrackingPanel({
   );
 }
 
+import { useTransfer } from "./TransferContext";
+
 function EntryRow({
   entry,
   tracking,
@@ -281,6 +283,7 @@ function EntryRow({
 }) {
   const noteId = useId();
   const labelId = useId();
+  const transfer = useTransfer();
   // Held locally so the field can be emptied while typing a new name.
   const [labelDraft, setLabelDraft] = useState(entry.itemLabel ?? "");
   return (
@@ -339,6 +342,21 @@ function EntryRow({
         onChange={(term, termYear) => tracking.change(entry.key, { term, termYear })}
         testId={`checksheet-entry-term-${entry.key}`}
       />
+      <div className="flex items-center gap-1">
+      {transfer && (entry.note || entry.itemLabel) && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => transfer({ text: [entry.itemLabel, entry.note].filter(Boolean).join(": ") })}
+          aria-label={`Add ${name} to my Planning Requirements`}
+          title="Add to planning"
+          data-testid={`checksheet-entry-transfer-${entry.key}`}
+        >
+          <ListPlus className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      )}
       <Button
         type="button"
         variant="outline"
@@ -350,6 +368,7 @@ function EntryRow({
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
       </Button>
+      </div>
     </li>
   );
 }

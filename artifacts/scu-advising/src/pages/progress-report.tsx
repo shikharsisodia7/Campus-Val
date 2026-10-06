@@ -1,7 +1,8 @@
 import { useId, useState } from "react";
 import { Link } from "wouter";
 import type { ProgressReportCategory } from "@workspace/api-client-react";
-import { AppShell, PageHeader, PageContent } from "@/components/AppShell";
+import { AppShell, PageHeader } from "@/components/AppShell";
+import { PlanningComparisonWorkspace } from "@/components/degree-plan/PlanningComparisonWorkspace";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +20,7 @@ import { APR_CATEGORY_OPTIONS } from "@/components/progress-report/apr-format";
  * each in its own collapsible container showing the workbook as Workday
  * exported it. The compact, grade-free version lives in the planning sidebar.
  */
-export default function ProgressReportPage() {
-  useTrackUsage("apr_upload");
+function FullAprWorkspace() {
   const { data, isLoading, isError, refetch } = useAprDocuments();
   const [adding, setAdding] = useState(false);
 
@@ -30,12 +30,7 @@ export default function ProgressReportPage() {
   const showForm = available === true && (adding || reports.length === 0);
 
   return (
-    <AppShell>
-      <PageHeader
-        title="Academic Progress Reports"
-        subtitle="Your Workday Academic Progress Reports, shown as exported. Workday is the definitive reference for degree completion — CampusVal displays each report as of the date you uploaded it and does not re-evaluate it."
-      />
-      <PageContent>
+    <div className="space-y-4 pr-1" data-testid="full-apr-workspace">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm" className="h-8 text-xs">
@@ -141,7 +136,33 @@ export default function ProgressReportPage() {
             ))}
           </section>
         )}
-      </PageContent>
+    </div>
+  );
+}
+
+/**
+ * The full Academic Progress Report page, beside the student's Planning
+ * Requirements:
+ *
+ *   Planning Requirements | Full APR
+ *
+ * The compact APR sidebar is deliberately NOT shown here: the whole center is
+ * already the APR. Nothing about the APR (its data, rendering, privacy or
+ * management) changes; an edit made in the sidebar is only a personal planning
+ * note on the selected plan.
+ */
+export default function ProgressReportPage() {
+  useTrackUsage("apr_upload");
+  return (
+    <AppShell>
+      <PageHeader
+        compact
+        title="Academic Progress Reports"
+        subtitle="Your Workday Academic Progress Reports, shown as exported. Workday is the definitive reference for degree completion."
+      />
+      <div className="mx-auto max-w-[1600px] px-4 py-3 sm:px-6 lg:px-8">
+        <PlanningComparisonWorkspace main={<FullAprWorkspace />} mainLabel="Full Academic Progress Reports" showCompactApr={false} />
+      </div>
     </AppShell>
   );
 }

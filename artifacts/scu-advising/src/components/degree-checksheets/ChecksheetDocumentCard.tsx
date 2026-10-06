@@ -18,6 +18,7 @@ import {
   FileText,
   FileType2,
   Info,
+  ListPlus,
   Loader2,
   Pencil,
   RefreshCw,
@@ -58,6 +59,9 @@ import { ChecksheetFileZone } from "./ChecksheetFileZone";
 import { ChecksheetImageView } from "./ChecksheetImageView";
 import { ChecksheetSpreadsheetView } from "./ChecksheetSpreadsheetView";
 import { MyTrackingPanel } from "./MyTrackingPanel";
+import { AddToPlanningDialog, type TransferSource } from "./AddToPlanningDialog";
+import { TransferProvider, type TransferStart } from "./TransferContext";
+import { useOptionalDegreePlanContext } from "@/components/degree-plan/DegreePlanContext";
 import { SaveIndicator } from "./TrackingControls";
 import {
   FORMAT_LABEL,
@@ -104,6 +108,10 @@ export function ChecksheetDocumentCard({
   const [place, setPlace] = useState<{ key: string; at: number } | null>(null);
   /** The detached cell entry the student is putting back, while they choose its cell. */
   const [relinkKey, setRelinkKey] = useState<string | null>(null);
+  // "Add to planning" exists only where Planning Requirements are mounted beside this document.
+  const planning = useOptionalDegreePlanContext();
+  const [transfer, setTransfer] = useState<TransferSource | null>(null);
+  const startTransfer = planning?.activePlan ? (source: TransferStart) => setTransfer({ ...source, documentId: document.id, documentTitle: document.title }) : null;
   const panelId = useId();
   const { toast } = useToast();
   const invalidate = useInvalidateChecksheets();
@@ -291,6 +299,22 @@ export function ChecksheetDocumentCard({
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <SaveIndicator state={tracking.saveState} onRetry={tracking.retry} testId={`checksheet-save-${document.id}`} />
+                {startTransfer && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1.5 text-xs"
+                    onClick={() =>
+                      // Whatever the student has selected in the document, to start from.
+                      startTransfer({ text: window.getSelection()?.toString() ?? "" })
+                    }
+                    data-testid={`checksheet-add-to-planning-${document.id}`}
+                  >
+                    <ListPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                    Add to planning
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -320,6 +344,7 @@ export function ChecksheetDocumentCard({
               </p>
             )}
 
+            <TransferProvider start={startTransfer}>
             <Preview
               document={document}
               tracking={tracking}
@@ -356,9 +381,12 @@ export function ChecksheetDocumentCard({
                 />
               )
             )}
+            </TransferProvider>
           </div>
         )}
       </div>
+
+      {startTransfer && <AddToPlanningDialog open={!!transfer} onOpenChange={(o) => !o && setTransfer(null)} source={transfer} />}
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent data-testid="checksheet-delete-dialog">

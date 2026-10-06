@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import type { DegreeChecksheetCategory } from "@workspace/api-client-react";
 import { AlertTriangle, ClipboardCheck, ExternalLink, Loader2, Upload } from "lucide-react";
-import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
+import { AppShell, PageHeader } from "@/components/AppShell";
+import { PlanningComparisonWorkspace } from "@/components/degree-plan/PlanningComparisonWorkspace";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,8 +29,7 @@ const FILTER_FROM = 4;
  * to the student, and nothing here changes the Degree Plan, the requirements
  * shown beside it, the Quarter Plan or an Academic Progress Report.
  */
-export default function DegreeChecksheetsPage() {
-  useTrackUsage("degree_checksheets");
+function ChecksheetWorkspace() {
   const { data, isLoading, isError, refetch } = useChecksheetDocuments();
   const [uploading, setUploading] = useState(false);
   const [filter, setFilter] = useState<DegreeChecksheetCategory | "all">("all");
@@ -76,12 +76,7 @@ export default function DegreeChecksheetsPage() {
   );
 
   return (
-    <AppShell>
-      <PageHeader
-        title="Degree Checksheets"
-        subtitle="Keep your department's major and minor checksheets, four-year plans and advising resources in one place, and track your own progress on them."
-      />
-      <PageContent>
+    <div className="space-y-4 pr-1" data-testid="checksheet-workspace">
         <Card className="space-y-2 p-4" data-testid="card-checksheets-help">
           <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
             <li>
@@ -208,7 +203,32 @@ export default function DegreeChecksheetsPage() {
             setFilter("all");
           }}
         />
-      </PageContent>
+    </div>
+  );
+}
+
+/**
+ * Degree Checksheets, in the three-way comparison workspace:
+ *
+ *   Planning Requirements | Degree Checksheets | Workday APR (compact)
+ *
+ * The left and right regions are the same sidebars Degree Plan uses (see
+ * PlanningComparisonWorkspace); the center is this page's own content. Comparing
+ * is manual on purpose: nothing here checks a checksheet item off because an APR
+ * row looks similar.
+ */
+export default function DegreeChecksheetsPage() {
+  useTrackUsage("degree_checksheets");
+  return (
+    <AppShell>
+      <PageHeader
+        compact
+        title="Degree Checksheets"
+        subtitle="Compare your planning requirements, your department's checksheet and your Workday APR side by side."
+      />
+      <div className="mx-auto max-w-[1600px] px-4 py-3 sm:px-6 lg:px-8">
+        <PlanningComparisonWorkspace main={<ChecksheetWorkspace />} mainLabel="Degree Checksheets" showCompactApr />
+      </div>
     </AppShell>
   );
 }

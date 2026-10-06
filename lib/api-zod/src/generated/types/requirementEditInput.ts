@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { NoteSourceInput } from "./noteSourceInput";
 
 export interface RequirementEditInput {
   /** @maxLength 300 */
@@ -20,4 +21,5 @@ export interface RequirementEditInput {
    */
   note?: string | null;
   hidden?: boolean;
+  noteSource?: NoteSourceInput;
 }
