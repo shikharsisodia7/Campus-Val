@@ -20,15 +20,19 @@ Code: `artifacts/api-server/src/data/graduation-paths.ts`. Tests:
 | Civil, Environmental and Sustainable Engineering (`CENG`) | Yes | `prescribed` | **Yes** (MATH 11 track) | [CESE 4-Year Planning Guide](https://www.scu.edu/media/school-of-engineering/pdfs/civil-engineering/CESE_4yearPlan_MATH11_2026.pdf) | 2026-09-17 |
 | Bioengineering (`BIOE`) | Yes | `prescribed` | **Yes** (Biomolecular track) | [BIOE 4-Year Plan — Biomolecular](https://www.scu.edu/media/school-of-engineering/pdfs/bioengineering/BIOE-4-Year-Plan_Biomolecular-track_2027-1.pdf) (Rev. 5/24/2024) | 2026-09-17 |
 | Web Design and Engineering (`WDE`) | Yes | `prescribed` | **Yes** | [WDE Course Plan](https://www.scu.edu/media/school-of-engineering/pdfs/WDECoursePlan-Standard.pdf) (last modified 1/16/2024) | 2026-09-17 |
-| Mechanical Engineering (`MECH`) | Yes | `recommended` | **No — reference only** | [MECH Curriculum Flow Chart](https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/2023-24-Four-Year-Plan-MECH.pdf) (AY23-24) | 2026-09-17 |
-| General Engineering (`GENR`) | Yes | `recommended` | **No — reference only** | [General Engineering Sample 4-Year Plan (MATH 11+)](https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/GENG_4-yrPlans_AY24-25--Math-11.pdf) | 2026-09-17 |
+| Mechanical Engineering (`MECH`) | Yes | `prescribed` (2026-10-06) | **Yes** | [MECH Curriculum Flow Chart](https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/2023-24-Four-Year-Plan-MECH.pdf) (AY23-24) | 2026-09-17 |
+| General Engineering (`GENR`) | Yes | `prescribed` (2026-10-06) | **Yes** | [General Engineering Sample 4-Year Plan (MATH 11+)](https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/GENG_4-yrPlans_AY24-25--Math-11.pdf) | 2026-09-17 |
 
 **Result: 8/8 current undergraduate School of Engineering majors have an
 identified official SCU source; 6/8 are fully preloadable (`prescribed`);
 2/8 have an official source linked but are honestly marked not-yet-preloadable
 (`recommended`).**
 
-## Why MECH and GENR are "recommended" and not "prescribed"
+> **Update 2026-10-06.** MECH and GENR are now `prescribed`. Their official PDFs, rendered and read, are grids whose rows are the quarters of each year, so every course
+> sits in a stated quarter (arrows only show prerequisites); they were transcribed course by course (ENGR 193, ENGR 163A/B and MECH 142 are printed by the sources but absent
+> from the 2025-26 catalog snapshot, and load as placeholders). All 8 School of Engineering majors are now official and preloadable. The section below is the earlier reasoning.
+
+## Why MECH and GENR were "recommended" and not "prescribed"
 
 Every other Engineering major's official source is a per-quarter *table*
 (row = quarter, column = course) that can be transcribed unambiguously. MECH's

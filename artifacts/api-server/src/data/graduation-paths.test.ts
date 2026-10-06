@@ -37,10 +37,10 @@ describe("graduation path sequence trust", () => {
     }
   });
 
-  it("marks the two not-yet-reconciled SOE majors as recommended (real source, flow-chart format not yet safely reconciled) — never prescribed", () => {
+  it("MECH and GENR are prescribed: transcribed from their official quarter-by-quarter charts, each citing its source", () => {
     for (const major of ["MECH", "GENR"]) {
       const path = getGraduationPath("four_year", major);
-      expect(path.sequenceTrust, `${major} should not be prescribed`).toBe("recommended");
+      expect(path.sequenceTrust, `${major} should be prescribed`).toBe("prescribed");
       expect(path.provenance.sourceUrl, `${major} should link a real source`).toMatch(
         /^https:\/\/www\.scu\.edu\//,
       );
@@ -88,12 +88,12 @@ describe("getFourYearIndex — 'Load Four-Year Plan' dropdown source list", () =
     }
   });
 
-  it("includes MECH and GENR as recommended (reference-only), never prescribed", () => {
+  it("includes MECH and GENR as prescribed, with their official source", () => {
     const index = getFourYearIndex();
     for (const code of ["MECH", "GENR"]) {
       const entry = index.find((m) => m.code === code);
       expect(entry, `${code} should be in the index`).toBeDefined();
-      expect(entry!.sequenceTrust).toBe("recommended");
+      expect(entry!.sequenceTrust).toBe("prescribed");
     }
   });
 

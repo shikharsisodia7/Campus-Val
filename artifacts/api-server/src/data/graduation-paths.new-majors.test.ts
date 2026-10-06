@@ -70,9 +70,9 @@ describe("newly-added majors", () => {
     }
   });
 
-  it("WDE and EE are prescribed (reconciled), GENR is recommended (official source, not yet reconciled)", () => {
+  it("WDE and EE are prescribed (reconciled), GENR is prescribed (transcribed from the official grid 2026-10-06)", () => {
     expect(getGraduationPath("four_year", "WDE").sequenceTrust).toBe("prescribed");
     expect(getGraduationPath("four_year", "EE").sequenceTrust).toBe("prescribed");
-    expect(getGraduationPath("four_year", "GENR").sequenceTrust).toBe("recommended");
+    expect(getGraduationPath("four_year", "GENR").sequenceTrust).toBe("prescribed");
   });
 });

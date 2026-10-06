@@ -7,7 +7,7 @@
  * template, publishing a new version, or archiving it never touches a plan that
  * was already loaded. Loading never removes anything from a plan.
  */
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import {
   academicPlansTable,
   db,
@@ -59,6 +59,8 @@ export function samplePlanSummary(r: SamplePlanRow) {
     title: r.title,
     description: r.description,
     planLength: r.planLength,
+    /** official_department | admin_entry | campusval_generated (an example CampusVal built from the major's requirements, not an SCU plan). */
+    sourceType: r.sourceType,
     academicYear: r.academicYear,
     sourceLabel: r.sourceLabel,
     sourceUrl: r.sourceUrl,
@@ -70,7 +72,9 @@ export function samplePlanSummary(r: SamplePlanRow) {
 /** Published plans, newest version first within a program. */
 export async function listPublished() {
   const rows = await db.select().from(samplePlansTable).where(eq(samplePlansTable.status, "published")).orderBy(asc(samplePlansTable.program), asc(samplePlansTable.title));
-  return rows.sort((a, b) => b.version.localeCompare(a.version));
+  // Official plans first, then examples CampusVal generated; newest version first within each.
+  const rank = (r: SamplePlanRow) => (r.sourceType === "campusval_generated" ? 1 : 0);
+  return rows.sort((a, b) => rank(a) - rank(b) || b.version.localeCompare(a.version));
 }
 
 export async function getSamplePlan(id: number) {
@@ -80,7 +84,13 @@ export async function getSamplePlan(id: number) {
     .select()
     .from(samplePlanItemsTable)
     .where(eq(samplePlanItemsTable.samplePlanId, id))
-    .orderBy(asc(samplePlanItemsTable.year), asc(samplePlanItemsTable.position), asc(samplePlanItemsTable.id));
+    // Year, then quarter order, then position: ordering by position alone interleaved the quarters.
+    .orderBy(
+      asc(samplePlanItemsTable.year),
+      asc(sql`case ${samplePlanItemsTable.term} when 'fall' then 0 when 'winter' then 1 when 'spring' then 2 else 3 end`),
+      asc(samplePlanItemsTable.position),
+      asc(samplePlanItemsTable.id),
+    );
   return { plan, items };
 }
 
@@ -220,7 +230,7 @@ export interface SamplePlanImport {
   description?: string | null;
   planLength: (typeof SAMPLE_PLAN_LENGTHS)[number];
   academicYear?: string | null;
-  sourceType: "official_department" | "admin_entry";
+  sourceType: "official_department" | "admin_entry" | "campusval_generated";
   sourceLabel: string;
   sourceUrl?: string | null;
   sourceReference?: string | null;
@@ -241,7 +251,8 @@ export async function importSamplePlan(actor: Actor, input: SamplePlanImport, op
     .where(and(eq(samplePlansTable.slug, input.slug), eq(samplePlansTable.version, input.version)))
     .limit(1);
   const fingerprint = (items: SampleItemInput[]) =>
-    JSON.stringify(items.map((i) => [i.year, i.term, i.itemType, i.courseCode ? normalizeCourseCode(i.courseCode) : null, i.label ?? null]));
+    // Order-insensitive within the plan: a source lists a grid row by row, the database stores it quarter by quarter.
+    JSON.stringify(items.map((i) => JSON.stringify([i.year, i.term, i.itemType, i.courseCode ? normalizeCourseCode(i.courseCode) : null, i.label ?? null])).sort());
   if (existing) {
     const current = await getSamplePlan(existing.id);
     const same = fingerprint(current!.items.map(toInput)) === fingerprint(input.items);

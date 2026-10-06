@@ -36,6 +36,7 @@ interface SamplePlanSummary {
   title: string;
   description: string | null;
   planLength: "first_year" | "two_year" | "four_year" | "other";
+  sourceType?: "official_department" | "admin_entry" | "campusval_generated";
   academicYear: string | null;
   sourceLabel: string | null;
   sourceUrl: string | null;
@@ -270,6 +271,9 @@ export function SamplePlanLoader() {
                         <span className="ml-1.5 inline-flex flex-wrap gap-1 align-middle">
                           <Badge variant="secondary" className="text-[10px]">{LENGTH_LABEL[p.planLength]}</Badge>
                           <Badge variant="outline" className="text-[10px]">{p.academicYear ?? p.version}</Badge>
+                          {p.sourceType === "campusval_generated" && (
+                            <Badge className="border-amber-300 bg-amber-100 text-[10px] text-amber-900" data-testid={`sample-plan-example-${p.id}`}>Example, not an SCU plan</Badge>
+                          )}
                         </span>
                         {p.sourceReference && <span className="block text-muted-foreground">{p.sourceReference}</span>}
                       </span>
@@ -289,6 +293,11 @@ export function SamplePlanLoader() {
                       </a>
                     )}
                   </div>
+                  {preview.data.sourceType === "campusval_generated" && (
+                    <p role="note" className="rounded border border-amber-300 bg-amber-50 p-1.5 text-[11px] text-amber-900" data-testid="sample-plan-example-warning">
+                      This is an example CampusVal arranged from the major&apos;s requirements. SCU does not publish a four-year plan for this major. Check it with your advisor before relying on it.
+                    </p>
+                  )}
                   <p className="text-[11px] text-muted-foreground">
                     Source: {preview.data.sourceLabel ?? "not stated"} · version {preview.data.version}. A planning template, not an official guarantee of completion.
                   </p>

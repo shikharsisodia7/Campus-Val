@@ -203,7 +203,8 @@ Published planning templates a student loads into a **new Tentative Degree Plan*
 pnpm --filter @workspace/api-server run import:sample-plans -- --engineering --cas-dir <folder of .docx> [--apply] [--publish] [--version <label>]
 ```
 
-`--engineering`: the six School of Engineering four-year plans CampusVal already carries as **prescribed** (reconciled against SCU's published plans; the source link travels with each).
+`--engineering`: the eight School of Engineering four-year plans CampusVal carries as **prescribed** (reconciled against SCU's published plans; the source link travels with each; General Engineering and Mechanical were transcribed from their official quarter grids on 2026-10-06).
+`--generated`: for every major with **no** official four-year plan (the 42 Arts and Sciences and Leavey majors), the example sequence CampusVal builds from the major's own requirements, stored as `campusval_generated`, listed after official plans, badged **"Example, not an SCU plan"** in the picker and warned in the preview. With it, **all 50 majors have a four-year plan to load**; only 8 are official.
 `--cas-dir`: the College of Arts and Sciences first-year course plans (Fall / Winter / Spring grids; every "Option" is its own plan). The Leavey School of Business publishes no sample plan, so none is
 loaded. "Recommended" and "example" sequences are never sample plans. Result in the QA database: **157 plans** (6 four-year, 151 first-year), 2 items with a course not in the catalog (PHYS 20).
 Publish and unpublish with the admin page, or `--publish` at import.

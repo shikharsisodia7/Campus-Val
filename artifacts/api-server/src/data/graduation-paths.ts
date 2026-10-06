@@ -1260,6 +1260,85 @@ const FOUR_YEAR_WDE: GraduationPathEntry = {
   ],
 };
 
+const GENR_PROVENANCE: GraduationPathProvenance = {
+  sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/GENG_4-yrPlans_AY24-25--Math-11.pdf",
+  sourceLabel: "SCU School of Engineering — Sample Four-Year Plan for General Engineering (students starting in MATH 11 or higher)",
+  catalogYear: "AY24-25",
+  lastVerified: "2026-10-06",
+  verificationNote:
+    "Transcribed course-by-course from the official PDF, which lays the plan out as a grid of quarters (rows) by course slots. 'Conc. Elec.' is the concentration electives, which the PDF does not name. Other tracks (MATH 9 start, transfer students) are separate official PDFs and are not encoded.",
+};
+
+const FOUR_YEAR_GENR: GraduationPathEntry = {
+  type: "four_year",
+  major: "GENR",
+  title: "General Engineering — Sample 4-Year Path (MATH 11 start)",
+  summary: "12-quarter plan following SCU's official Sample Four-Year Plan for students starting in MATH 11 or higher.",
+  feasibilityNote: "Matches SCU's official sample plan. Concentration electives and University Core areas are choices; confirm them with your advisor before registering.",
+  averageUnitsPerQuarter: 16,
+  requiresOverload: false,
+  sequenceTrust: "prescribed",
+  provenance: GENR_PROVENANCE,
+  risks: [
+    "Concentration electives are not modeled as specific courses: choose them with your advisor for your concentration.",
+    "ENGR 163A/B and ENGR 193 are listed by the official plan but may be missing from the CampusVal catalog; they then load as placeholders.",
+    "This is the MATH 11 track. Students starting below MATH 11, and transfer students, follow different official plans.",
+  ],
+  quarters: [
+    { year: 1, term: "fall", label: "Y1 Fall", courses: ["MATH 11", "CHEM 11", "MECH 10L", "ENGR 1", "ENGR 1L", "Core: Critical Thinking & Writing 1"], plannedUnits: 16 },
+    { year: 1, term: "winter", label: "Y1 Winter", courses: ["MATH 12", "PHYS 31", "CSEN 10", "Core: Critical Thinking & Writing 2"], plannedUnits: 18 },
+    { year: 1, term: "spring", label: "Y1 Spring", courses: ["MATH 13", "PHYS 32", "MECH 15", "Core: University Core (RTC 1 recommended, e.g. ENGR 16)"], plannedUnits: 18 },
+    { year: 2, term: "fall", label: "Y2 Fall", courses: ["MATH 14", "PHYS 33", "CENG 41", "ENGR 2", "Core: Cultures & Ideas 1"], plannedUnits: 19 },
+    { year: 2, term: "winter", label: "Y2 Winter", courses: ["AMTH 108", "MECH 121", "MECH 11", "Core: Cultures & Ideas 2"], plannedUnits: 17, notes: "Any upper-division math elective is acceptable in place of AMTH 108." },
+    { year: 2, term: "spring", label: "Y2 Spring", courses: ["AMTH 106", "CENG 43", "ECEN 21", "Core: University Core (Ethics recommended, e.g. ENGR 19)"], plannedUnits: 17 },
+    { year: 3, term: "fall", label: "Y3 Fall", courses: ["Concentration Elective", "Concentration Elective", "ECEN 50", "Core: University Core (Advanced Writing, e.g. ENGL 181)"], plannedUnits: 18 },
+    { year: 3, term: "winter", label: "Y3 Winter", courses: ["Concentration Elective", "BIOE 111", "ECEN 115", "Core: University Core"], plannedUnits: 17 },
+    { year: 3, term: "spring", label: "Y3 Spring", courses: ["Concentration Elective", "Concentration Elective", "ENGR 110", "ENGR 193", "Core: University Core"], plannedUnits: 17 },
+    { year: 4, term: "fall", label: "Y4 Fall", courses: ["Free Elective", "Concentration Elective", "ENGR 194", "ENGR 163A", "Core: University Core"], plannedUnits: 15 },
+    { year: 4, term: "winter", label: "Y4 Winter", courses: ["Free Elective", "Concentration Elective", "ENGR 195", "ENGR 163B", "Core: University Core"], plannedUnits: 15 },
+    { year: 4, term: "spring", label: "Y4 Spring", courses: ["Concentration Elective", "ENGR 196", "Core: University Core"], plannedUnits: 10 },
+  ],
+};
+
+const MECH_PROVENANCE: GraduationPathProvenance = {
+  sourceUrl: "https://www.scu.edu/media/school-of-engineering/pdfs/current-student-resources/undergraduate/2023-24-Four-Year-Plan-MECH.pdf",
+  sourceLabel: "SCU School of Engineering — MECH Curriculum Flow Chart AY23-24 (Class of 27)",
+  catalogYear: "AY23-24",
+  lastVerified: "2026-10-06",
+  verificationNote:
+    "Transcribed from the official flow chart, whose rows are the quarters of each year and whose columns are course slots, so every course sits in a stated quarter (arrows only show prerequisites). TECH 1-3 are technical electives; CORE 1-7 are University Core areas. The study-abroad and MATH 9 variants are separate official PDFs and are not encoded.",
+};
+
+const FOUR_YEAR_MECH: GraduationPathEntry = {
+  type: "four_year",
+  major: "MECH",
+  title: "Mechanical Engineering — 4-Year Path (AY23-24 flow chart, Class of 27)",
+  summary: "12-quarter plan following SCU's official Mechanical Engineering curriculum flow chart.",
+  feasibilityNote: "Matches the official flow chart for the Class of 2027. Later classes may have a newer chart; confirm technical electives and University Core choices with your advisor.",
+  averageUnitsPerQuarter: 16,
+  requiresOverload: false,
+  sequenceTrust: "prescribed",
+  provenance: MECH_PROVENANCE,
+  risks: [
+    "The chart is for the AY23-24 first-year class; check for a newer MECH chart for your admit year.",
+    "Technical electives (TECH 1-3) and University Core areas are choices, not specific courses.",
+  ],
+  quarters: [
+    { year: 1, term: "fall", label: "Y1 Fall", courses: ["CHEM 11", "MATH 11", "MECH 10L", "Core: Critical Thinking & Writing 1", "Core: Cultures & Ideas 1"], plannedUnits: 17 },
+    { year: 1, term: "winter", label: "Y1 Winter", courses: ["MATH 12", "PHYS 31", "MECH 12L", "Core: Critical Thinking & Writing 2", "Core: Cultures & Ideas 2"], plannedUnits: 18 },
+    { year: 1, term: "spring", label: "Y1 Spring", courses: ["MECH 15", "MATH 13", "PHYS 32", "ENGR 1", "ENGR 1L"], plannedUnits: 17 },
+    { year: 2, term: "fall", label: "Y2 Fall", courses: ["MECH 11", "MATH 14", "PHYS 33", "CENG 41"], plannedUnits: 17 },
+    { year: 2, term: "winter", label: "Y2 Winter", courses: ["AMTH 106", "MECH 121", "ECEN 50", "Core: University Core"], plannedUnits: 17 },
+    { year: 2, term: "spring", label: "Y2 Spring", courses: ["MECH 45", "MECH 103", "CENG 43", "Core: University Core"], plannedUnits: 17 },
+    { year: 3, term: "fall", label: "Y3 Fall", courses: ["AMTH 118", "MECH 122", "MECH 140", "ENGL 181"], plannedUnits: 17 },
+    { year: 3, term: "winter", label: "Y3 Winter", courses: ["MECH 141", "MECH 114", "Core: University Core", "Core: University Core"], plannedUnits: 17 },
+    { year: 3, term: "spring", label: "Y3 Spring", courses: ["MECH 123", "MECH 142", "MECH 115", "Core: University Core"], plannedUnits: 17 },
+    { year: 4, term: "fall", label: "Y4 Fall", courses: ["Technical Elective", "MECH 160", "MECH 101L", "MECH 194", "Core: University Core"], plannedUnits: 15 },
+    { year: 4, term: "winter", label: "Y4 Winter", courses: ["Technical Elective", "MECH 195", "Core: University Core"], plannedUnits: 10 },
+    { year: 4, term: "spring", label: "Y4 Spring", courses: ["Technical Elective", "MECH 196"], plannedUnits: 8 },
+  ],
+};
+
 const HAND_TUNED_FOUR_YEAR: Record<string, GraduationPathEntry> = {
   CSE: FOUR_YEAR_CSE,
   ECEN: FOUR_YEAR_ECEN,
@@ -1267,6 +1346,8 @@ const HAND_TUNED_FOUR_YEAR: Record<string, GraduationPathEntry> = {
   CENG: FOUR_YEAR_CENG,
   BIOE: FOUR_YEAR_BIOE,
   WDE: FOUR_YEAR_WDE,
+  GENR: FOUR_YEAR_GENR,
+  MECH: FOUR_YEAR_MECH,
 };
 
 // ---------------------------------------------------------------------------
