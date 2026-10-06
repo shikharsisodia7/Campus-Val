@@ -237,7 +237,7 @@ export function DegreePlanWorkspace({
 
   if (plansLoading || (activePlanId && planLoading)) {
     return (
-      <div className="grid h-[calc(100vh-14rem)] gap-3 xl:grid-cols-[minmax(200px,230px)_minmax(0,1fr)_minmax(330px,380px)] 2xl:grid-cols-[minmax(230px,270px)_minmax(0,1fr)_minmax(400px,460px)]">
+      <div className="grid h-[calc(100vh-14rem)] gap-3 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)_minmax(330px,380px)] 2xl:grid-cols-[minmax(320px,400px)_minmax(0,1fr)_minmax(400px,460px)]">
         <Skeleton className="hidden h-full rounded-md xl:block" />
         <Skeleton className="h-full min-w-0 rounded-md" />
         <Skeleton className="hidden h-full rounded-md xl:block" />
@@ -322,7 +322,7 @@ export function DegreePlanWorkspace({
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-[min(18rem,90vw)] p-0"
+            className="w-[min(24rem,92vw)] p-0"
             onEscapeKeyDown={() => setLeftOpen(false)}
             onPointerDownOutside={() => setLeftOpen(false)}
           >
@@ -344,7 +344,7 @@ export function DegreePlanWorkspace({
       <DegreePlanToolbar plans={plansList?.plans ?? []} mode={mode} />
 
       <div
-        className="flex h-[calc(100vh-19rem)] flex-col items-stretch gap-3 xl:grid xl:h-[calc(100vh-14rem)] xl:grid-cols-[minmax(200px,230px)_minmax(0,1fr)_minmax(330px,380px)] 2xl:grid-cols-[minmax(230px,270px)_minmax(0,1fr)_minmax(400px,460px)]"
+        className="flex h-[calc(100vh-19rem)] flex-col items-stretch gap-3 xl:grid xl:h-[calc(100vh-14rem)] xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)_minmax(330px,380px)] 2xl:grid-cols-[minmax(320px,400px)_minmax(0,1fr)_minmax(400px,460px)]"
         data-testid="degree-plan-layout"
       >
         <div

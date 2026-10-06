@@ -26,6 +26,8 @@ import degreeChecksheetsRouter from "./degree-checksheets";
 import usageRouter from "./usage";
 import planSharesRouter from "./plan-shares";
 import roleRouter from "./role";
+import departmentAdminRouter from "./department-admin";
+import samplePlansRouter from "./sample-plans";
 
 const router: IRouter = Router();
 
@@ -56,5 +58,7 @@ router.use(degreeChecksheetsRouter);
 router.use(usageRouter);
 router.use(planSharesRouter);
 router.use(roleRouter);
+router.use(departmentAdminRouter);
+router.use(samplePlansRouter);
 
 export default router;

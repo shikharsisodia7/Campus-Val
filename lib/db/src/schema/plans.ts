@@ -33,6 +33,16 @@ export const academicPlansTable = pgTable(
         summerYears?: number[];
         scenarioMajors?: string[];
         scenarioMinors?: string[];
+        /** Set when the plan was made from (or had items added from) a sample plan. */
+        sampleSource?: {
+          samplePlanId: number;
+          slug: string;
+          version: string;
+          title: string;
+          sourceLabel: string | null;
+          sourceUrl: string | null;
+          loadedAt: string;
+        };
       }>()
       .notNull()
       .default({}),

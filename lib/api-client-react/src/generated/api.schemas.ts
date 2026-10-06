@@ -1204,6 +1204,21 @@ export const PlanItemType = {
   requirement_placeholder: "requirement_placeholder",
 } as const;
 
+/**
+ * Set when the plan was made from, or had items added from, a sample plan. Provenance only: the plan is an independent copy and later changes to the sample plan never reach it.
+ */
+export type PlanMetadataSampleSource = {
+  samplePlanId: number;
+  slug: string;
+  version: string;
+  title: string;
+  /** @nullable */
+  sourceLabel?: string | null;
+  /** @nullable */
+  sourceUrl?: string | null;
+  loadedAt: string;
+};
+
 export interface PlanMetadata {
   addedYears?: number[];
   summerYears?: number[];
@@ -1211,6 +1226,8 @@ export interface PlanMetadata {
   scenarioMajors?: string[];
   /** Draft-only additional minors; does not alter the official student profile. */
   scenarioMinors?: string[];
+  /** Set when the plan was made from, or had items added from, a sample plan. Provenance only: the plan is an independent copy and later changes to the sample plan never reach it. */
+  sampleSource?: PlanMetadataSampleSource;
 }
 
 export interface AcademicPlan {
@@ -1307,6 +1324,7 @@ export type PlanItemProvenance =
 export const PlanItemProvenance = {
   student_asserted: "student_asserted",
   report_imported: "report_imported",
+  sample_plan: "sample_plan",
 } as const;
 
 export interface PlanItem {
@@ -1368,6 +1386,7 @@ export type PlanItemInputProvenance =
 export const PlanItemInputProvenance = {
   student_asserted: "student_asserted",
   report_imported: "report_imported",
+  sample_plan: "sample_plan",
 } as const;
 
 export interface PlanItemInput {
@@ -1396,6 +1415,7 @@ export type PlanItemUpdateProvenance =
 export const PlanItemUpdateProvenance = {
   student_asserted: "student_asserted",
   report_imported: "report_imported",
+  sample_plan: "sample_plan",
 } as const;
 
 export interface PlanItemUpdate {
@@ -1852,6 +1872,24 @@ export const RequirementItemStatus = {
   open: "open",
 } as const;
 
+/**
+ * Present when a department changed this requirement's wording or added it.
+ */
+export type RequirementItemDepartment = {
+  overridden: boolean;
+  /**
+   * The Bulletin's own wording.
+   * @nullable
+   */
+  originalLabel: string | null;
+  /** @nullable */
+  originalDescription: string | null;
+  /** A requirement the Bulletin does not list. */
+  added: boolean;
+  programKey: string;
+  programTitle: string;
+};
+
 export type RequirementItemCustomizationKind =
   (typeof RequirementItemCustomizationKind)[keyof typeof RequirementItemCustomizationKind];
 
@@ -1888,6 +1926,37 @@ export interface RequirementItemCustomization {
   updatedAt: string;
 }
 
+export type DepartmentNoteOrigin =
+  (typeof DepartmentNoteOrigin)[keyof typeof DepartmentNoteOrigin];
+
+export const DepartmentNoteOrigin = {
+  imported: "imported",
+  admin: "admin",
+} as const;
+
+export interface DepartmentNote {
+  id: number;
+  body: string;
+  /**
+   * requirement | sequence | core_overlap | advising
+   * @nullable
+   */
+  kind: string | null;
+  programKey: string;
+  /** Whose department wrote it (matters on shared Core items). */
+  programTitle: string;
+  /** @nullable */
+  sourceLabel: string | null;
+  /** @nullable */
+  sourceUrl: string | null;
+  /** @nullable */
+  sourceReference: string | null;
+  origin: DepartmentNoteOrigin;
+  /** False for an imported note no person has reviewed yet. */
+  reviewed: boolean;
+  updatedAt: string;
+}
+
 export interface RequirementItem {
   id: string;
   /** Present on GET /plans/{id}/requirements. The identifier customizations are anchored to. */
@@ -1914,6 +1983,10 @@ export interface RequirementItem {
   /** completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither. */
   status?: RequirementItemStatus;
   complete: boolean;
+  /** Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note). */
+  departmentNotes?: DepartmentNote[];
+  /** Present when a department changed this requirement's wording or added it. */
+  department?: RequirementItemDepartment;
 }
 
 export type OrphanedCustomizationEntryType =
@@ -2032,6 +2105,11 @@ export interface CustomRequirementPatch {
 export type PlanRequirementsResponseRequirementsSource = {
   label: string;
   policyDecided: boolean;
+  /**
+   * The Bulletin edition id the requirements were built from (for example 2026-27).
+   * @nullable
+   */
+  edition?: string | null;
 };
 
 export type PlanRequirementsResponseCustomizations = {
@@ -2049,6 +2127,22 @@ export const DegreeRequirementsResponseCollegeCode = {
 } as const;
 
 /**
+ * The canonical category, from the Bulletin group the requirement is in (never from where a department checksheet lists it).
+ */
+export type RequirementGroupCategory =
+  (typeof RequirementGroupCategory)[keyof typeof RequirementGroupCategory];
+
+export const RequirementGroupCategory = {
+  UNIVERSITY: "UNIVERSITY",
+  CORE: "CORE",
+  SCHOOL: "SCHOOL",
+  MAJOR: "MAJOR",
+  MINOR: "MINOR",
+  CONCENTRATION: "CONCENTRATION",
+  OTHER: "OTHER",
+} as const;
+
+/**
  * What the group is. The server has always sent "minor" and "professional_prep" as well as the first three; the contract now says so.
 
  */
@@ -2056,6 +2150,7 @@ export type RequirementGroupKind =
   (typeof RequirementGroupKind)[keyof typeof RequirementGroupKind];
 
 export const RequirementGroupKind = {
+  university: "university",
   university_core: "university_core",
   college: "college",
   major: "major",
@@ -2067,6 +2162,10 @@ export interface RequirementGroup {
   id: string;
   /** Present on GET /plans/{id}/requirements. The identifier custom requirements attach to. */
   stableKey?: string;
+  /** The canonical category, from the Bulletin group the requirement is in (never from where a department checksheet lists it). */
+  category?: RequirementGroupCategory;
+  /** Department Notes about the whole group or program. */
+  departmentNotes?: DepartmentNote[];
   title: string;
   /** What the group is. The server has always sent "minor" and "professional_prep" as well as the first three; the contract now says so.
    */

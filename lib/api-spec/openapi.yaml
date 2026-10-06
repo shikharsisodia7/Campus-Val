@@ -3482,7 +3482,7 @@ components:
         note: { type: ["string", "null"] }
         provenance:
           type: ["string", "null"]
-          enum: ["student_asserted", "report_imported", null]
+          enum: ["student_asserted", "report_imported", "sample_plan", null]
           description: How this item was added. Defaults to student_asserted.
     AcademicPlanDetail:
       type: object
@@ -3529,7 +3529,7 @@ components:
           $ref: "#/components/schemas/CompletionSource"
         provenance:
           type: string
-          enum: [student_asserted, report_imported]
+          enum: [student_asserted, report_imported, sample_plan]
           description: Defaults to student_asserted when adding to the completed area.
     PlanItemUpdate:
       type: object
@@ -3545,7 +3545,7 @@ components:
         note: { type: ["string", "null"] }
         provenance:
           type: string
-          enum: [student_asserted, report_imported]
+          enum: [student_asserted, report_imported, sample_plan]
     PlanMetadata:
       type: object
       properties:
@@ -3563,6 +3563,21 @@ components:
           type: array
           items: { type: string, minLength: 1, maxLength: 120 }
           description: Draft-only additional minors; does not alter the official student profile.
+        sampleSource:
+          type: object
+          description: >-
+            Set when the plan was made from, or had items added from, a sample plan.
+            Provenance only: the plan is an independent copy and later changes to the
+            sample plan never reach it.
+          required: [samplePlanId, slug, version, title, loadedAt]
+          properties:
+            samplePlanId: { type: integer }
+            slug: { type: string }
+            version: { type: string }
+            title: { type: string }
+            sourceLabel: { type: [string, "null"] }
+            sourceUrl: { type: [string, "null"] }
+            loadedAt: { type: string }
     PlanItemBucket:
       type: string
       enum: [planned, completed]
@@ -4453,6 +4468,25 @@ components:
             planned = a planned course would satisfy it; open = neither.
         complete:
           type: boolean
+        departmentNotes:
+          type: array
+          description: >-
+            Department Notes: advising guidance a department stands behind, shown
+            beside the requirement. Read-only for students and separate from the
+            student's own note (customization.note).
+          items:
+            $ref: "#/components/schemas/DepartmentNote"
+        department:
+          type: object
+          description: Present when a department changed this requirement's wording or added it.
+          required: [overridden, originalLabel, originalDescription, added, programKey, programTitle]
+          properties:
+            overridden: { type: boolean }
+            originalLabel: { type: [string, "null"], description: "The Bulletin's own wording." }
+            originalDescription: { type: [string, "null"] }
+            added: { type: boolean, description: "A requirement the Bulletin does not list." }
+            programKey: { type: string }
+            programTitle: { type: string }
       required:
         - id
         - label
@@ -4462,6 +4496,27 @@ components:
         - needsVerification
         - satisfiedBy
         - complete
+    DepartmentNote:
+      type: object
+      required: [id, body, kind, programKey, programTitle, sourceLabel, sourceUrl, sourceReference, origin, reviewed, updatedAt]
+      properties:
+        id: { type: integer }
+        body: { type: string }
+        kind:
+          type: [string, "null"]
+          description: requirement | sequence | core_overlap | advising
+        programKey: { type: string }
+        programTitle: { type: string, description: "Whose department wrote it (matters on shared Core items)." }
+        sourceLabel: { type: [string, "null"] }
+        sourceUrl: { type: [string, "null"] }
+        sourceReference: { type: [string, "null"] }
+        origin:
+          type: string
+          enum: [imported, admin]
+        reviewed:
+          type: boolean
+          description: False for an imported note no person has reviewed yet.
+        updatedAt: { type: string }
     RequirementItemCustomization:
       type: object
       description: >-
@@ -4619,6 +4674,9 @@ components:
                   type: string
                 policyDecided:
                   type: boolean
+                edition:
+                  type: [string, "null"]
+                  description: The Bulletin edition id the requirements were built from (for example 2026-27).
             customizations:
               type: object
               required: [summary, orphaned]
@@ -4637,6 +4695,17 @@ components:
         stableKey:
           type: string
           description: Present on GET /plans/{id}/requirements. The identifier custom requirements attach to.
+        category:
+          type: string
+          enum: [UNIVERSITY, CORE, SCHOOL, MAJOR, MINOR, CONCENTRATION, OTHER]
+          description: >-
+            The canonical category, from the Bulletin group the requirement is in
+            (never from where a department checksheet lists it).
+        departmentNotes:
+          type: array
+          description: Department Notes about the whole group or program.
+          items:
+            $ref: "#/components/schemas/DepartmentNote"
         title:
           type: string
         kind:
@@ -4644,7 +4713,7 @@ components:
           description: >
             What the group is. The server has always sent "minor" and
             "professional_prep" as well as the first three; the contract now says so.
-          enum: [university_core, college, major, minor, professional_prep]
+          enum: [university, university_core, college, major, minor, professional_prep]
         sourceUrl:
           type: [string, "null"]
           description: >

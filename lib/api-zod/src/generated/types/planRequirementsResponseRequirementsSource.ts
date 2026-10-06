@@ -12,4 +12,9 @@
 export type PlanRequirementsResponseRequirementsSource = {
   label: string;
   policyDecided: boolean;
+  /**
+   * The Bulletin edition id the requirements were built from (for example 2026-27).
+   * @nullable
+   */
+  edition?: string | null;
 };

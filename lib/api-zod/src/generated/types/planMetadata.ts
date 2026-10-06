@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { PlanMetadataSampleSource } from "./planMetadataSampleSource";
 
 export interface PlanMetadata {
   addedYears?: number[];
@@ -13,4 +14,6 @@ export interface PlanMetadata {
   scenarioMajors?: string[];
   /** Draft-only additional minors; does not alter the official student profile. */
   scenarioMinors?: string[];
+  /** Set when the plan was made from, or had items added from, a sample plan. Provenance only: the plan is an independent copy and later changes to the sample plan never reach it. */
+  sampleSource?: PlanMetadataSampleSource;
 }

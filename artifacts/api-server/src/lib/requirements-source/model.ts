@@ -46,7 +46,15 @@ export interface RequirementsRequest {
    * entry year is NOT used to pick a Bulletin): it exists so a future
    * provider can accept a curriculum year without the callers changing.
    */
-  context?: { planId?: number | null; curriculumYear?: string | null };
+  context?: {
+    planId?: number | null;
+    curriculumYear?: string | null;
+    /**
+     * A Bulletin edition id ("2026-27"). Absent = the configured / latest
+     * edition. There is no student-facing selector yet; this is the seam for it.
+     */
+    bulletinEdition?: string | null;
+  };
 }
 
 /**
@@ -81,6 +89,14 @@ export interface RequirementProvenance {
   sourceDocumentId: string | null;
   /** Where inside the source: the group's own title. */
   sourceSection: string | null;
+  /** The program the group describes ("Biology"), when it describes one. */
+  sourceProgram: string | null;
+  /**
+   * The Bulletin edition id ("2026-27") the group was built from. With the
+   * stable key it is a requirement's full identity. Null for sources that are
+   * not a Bulletin.
+   */
+  bulletinEdition: string | null;
   /** When CampusVal imported it. Null: the current data is compiled in, not imported. */
   importedAt: string | null;
   /**
@@ -97,6 +113,8 @@ export interface RequirementsResult<Response> {
   response: Response;
   /** For CampusVal's own use. Never sent to a student. */
   provenance: RequirementProvenance[];
+  /** The Bulletin edition id the response was built from; null for other sources. */
+  edition: string | null;
 }
 
 export interface RequirementsBenchmarkProvider<Response> {

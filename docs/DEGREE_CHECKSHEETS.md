@@ -2,6 +2,13 @@
 
 _2026-09-28, updated 2026-09-29. Added at the professor's request after the APR review. This page describes the feature as it is after the completion pass of 2026-09-28 (legacy `.xls`, stored formula results, markers that follow their pages, the mobile app) plus a follow-up pass on 2026-09-29 (legacy `.xls` bold/italic, the mobile app drawing PDF pages itself)._
 
+## Future role (2026-10-06)
+
+Important advising guidance from department checksheets should increasingly be available in the requirements sidebar as **Department Notes**
+([BULLETIN_BASELINE.md](./BULLETIN_BASELINE.md)): the Bulletin defines the structure, the department's notes ride beside it. Degree Checksheets stay
+as uploaded reference documents and as a *source* of those notes. A checksheet is never the structural authority for a requirement, and a student's private upload
+is never used to create a note or a requirement for anyone else.
+
 ## What it is
 
 SCU departments publish advising documents: major and minor checksheets,

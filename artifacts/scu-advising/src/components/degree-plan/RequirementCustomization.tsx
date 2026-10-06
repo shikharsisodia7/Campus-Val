@@ -146,7 +146,7 @@ export function CustomizationMarks({ item }: { item: RequirementItem }) {
   );
 }
 
-/** "My note" under a requirement. The student's words, labelled as theirs. */
+/** "My Note" under a requirement. The student's words, labelled as theirs (never styled like a Department Note). */
 export function CustomizationNote({ item }: { item: RequirementItem }) {
   const c = item.customization;
   if (!c || !c.note || c.sourceChanged) return null;
@@ -155,7 +155,7 @@ export function CustomizationNote({ item }: { item: RequirementItem }) {
       className="mt-1 whitespace-pre-line rounded border border-sky-100 bg-sky-50/60 px-1.5 py-1 text-[10px] leading-relaxed text-sky-900"
       data-testid={`my-note-${item.id}`}
     >
-      <span className="font-semibold">{c.kind === "custom" ? "Note: " : "My note: "}</span>
+      <span className="font-semibold">{c.kind === "custom" ? "Note: " : "My Note: "}</span>
       {c.note}
     </p>
   );
@@ -448,7 +448,7 @@ export function RequirementEditDialog({
           </div>
           <div className="space-y-1">
             <Label htmlFor="req-edit-note" className="text-xs">
-              My note <span className="text-muted-foreground">(optional)</span>
+              My Note <span className="text-muted-foreground">(optional)</span>
             </Label>
             <Textarea
               id="req-edit-note"

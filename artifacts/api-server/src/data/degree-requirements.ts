@@ -59,7 +59,7 @@ export interface RequirementItemDef {
 export interface RequirementGroupDef {
   id: string;
   title: string;
-  kind: "university_core" | "college" | "major";
+  kind: "university" | "university_core" | "college" | "major";
   sourceUrl: string;
   sourceLabel: string;
   academicYear: string;
@@ -476,17 +476,78 @@ function collegeGroup(college: College): RequirementGroupDef {
 // notes on the response so the UI can show them with their source.
 // ---------------------------------------------------------------------------
 
-export const UNIVERSITY_DEGREE_RULES: string[] = [
-  "Minimum 175 quarter units for the B.A./B.S. (CAS) and B.S. in Commerce (Leavey); engineering unit minimums are set by the major department (193 for engineering physics).",
-  "At least 60 quarter units of upper-division coursework.",
-  "Minimum 2.0 GPA overall at SCU and in the major (and any minor).",
-  "Residency: at least 45 units at Santa Clara after reaching junior standing.",
-  "No more than half of the required units may come from transfer and/or test credit.",
+/**
+ * University-wide degree rules (Bulletin Ch. 8), the same for every student.
+ * One entry per rule with a stable id: the sidebar shows them as the
+ * UNIVERSITY requirements group, and `UNIVERSITY_DEGREE_RULES` (the plain
+ * sentences the Core requirements page lists) is derived from the same list so
+ * the two cannot drift.
+ */
+const UNIVERSITY_RULES: { id: string; label: string; text: string }[] = [
+  {
+    id: "minimum-units",
+    label: "Minimum quarter units",
+    text: "Minimum 175 quarter units for the B.A./B.S. (CAS) and B.S. in Commerce (Leavey); engineering unit minimums are set by the major department (193 for engineering physics).",
+  },
+  {
+    id: "upper-division-units",
+    label: "Upper-division units",
+    text: "At least 60 quarter units of upper-division coursework.",
+  },
+  {
+    id: "minimum-gpa",
+    label: "Minimum GPA",
+    text: "Minimum 2.0 GPA overall at SCU and in the major (and any minor).",
+  },
+  {
+    id: "residency",
+    label: "Residency",
+    text: "Residency: at least 45 units at Santa Clara after reaching junior standing.",
+  },
+  {
+    id: "transfer-credit-cap",
+    label: "Transfer and test credit limit",
+    text: "No more than half of the required units may come from transfer and/or test credit.",
+  },
 ];
 
+export const UNIVERSITY_DEGREE_RULES: string[] = UNIVERSITY_RULES.map((rule) => rule.text);
+
+/**
+ * The UNIVERSITY group: degree-level rules, not courses. Nothing in it can be
+ * completed by a course, so every item stays open and "needs verification";
+ * Workday's APR is the record of whether they are met.
+ */
+function universityRequirements(): RequirementGroupDef {
+  return {
+    id: "university-requirements",
+    title: "University Degree Requirements",
+    kind: "university",
+    sourceUrl: SOURCES.degreeRequirements,
+    sourceLabel: "SCU Bulletin Ch. 8: Degree Requirements",
+    academicYear: ACADEMIC_YEAR,
+    lastVerified: LAST_VERIFIED,
+    notes: [
+      "Degree-level rules that apply to every undergraduate. They are not courses, so CampusVal does not mark them complete: your Workday Academic Progress Report is the record of whether they are met.",
+    ],
+    items: UNIVERSITY_RULES.map((rule) => ({
+      id: `university-requirements-${rule.id}`,
+      label: rule.label,
+      description: rule.text,
+      courses: [],
+      needsVerification: true,
+    })),
+  };
+}
+
 export function buildRequirementGroups(college: College): {
+  university: RequirementGroupDef;
   universityCore: RequirementGroupDef;
   college: RequirementGroupDef;
 } {
-  return { universityCore: universityCore(college), college: collegeGroup(college) };
+  return {
+    university: universityRequirements(),
+    universityCore: universityCore(college),
+    college: collegeGroup(college),
+  };
 }

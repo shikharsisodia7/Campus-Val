@@ -14,6 +14,7 @@ export type RequirementGroupKind =
   (typeof RequirementGroupKind)[keyof typeof RequirementGroupKind];
 
 export const RequirementGroupKind = {
+  university: "university",
   university_core: "university_core",
   college: "college",
   major: "major",

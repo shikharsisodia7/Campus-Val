@@ -9,15 +9,18 @@
  */
 import { buildRequirementsResponse } from "../../routes/requirements";
 import type { RequirementProvenance, RequirementsBenchmarkProvider, RequirementsRequest } from "./model";
+import { resolveBulletinEdition } from "./editions";
+import { programNameOf } from "./stable-keys";
 
 export type RequirementsResponse = ReturnType<typeof buildRequirementsResponse>;
 type Group = RequirementsResponse["groups"][number];
 
 const text = (value: unknown): string | null => (typeof value === "string" && value.trim() !== "" ? value : null);
 
-function provenanceOf(group: Group, universityCoreYear: string | null): RequirementProvenance {
+function provenanceOf(group: Group, universityCoreYear: string | null, bulletinEdition: string): RequirementProvenance {
   const academicYear = text(group.academicYear);
-  const own = group.kind === "university_core" || group.kind === "college" || group.kind === "minor";
+  const own =
+    group.kind === "university" || group.kind === "university_core" || group.kind === "college" || group.kind === "minor";
   return {
     groupId: group.id,
     groupKind: group.kind,
@@ -36,6 +39,8 @@ function provenanceOf(group: Group, universityCoreYear: string | null): Requirem
     lastVerified: text(group.lastVerified),
     sourceDocumentId: null,
     sourceSection: text(group.title),
+    sourceProgram: group.kind === "major" || group.kind === "minor" ? programNameOf(group.title) : null,
+    bulletinEdition,
     importedAt: null,
     provenanceStatus:
       group.kind === "professional_prep"
@@ -51,6 +56,9 @@ function provenanceOf(group: Group, universityCoreYear: string | null): Requirem
 export const currentBulletinProvider: RequirementsBenchmarkProvider<RequirementsResponse> = {
   type: "current_bulletin",
   build(request: RequirementsRequest) {
+    // The latest loaded edition unless the request names one. An edition that
+    // is not loaded throws: it is never answered with a different edition.
+    const { edition } = resolveBulletinEdition(request.context?.bulletinEdition);
     const response = buildRequirementsResponse(
       request.profile,
       request.scenarioMajors,
@@ -61,6 +69,10 @@ export const currentBulletinProvider: RequirementsBenchmarkProvider<Requirements
     );
     const core = response.groups.find((group) => group.kind === "university_core");
     const coreYear = text(core?.academicYear);
-    return { response, provenance: response.groups.map((group) => provenanceOf(group, coreYear)) };
+    return {
+      response,
+      provenance: response.groups.map((group) => provenanceOf(group, coreYear, edition.id)),
+      edition: edition.id,
+    };
   },
 };

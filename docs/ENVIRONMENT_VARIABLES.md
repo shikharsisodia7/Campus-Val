@@ -51,7 +51,7 @@ Built from the variables the code actually reads (`process.env` / `import.meta.e
 | `ELEVENLABS_API_KEY` | CV | No | **Yes** | Optional extra voice vendor (leave unset unless approved) |
 | `VOICE_TTS_VOICE_ID` | CV | No | No | ElevenLabs voice |
 | `GUEST_REVIEWER_EMAILS` | CV | No | Sensitive list | Non-SCU emails allowed to sign in |
-| `ADMIN_EMAILS` | CV | No | Sensitive list | Admin dashboards (usage, feedback) |
+| `ADMIN_EMAILS` | CV | No | Sensitive list | Admin dashboards (usage, feedback) and the super admins of Program Requirements Admin |
 | `WORKDAY_SYNC_ADMIN_EMAIL` | CV | No | Sensitive | Data steward allowed to replace section data |
 | `WORKDAY_INTEGRATION_ENABLED` | CV | No | No | Keep `false` until SCU authorizes |
 | `WORKDAY_AVAILABILITY_ENABLED` | CV | No | No | Live seat availability (default `false`) |
@@ -60,6 +60,7 @@ Built from the variables the code actually reads (`process.env` / `import.meta.e
 | `WORKDAY_AVAILABILITY_AUTH_HEADER`, `_AUTH_SCHEME`, `_TIMEOUT_MS`, `_CACHE_TTL_SECONDS`, `_LIVE_WITHIN_SECONDS`, `_STALE_AFTER_SECONDS` | CV | No | No | Availability tuning |
 | `AVAILABILITY_FIXTURE_ENABLED` | CV | No | No | Dev-only sample seat data (ignored in production) |
 | `REQUIREMENTS_BENCHMARK_PROVIDER` | CV | No | No | Requirements source selector (default current Bulletin) |
+| `REQUIREMENTS_BULLETIN_EDITION` | CV | No | No | Which loaded Bulletin edition builds the sidebar (default: the latest). See [BULLETIN_BASELINE.md](BULLETIN_BASELINE.md) |
 | `MIGRATIONS_DIR` | CV | No | No | Override migration folder |
 | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_CLERK_PROXY_URL` | CV mobile | Mobile only | No | Expo app (not part of the web deployment) |
 | `VERCEL`, `VERCEL_URL`, `VERCEL_ENV`, `VERCEL_PROJECT_PRODUCTION_URL` | CV, PH | Set by Vercel | No | Platform-provided on Vercel only |

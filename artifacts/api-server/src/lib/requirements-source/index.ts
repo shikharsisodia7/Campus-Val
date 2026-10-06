@@ -37,6 +37,8 @@ export * from "./model";
 export * from "./stable-keys";
 export * from "./normalize";
 export * from "./overlay";
+export * from "./category";
+export * from "./editions";
 export type { RequirementsResponse } from "./current-bulletin";
 export { resolveRequirementsBenchmarkConfig, type RequirementsBenchmarkConfig } from "./config";
 
@@ -99,10 +101,12 @@ export function buildNormalizedRequirements(request: RequirementsRequest): {
   response: RequirementsResponse;
   tree: NormalizedGroup<RequirementsResponse["groups"][number]>[];
   provider: RequirementSourceType;
+  /** The Bulletin edition id the tree was built from (null for a non-Bulletin source). */
+  edition: string | null;
 } {
   const provider = selectRequirementsProvider({ planId: request.context?.planId, curriculumYear: request.context?.curriculumYear });
-  const { response, provenance } = provider.build(request);
-  return { response, tree: normalizeRequirements(response, provenance, provider.type), provider: provider.type };
+  const { response, provenance, edition } = provider.build(request);
+  return { response, tree: normalizeRequirements(response, provenance, provider.type), provider: provider.type, edition };
 }
 
 const DECISION_NEEDED =

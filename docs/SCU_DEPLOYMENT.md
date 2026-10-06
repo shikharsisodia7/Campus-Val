@@ -129,6 +129,24 @@ pair; no existing table is touched. Apply it before deploying the code that read
 though the code degrades safely if it is not there yet
 ([REQUIREMENTS_SOURCE.md](REQUIREMENTS_SOURCE.md#deploying)).
 
+### Migration 0006 (2026-10-06): department layer and sample plans
+
+Six new tables (`department_requirement_notes`, `department_requirement_overrides`, `department_audit_log`,
+`program_admin_scopes`, `sample_plans`, `sample_plan_items`); no existing table is touched. Apply it before the code that
+reads it; if the code is live first the sidebar still loads (without the department layer), the admin routes answer
+503 and nothing else changes. Verified on a fresh database (7 of 7 applied) and as an upgrade from 0005 (6 applied, 1 pending,
+then 7 of 7), with `drizzle-kit generate` reporting no schema drift.
+
+After the migration, in this order, against the production database and only after reading each **dry run**:
+
+1. **Department Notes** from the department checklists: `pnpm --filter @workspace/api-server run import:department-notes -- --dir <folder>` (then `--apply`).
+2. **Sample plans**: `pnpm --filter @workspace/api-server run import:sample-plans -- --engineering --cas-dir <folder>` (then `--apply`; add `--publish` to make them visible).
+3. **Department administrators**: `pnpm --filter @workspace/api-server run admin:scope -- grant --email <address> --program <program key>`
+   (`-- programs` lists the keys). Never put an address in code or a migration.
+4. **Checks**: `pnpm run audit:requirements --db`, `pnpm --filter @workspace/api-server run snapshot:bulletin -- --check`.
+
+Full description: [BULLETIN_BASELINE.md](BULLETIN_BASELINE.md).
+
 ### Migrations in the 2026-09-26 release
 
 | Migration | Change | Notes |

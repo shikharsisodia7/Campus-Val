@@ -11,7 +11,8 @@ minor through the requirements source in use and writes:
 
 The audit **only reports**. It never edits, fixes or substitutes academic content,
 and it runs on synthetic profiles (no student data). The results of the run on
-2026-09-30 are in [`requirements-audit-2026-09-30.md`](./requirements-audit-2026-09-30.md).
+2026-10-06 (classification checks, the University group, the department layer) are in [`requirements-audit-2026-10-06.md`](./requirements-audit-2026-10-06.md); the earlier run is in
+[`requirements-audit-2026-09-30.md`](./requirements-audit-2026-09-30.md). `--db` adds the department layer and Sample Plans (never written to this folder: it reads a database).
 Re-run it after any change to `data/degree-requirements.ts` or
 `data/graduation-paths.ts`.
 

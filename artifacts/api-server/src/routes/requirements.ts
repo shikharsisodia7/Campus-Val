@@ -16,6 +16,7 @@ import {
   type College,
 } from "../data/graduation-paths";
 import { COURSES, findCourse } from "../data/courses";
+import { categoryOfGroupKind } from "../lib/requirements-source/category";
 import { CORE_AREA_BY_REQUIREMENT } from "../data/core-areas";
 import {
   resolveCrossSatisfaction,
@@ -140,6 +141,7 @@ function resolveGroup(
     id: group.id,
     title: group.title,
     kind: group.kind,
+    category: categoryOfGroupKind(group.kind),
     sourceUrl: group.sourceUrl,
     sourceLabel: group.sourceLabel,
     academicYear: group.academicYear,
@@ -210,7 +212,7 @@ export function buildRequirementsResponse(
     plannedCourses.map(normalize).filter((c) => !completed.has(c)),
   );
 
-  const { universityCore, college } = buildRequirementGroups(collegeCode);
+  const { university, universityCore, college } = buildRequirementGroups(collegeCode);
 
   const majorSourceUrl =
     collegeCode === "SOE"
@@ -241,6 +243,7 @@ export function buildRequirementsResponse(
         id: `major-${idSuffix}`,
         title: `Major Requirements — ${majorName}${isScenarioOnly ? " (proposed)" : ""}`,
         kind: "major" as const,
+        category: categoryOfGroupKind("major"),
         sourceUrl: majorSourceUrl,
         sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
         academicYear: universityCore.academicYear,
@@ -275,6 +278,7 @@ export function buildRequirementsResponse(
       id: `major-${idSuffix}`,
       title: `Major Requirements — ${majorReqs.title}${isScenarioOnly ? " (proposed)" : ""}`,
       kind: "major" as const,
+      category: categoryOfGroupKind("major"),
       sourceUrl: majorSourceUrl,
       sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
       academicYear: universityCore.academicYear,
@@ -380,6 +384,7 @@ export function buildRequirementsResponse(
         id: `minor-${idx}`,
         title: `Minor Requirements — ${minorName}${isScenarioOnly ? " (proposed)" : ""}`,
         kind: "minor" as const,
+        category: categoryOfGroupKind("minor"),
         sourceUrl: SOURCES.casBulletin,
         sourceLabel: "SCU Undergraduate Bulletin (minor department chapter)",
         academicYear: universityCore.academicYear,
@@ -453,6 +458,7 @@ export function buildRequirementsResponse(
       id: `minor-${recipe.code.toLowerCase()}`,
       title: `Minor Requirements — ${recipe.title}${isScenarioOnly ? " (proposed)" : ""}`,
       kind: "minor" as const,
+      category: categoryOfGroupKind("minor"),
       sourceUrl: recipe.sourceUrl,
       sourceLabel: recipe.sourceLabel,
       academicYear: recipe.catalogYear,
@@ -506,6 +512,7 @@ export function buildRequirementsResponse(
       id: `professional-${goal.id}`,
       title: `Professional Preparation — ${goal.name}`,
       kind: "professional_prep" as const,
+      category: categoryOfGroupKind("professional_prep"),
       sourceUrl: null,
       sourceLabel: "Student planning goal",
       academicYear: universityCore.academicYear,
@@ -539,6 +546,7 @@ export function buildRequirementsResponse(
       ...majorGroups.slice(0, 1),
       resolveGroup(universityCore, completed, planned),
       resolveGroup(college, completed, planned),
+      resolveGroup(university, completed, planned),
       ...majorGroups.slice(1),
       ...minorGroups,
       ...professionalPreparation,

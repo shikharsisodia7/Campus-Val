@@ -83,3 +83,43 @@ describe("plan terminology", () => {
     expect(nav).toContain('label: "Tentative Degree Plan"');
   });
 });
+
+describe("plan terminology outside the web app", () => {
+  // The professor kept seeing the label wrong, so the same guard covers every
+  // surface that can put words in front of a student: the API (error messages,
+  // default plan names), the mobile app, and the product docs.
+  const ROOT = join(SRC, "..", "..", "..");
+  const surfaces = [
+    join(ROOT, "artifacts", "api-server", "src"),
+    join(ROOT, "artifacts", "campusval-mobile", "app"),
+    join(ROOT, "artifacts", "campusval-mobile", "components"),
+    join(ROOT, "artifacts", "campusval-mobile", "lib"),
+  ];
+  function walkAll(dir: string): string[] {
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      return [];
+    }
+    return entries.flatMap((name) => {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) return ["node_modules", "dist", "data", "assets", ".expo"].includes(name) ? [] : walkAll(p);
+      return /\.(tsx?|md)$/.test(name) && !/\.test\./.test(name) ? [p] : [];
+    });
+  }
+
+  it("never says Tentative Plan, Plan Tentative or misspells Tentative", () => {
+    const found: string[] = [];
+    for (const file of surfaces.flatMap(walkAll)) {
+      const text = readFileSync(file, "utf8").replace(/\s+/g, " ");
+      for (const [re, why] of BANNED) for (const m of text.matchAll(re)) found.push(`${relative(ROOT, file)}: ${why} → "${m[0]}"`);
+      for (const m of text.matchAll(/Plan\s+Tentative\b/g)) found.push(`${relative(ROOT, file)}: "Plan Tentative" → "${m[0]}"`);
+      for (const m of text.matchAll(/\b[Tt][A-Za-z]{5,9}\b/g)) {
+        const w = m[0].toLowerCase();
+        if (w !== "tentative" && w !== "tentatively" && distance(w, "tentative") <= 2) found.push(`${relative(ROOT, file)}: misspelling of Tentative → "${m[0]}"`);
+      }
+    }
+    expect(found).toEqual([]);
+  });
+});

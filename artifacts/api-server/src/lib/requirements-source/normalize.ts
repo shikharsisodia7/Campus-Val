@@ -10,6 +10,7 @@
  * API sends the keys, never the provenance record.
  */
 import type { RequirementProvenance, RequirementSourceType } from "./model";
+import { categoryOfGroupKind, type RequirementCategory } from "./category";
 import { groupStableKey, itemStableKey, requirementFingerprint } from "./stable-keys";
 
 /** The response shape every provider must produce (structural, source-free). */
@@ -40,6 +41,8 @@ export interface NormalizedItem<I extends SourceItem = SourceItem> {
 }
 export interface NormalizedGroup<G extends SourceGroup = SourceGroup> {
   stableKey: string;
+  /** UNIVERSITY | CORE | SCHOOL | MAJOR | MINOR | CONCENTRATION | OTHER, from the group's kind. */
+  category: RequirementCategory;
   displayOrder: number;
   provider: RequirementSourceType;
   provenance: RequirementProvenance;
@@ -61,6 +64,7 @@ export function normalizeRequirements<R extends SourceResponse>(
     const record = provenance[index]!;
     return {
       stableKey,
+      category: categoryOfGroupKind(group.kind),
       displayOrder: index,
       provider,
       provenance: record,

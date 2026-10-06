@@ -39,7 +39,7 @@ describe("GET /api/me/role", () => {
       .get("/api/me/role")
       .set("x-test-email", "student@scu.edu")
       .expect(200);
-    expect(res.body).toEqual({ isAdmin: false });
+    expect(res.body).toEqual({ isAdmin: false, isDepartmentAdmin: false });
   });
 
   it("true for an allowlisted admin", async () => {
@@ -47,6 +47,6 @@ describe("GET /api/me/role", () => {
       .get("/api/me/role")
       .set("x-test-email", "admin@scu.edu")
       .expect(200);
-    expect(res.body).toEqual({ isAdmin: true });
+    expect(res.body).toEqual({ isAdmin: true, isDepartmentAdmin: true });
   });
 });

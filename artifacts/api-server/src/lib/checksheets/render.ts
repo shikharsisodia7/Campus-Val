@@ -78,7 +78,7 @@ async function withReadableSheetNames(buf: Buffer): Promise<Buffer | null> {
 
 type StructuralWorkbook = Pick<Awaited<ReturnType<typeof readAprWorkbook>>, "sheets" | "warnings">;
 
-async function readModernWorkbook(buf: Buffer): Promise<StructuralWorkbook> {
+export async function readModernWorkbook(buf: Buffer): Promise<StructuralWorkbook> {
   let workbook: Awaited<ReturnType<typeof readAprWorkbook>>;
   try {
     // The APR's workbook reader is a structural copier with no APR-specific

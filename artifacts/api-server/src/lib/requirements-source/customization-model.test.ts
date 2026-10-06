@@ -37,6 +37,8 @@ const provenance = (groupId: string, kind: string, over: Partial<RequirementProv
   lastVerified: "2099-01-01",
   sourceDocumentId: null,
   sourceSection: groupId,
+  sourceProgram: null,
+  bulletinEdition: "2099-00",
   importedAt: null,
   provenanceStatus: "documented",
   ...over,
