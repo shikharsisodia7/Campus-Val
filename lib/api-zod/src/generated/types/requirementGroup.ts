@@ -5,6 +5,8 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { DepartmentNote } from "./departmentNote";
+import type { RequirementGroupCategory } from "./requirementGroupCategory";
 import type { RequirementGroupKind } from "./requirementGroupKind";
 import type { RequirementItem } from "./requirementItem";
 
@@ -12,6 +14,10 @@ export interface RequirementGroup {
   id: string;
   /** Present on GET /plans/{id}/requirements. The identifier custom requirements attach to. */
   stableKey?: string;
+  /** The canonical category, from the Bulletin group the requirement is in (never from where a department checksheet lists it). */
+  category?: RequirementGroupCategory;
+  /** Department Notes about the whole group or program. */
+  departmentNotes?: DepartmentNote[];
   title: string;
   /** What the group is. The server has always sent "minor" and "professional_prep" as well as the first three; the contract now says so.
    */

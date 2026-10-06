@@ -8,8 +8,8 @@ function useAdminRoleQuery() {
     queryKey: ADMIN_ROLE_QUERY_KEY,
     queryFn: async () => {
       const res = await fetch(getApiUrl("/me/role"));
-      if (!res.ok) return { isAdmin: false };
-      return res.json() as Promise<{ isAdmin: boolean }>;
+      if (!res.ok) return { isAdmin: false, isDepartmentAdmin: false };
+      return res.json() as Promise<{ isAdmin: boolean; isDepartmentAdmin?: boolean }>;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -25,6 +25,16 @@ function useAdminRoleQuery() {
 export function useIsAdmin(): boolean {
   const { data } = useAdminRoleQuery();
   return data?.isAdmin ?? false;
+}
+
+/**
+ * Whether the signed-in user maintains at least one program (or is a super
+ * admin). Only decides whether the UI links to Program Requirements Admin; the
+ * server checks scope on every admin request.
+ */
+export function useIsDepartmentAdmin(): boolean {
+  const { data } = useAdminRoleQuery();
+  return data?.isDepartmentAdmin ?? false;
 }
 
 /**

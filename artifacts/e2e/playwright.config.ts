@@ -47,6 +47,13 @@ export default defineConfig({
       dependencies: ["setup"],
     },
     {
+      // Live QA of the Bulletin baseline, Department Notes, Program Requirements Admin and Sample Plans. See tests/department-layer.spec.ts.
+      name: "dept-layer",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
+      testMatch: /department-layer\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
       name: "1440x900",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
       testMatch: /responsive\.spec\.ts/,

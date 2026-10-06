@@ -28,9 +28,10 @@ import {
 } from "lucide-react";
 import { PlanItemType, RequirementItem } from "@workspace/api-client-react";
 import {
-  requirementCategoryKindFor,
+  requirementCategoryKindOfGroup,
   REQUIREMENT_CATEGORY_STYLE,
 } from "@/lib/requirement-category";
+import { DepartmentMarks, DepartmentNotes, GroupDepartmentNotes } from "./DepartmentNotes";
 import { RequirementCourseDiscovery } from "./RequirementCourseDiscovery";
 import {
   AddRequirementButton,
@@ -48,6 +49,8 @@ import {
 } from "./RequirementCustomization";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTrackUsage } from "@/hooks/use-track-usage";
+import { useIsDepartmentAdmin } from "@/hooks/use-is-admin";
+import { Link } from "wouter";
 import { Pencil } from "lucide-react";
 import type { RequirementGroup } from "@workspace/api-client-react";
 
@@ -74,6 +77,7 @@ export function Palette() {
   >(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const canCustomize = !!activePlan && !!requirementsMeta;
+  const isDepartmentAdmin = useIsDepartmentAdmin();
   // Privacy-preserving feature event (no requirement text), once per visit that opens edit mode.
   useTrackUsage("requirement_customization", editing);
   const actions = useRequirementActions(activePlan?.id ?? 0);
@@ -258,6 +262,11 @@ export function Palette() {
         <p className="mt-0.5 text-[11px] text-muted-foreground">
           Declared and proposed majors, minors &amp; Professional Preparation — editable planning space, distinct from your official APR on the right.
         </p>
+        {isDepartmentAdmin && (
+          <Link href="/admin/program-requirements" className="mt-1 inline-block text-[11px] font-medium text-amber-800 underline underline-offset-2" data-testid="link-program-requirements-admin">
+            Program Requirements Admin
+          </Link>
+        )}
         {editing && requirementsMeta && (
           <div className="mt-2 space-y-1.5 rounded-md border border-sky-200 bg-sky-50/60 p-2 text-[10px] leading-relaxed text-sky-950" data-testid="edit-requirements-panel">
             <p>
@@ -410,7 +419,10 @@ export function Palette() {
             )}
             {/* Requirement groups — titles come from the API (major/second major/minor). */}
             {requirements?.map((group) => {
-              const categoryKind = requirementCategoryKindFor(group.title);
+              // The category comes from the Bulletin group (server `category`); the title is only a fallback.
+              const categoryKind = requirementCategoryKindOfGroup(group);
+              // University rules are not courses: nothing to place or add, only to read.
+              const isRuleGroup = group.kind === "university";
               const categoryStyle = REQUIREMENT_CATEGORY_STYLE[categoryKind];
               const Icon = categoryStyle.icon;
               return (
@@ -448,6 +460,7 @@ export function Palette() {
                         {note}
                       </p>
                     ))}
+                    <GroupDepartmentNotes group={group} />
                     {group.items.length === 0 && (
                       <p className="py-1.5 text-[11px] text-muted-foreground">
                         No verified course requirements are available for this
@@ -489,6 +502,7 @@ export function Palette() {
                           <div className="flex items-start justify-between gap-1.5">
                             <div className="font-medium leading-snug">
                               {req.label}
+                              <DepartmentMarks item={req} />
                               <CustomizationMarks item={req} />
                             </div>
                             {status === "completed" && (
@@ -532,7 +546,7 @@ export function Palette() {
                             </div>
                           )}
 
-                          {!isCustom && !isHidden && status !== "completed" && status !== "planned" && (
+                          {!isCustom && !isRuleGroup && !isHidden && status !== "completed" && status !== "planned" && (
                             <div className="mt-2 space-y-1.5">
                               {/* Hide placeholder button when destination is completed area */}
                               {!isCompletedDestination && (
@@ -620,6 +634,7 @@ export function Palette() {
                               </div>
                             )}
 
+                          <DepartmentNotes item={req} />
                           <CustomizationNote item={req} />
                           <SourceChangedNotice
                             item={req}

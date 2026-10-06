@@ -1111,9 +1111,53 @@ export const GetDegreeRequirementsResponse = zod.object({
         .describe(
           "Present on GET \/plans\/{id}\/requirements. The identifier custom requirements attach to.",
         ),
+      category: zod
+        .enum([
+          "UNIVERSITY",
+          "CORE",
+          "SCHOOL",
+          "MAJOR",
+          "MINOR",
+          "CONCENTRATION",
+          "OTHER",
+        ])
+        .optional()
+        .describe(
+          "The canonical category, from the Bulletin group the requirement is in (never from where a department checksheet lists it).",
+        ),
+      departmentNotes: zod
+        .array(
+          zod.object({
+            id: zod.number(),
+            body: zod.string(),
+            kind: zod
+              .string()
+              .nullable()
+              .describe("requirement | sequence | core_overlap | advising"),
+            programKey: zod.string(),
+            programTitle: zod
+              .string()
+              .describe(
+                "Whose department wrote it (matters on shared Core items).",
+              ),
+            sourceLabel: zod.string().nullable(),
+            sourceUrl: zod.string().nullable(),
+            sourceReference: zod.string().nullable(),
+            origin: zod.enum(["imported", "admin"]),
+            reviewed: zod
+              .boolean()
+              .describe(
+                "False for an imported note no person has reviewed yet.",
+              ),
+            updatedAt: zod.string(),
+          }),
+        )
+        .optional()
+        .describe("Department Notes about the whole group or program."),
       title: zod.string(),
       kind: zod
         .enum([
+          "university",
           "university_core",
           "college",
           "major",
@@ -1238,6 +1282,55 @@ export const GetDegreeRequirementsResponse = zod.object({
               "completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither.",
             ),
           complete: zod.boolean(),
+          departmentNotes: zod
+            .array(
+              zod.object({
+                id: zod.number(),
+                body: zod.string(),
+                kind: zod
+                  .string()
+                  .nullable()
+                  .describe("requirement | sequence | core_overlap | advising"),
+                programKey: zod.string(),
+                programTitle: zod
+                  .string()
+                  .describe(
+                    "Whose department wrote it (matters on shared Core items).",
+                  ),
+                sourceLabel: zod.string().nullable(),
+                sourceUrl: zod.string().nullable(),
+                sourceReference: zod.string().nullable(),
+                origin: zod.enum(["imported", "admin"]),
+                reviewed: zod
+                  .boolean()
+                  .describe(
+                    "False for an imported note no person has reviewed yet.",
+                  ),
+                updatedAt: zod.string(),
+              }),
+            )
+            .optional()
+            .describe(
+              "Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note).",
+            ),
+          department: zod
+            .object({
+              overridden: zod.boolean(),
+              originalLabel: zod
+                .string()
+                .nullable()
+                .describe("The Bulletin's own wording."),
+              originalDescription: zod.string().nullable(),
+              added: zod
+                .boolean()
+                .describe("A requirement the Bulletin does not list."),
+              programKey: zod.string(),
+              programTitle: zod.string(),
+            })
+            .optional()
+            .describe(
+              "Present when a department changed this requirement's wording or added it.",
+            ),
         }),
       ),
       autoTrackedCount: zod.number(),
@@ -1501,6 +1594,20 @@ export const ListPlansResponse = zod.object({
             .describe(
               "Draft-only additional minors; does not alter the official student profile.",
             ),
+          sampleSource: zod
+            .object({
+              samplePlanId: zod.number(),
+              slug: zod.string(),
+              version: zod.string(),
+              title: zod.string(),
+              sourceLabel: zod.string().nullish(),
+              sourceUrl: zod.string().nullish(),
+              loadedAt: zod.string(),
+            })
+            .optional()
+            .describe(
+              "Set when the plan was made from, or had items added from, a sample plan. Provenance only: the plan is an independent copy and later changes to the sample plan never reach it.",
+            ),
         })
         .optional(),
       itemCount: zod.number(),
@@ -1615,6 +1722,20 @@ export const GetPlanResponse = zod.object({
         .describe(
           "Draft-only additional minors; does not alter the official student profile.",
         ),
+      sampleSource: zod
+        .object({
+          samplePlanId: zod.number(),
+          slug: zod.string(),
+          version: zod.string(),
+          title: zod.string(),
+          sourceLabel: zod.string().nullish(),
+          sourceUrl: zod.string().nullish(),
+          loadedAt: zod.string(),
+        })
+        .optional()
+        .describe(
+          "Set when the plan was made from, or had items added from, a sample plan. Provenance only: the plan is an independent copy and later changes to the sample plan never reach it.",
+        ),
     })
     .optional(),
   programs: zod
@@ -1703,6 +1824,7 @@ export const GetPlanResponse = zod.object({
         .union([
           zod.literal("student_asserted"),
           zod.literal("report_imported"),
+          zod.literal("sample_plan"),
           zod.literal(null),
         ])
         .nullish()
@@ -1767,6 +1889,20 @@ export const UpdatePlanBody = zod.object({
         .optional()
         .describe(
           "Draft-only additional minors; does not alter the official student profile.",
+        ),
+      sampleSource: zod
+        .object({
+          samplePlanId: zod.number(),
+          slug: zod.string(),
+          version: zod.string(),
+          title: zod.string(),
+          sourceLabel: zod.string().nullish(),
+          sourceUrl: zod.string().nullish(),
+          loadedAt: zod.string(),
+        })
+        .optional()
+        .describe(
+          "Set when the plan was made from, or had items added from, a sample plan. Provenance only: the plan is an independent copy and later changes to the sample plan never reach it.",
         ),
     })
     .optional(),
@@ -1862,6 +1998,20 @@ export const UpdatePlanResponse = zod.object({
         .optional()
         .describe(
           "Draft-only additional minors; does not alter the official student profile.",
+        ),
+      sampleSource: zod
+        .object({
+          samplePlanId: zod.number(),
+          slug: zod.string(),
+          version: zod.string(),
+          title: zod.string(),
+          sourceLabel: zod.string().nullish(),
+          sourceUrl: zod.string().nullish(),
+          loadedAt: zod.string(),
+        })
+        .optional()
+        .describe(
+          "Set when the plan was made from, or had items added from, a sample plan. Provenance only: the plan is an independent copy and later changes to the sample plan never reach it.",
         ),
     })
     .optional(),
@@ -1968,9 +2118,53 @@ export const GetPlanRequirementsResponse = zod
           .describe(
             "Present on GET \/plans\/{id}\/requirements. The identifier custom requirements attach to.",
           ),
+        category: zod
+          .enum([
+            "UNIVERSITY",
+            "CORE",
+            "SCHOOL",
+            "MAJOR",
+            "MINOR",
+            "CONCENTRATION",
+            "OTHER",
+          ])
+          .optional()
+          .describe(
+            "The canonical category, from the Bulletin group the requirement is in (never from where a department checksheet lists it).",
+          ),
+        departmentNotes: zod
+          .array(
+            zod.object({
+              id: zod.number(),
+              body: zod.string(),
+              kind: zod
+                .string()
+                .nullable()
+                .describe("requirement | sequence | core_overlap | advising"),
+              programKey: zod.string(),
+              programTitle: zod
+                .string()
+                .describe(
+                  "Whose department wrote it (matters on shared Core items).",
+                ),
+              sourceLabel: zod.string().nullable(),
+              sourceUrl: zod.string().nullable(),
+              sourceReference: zod.string().nullable(),
+              origin: zod.enum(["imported", "admin"]),
+              reviewed: zod
+                .boolean()
+                .describe(
+                  "False for an imported note no person has reviewed yet.",
+                ),
+              updatedAt: zod.string(),
+            }),
+          )
+          .optional()
+          .describe("Department Notes about the whole group or program."),
         title: zod.string(),
         kind: zod
           .enum([
+            "university",
             "university_core",
             "college",
             "major",
@@ -2095,6 +2289,57 @@ export const GetPlanRequirementsResponse = zod
                 "completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither.",
               ),
             complete: zod.boolean(),
+            departmentNotes: zod
+              .array(
+                zod.object({
+                  id: zod.number(),
+                  body: zod.string(),
+                  kind: zod
+                    .string()
+                    .nullable()
+                    .describe(
+                      "requirement | sequence | core_overlap | advising",
+                    ),
+                  programKey: zod.string(),
+                  programTitle: zod
+                    .string()
+                    .describe(
+                      "Whose department wrote it (matters on shared Core items).",
+                    ),
+                  sourceLabel: zod.string().nullable(),
+                  sourceUrl: zod.string().nullable(),
+                  sourceReference: zod.string().nullable(),
+                  origin: zod.enum(["imported", "admin"]),
+                  reviewed: zod
+                    .boolean()
+                    .describe(
+                      "False for an imported note no person has reviewed yet.",
+                    ),
+                  updatedAt: zod.string(),
+                }),
+              )
+              .optional()
+              .describe(
+                "Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note).",
+              ),
+            department: zod
+              .object({
+                overridden: zod.boolean(),
+                originalLabel: zod
+                  .string()
+                  .nullable()
+                  .describe("The Bulletin's own wording."),
+                originalDescription: zod.string().nullable(),
+                added: zod
+                  .boolean()
+                  .describe("A requirement the Bulletin does not list."),
+                programKey: zod.string(),
+                programTitle: zod.string(),
+              })
+              .optional()
+              .describe(
+                "Present when a department changed this requirement's wording or added it.",
+              ),
           }),
         ),
         autoTrackedCount: zod.number(),
@@ -2109,6 +2354,12 @@ export const GetPlanRequirementsResponse = zod
         .object({
           label: zod.string(),
           policyDecided: zod.boolean(),
+          edition: zod
+            .string()
+            .nullish()
+            .describe(
+              "The Bulletin edition id the requirements were built from (for example 2026-27).",
+            ),
         })
         .describe(
           "Plain wording for what these requirements are, so the sidebar never claims more authority than its source supports.",
@@ -2360,6 +2611,20 @@ export const PromotePlanResponse = zod.object({
         .describe(
           "Draft-only additional minors; does not alter the official student profile.",
         ),
+      sampleSource: zod
+        .object({
+          samplePlanId: zod.number(),
+          slug: zod.string(),
+          version: zod.string(),
+          title: zod.string(),
+          sourceLabel: zod.string().nullish(),
+          sourceUrl: zod.string().nullish(),
+          loadedAt: zod.string(),
+        })
+        .optional()
+        .describe(
+          "Set when the plan was made from, or had items added from, a sample plan. Provenance only: the plan is an independent copy and later changes to the sample plan never reach it.",
+        ),
     })
     .optional(),
   itemCount: zod.number(),
@@ -2455,7 +2720,7 @@ export const AddPlanItemBody = zod.object({
       "Student-asserted provenance for a completed item. Distinct from verified Academic Progress Report data.",
     ),
   provenance: zod
-    .enum(["student_asserted", "report_imported"])
+    .enum(["student_asserted", "report_imported", "sample_plan"])
     .optional()
     .describe(
       "Defaults to student_asserted when adding to the completed area.",
@@ -2522,7 +2787,9 @@ export const UpdatePlanItemBody = zod.object({
     .optional(),
   position: zod.number().optional(),
   note: zod.string().nullish(),
-  provenance: zod.enum(["student_asserted", "report_imported"]).optional(),
+  provenance: zod
+    .enum(["student_asserted", "report_imported", "sample_plan"])
+    .optional(),
 });
 
 export const UpdatePlanItemResponse = zod.object({
@@ -2574,6 +2841,7 @@ export const UpdatePlanItemResponse = zod.object({
     .union([
       zod.literal("student_asserted"),
       zod.literal("report_imported"),
+      zod.literal("sample_plan"),
       zod.literal(null),
     ])
     .nullish()
@@ -2649,6 +2917,7 @@ export const ReplacePlanPlaceholderResponse = zod.object({
     .union([
       zod.literal("student_asserted"),
       zod.literal("report_imported"),
+      zod.literal("sample_plan"),
       zod.literal(null),
     ])
     .nullish()

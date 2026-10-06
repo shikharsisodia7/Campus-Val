@@ -124,6 +124,7 @@ const SPA_ROUTES = new Set([
   "/shared-with-me",
   "/admin/usage",
   "/admin/feedback",
+  "/admin/program-requirements",
 ]);
 
 // Static prerendered landing HTML injected for crawlers that don't execute JS.

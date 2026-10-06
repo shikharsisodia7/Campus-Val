@@ -4,6 +4,7 @@ import {
   BookOpenCheck,
   BookMarked,
   Briefcase,
+  ScrollText,
   CircleDashed,
   type LucideIcon,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import {
  * those routes actually emit rather than inventing a new stored field.
  */
 export type RequirementCategoryKind =
+  | "university"
   | "university_core"
   | "college"
   | "major"
@@ -41,6 +43,12 @@ export const REQUIREMENT_CATEGORY_STYLE: Record<
   RequirementCategoryKind,
   RequirementCategoryStyle
 > = {
+  university: {
+    label: "University",
+    icon: ScrollText,
+    badgeClass: "bg-stone-100 text-stone-800 border-stone-300",
+    isSupplemental: false,
+  },
   university_core: {
     label: "University Core",
     icon: GraduationCap,
@@ -88,6 +96,30 @@ export function requirementCategoryKindFor(
   if (title.startsWith("Minor Requirements")) return "minor";
   if (title.startsWith("Professional Preparation")) return "professional_prep";
   if (title === "University Core Curriculum") return "university_core";
+  if (title === "University Degree Requirements") return "university";
   if (title.endsWith("Requirements")) return "college";
   return "other";
+}
+
+const KIND_OF_CATEGORY: Record<string, RequirementCategoryKind> = {
+  UNIVERSITY: "university",
+  CORE: "university_core",
+  SCHOOL: "college",
+  MAJOR: "major",
+  MINOR: "minor",
+  OTHER: "professional_prep",
+};
+
+/**
+ * The category of a requirement group. The server sends the canonical
+ * `category` (derived from the Bulletin group the requirement is in), and that
+ * wins; the title patterns above are only a fallback for a response that
+ * predates it.
+ */
+export function requirementCategoryKindOfGroup(group: {
+  title?: string | null;
+  category?: string | null;
+}): RequirementCategoryKind {
+  const fromCategory = group.category ? KIND_OF_CATEGORY[group.category] : undefined;
+  return fromCategory ?? requirementCategoryKindFor(group.title);
 }

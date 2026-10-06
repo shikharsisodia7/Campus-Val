@@ -206,11 +206,13 @@ students (`artifacts/e2e`, keys in `artifacts/e2e/.env.e2e.local`):
 | `security` | Accounts cannot read each other's plans, reports or documents |
 | `a11y-desktop`, `a11y-phone` | axe-core on every page and state; the keyboard |
 | `req-customization` | The requirements sidebar's planning edits: persistence, reset, hide, own requirements, plan isolation, phone, axe |
+| `dept-layer` | Bulletin baseline, Department Notes beside My Notes, Program Requirements Admin (scoped), Sample Plans, widened sidebar at five sizes |
 
 They are not part of CI: they need Clerk test keys and a running server, and CI
 must pass without any secret. CI runs everything in the first block, applies
 the migrations to an empty database, and boots the production bundle.
 
-More: `docs/DEGREE_CHECKSHEETS.md`, `docs/REQUIREMENTS_SOURCE.md` (where the sidebar comes from,
-planning edits, `pnpm run audit:requirements`), `docs/audits/`,
+More: `docs/BULLETIN_BASELINE.md` (the sidebar's layers: Bulletin, Department Notes and overrides, student edits; editions, snapshots,
+department administration, Sample Plans), `docs/DEGREE_CHECKSHEETS.md`, `docs/REQUIREMENTS_SOURCE.md` (the provider boundary,
+student edits, `pnpm run audit:requirements`), `docs/audits/`,
 `docs/ACCESSIBILITY_TESTING.md`, `docs/PILOT_QA_CHECKLIST.md`.

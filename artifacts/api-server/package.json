@@ -16,7 +16,12 @@
     "verify-apr": "tsx scripts/verify-apr-export.ts",
     "audit:requirements": "tsx scripts/audit-requirements.ts",
     "seed-e2e-seats": "tsx scripts/seed-e2e-seat-data.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "import:department-notes": "tsx scripts/import-department-notes.ts",
+    "import:sample-plans": "tsx scripts/import-sample-plans.ts",
+    "snapshot:bulletin": "tsx scripts/snapshot-bulletin.ts",
+    "diff:bulletin": "tsx scripts/diff-bulletin.ts",
+    "admin:scope": "tsx scripts/admin-scope.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.14",

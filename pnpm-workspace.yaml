@@ -51,13 +51,14 @@ overrides:
   # Security: packages other packages bring in, held at the release that fixes
   # a published vulnerability. Each stays within its major version. Remove an
   # entry once the package that brings it in asks for a fixed release itself.
-  # (pnpm audit, 2026-09-28.)
+  # (pnpm audit, 2026-09-28; proxy-addr added 2026-10-06; braces and sprintf-js have no fixed release yet.)
   '@xmldom/xmldom@<0.8.15': ^0.8.15
   'brace-expansion@<1.1.18': ^1.1.18
   'brace-expansion@>=2.0.0 <2.1.4': ^2.1.4
   'form-data@>=4.0.0 <4.0.6': ^4.0.6
   'js-cookie@<3.0.6': ^3.0.6
   'path-to-regexp@>=8.0.0 <8.4.0': ^8.4.0
+  'proxy-addr@<2.0.8': ^2.0.8
   'picomatch@<2.3.2': ^2.3.2
   'body-parser@>=2.0.0 <2.3.0': ^2.3.0
   'qs@<6.16.0': ^6.16.0

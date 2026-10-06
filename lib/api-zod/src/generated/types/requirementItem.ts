@@ -5,8 +5,10 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { DepartmentNote } from "./departmentNote";
 import type { RequirementItemCoreArea } from "./requirementItemCoreArea";
 import type { RequirementItemCustomization } from "./requirementItemCustomization";
+import type { RequirementItemDepartment } from "./requirementItemDepartment";
 import type { RequirementItemStatus } from "./requirementItemStatus";
 
 export interface RequirementItem {
@@ -35,4 +37,8 @@ export interface RequirementItem {
   /** completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither. */
   status?: RequirementItemStatus;
   complete: boolean;
+  /** Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note). */
+  departmentNotes?: DepartmentNote[];
+  /** Present when a department changed this requirement's wording or added it. */
+  department?: RequirementItemDepartment;
 }

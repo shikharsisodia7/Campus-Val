@@ -13,6 +13,7 @@ import { SlidersHorizontal, Upload, Share2 } from "lucide-react";
 import { Link } from "wouter";
 import { PlanControlsPanel } from "./PlanControlsPanel";
 import { FourYearPreload } from "./FourYearPreload";
+import { SamplePlanLoader } from "./SamplePlanLoader";
 import { AdvisorSharingPanel } from "./AdvisorSharingPanel";
 import { useDegreePlanContext } from "./DegreePlanContext";
 import { useTrackUsage } from "@/hooks/use-track-usage";
@@ -92,7 +93,7 @@ export function DegreePlanToolbar({
           below) get squeezed down to 1-2 visible characters before the
           "Load Four-Year Plan" button. 72 covers name + button + gap so the
           squeeze never happens; narrower viewports still wrap normally. */}
-      <div className="flex min-w-72 flex-1 items-center justify-center gap-2">
+      <div className="flex min-w-72 flex-1 flex-wrap items-center justify-center gap-2">
         <span
           className="min-w-20 truncate text-sm font-semibold leading-tight"
           data-testid="toolbar-plan-name"
@@ -100,6 +101,7 @@ export function DegreePlanToolbar({
           {activePlan?.name ?? "—"}
         </span>
         <FourYearPreload degreePlan={mode === "tentative" ? activePlan ?? null : degreePlan} />
+        <SamplePlanLoader />
       </div>
 
       {/* RIGHT: affects the Workday APR reference column */}

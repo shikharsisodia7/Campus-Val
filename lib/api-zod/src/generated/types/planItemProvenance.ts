@@ -17,4 +17,5 @@ export type PlanItemProvenance =
 export const PlanItemProvenance = {
   student_asserted: "student_asserted",
   report_imported: "report_imported",
+  sample_plan: "sample_plan",
 } as const;

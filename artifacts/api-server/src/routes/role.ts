@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { requireAuth } from "../middlewares/requireAuth";
 import { isAdminUser } from "../lib/admin";
+import { hasAnyAdminScope, loadAdminScopes } from "../lib/department/authz";
 
 const router: IRouter = Router();
 
@@ -12,7 +13,10 @@ const router: IRouter = Router();
  * role table, and never a hardcoded email list in the bundle.
  */
 router.get("/me/role", requireAuth, async (req, res) => {
-  res.json({ isAdmin: isAdminUser(req.userEmail!) });
+  // isDepartmentAdmin only decides whether the UI links to Program Requirements
+  // Admin. The admin API re-checks scope on every request (lib/department/authz.ts).
+  const scopes = await loadAdminScopes(req.userEmail!);
+  res.json({ isAdmin: isAdminUser(req.userEmail!), isDepartmentAdmin: hasAnyAdminScope(scopes) });
 });
 
 export default router;

@@ -231,7 +231,7 @@ function normalizeCode(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, " ");
 }
 
-function planDto(row: AcademicPlanRow, itemCount: number) {
+export function planDto(row: AcademicPlanRow, itemCount: number) {
   const programsValidation = validatePrograms(row.programs);
   return {
     id: row.id,

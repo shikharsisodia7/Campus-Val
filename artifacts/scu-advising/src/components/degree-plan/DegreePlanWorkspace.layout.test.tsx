@@ -15,7 +15,9 @@ describe("DegreePlanWorkspace laptop layout classes", () => {
 
   it("uses a three-column grid with a flexible center track", () => {
     expect(source).toMatch(/minmax\(0,\s*1fr\)/);
-    expect(source).toMatch(/minmax\(200px,\s*230px\)/);
+    // The requirements rail is wide enough to read Department Notes and My Notes.
+    expect(source).toMatch(/minmax\(260px,\s*320px\)/);
+    expect(source).toMatch(/minmax\(320px,\s*400px\)/);
     // The APR column is deliberately the wider rail: it holds a table to read.
     expect(source).toMatch(/minmax\(330px,\s*380px\)/);
     expect(source).toMatch(/minmax\(400px,\s*460px\)/);

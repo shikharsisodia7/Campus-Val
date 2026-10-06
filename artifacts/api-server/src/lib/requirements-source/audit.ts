@@ -18,9 +18,10 @@
  * Private student data is never read: the audit runs on synthetic profiles.
  */
 import type { StudentProfileRow } from "@workspace/db";
-import { getAvailableMajors, getAvailableMinors, getMinorRequirements, type College } from "../../data/graduation-paths";
+import { getAvailableMajors, getAvailableMinors, getMajorRequirements, getMinorRequirements, type College } from "../../data/graduation-paths";
 import { findCourse } from "../../data/courses";
 import { buildNormalizedRequirements } from "./index";
+import { isCtwCourseCode, looksLikeCoreAreaLabel } from "./category";
 import type { NormalizedGroup } from "./normalize";
 import { findOrphanedCustomizations, type StoredCustomization } from "./overlay";
 
@@ -65,6 +66,11 @@ export interface AuditReport {
     majors: number;
     minors: number;
     collegeGroups: number;
+    /** Majors that name official concentrations/tracks, and how many names in all. */
+    majorsWithConcentrations: number;
+    concentrations: number;
+    /** Findings that say a requirement sits in the wrong category (Core under Major, ...). */
+    classificationErrors: number;
     groups: number;
     requirements: number;
     findings: number;
@@ -199,6 +205,28 @@ export function auditTree(
         }
       }
 
+      // CLASSIFICATION: a requirement belongs to the category of the Bulletin group it is in.
+      // These are objective: the item's own wording says it is in the wrong group.
+      if (group.kind === "major") {
+        const noCatalogCourse = item.courses.length === 0 || item.courses.every((c) => !findCourse(normalizeCode(c)));
+        if (looksLikeCoreAreaLabel(item.label) && (noCatalogCourse || item.courses.every(isCtwCourseCode))) {
+          flag("core_requirement_under_major", "data_integrity", "error", "A University Core area (Critical Thinking & Writing, Cultures & Ideas, a Pathway...) is listed as a major requirement.");
+        } else if (item.courses.some(isCtwCourseCode)) {
+          // Legitimate if the major itself requires the course; reported so it can be proofread.
+          flag("ctw_course_in_major", "academic_content", "info", "A Critical Thinking & Writing course is listed as a major requirement. It is Core for every student; confirm the major requires it for its own reason.");
+        }
+        if (/\b(175|193) (quarter )?units\b|\bupper-division (quarter )?units\b|\bresidency\b|\b2\.0 GPA\b/i.test(`${item.label} ${item.description}`)) {
+          flag("university_rule_under_major", "data_integrity", "error", "A university-wide degree rule (units, residency, GPA) is listed as a major requirement.");
+        }
+      } else if (group.kind === "university_core") {
+        if (item.phase == null) flag("core_item_without_phase", "data_integrity", "error", "A University Core requirement has no Foundations / Explorations / Integrations phase.");
+        if (/^[A-Z]{2,5} \d{1,3}[A-Z]{0,2}\s+[—-]\s/.test(item.label)) {
+          flag("major_requirement_under_core", "data_integrity", "error", "A course-by-course (major-style) requirement is listed under the University Core.");
+        }
+      } else if (group.kind === "university") {
+        if (item.courses.length > 0) flag("university_rule_with_courses", "data_integrity", "error", "A university-wide rule lists courses; it should be a rule, not a course list.");
+      }
+
       if (group.kind === "major") {
         const same = (set: Set<string>) => set.size > 0 && set.size === inItem.size && [...set].every((c) => inItem.has(c));
         // A Core area NAME standing where a course should: it names a Core area and none
@@ -326,8 +354,10 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
   for (const m of majors) if (!firstMajorOf.has(m.college)) firstMajorOf.set(m.college, m.code);
   const coreCoursesByCollege = new Map<College, Set<string>[]>();
   let collegeGroups = 0;
+  let majorsWithConcentrations = 0;
+  let concentrations = 0;
   for (const [college, major] of firstMajorOf) {
-    const shared = build(college, major, null).filter((g) => g.group.kind === "university_core" || g.group.kind === "college");
+    const shared = build(college, major, null).filter((g) => g.group.kind === "university" || g.group.kind === "university_core" || g.group.kind === "college");
     collegeGroups += shared.length;
     groups += shared.length;
     missingProvenanceGroups += shared.filter((g) => ["unknown", "partial"].includes(g.provenance.provenanceStatus)).length;
@@ -364,6 +394,9 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
         message: `${overlap.size} course(s) appear in both the school requirements group and this major group (${[...overlap].slice(0, 6).join(", ")}${overlap.size > 6 ? ", ..." : ""}). Typical of the Leavey Common Curriculum; the source may intend it.`,
       });
     }
+    const named = getMajorRequirements(m.code, [], () => undefined)?.concentrations.length ?? 0;
+    if (named > 0) majorsWithConcentrations += 1;
+    concentrations += named;
     groups += tree.length;
     missingProvenanceGroups += tree.filter((g) => ["unknown", "partial"].includes(g.provenance.provenanceStatus)).length;
     const result = auditTree(tree, "major", `${m.title} (${m.code})`, { universityCoreItemCourses: coreCoursesByCollege.get(m.college) });
@@ -432,6 +465,9 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
       majors: majors.length,
       minors: minors.length,
       collegeGroups,
+      majorsWithConcentrations,
+      concentrations,
+      classificationErrors: findings.filter((f) => CLASSIFICATION_CODES.has(f.code)).length,
       groups,
       requirements: rows.filter((r) => r.requirementKey).length,
       findings: findings.length,
@@ -459,6 +495,15 @@ export function auditPlanCustomizations(tree: Tree, rows: StoredCustomization[])
   }
   return out;
 }
+
+/** Finding codes that mean a requirement is in the wrong category. */
+export const CLASSIFICATION_CODES = new Set([
+  "core_requirement_under_major",
+  "university_rule_under_major",
+  "major_requirement_under_core",
+  "core_item_without_phase",
+  "university_rule_with_courses",
+]);
 
 const csvCell = (value: string): string => (/[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
 

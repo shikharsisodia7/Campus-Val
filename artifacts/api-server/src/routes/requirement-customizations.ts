@@ -53,6 +53,7 @@ import {
   type StoredCustomization,
 } from "../lib/requirements-source";
 import { findCourse } from "../data/courses";
+import { applyDepartmentLayerToTree } from "../lib/department/service";
 import { itemsOf, ownedPlan, validatePrograms } from "./plans";
 
 const isCatalogCode = (code: string) => !!findCourse(code);
@@ -123,7 +124,15 @@ async function loadContext(req: Request, res: Response): Promise<PlanContext | n
   let built: PlanContext["built"];
   try {
     const items = await itemsOf(plan.id);
-    built = buildNormalizedRequirements(requirementsRequestForPlan(profile, plan, items));
+    const request = requirementsRequestForPlan(profile, plan, items);
+    built = buildNormalizedRequirements(request);
+    // Bulletin tree + the department's published notes and global overrides. The
+    // student's own edits are composed on top of this by the routes below.
+    const norm = (c: string) => c.trim().toUpperCase().replace(/\s+/g, " ");
+    const completed = new Set((profile.completedCourseCodes ?? []).map(norm));
+    const planned = new Set(request.plannedCourses.map(norm).filter((c) => !completed.has(c)));
+    const layered = await applyDepartmentLayerToTree(built.tree, built.edition, { completed, planned });
+    built = { ...built, tree: layered.tree as typeof built.tree };
   } catch (error) {
     // The plan is untouched. Do not fall back to a different source.
     logger.error({ event: "requirements_generation_failed", planId: plan.id, err: error instanceof Error ? error.message : String(error) }, "requirements generation failed");
@@ -194,7 +203,7 @@ router.get("/plans/:id/requirements", requireAuth, async (req, res) => {
   res.json({
     ...ctx.built.response,
     groups,
-    requirementsSource: { label: PUBLIC_SOURCE_LABEL[ctx.built.provider], policyDecided: POLICY_DECIDED },
+    requirementsSource: { label: PUBLIC_SOURCE_LABEL[ctx.built.provider], policyDecided: POLICY_DECIDED, edition: ctx.built.edition },
     customizations: { summary, orphaned },
   });
 });

@@ -5,6 +5,7 @@
  *   pnpm run audit:requirements --out <dir>     also write JSON and CSV files there
  *   pnpm run audit:requirements --all           list every finding (default hides "info")
  *   pnpm run audit:requirements --strict        exit 1 on any data_integrity ERROR
+ *   pnpm run audit:requirements --db            + department notes, overrides, student-edit keys, sample plans
  *
  * Reports only. Nothing here changes academic content. Runs on synthetic
  * profiles, so no student data is read or written.
@@ -19,6 +20,7 @@ const outIndex = args.indexOf("--out");
 const outDir = outIndex >= 0 ? args[outIndex + 1] : undefined;
 
 const report = auditRequirements();
+const withDb = flag("--db");
 const { counts } = report;
 
 console.log("CampusVal requirements audit");
@@ -26,6 +28,8 @@ console.log(`  source in use        ${report.provider}`);
 console.log(`  majors audited       ${counts.majors}`);
 console.log(`  minors audited       ${counts.minors}`);
 console.log(`  school/core groups   ${counts.collegeGroups}`);
+console.log(`  concentrations       ${counts.concentrations} (in ${counts.majorsWithConcentrations} majors; named only, no course lists loaded)`);
+console.log(`  classification errors ${counts.classificationErrors}  (Core under Major, Major under Core, university rule under Major)`);
 console.log(`  groups               ${counts.groups}`);
 console.log(`  requirements         ${counts.requirements}`);
 console.log(`  findings             ${counts.findings}  (errors ${counts.bySeverity.error}, warnings ${counts.bySeverity.warning}, info ${counts.bySeverity.info})`);
@@ -54,4 +58,24 @@ if (outDir) {
   console.log(`\nWrote requirements-audit.json, requirements-audit-findings.csv and requirements-audit-requirements.csv to ${outDir}`);
 }
 
-if (flag("--strict") && counts.bySeverity.error > 0) process.exit(1);
+let layerErrors = 0;
+if (withDb) {
+  // Notes, overrides, student-customization keys and sample plans, checked against the Bulletin data.
+  const { auditDepartmentLayer } = await import("../src/lib/department/audit.ts");
+  const layer = await auditDepartmentLayer();
+  layerErrors = layer.findings.filter((f) => f.severity === "error").length;
+  console.log("\nDepartment layer and sample plans (database)");
+  console.log(`  department notes     ${JSON.stringify(layer.counts.notes)}`);
+  console.log(`  global overrides     ${layer.counts.overrides}`);
+  console.log(`  student edit rows    ${layer.counts.studentCustomizationRows}  (keys only; no student content is read)`);
+  console.log(`  sample plans         ${layer.counts.samplePlans} (${layer.counts.samplePlanItems} items)`);
+  console.log(`  findings             ${layer.counts.findings}`);
+  const byLayerCode = new Map<string, number>();
+  for (const f of layer.findings) byLayerCode.set(`${f.severity}/${f.code}`, (byLayerCode.get(`${f.severity}/${f.code}`) ?? 0) + 1);
+  for (const [key, n] of [...byLayerCode].sort()) console.log(`    ${String(n).padStart(5)}  ${key}`);
+  if (outDir) writeFileSync(path.join(outDir, "department-layer-audit.json"), JSON.stringify(layer, null, 2));
+  const { pool } = await import("@workspace/db");
+  await pool.end();
+}
+
+if (flag("--strict") && (counts.bySeverity.error > 0 || layerErrors > 0)) process.exit(1);

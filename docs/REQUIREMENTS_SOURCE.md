@@ -2,6 +2,12 @@
 
 _2026-09-30. Read with [`DATA_PROVENANCE.md`](./DATA_PROVENANCE.md) and [`DEGREE_CHECKSHEETS.md`](./DEGREE_CHECKSHEETS.md)._
 
+> **Update 2026-10-06.** The professor's latest direction is that the sidebar's structural baseline is the **latest Undergraduate Bulletin**, with
+> Department Notes from the departments, global overrides by authorized department administrators, and the student's own plan-scoped edits on top;
+> the APR stays the separate Workday reference. That is implemented, and described in [`BULLETIN_BASELINE.md`](./BULLETIN_BASELINE.md). Still open and still
+> the professor's: whether a student's matriculation-year Bulletin should ever replace the latest one, and what the departments confirm (see that document).
+> The rest of this page describes the provider boundary, stable keys and student edits, which that work builds on unchanged.
+
 ## The decision is the professor's, and it is not made
 
 The Degree Plan has a list of requirements on its left ("Planning Requirements").
