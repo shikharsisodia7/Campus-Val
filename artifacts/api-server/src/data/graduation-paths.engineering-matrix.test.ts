@@ -21,8 +21,10 @@ import {
 import { findCourse } from "./courses";
 
 const SOE_MAJORS = ["CSE", "ECEN", "EE", "CENG", "BIOE", "WDE", "MECH", "GENR"];
-const PRESCRIBED_SOE_MAJORS = ["CSE", "ECEN", "EE", "CENG", "BIOE", "WDE"];
-const RECOMMENDED_SOE_MAJORS = ["MECH", "GENR"];
+// MECH and GENR were transcribed from their official flow charts on 2026-10-06 (rows are quarters),
+// so every School of Engineering major is now prescribed.
+const PRESCRIBED_SOE_MAJORS = ["CSE", "ECEN", "EE", "CENG", "BIOE", "WDE", "MECH", "GENR"];
+const RECOMMENDED_SOE_MAJORS: string[] = [];
 
 // Placeholder text that stands in for an open elective/Core slot — never a
 // specific fabricated course. Matched by prefix so every "Core: ..." variant
@@ -37,8 +39,12 @@ const PLACEHOLDER_PREFIXES = [
   "Professional Development",
   "Optional Elective",
   "Free Elective",
+  "Concentration Elective",
   "Educational Enrichment Elective",
 ];
+// Courses an official plan lists that the 2025-26 catalog snapshot does not carry. They are kept as the
+// source printed them (and load as placeholders in Sample Plans) rather than dropped or replaced.
+const OFFICIAL_COURSES_MISSING_FROM_CATALOG = new Set(["MECH 142", "ENGR 193", "ENGR 163A", "ENGR 163B"]);
 const isPlaceholder = (course: string) =>
   PLACEHOLDER_PREFIXES.some((p) => course.startsWith(p)) || / or /.test(course);
 
@@ -89,7 +95,7 @@ describe("Engineering four-year-plan matrix — every current SOE major CampusVa
       const path = getGraduationPath("four_year", code);
       for (const quarter of path.quarters) {
         for (const course of quarter.courses) {
-          if (isPlaceholder(course)) continue;
+          if (isPlaceholder(course) || OFFICIAL_COURSES_MISSING_FROM_CATALOG.has(course)) continue;
           expect(findCourse(course), `${code} ${quarter.label}: "${course}" should exist in the course catalog`).toBeTruthy();
         }
       }

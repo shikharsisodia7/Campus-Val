@@ -84,6 +84,26 @@ async function reachPreview() {
   return screen.findByTestId("sample-plan-preview");
 }
 
+describe("example (generated) plans", () => {
+  beforeEach(() => {
+    Element.prototype.hasPointerCapture = Element.prototype.hasPointerCapture ?? (() => false);
+    Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
+  });
+
+  it("are badged and carry a warning that SCU publishes no plan for the major", async () => {
+    mount();
+    const generated = { ...browse.schools[0]!.programs[0]!.plans[0]!, id: 5, sourceType: "campusval_generated" as const };
+    customFetch.mockImplementation(async (url: string) => {
+      if (url === "/api/sample-plans") return { schools: [{ ...browse.schools[0]!, programs: [{ program: "Biology", plans: [generated] }] }] };
+      if (url === "/api/sample-plans/5") return { ...preview, ...generated };
+      throw new Error(`unexpected ${String(url)}`);
+    });
+    const box = await reachPreview();
+    expect(screen.getByTestId("sample-plan-example-5").textContent).toBe("Example, not an SCU plan");
+    expect(within(box).getByTestId("sample-plan-example-warning").textContent).toMatch(/SCU does not publish a four-year plan/);
+  });
+});
+
 describe("Load Sample Plan", () => {
   beforeEach(() => {
     // jsdom lacks these; Radix Select needs them.

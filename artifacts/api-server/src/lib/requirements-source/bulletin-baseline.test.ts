@@ -208,3 +208,21 @@ describe("Bulletin snapshots", () => {
     expect(d.to).toBe("2027-28");
   });
 });
+
+describe("a four-year plan exists for every major", () => {
+  it("each of the 50 majors has a 12-quarter sequence, official (prescribed) or an example CampusVal labels as such", async () => {
+    const { getGraduationPath } = await import("../../data/graduation-paths");
+    const counts = { prescribed: 0, other: 0 };
+    for (const m of majors) {
+      const path = getGraduationPath("four_year", m.code);
+      expect(path.quarters.length, `${m.title} has no four-year sequence`).toBe(12);
+      if (path.sequenceTrust === "prescribed") {
+        counts.prescribed += 1;
+        expect(path.provenance.sourceUrl, m.title).toMatch(/^https:\/\/www\.scu\.edu\//);
+      } else counts.other += 1;
+    }
+    // Every School of Engineering major is official; the rest are labelled examples.
+    expect(counts.prescribed).toBe(8);
+    expect(counts.prescribed + counts.other).toBe(50);
+  });
+});
