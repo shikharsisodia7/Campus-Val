@@ -40,7 +40,7 @@ No major recipe lists a CTW course (`ctw_course_in_major`: 0).
 
 ### The 108 `course_not_in_catalog` warnings
 
-Real, and not new: the course catalog is the **2025-26** Bulletin scrape; the requirement data names courses of the **2026-27** Bulletin. Codes such as CHIN 100-103,
+Real, and not new (triage with evidence in [`catalog-gaps-2026-10-06.md`](./catalog-gaps-2026-10-06.md): 57 codes the 2026-27 Bulletin mentions, 32 it does not mention at all): the course catalog is the **2025-26** Bulletin scrape; the requirement data names courses of the **2026-27** Bulletin. Codes such as CHIN 100-103,
 ETHN 31/35/52/55, FNCE 127-129, MKTG 175-194 are absent from the catalog snapshot. They need either a catalog refresh from the 2026-27 Bulletin or a correction
 of the recipe; neither is guessed here. They are why the Sample Plan importer reports PHYS 20, and why French & Francophone Studies shows an honest empty group.
 
@@ -48,8 +48,8 @@ of the recipe; neither is guessed here. They are why the Sample Plan importer re
 
 | | |
 | --- | --- |
-| Department Notes | 187 published, 2 draft, 145 unmapped (334 imported from 25 of the 40 real CAS checklists) |
-| Findings | 187 `note_published_unreviewed` (info: students see them labelled "not yet reviewed"), 145 `note_unmapped` (info: waiting for a person) |
+| Department Notes | 225 published, 2 draft, 179 unmapped (406 imported from 30 of the 40 real CAS checklists) |
+| Findings | 225 `note_published_unreviewed` (info: students see them labelled "not yet reviewed"), 179 `note_unmapped` (info: waiting for a person) |
 | Global overrides | 0 |
 | Sample plans | 157 plans, 2,107 items; 2 `sample_plan_course_not_in_catalog` (PHYS 20) |
 | Errors | 0 |
