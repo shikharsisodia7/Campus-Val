@@ -124,8 +124,13 @@ describe("choosing the target", () => {
     expect(screen.queryByTestId("transfer-target")).toBeNull();
     expect((screen.getByTestId("transfer-save") as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(screen.getByTestId("transfer-search"), { target: { value: "chem" } });
-    const options = within(screen.getByTestId("transfer-options")).getAllByRole("option");
+    // A plain list of buttons (not a listbox): each is a real, focusable control.
+    const options = within(screen.getByTestId("transfer-options")).getAllByRole("button");
     expect(options.map((o) => o.textContent)).toEqual(["CHEM 11 — ChemistryMajor Requirements — Fixture"]);
+    fireEvent.click(options[0]!);
+    expect(screen.getByTestId("transfer-target").textContent).toContain("CHEM 11 — Chemistry");
+    expect(screen.getByTestId("transfer-target").textContent).not.toContain("is listed under it");
+    expect((screen.getByTestId("transfer-save") as HTMLButtonElement).disabled).toBe(false);
   });
 });
 
@@ -171,10 +176,16 @@ describe("saving", () => {
     fireEvent.change(screen.getByTestId("transfer-note"), { target: { value: "existing NOTE about calculus" } });
     expect(screen.getByTestId("transfer-duplicate").textContent).toMatch(/already in that note/);
     expect((screen.getByTestId("transfer-save") as HTMLButtonElement).disabled).toBe(true);
+    // Replacing the note with the same words is still the student's call.
+    fireEvent.click(screen.getByTestId("transfer-replace"));
+    expect(screen.queryByTestId("transfer-duplicate")).toBeNull();
+    expect((screen.getByTestId("transfer-save") as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("creates a My Requirement when nothing fits, under a group the student picks, with the same provenance", async () => {
     mount({ ...source, text: "Complete the senior portfolio review" });
+    const focused: { stableKey: string; customTitle?: string }[] = [];
+    window.addEventListener(FOCUS_REQUIREMENT_EVENT, (e) => focused.push((e as CustomEvent).detail), { once: true });
     fireEvent.click(screen.getByTestId("transfer-mode-custom"));
     fireEvent.change(screen.getByTestId("transfer-custom-title"), { target: { value: "Senior portfolio review" } });
     fireEvent.change(screen.getByTestId("transfer-custom-group"), { target: { value: "major:fixture" } });
@@ -190,12 +201,39 @@ describe("saving", () => {
         noteSource: { type: "DEGREE_CHECKSHEET", documentId: 7, anchor: "Biology!row 40" },
       },
     });
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Added to Planning Requirements" }));
+    // The new requirement's key is made on the server: the sidebar finds it by its group and title.
+    await waitFor(() => expect(focused).toEqual([{ stableKey: "major:fixture", customTitle: "Senior portfolio review" }]));
+  });
+
+  it("explains a My Requirement before it is made, and can make one without a note (then without provenance)", async () => {
+    mount({ ...source, text: "Complete the senior portfolio review" });
+    fireEvent.click(screen.getByTestId("transfer-mode-custom"));
     expect(screen.getByTestId("add-to-planning-dialog").textContent).toMatch(/“My requirement”/);
+    expect(screen.getByTestId("add-to-planning-dialog").textContent).toMatch(/not from the Bulletin/);
+    fireEvent.change(screen.getByTestId("transfer-note"), { target: { value: "" } });
+    fireEvent.click(screen.getByTestId("transfer-save"));
+    await waitFor(() => expect(calls.create).toHaveBeenCalled());
+    expect(calls.create.mock.calls[0]![0].data).toEqual({ groupKey: "major:fixture", title: "Complete the senior portfolio review", note: null, courseCodes: [] });
   });
 
   it("will not save an empty note or an over-long one", () => {
     mount();
     fireEvent.change(screen.getByTestId("transfer-note"), { target: { value: "   " } });
     expect((screen.getByTestId("transfer-save") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(screen.getByTestId("transfer-note"), { target: { value: "x".repeat(601) } });
+    expect((screen.getByTestId("transfer-save") as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId("add-to-planning-dialog").textContent).toContain("too long to save");
+    // The same limit holds for a My Requirement's note.
+    fireEvent.click(screen.getByTestId("transfer-mode-custom"));
+    expect((screen.getByTestId("transfer-save") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("appending to a note checks the combined length", () => {
+    mount({ ...source, text: "MATH 11 " + "y".repeat(580) });
+    expect(screen.getByTestId("transfer-existing")).toBeTruthy();
+    expect((screen.getByTestId("transfer-save") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByTestId("transfer-replace"));
+    expect((screen.getByTestId("transfer-save") as HTMLButtonElement).disabled).toBe(false);
   });
 });

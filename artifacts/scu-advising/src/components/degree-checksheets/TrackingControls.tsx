@@ -14,8 +14,10 @@ import {
 /** Said wherever a tracking control appears, so its meaning is never in doubt. */
 export const TRACKING_HINT = "Your own tracking, saved in CampusVal. It does not change the original document.";
 
+// Compact from md up, where the checksheet shares the screen with Planning Requirements and the APR:
+// 32px tall, still well above the 24px minimum target. Phones keep the roomier 36px.
 const SELECT =
-  "h-9 min-w-0 rounded-md border border-primary/40 bg-background px-1.5 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-60";
+  "h-9 min-w-0 rounded-md border border-primary/40 bg-background px-1.5 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-60 md:h-8 md:px-1 md:text-xs";
 
 /**
  * The small mark that sets the student's entries apart from the department's
@@ -125,7 +127,7 @@ export function TermSelect({
           const next = Number(e.target.value);
           if (current && Number.isInteger(next)) onChange(current, next);
         }}
-        className={cn(SELECT, "w-[4.75rem] shrink-0")}
+        className={cn(SELECT, "w-[4.75rem] shrink-0 md:w-[3.75rem]")}
         data-testid={testId ? `${testId}-year` : undefined}
       >
         {!current && <option value="">Year</option>}

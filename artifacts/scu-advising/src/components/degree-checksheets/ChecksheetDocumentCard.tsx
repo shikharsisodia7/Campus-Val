@@ -1,5 +1,5 @@
 import { replacementSummary, type ReplacementResult } from "@workspace/api-client-react";
-import { lazy, Suspense, useId, useState } from "react";
+import { lazy, Suspense, useId, useRef, useState } from "react";
 import {
   useDeleteDegreeChecksheet,
   useUpdateDegreeChecksheet,
@@ -112,6 +112,14 @@ export function ChecksheetDocumentCard({
   const planning = useOptionalDegreePlanContext();
   const [transfer, setTransfer] = useState<TransferSource | null>(null);
   const startTransfer = planning?.activePlan ? (source: TransferStart) => setTransfer({ ...source, documentId: document.id, documentTitle: document.title }) : null;
+  const cardRef = useRef<HTMLDivElement>(null);
+  /** Text selected inside THIS document when the toolbar button was pressed (pressing it can clear a selection). */
+  const pressedSelection = useRef("");
+  const selectedInDocument = (): string => {
+    const selection = window.getSelection();
+    const node = selection && !selection.isCollapsed ? selection.anchorNode : null;
+    return node && cardRef.current?.contains(node) ? selection!.toString() : "";
+  };
   const panelId = useId();
   const { toast } = useToast();
   const invalidate = useInvalidateChecksheets();
@@ -157,7 +165,7 @@ export function ChecksheetDocumentCard({
   });
 
   return (
-    <Card className="overflow-hidden" data-testid={`checksheet-document-${document.id}`} data-checksheet-card={document.id}>
+    <Card ref={cardRef} className="overflow-hidden" data-testid={`checksheet-document-${document.id}`} data-checksheet-card={document.id}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2 p-3 sm:p-4">
         <button
           type="button"
@@ -305,10 +313,14 @@ export function ChecksheetDocumentCard({
                     variant="outline"
                     size="sm"
                     className="h-9 gap-1.5 text-xs"
-                    onClick={() =>
-                      // Whatever the student has selected in the document, to start from.
-                      startTransfer({ text: window.getSelection()?.toString() ?? "" })
-                    }
+                    onPointerDown={() => (pressedSelection.current = selectedInDocument())}
+                    onClick={() => {
+                      // Whatever the student has selected in this document, to start from (or nothing: they write the note).
+                      const text = pressedSelection.current || selectedInDocument();
+                      pressedSelection.current = "";
+                      startTransfer({ text });
+                    }}
+                    title="Add text you selected in this document (or a note of your own) to your Planning Requirements"
                     data-testid={`checksheet-add-to-planning-${document.id}`}
                   >
                     <ListPlus className="h-3.5 w-3.5" aria-hidden="true" />

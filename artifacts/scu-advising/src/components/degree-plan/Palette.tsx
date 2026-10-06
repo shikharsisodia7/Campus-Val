@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -131,24 +131,45 @@ export function Palette() {
 
   const isCompletedDestination = destination === COMPLETED_DESTINATION;
 
-  // Another region asked to show a requirement (a note was just saved onto it): open its
-  // group, scroll to it and mark it briefly. Fragile on purpose-free: if it is not found, nothing happens.
+  // Another region asked to show a requirement (something was just saved onto it): open its
+  // group, scroll to it and mark it briefly. The request waits for the refreshed requirements
+  // (a new My requirement only exists once they arrive) and gives up quietly after a few
+  // seconds: if the requirement is not found, nothing happens.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [pendingFocus, setPendingFocus] = useState<FocusRequirementDetail | null>(null);
   useEffect(() => {
-    const onFocus = (event: Event) => {
-      const { stableKey } = (event as CustomEvent<FocusRequirementDetail>).detail;
-      const groupKey = groupKeyOfStableKey(stableKey);
-      const group = requirements?.find((g) => g.stableKey === groupKey);
-      if (group) setOpenGroups((open) => (open.includes(group.id) ? open : [...open, group.id]));
-      setFlashKey(stableKey);
-      window.setTimeout(() => {
-        const el = document.querySelector<HTMLElement>(`[data-testid="requirements-palette"] [data-stable-key="${CSS.escape(stableKey)}"]`);
-        el?.scrollIntoView({ block: "center", behavior: "smooth" });
-      }, 60);
-      window.setTimeout(() => setFlashKey((k) => (k === stableKey ? null : k)), 2500);
-    };
+    const onFocus = (event: Event) => setPendingFocus({ ...(event as CustomEvent<FocusRequirementDetail>).detail });
     window.addEventListener(FOCUS_REQUIREMENT_EVENT, onFocus);
     return () => window.removeEventListener(FOCUS_REQUIREMENT_EVENT, onFocus);
-  }, [requirements]);
+  }, []);
+  useEffect(() => {
+    if (!pendingFocus) return undefined;
+    const group = requirements?.find((g) => g.stableKey === groupKeyOfStableKey(pendingFocus.stableKey));
+    const key = !group
+      ? null
+      : pendingFocus.customTitle
+        ? [...group.items].reverse().find((i) => i.customization?.kind === "custom" && i.label === pendingFocus.customTitle)?.stableKey ?? null
+        : pendingFocus.stableKey;
+    if (!group || !key) {
+      // Not there (yet): wait for the next requirements, but not forever.
+      const giveUp = window.setTimeout(() => setPendingFocus((p) => (p === pendingFocus ? null : p)), 6000);
+      return () => window.clearTimeout(giveUp);
+    }
+    setPendingFocus(null);
+    setSearch("");
+    setOpenGroups((open) => (open.includes(group.id) ? open : [...open, group.id]));
+    setFlashKey(key);
+    // After the group has opened: scroll THIS sidebar to it (another copy of the sidebar, in a closed drawer, does its own).
+    window.setTimeout(() => {
+      rootRef.current?.querySelector<HTMLElement>(`[data-stable-key="${CSS.escape(key)}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 80);
+    return undefined;
+  }, [pendingFocus, requirements]);
+  useEffect(() => {
+    if (!flashKey) return;
+    const t = window.setTimeout(() => setFlashKey(null), 2500);
+    return () => window.clearTimeout(t);
+  }, [flashKey]);
 
   const [academicYear, term] = destination.split(":");
   const placement = {
@@ -256,6 +277,7 @@ export function Palette() {
 
   return (
     <Card
+      ref={rootRef}
       className="flex h-full flex-col overflow-hidden border-border/60 bg-card shadow-sm"
       data-testid="requirements-palette"
     >

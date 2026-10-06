@@ -72,6 +72,18 @@ export function usePlanningWorkspace(mode: PlanningWorkspaceMode) {
     }
   }, [plansList, activePlanId, mode]);
 
+  // Whatever plan a planning surface ends up showing (picked, remembered or the default)
+  // is the one the comparison pages start from next, so moving from a plan to a
+  // checksheet or the APR keeps the plan the student was just looking at.
+  useEffect(() => {
+    if (activePlanId === null) return;
+    try {
+      sessionStorage.setItem(ACTIVE_PLAN_KEY, String(activePlanId));
+    } catch {
+      /* storage can be unavailable; the comparison pages then start from the Degree Plan */
+    }
+  }, [activePlanId]);
+
   const { data: activePlan, isLoading: planLoading } = useGetPlan(activePlanId!, {
     query: { enabled: !!activePlanId, queryKey: getGetPlanQueryKey(activePlanId!) },
   });
@@ -79,7 +91,6 @@ export function usePlanningWorkspace(mode: PlanningWorkspaceMode) {
   const selectPlan = (planId: number | null) => {
     setActivePlanId(planId);
     try {
-      if (planId !== null) sessionStorage.setItem(ACTIVE_PLAN_KEY, String(planId));
       if (mode === "tentative" || mode === "compare") {
         // Only remember an id that is actually a tentative plan: selecting the
         // Degree Plan must not poison the remembered-tentative-plan key. The comparison

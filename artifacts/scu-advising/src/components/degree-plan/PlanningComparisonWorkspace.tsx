@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "wouter";
 import { Menu, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -10,6 +11,7 @@ import { DegreePlanProvider } from "./DegreePlanContext";
 import { Palette } from "./Palette";
 import { usePlanningWorkspace } from "./usePlanningWorkspace";
 import {
+  COMPARISON_HEIGHT,
   PLANNING_LEFT_ONLY_COLUMNS,
   PLANNING_RIGHT_ONLY_COLUMNS,
   PLANNING_THREE_COLUMNS,
@@ -27,11 +29,16 @@ import { WorkdayAprPanel } from "@/components/progress-report/WorkdayAprPanel";
  * It composes the SAME Planning Requirements sidebar (Palette) and the SAME
  * compact APR sidebar (WorkdayAprPanel) that Degree Plan uses, against the
  * plan the student picks; nothing is copied. It never creates a plan and never
- * changes the main content. Each region scrolls on its own, so keeping your place
- * in a checksheet is independent of the APR or the requirements list.
+ * changes the main content. On wide screens each region scrolls on its own, so
+ * keeping your place in a checksheet is independent of the APR or the
+ * requirements list.
  *
- * Below `xl` there is no room for three regions: the main content gets the width
- * and the requirements (and APR) open in drawers, as on Degree Plan.
+ * The main content renders at once: it does not depend on the plan, so it never
+ * waits for plan data. Only the side panels show a placeholder while it loads.
+ *
+ * Below `xl` there is no room for three regions: the main content takes the
+ * width, the page scrolls as a normal page (no scroll region inside a phone
+ * screen), and the requirements (and APR) open in drawers, as on Degree Plan.
  */
 
 const COLLAPSE_KEY = "campusval.compareRails";
@@ -47,7 +54,8 @@ function readRails(): Rails {
   }
 }
 
-function planLabel(plan: { name: string; planType: string }): string {
+/** How a plan is named in "Compare against": "Degree Plan", or "Tentative Degree Plan — <name>". */
+export function comparePlanLabel(plan: { name: string; planType: string }): string {
   if (plan.planType === "degree") return "Degree Plan";
   return /tentative degree plan/i.test(plan.name) ? plan.name : `Tentative Degree Plan — ${plan.name}`;
 }
@@ -77,42 +85,49 @@ export function PlanningComparisonWorkspace({
   const left = rails.left;
   const right = showCompactApr && rails.right;
   const columns = left && right ? PLANNING_THREE_COLUMNS : left ? PLANNING_LEFT_ONLY_COLUMNS : right ? PLANNING_RIGHT_ONLY_COLUMNS : "";
+  const planPending = plansLoading || (!!activePlanId && planLoading);
+  const noPlan = !plansLoading && plans.length === 0;
 
-  const selector = (
-    <div className="flex min-w-0 items-center gap-2" data-testid="compare-plan-selector">
-      <Label htmlFor="compare-plan" className="shrink-0 text-xs text-muted-foreground">
-        Compare against
-      </Label>
-      <Select value={activePlanId ? String(activePlanId) : ""} onValueChange={(v) => selectPlan(Number(v))} disabled={plans.length === 0}>
-        <SelectTrigger id="compare-plan" className="h-8 min-w-0 max-w-[16rem] text-xs" data-testid="compare-plan-trigger">
-          <SelectValue placeholder={plansLoading ? "Loading plans…" : "No plan yet"} />
-        </SelectTrigger>
-        <SelectContent>
-          {plans.map((p) => (
-            <SelectItem key={p.id} value={String(p.id)} className="text-xs">
-              {planLabel(p)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+  const requirementsPanel = planPending ? (
+    <div className="h-full space-y-2 rounded-md border bg-card p-3" role="status" aria-label="Loading your Planning Requirements">
+      <Skeleton className="h-5 w-2/3" />
+      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-16 w-full" />
     </div>
+  ) : noPlan ? (
+    <p className="m-3 rounded-md border border-dashed p-3 text-sm text-muted-foreground" data-testid="compare-no-plan">
+      You have no plan to compare against yet.{" "}
+      <Link href="/degree-plan" className="underline">
+        Open your Degree Plan
+      </Link>{" "}
+      to start one; nothing is created for you here.
+    </p>
+  ) : (
+    <Palette />
   );
-
-  if (plansLoading || (activePlanId && planLoading)) {
-    return (
-      <div className={`grid h-[calc(100vh-11rem)] gap-3 ${PLANNING_THREE_COLUMNS}`} role="status" aria-label="Loading your plan">
-        <Skeleton className="hidden h-full rounded-md xl:block" />
-        <Skeleton className="h-full min-w-0 rounded-md" />
-        <Skeleton className="hidden h-full rounded-md xl:block" />
-      </div>
-    );
-  }
 
   return (
     <DegreePlanProvider value={contextValue}>
       {/* The bar above the regions: which plan, and which regions are showing. */}
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2" data-testid="compare-toolbar">
-        {selector}
+        <div className="flex min-w-0 items-center gap-2" data-testid="compare-plan-selector">
+          <Label htmlFor="compare-plan" className="shrink-0 text-xs text-muted-foreground">
+            Compare against
+          </Label>
+          <Select value={activePlanId ? String(activePlanId) : ""} onValueChange={(v) => selectPlan(Number(v))} disabled={plans.length === 0}>
+            <SelectTrigger id="compare-plan" className="h-8 min-w-0 max-w-[18rem] text-xs" data-testid="compare-plan-trigger">
+              <SelectValue placeholder={plansLoading ? "Loading plans…" : "No plan yet"} />
+            </SelectTrigger>
+            <SelectContent>
+              {plans.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)} className="text-xs">
+                  {comparePlanLabel(p)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="flex items-center gap-1.5">
           <div className="hidden items-center gap-1.5 xl:flex" role="group" aria-label="Show or hide side panels">
@@ -155,7 +170,7 @@ export function PlanningComparisonWorkspace({
               <SheetContent side="left" className={`${REQUIREMENTS_DRAWER_WIDTH} p-0`} data-testid="requirements-drawer">
                 <SheetTitle className="sr-only">Planning Requirements</SheetTitle>
                 <SheetDescription className="sr-only">Your planning requirements for the selected plan, to compare with the page you are on.</SheetDescription>
-                <Palette />
+                {requirementsPanel}
               </SheetContent>
             </Sheet>
             {showCompactApr && (
@@ -167,19 +182,23 @@ export function PlanningComparisonWorkspace({
         </div>
       </div>
 
-      {plans.length === 0 || !activePlan ? (
-        <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground" data-testid="compare-no-plan">
-          You have no plan to compare against yet. Create your Degree Plan first; nothing is created for you here.
-        </p>
-      ) : null}
-
-      <div className={`grid h-[calc(100vh-11rem)] min-h-[28rem] grid-cols-1 gap-3 ${columns}`} data-testid="compare-layout" data-rails={`${left ? "L" : ""}${right ? "R" : ""}`}>
+      <div
+        className={`grid grid-cols-1 gap-3 ${COMPARISON_HEIGHT} ${columns}`}
+        data-testid="compare-layout"
+        data-rails={`${left ? "L" : ""}${right ? "R" : ""}`}
+        data-plan={activePlan ? activePlan.id : undefined}
+      >
         {left && (
           <section aria-label="Planning Requirements" className="hidden h-full min-h-0 min-w-0 overflow-hidden xl:block" data-testid="compare-left">
-            <Palette />
+            {requirementsPanel}
           </section>
         )}
-        <section aria-label={mainLabel} className="h-full min-h-0 min-w-0 overflow-y-auto overscroll-contain rounded-md" data-testid="compare-main" tabIndex={-1}>
+        <section
+          aria-label={mainLabel}
+          className="min-h-0 min-w-0 rounded-md xl:h-full xl:overflow-y-auto xl:overscroll-contain"
+          data-testid="compare-main"
+          tabIndex={-1}
+        >
           {main}
         </section>
         {right && (

@@ -103,7 +103,7 @@ export function ChecksheetSpreadsheetView({
 
 /** The width a student column needs for its controls, in rem. */
 // Compact: the controls are small selects that open as overlays, so a column no longer needs the room of a form.
-const CONTROL_WIDTH: Record<TrackingField, number> = { status: 7.5, term: 9.5, both: 9.5 };
+const CONTROL_WIDTH: Record<TrackingField, number> = { status: 7.5, term: 9.75, both: 9.75 };
 
 function SheetGrid({
   sheet,

@@ -8,13 +8,18 @@
 export const FOCUS_REQUIREMENT_EVENT = "campusval:focus-requirement";
 
 export interface FocusRequirementDetail {
-  /** The stable key of the requirement (or of its group, to open the group only). */
+  /** The stable key of the requirement, or of its group when `customTitle` is given. */
   stableKey: string;
+  /**
+   * A My requirement that was just created in that group, by its title: its key is
+   * made on the server, so the sidebar finds it once the refreshed requirements arrive.
+   */
+  customTitle?: string;
 }
 
-export function focusRequirement(stableKey: string): void {
+export function focusRequirement(stableKey: string, customTitle?: string): void {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent<FocusRequirementDetail>(FOCUS_REQUIREMENT_EVENT, { detail: { stableKey } }));
+  window.dispatchEvent(new CustomEvent<FocusRequirementDetail>(FOCUS_REQUIREMENT_EVENT, { detail: { stableKey, customTitle } }));
 }
 
 /** The group a stable key belongs to ("major:biology#biol-1a" -> "major:biology"). */
