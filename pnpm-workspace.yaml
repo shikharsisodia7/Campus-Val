@@ -37,10 +37,22 @@ catalog:
 
 minimumReleaseAge: 1440
 
-# Supply chain: no transitive dependency from git or a tarball URL, and no package version
-# whose publishing evidence is weaker than an earlier version's (provenance dropped).
+# Supply chain: no transitive dependency from git or a tarball URL, and no package version whose
+# publishing evidence is weaker than an earlier version's (provenance dropped: a possible takeover).
+# The exclusions are the exact versions already locked on 2026-10-07 that come from release lines
+# published before their maintainers added provenance (pnpm reported each as a "downgrade"). Any
+# other version of these packages is still checked.
 blockExoticSubdeps: true
 trustPolicy: no-downgrade
+trustPolicyExclude:
+  - '@vercel/cli-config@0.2.2'
+  - '@vercel/cli-exec@1.0.1'
+  - '@vercel/oidc@3.8.2'
+  - chokidar@4.0.3
+  - pino@9.14.0
+  - react-native-worklets@0.5.1
+  - semver@6.3.1
+  - ua-parser-js@1.0.41
 
 minimumReleaseAgeExclude:
   - '@replit/*'
