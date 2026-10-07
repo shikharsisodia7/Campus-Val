@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSignUp, useSSO, useAuth } from '@clerk/expo';
-import { Link, useRouter } from 'expo-router';
+import { Link, Redirect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -84,8 +84,8 @@ export default function SignUpPage() {
   // makes the render after Clerk flips `isSignedIn` call FEWER hooks than the one before,
   // which React throws on ("Rendered fewer hooks than expected").
   if (isSignedIn) {
-    router.replace('/(home)');
-    return null;
+    // Navigate declaratively: calling router.replace while rendering updates the navigator mid-render.
+    return <Redirect href="/(home)" />;
   }
 
   const styles = makeStyles(colors, insets);

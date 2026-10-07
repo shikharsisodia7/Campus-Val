@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -81,14 +81,30 @@ export function AddToPlanningSheet({
   const [customTitle, setCustomTitle] = useState(start.title);
   const [customGroup, setCustomGroup] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // A new plan's requirements: preselect only what is certain, and a group for a My requirement.
+  /** The confirmation, shown in the sheet itself (the student's eyes are here, not on the document's toolbar). */
+  const [saved, setSaved] = useState<string | null>(null);
+  // The latest callback, so a parent re-render does not restart the close timer.
+  const onSavedRef = useRef(onSaved);
+  onSavedRef.current = onSaved;
   useEffect(() => {
+    if (!saved) return;
+    AccessibilityInfo.announceForAccessibility(saved);
+    const timer = setTimeout(() => onSavedRef.current(saved), 1500);
+    return () => clearTimeout(timer);
+  }, [saved]);
+
+  // When a plan's requirements first arrive: preselect only what is certain, and a group for a My
+  // requirement. Once per plan: a later refresh of the same plan (after saving, or in the background)
+  // must not undo what the student chose.
+  const preparedFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (planId === null || !requirements.data || preparedFor.current === planId) return;
+    preparedFor.current = planId;
     const found = reliableTarget(start.note, candidates);
     setTargetKey(found?.candidate.item.stableKey ?? null);
     setMatchedBy(found?.code ?? null);
     setCustomGroup(groups.find((g) => g.kind === 'major')?.stableKey ?? groups[0]?.stableKey ?? null);
-  }, [candidates, groups, start.note]);
+  }, [planId, requirements.data, candidates, groups, start.note]);
 
   const save = useSaveRequirementEdit();
   const create = useCreateCustomRequirement();
@@ -103,7 +119,7 @@ export function AddToPlanningSheet({
   const tooLong = length > PLANNING_NOTE_MAX;
   const title = customTitle.replace(/\s+/g, ' ').trim();
   const canSave =
-    !!plan && !busy && !tooLong && (mode === 'note' ? !!target && words.length > 0 && !duplicate : title.length > 0 && !!customGroup);
+    !!plan && !busy && !saved && !tooLong && (mode === 'note' ? !!target && words.length > 0 && !duplicate : title.length > 0 && !!customGroup);
   const filtered = filterCandidates(candidates, query);
 
   const submit = async () => {
@@ -119,7 +135,7 @@ export function AddToPlanningSheet({
       rememberPlan(plan.id);
       // The same plan queries the web sidebar reads, so nothing keeps a stale copy.
       await queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey[0]).startsWith('/api/plans') });
-      onSaved(`${mode === 'note' ? 'Added to My Note' : 'Added to Planning Requirements'} · ${planContextLabel(plan)}`);
+      setSaved(`${mode === 'note' ? 'Added to My Note' : 'Added to Planning Requirements'} · ${planContextLabel(plan)}`);
     } catch (err) {
       setError(errorMessage(err, 'It could not be saved. Your plan is unchanged; please try again.'));
     }
@@ -262,17 +278,27 @@ export function AddToPlanningSheet({
       </Text>
 
       <ErrorNote message={error} styles={styles} />
-      <Pressable
-        style={[styles.button, styles.primary, { marginTop: 16 }, !canSave && styles.disabled]}
-        disabled={!canSave}
-        onPress={() => void submit()}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !canSave, busy }}
-        testID="transfer-save"
-      >
-        {busy ? <ActivityIndicator color="#FFFFFF" /> : <Feather name="check" size={16} color="#FFFFFF" />}
-        <Text style={styles.primaryText}>{mode === 'note' ? 'Save to My Note' : 'Create requirement'}</Text>
-      </Pressable>
+      {saved ? (
+        <View style={[styles.notice, { marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }]} accessibilityLiveRegion="polite" testID="transfer-saved">
+          <Feather name="check-circle" size={18} color={colors.primary} />
+          <Text style={[styles.body, styles.strong, { flex: 1 }]}>{saved}</Text>
+          <Pressable onPress={() => onSaved(saved)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 }} testID="transfer-saved-done">
+            <Text style={styles.outlineText}>Done</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable
+          style={[styles.button, styles.primary, { marginTop: 16 }, !canSave && styles.disabled]}
+          disabled={!canSave}
+          onPress={() => void submit()}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canSave, busy }}
+          testID="transfer-save"
+        >
+          {busy ? <ActivityIndicator color="#FFFFFF" /> : <Feather name="check" size={16} color="#FFFFFF" />}
+          <Text style={styles.primaryText}>{mode === 'note' ? 'Save to My Note' : 'Create requirement'}</Text>
+        </Pressable>
+      )}
     </SheetFrame>
   );
 }
