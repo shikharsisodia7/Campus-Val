@@ -182,6 +182,13 @@ test("A. Degree Checksheets: Planning Requirements | checksheet | Workday APR, e
   await page.mouse.up();
   const dragged = await leftWidth();
   expect(dragged).toBeGreaterThan(before + 80);
+  // The layout is saved a moment after the last change (the library waits 100ms): wait for it, as a person would.
+  const savedLeft = () =>
+    page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem("react-resizable-panels:campusval.compare.checksheets") ?? "{}") as Record<string, { layout: number[] }>;
+      return Math.max(0, ...Object.values(state).map((v) => v.layout[0] ?? 0));
+    });
+  await expect.poll(savedLeft).toBeGreaterThan(26);
   await page.reload();
   await expect(page.getByTestId("compare-left")).toBeVisible({ timeout: 30_000 });
   await expect.poll(leftWidth).toBeGreaterThan(before + 80);
