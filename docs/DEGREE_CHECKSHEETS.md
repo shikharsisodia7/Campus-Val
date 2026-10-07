@@ -565,11 +565,18 @@ round.
 | Open the original | new tab | downloaded with the student's session into the app's cache and handed to the phone's viewer |
 | "Show original only" | yes | yes |
 | Link to SCU's checksheets page | yes | yes |
+| **Add to planning** (a My Note or My requirement on a plan the student picks) | from a spreadsheet row, a My Tracking entry or the toolbar | from the sheet of any tracked cell, marker or list entry, or the toolbar |
 
-The one difference is PDF pages. Drawing a PDF needs a native PDF renderer or
-an embedded browser, neither of which the app has; adding one is a native
-dependency and a new store build. My Tracking works for a PDF as for any
-document.
+PDF pages are drawn on the phone from PNGs the server renders (the phone has no
+PDF renderer of its own). My Tracking works for a PDF as for any document.
+
+**Add to planning** saves through the same endpoints as the web app's Planning
+Requirements, with the same rules (a course code that belongs to exactly one
+requirement preselects it; nothing else is guessed; duplicates are caught), shared
+from `lib/api-client-react/src/checksheets/transfer.ts`. The app has no
+Planning Requirements sidebar of its own, so the sheet shows the requirement's
+current My Note before saving, and the note is on the web sidebar at once. See
+[CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md).
 
 A status list does not fit inside a table cell on a phone, so tapping a
 "MY TRACKING" cell opens a sheet with the status, the quarter and the year.
@@ -584,7 +591,7 @@ Files: `app/(home)/checksheets.tsx` (the screen), `components/checksheets/*`
 New native modules: `expo-document-picker`, `expo-file-system`, `expo-sharing`.
 They need a new build of the app; an over-the-air update cannot add them.
 
-Verified: types, 26 tests of layout, rules and saving, and a production
+Verified: types, 35 tests of layout, rules, saving and Add to planning, and a production
 compile of the whole app for iOS and Android (`pnpm --filter
 @workspace/campusval-mobile run bundle`). **Not verified: the app running on a
 phone or a simulator.** This machine has neither Xcode nor an Android emulator
