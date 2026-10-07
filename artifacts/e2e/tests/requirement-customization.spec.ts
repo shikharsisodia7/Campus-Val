@@ -318,6 +318,8 @@ test("own requirements: course shortcuts and reordering", async ({ page }) => {
 });
 
 test("axe finds no serious or critical violation in edit mode, on desktop or phone", async ({ page }) => {
+  // Three axe scans, a reload and a viewport change: against production this takes about 30 s on its own.
+  test.setTimeout(90_000);
   const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
   const serious = async (label: string) => {
     await page.waitForTimeout(700);

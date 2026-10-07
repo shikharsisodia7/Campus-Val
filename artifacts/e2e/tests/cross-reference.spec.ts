@@ -24,7 +24,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SHOTS = path.resolve(__dirname, "../test-results/qa-cross-reference");
 mkdirSync(SHOTS, { recursive: true });
 const STORAGE = (name: string) => path.resolve(__dirname, `../storage/${name}.json`);
-const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:18080";
 const MARK = `xr-${Date.now()}`;
 const BIOL_1A = "major:biology#biol-1a";
 const shot = (page: Page, name: string) => page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
@@ -33,7 +32,8 @@ async function sessionReady(page: Page) {
   await expect.poll(async () => (await page.request.get("/api/plans")).status(), { timeout: 30_000 }).toBe(200);
 }
 async function as(browser: Browser, state: "student-a" | "student-b", viewport = { width: 1440, height: 900 }) {
-  const context = await browser.newContext({ storageState: STORAGE(state), baseURL, viewport });
+  // No baseURL here: contexts made from the `browser` fixture inherit the config's (E2E_BASE_URL, else production).
+  const context = await browser.newContext({ storageState: STORAGE(state), viewport });
   const page = await context.newPage();
   await page.goto("/");
   await sessionReady(page);
