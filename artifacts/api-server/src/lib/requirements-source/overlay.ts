@@ -35,6 +35,11 @@ export interface StoredCustomization {
   baseTitle: string | null;
   baseSourceVersion: string | null;
   baseSourceType: string | null;
+  /** Where the note came from (a Degree Checksheet the student owns); provenance only. */
+  noteSourceType?: string | null;
+  noteSourceDocumentId?: number | null;
+  noteSourceLabel?: string | null;
+  noteSourceAnchor?: string | null;
   updatedAt: Date;
 }
 
@@ -57,6 +62,8 @@ export interface ItemCustomization {
   labelAtEdit: string | null;
   sourceVersionAtEdit: string | null;
   sourceVersionNow: string | null;
+  /** Set when the note was transferred from the student's own Degree Checksheet. */
+  noteSource?: { type: "DEGREE_CHECKSHEET"; label: string; anchor: string | null; documentAvailable: boolean };
   updatedAt: string;
 }
 
@@ -92,6 +99,18 @@ export interface OverlayResult<G extends SourceGroup = SourceGroup> {
   groups: DisplayGroup<G>[];
   orphaned: OrphanedCustomization[];
   summary: CustomizationSummary;
+}
+
+/** The provenance of a transferred note. The note itself is the student's; this only says where it came from. */
+function noteSourceOf(row: StoredCustomization, available: ReadonlySet<number> | undefined): ItemCustomization["noteSource"] {
+  if (!row.note || row.noteSourceType !== "DEGREE_CHECKSHEET" || !row.noteSourceLabel) return undefined;
+  return {
+    type: "DEGREE_CHECKSHEET",
+    label: row.noteSourceLabel,
+    anchor: row.noteSourceAnchor ?? null,
+    // False once the document is deleted: the note stays, and says its source is gone.
+    documentAvailable: row.noteSourceDocumentId != null && (available?.has(row.noteSourceDocumentId) ?? false),
+  };
 }
 
 export function customRequirementId(targetKey: string): string {
@@ -137,6 +156,8 @@ export function findOrphanedCustomizations(
 export function composeRequirementOverlay<G extends SourceGroup>(
   tree: NormalizedGroup<G>[],
   rows: StoredCustomization[],
+  /** Ids of the student's Degree Checksheets that still exist (to tell a note its source is gone). */
+  availableDocumentIds?: ReadonlySet<number>,
 ): OverlayResult<G> {
   const edits = new Map<string, StoredCustomization>();
   const customsByGroup = new Map<string, StoredCustomization[]>();
@@ -181,6 +202,7 @@ export function composeRequirementOverlay<G extends SourceGroup>(
           labelAtEdit: row.baseTitle,
           sourceVersionAtEdit: row.baseSourceVersion,
           sourceVersionNow: node.provenance.sourceVersion,
+          noteSource: noteSourceOf(row, availableDocumentIds),
           updatedAt: row.updatedAt.toISOString(),
         },
       };
@@ -223,6 +245,7 @@ export function composeRequirementOverlay<G extends SourceGroup>(
             labelAtEdit: null,
             sourceVersionAtEdit: null,
             sourceVersionNow: null,
+            noteSource: noteSourceOf(row, availableDocumentIds),
             updatedAt: row.updatedAt.toISOString(),
           },
         } as unknown as DisplayItem<G["items"][number]>;

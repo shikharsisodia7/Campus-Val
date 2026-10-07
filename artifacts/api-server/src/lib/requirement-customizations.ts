@@ -105,6 +105,10 @@ export async function copyCustomizations(fromPlanId: number, toPlanId: number, u
       baseTitle: r.baseTitle,
       baseSourceVersion: r.baseSourceVersion,
       baseSourceType: r.baseSourceType,
+      noteSourceType: r.noteSourceType,
+      noteSourceDocumentId: r.noteSourceDocumentId,
+      noteSourceLabel: r.noteSourceLabel,
+      noteSourceAnchor: r.noteSourceAnchor,
       updatedBy: userId,
     })),
   );

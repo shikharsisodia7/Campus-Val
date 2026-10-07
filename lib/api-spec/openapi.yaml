@@ -4553,6 +4553,22 @@ components:
           type: [string, "null"]
         sourceVersionNow:
           type: [string, "null"]
+        noteSource:
+          type: object
+          description: Set when the note was transferred from the student's own Degree Checksheet.
+          required: [type, label, documentAvailable]
+          properties:
+            type:
+              type: string
+              enum: [DEGREE_CHECKSHEET]
+            label:
+              type: string
+              description: The document's title when the note was made.
+            anchor:
+              type: [string, "null"]
+            documentAvailable:
+              type: boolean
+              description: False once the document has been deleted; the note stays.
         updatedAt:
           type: string
     OrphanedCustomization:
@@ -4604,6 +4620,24 @@ components:
           maxLength: 600
         hidden:
           type: boolean
+        noteSource:
+          $ref: "#/components/schemas/NoteSourceInput"
+    NoteSourceInput:
+      type: object
+      description: >-
+        Where a My Note came from: one of the student's own Degree Checksheets. Provenance
+        only. The server checks the document is the signed-in student's own and takes the
+        label from it; the note text is whatever the student chose to save.
+      required: [type, documentId]
+      properties:
+        type:
+          type: string
+          enum: [DEGREE_CHECKSHEET]
+        documentId:
+          type: integer
+        anchor:
+          type: [string, "null"]
+          maxLength: 120
     RequirementResolveInput:
       type: object
       required: [action]
@@ -4636,6 +4670,8 @@ components:
         note:
           type: [string, "null"]
           maxLength: 600
+        noteSource:
+          $ref: "#/components/schemas/NoteSourceInput"
     CustomRequirementPatch:
       type: object
       properties:

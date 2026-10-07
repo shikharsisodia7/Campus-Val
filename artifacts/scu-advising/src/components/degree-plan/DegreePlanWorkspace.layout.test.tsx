@@ -8,10 +8,10 @@ import { resolve } from "node:path";
  * and compact side rails instead of fixed 320/300 sidebars.
  */
 describe("DegreePlanWorkspace laptop layout classes", () => {
-  const source = readFileSync(
-    resolve(__dirname, "./DegreePlanWorkspace.tsx"),
-    "utf8",
-  );
+  // The column widths live in the shared layout tokens, which every planning workspace uses.
+  const source =
+    readFileSync(resolve(__dirname, "./DegreePlanWorkspace.tsx"), "utf8") +
+    readFileSync(resolve(__dirname, "../../lib/workspace-layout.ts"), "utf8");
 
   it("uses a three-column grid with a flexible center track", () => {
     expect(source).toMatch(/minmax\(0,\s*1fr\)/);
@@ -33,10 +33,10 @@ describe("DegreePlanWorkspace laptop layout classes", () => {
 });
 
 describe("DegreePlanWorkspace mobile sheet close controls", () => {
-  const source = readFileSync(
-    resolve(__dirname, "./DegreePlanWorkspace.tsx"),
-    "utf8",
-  );
+  // The column widths live in the shared layout tokens, which every planning workspace uses.
+  const source =
+    readFileSync(resolve(__dirname, "./DegreePlanWorkspace.tsx"), "utf8") +
+    readFileSync(resolve(__dirname, "../../lib/workspace-layout.ts"), "utf8");
 
   it("does not render a duplicate manual close button that can collide with sheet content", () => {
     // SheetContent already renders a built-in close (X) button at top-4

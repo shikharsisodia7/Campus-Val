@@ -47,6 +47,13 @@ export default defineConfig({
       dependencies: ["setup"],
     },
     {
+      // Live QA of the cross-reference workspace (Degree Checksheets and APR pages) and the checksheet-to-planning transfer. See tests/cross-reference.spec.ts.
+      name: "cross-reference",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
+      testMatch: /cross-reference\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
       // Live QA of the Bulletin baseline, Department Notes, Program Requirements Admin and Sample Plans. See tests/department-layer.spec.ts.
       name: "dept-layer",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },

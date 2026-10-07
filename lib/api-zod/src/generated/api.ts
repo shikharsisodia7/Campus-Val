@@ -1220,6 +1220,23 @@ export const GetDegreeRequirementsResponse = zod.object({
               labelAtEdit: zod.string().nullish(),
               sourceVersionAtEdit: zod.string().nullish(),
               sourceVersionNow: zod.string().nullish(),
+              noteSource: zod
+                .object({
+                  type: zod.enum(["DEGREE_CHECKSHEET"]),
+                  label: zod
+                    .string()
+                    .describe("The document's title when the note was made."),
+                  anchor: zod.string().nullish(),
+                  documentAvailable: zod
+                    .boolean()
+                    .describe(
+                      "False once the document has been deleted; the note stays.",
+                    ),
+                })
+                .optional()
+                .describe(
+                  "Set when the note was transferred from the student's own Degree Checksheet.",
+                ),
               updatedAt: zod.string(),
             })
             .optional()
@@ -2227,6 +2244,23 @@ export const GetPlanRequirementsResponse = zod
                 labelAtEdit: zod.string().nullish(),
                 sourceVersionAtEdit: zod.string().nullish(),
                 sourceVersionNow: zod.string().nullish(),
+                noteSource: zod
+                  .object({
+                    type: zod.enum(["DEGREE_CHECKSHEET"]),
+                    label: zod
+                      .string()
+                      .describe("The document's title when the note was made."),
+                    anchor: zod.string().nullish(),
+                    documentAvailable: zod
+                      .boolean()
+                      .describe(
+                        "False once the document has been deleted; the note stays.",
+                      ),
+                  })
+                  .optional()
+                  .describe(
+                    "Set when the note was transferred from the student's own Degree Checksheet.",
+                  ),
                 updatedAt: zod.string(),
               })
               .optional()
@@ -2404,11 +2438,26 @@ export const saveRequirementEditBodyTitleMax = 160;
 
 export const saveRequirementEditBodyNoteMax = 600;
 
+export const saveRequirementEditBodyNoteSourceAnchorMax = 120;
+
 export const SaveRequirementEditBody = zod.object({
   sourceKey: zod.string().max(saveRequirementEditBodySourceKeyMax),
   title: zod.string().max(saveRequirementEditBodyTitleMax).nullish(),
   note: zod.string().max(saveRequirementEditBodyNoteMax).nullish(),
   hidden: zod.boolean().optional(),
+  noteSource: zod
+    .object({
+      type: zod.enum(["DEGREE_CHECKSHEET"]),
+      documentId: zod.number(),
+      anchor: zod
+        .string()
+        .max(saveRequirementEditBodyNoteSourceAnchorMax)
+        .nullish(),
+    })
+    .optional()
+    .describe(
+      "Where a My Note came from: one of the student's own Degree Checksheets. Provenance only. The server checks the document is the signed-in student's own and takes the label from it; the note text is whatever the student chose to save.",
+    ),
 });
 
 export const SaveRequirementEditResponse = zod.object({
@@ -2484,6 +2533,8 @@ export const createCustomRequirementBodyTitleMax = 160;
 
 export const createCustomRequirementBodyNoteMax = 600;
 
+export const createCustomRequirementBodyNoteSourceAnchorMax = 120;
+
 export const CreateCustomRequirementBody = zod.object({
   courseCodes: zod
     .array(zod.string().max(createCustomRequirementBodyCourseCodesItemMax))
@@ -2492,6 +2543,19 @@ export const CreateCustomRequirementBody = zod.object({
   groupKey: zod.string().max(createCustomRequirementBodyGroupKeyMax),
   title: zod.string().min(1).max(createCustomRequirementBodyTitleMax),
   note: zod.string().max(createCustomRequirementBodyNoteMax).nullish(),
+  noteSource: zod
+    .object({
+      type: zod.enum(["DEGREE_CHECKSHEET"]),
+      documentId: zod.number(),
+      anchor: zod
+        .string()
+        .max(createCustomRequirementBodyNoteSourceAnchorMax)
+        .nullish(),
+    })
+    .optional()
+    .describe(
+      "Where a My Note came from: one of the student's own Degree Checksheets. Provenance only. The server checks the document is the signed-in student's own and takes the label from it; the note text is whatever the student chose to save.",
+    ),
 });
 
 /**

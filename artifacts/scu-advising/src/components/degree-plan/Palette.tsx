@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -50,6 +50,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTrackUsage } from "@/hooks/use-track-usage";
 import { useIsDepartmentAdmin } from "@/hooks/use-is-admin";
+import { FOCUS_REQUIREMENT_EVENT, groupKeyOfStableKey, type FocusRequirementDetail } from "@/lib/planning-focus";
 import { Link } from "wouter";
 import { Pencil } from "lucide-react";
 import type { RequirementGroup } from "@workspace/api-client-react";
@@ -87,6 +88,9 @@ export function Palette() {
     setDialog(null);
     setConfirmReset(false);
   }, [activePlanId]);
+  // Which groups are open. Controlled, so "show me where that went" can open one.
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [flashKey, setFlashKey] = useState<string | null>(null);
   const [destination, setDestination] = useState("");
   const queryClient = useQueryClient();
   const addPlanItem = useAddPlanItem();
@@ -126,6 +130,47 @@ export function Palette() {
   }, [destination, destinationOptions]);
 
   const isCompletedDestination = destination === COMPLETED_DESTINATION;
+
+  // Another region asked to show a requirement (something was just saved onto it): open its
+  // group, scroll to it and mark it briefly. The request waits for the refreshed requirements
+  // (a new My requirement only exists once they arrive) and gives up quietly after a few
+  // seconds: if the requirement is not found, nothing happens.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [pendingFocus, setPendingFocus] = useState<FocusRequirementDetail | null>(null);
+  useEffect(() => {
+    const onFocus = (event: Event) => setPendingFocus({ ...(event as CustomEvent<FocusRequirementDetail>).detail });
+    window.addEventListener(FOCUS_REQUIREMENT_EVENT, onFocus);
+    return () => window.removeEventListener(FOCUS_REQUIREMENT_EVENT, onFocus);
+  }, []);
+  useEffect(() => {
+    if (!pendingFocus) return undefined;
+    const group = requirements?.find((g) => g.stableKey === groupKeyOfStableKey(pendingFocus.stableKey));
+    const key = !group
+      ? null
+      : pendingFocus.customTitle
+        ? [...group.items].reverse().find((i) => i.customization?.kind === "custom" && i.label === pendingFocus.customTitle)?.stableKey ?? null
+        : pendingFocus.stableKey;
+    if (!group || !key) {
+      // Not there (yet): wait for the next requirements, but not forever.
+      const giveUp = window.setTimeout(() => setPendingFocus((p) => (p === pendingFocus ? null : p)), 6000);
+      return () => window.clearTimeout(giveUp);
+    }
+    setPendingFocus(null);
+    setSearch("");
+    setOpenGroups((open) => (open.includes(group.id) ? open : [...open, group.id]));
+    setFlashKey(key);
+    // After the group has opened: scroll THIS sidebar to it (another copy of the sidebar, in a closed drawer, does its own).
+    window.setTimeout(() => {
+      const card = Array.from(rootRef.current?.querySelectorAll<HTMLElement>("[data-stable-key]") ?? []).find((el) => el.dataset.stableKey === key);
+      card?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    }, 80);
+    return undefined;
+  }, [pendingFocus, requirements]);
+  useEffect(() => {
+    if (!flashKey) return;
+    const t = window.setTimeout(() => setFlashKey(null), 2500);
+    return () => window.clearTimeout(t);
+  }, [flashKey]);
 
   const [academicYear, term] = destination.split(":");
   const placement = {
@@ -233,6 +278,7 @@ export function Palette() {
 
   return (
     <Card
+      ref={rootRef}
       className="flex h-full flex-col overflow-hidden border-border/60 bg-card shadow-sm"
       data-testid="requirements-palette"
     >
@@ -260,7 +306,7 @@ export function Palette() {
           )}
         </div>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
-          Declared and proposed majors, minors &amp; Professional Preparation — editable planning space, distinct from your official APR on the right.
+          Declared and proposed majors, minors &amp; Professional Preparation — editable planning space, distinct from your official Workday APR.
         </p>
         {isDepartmentAdmin && (
           <Link href="/admin/program-requirements" className="mt-1 inline-block text-[11px] font-medium text-amber-800 underline underline-offset-2" data-testid="link-program-requirements-admin">
@@ -411,7 +457,7 @@ export function Palette() {
               <OrphanedList orphaned={requirementsMeta.orphaned} actions={actions} />
             </div>
           )}
-          <Accordion type="multiple" className="px-1.5 pb-3">
+          <Accordion type="multiple" value={openGroups} onValueChange={setOpenGroups} className="px-1.5 pb-3">
             {requirementsError && !requirements && (
               <p role="alert" className="mx-1.5 mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900" data-testid="requirements-load-error">
                 The requirements couldn&apos;t be loaded right now. Your plan and any edits you made are safe. Reload to try again.
@@ -497,7 +543,8 @@ export function Palette() {
                           key={req.id}
                           data-stable-key={req.stableKey}
                           data-customized={custom ? custom.kind : undefined}
-                          className={`rounded-md border p-2 text-xs ${isHidden ? "border-dashed opacity-60" : ""} ${isCustom ? "border-violet-200 bg-violet-50/30" : status === "completed" ? "border-emerald-200 bg-emerald-50/50" : status === "planned" ? "border-blue-200 bg-blue-50/50" : "border-border bg-card"}`}
+                          data-flash={flashKey === req.stableKey ? "true" : undefined}
+                          className={`rounded-md border p-2 text-xs ${flashKey === req.stableKey ? "ring-2 ring-amber-400 ring-offset-1" : ""} ${isHidden ? "border-dashed opacity-60" : ""} ${isCustom ? "border-violet-200 bg-violet-50/30" : status === "completed" ? "border-emerald-200 bg-emerald-50/50" : status === "planned" ? "border-blue-200 bg-blue-50/50" : "border-border bg-card"}`}
                         >
                           <div className="flex items-start justify-between gap-1.5">
                             <div className="font-medium leading-snug">

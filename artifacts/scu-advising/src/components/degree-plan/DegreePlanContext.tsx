@@ -2,7 +2,7 @@ import { createContext, useContext, ReactNode } from "react";
 import { AcademicPlanDetail, StudentProfile, RequirementGroup, ScheduleAvailability, Course } from "@workspace/api-client-react";
 import type { RequirementsMeta } from "./RequirementCustomization";
 
-type DegreePlanContextType = {
+export type DegreePlanContextType = {
   activePlan: AcademicPlanDetail | undefined;
   activePlanId: number | null;
   setActivePlanId: (id: number | null) => void;
@@ -20,6 +20,11 @@ type DegreePlanContextType = {
 };
 
 const DegreePlanContext = createContext<DegreePlanContextType | null>(null);
+
+/** The planning context when one is mounted, else null (a component that works with or without it). */
+export function useOptionalDegreePlanContext() {
+  return useContext(DegreePlanContext);
+}
 
 export function useDegreePlanContext() {
   const ctx = useContext(DegreePlanContext);

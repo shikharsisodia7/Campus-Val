@@ -39,12 +39,15 @@ export function TrackingEditor({
   target,
   entries,
   onClose,
+  onAddToPlanning,
   colors,
   styles,
 }: {
   target: EditorTarget | null;
   entries: TrackingEntry[];
   onClose: () => void;
+  /** "Add to planning": take this item's words (and the student's note) into their Planning Requirements. */
+  onAddToPlanning?: (text: string, anchor: string | null) => void;
   colors: Colors;
   styles: Styles;
 }) {
@@ -167,6 +170,22 @@ export function TrackingEditor({
                 }}
               />
             </>
+          )}
+
+          {onAddToPlanning && (
+            <Pressable
+              style={[styles.button, styles.outline, { marginTop: 24 }]}
+              onPress={() =>
+                // The annotation's own id is the stable pointer (provenance only; only the words are taken).
+                onAddToPlanning([target.name, note.trim()].filter(Boolean).join(': '), entry?.id != null ? `annotation:${entry.id}` : null)
+              }
+              accessibilityRole="button"
+              accessibilityLabel={`Add ${target.name} to my Planning Requirements`}
+              testID="editor-add-to-planning"
+            >
+              <Feather name="list" size={16} color={colors.foreground} />
+              <Text style={styles.outlineText}>Add to planning</Text>
+            </Pressable>
           )}
 
           {target.onRemove && entry ? (

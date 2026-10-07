@@ -21,6 +21,7 @@ import * as XLSX from "xlsx";
 export type ChecksheetFixtureName =
   | "major-workbook"
   | "major-workbook-extended"
+  | "biology-workbook"
   | "major-workbook-reworded"
   | "second-major-workbook"
   | "minor-workbook"
@@ -526,6 +527,21 @@ export async function buildChecksheetFixture(name: ChecksheetFixtureName): Promi
       return workbook([
         { name: "Major", title: "Applied Widgetry Major Checksheet (sample)", header: CHECKSHEET_HEADER, rows: MAJOR_ROWS },
       ]);
+    case "biology-workbook":
+      // Real SCU course codes, so a row can be tied to a Planning Requirement by its code. One row names no course at all.
+      return workbook([
+        {
+          name: "Biology",
+          title: "Biology Major Checksheet (sample)",
+          header: CHECKSHEET_HEADER,
+          rows: [
+            ["Foundations", null, null, null, null],
+            ["Introduction to Cell Biology", "BIOL 1A", null, null, "Take in Fall of year one"],
+            ["Advisor must approve the capstone portfolio", null, null, null, "See the department"],
+            ["Choose either lab", "LAB 5 or LAB 6", null, null, null],
+          ],
+        },
+      ]);
     case "major-workbook-extended":
       // The same rows in the same places, with one new requirement at the end.
       return workbook([
@@ -656,6 +672,7 @@ export async function buildChecksheetFixture(name: ChecksheetFixtureName): Promi
 
 export const CHECKSHEET_FIXTURE_FILES: Record<ChecksheetFixtureName, { fileName: string; contentType: string }> = {
   "major-workbook": { fileName: "applied-widgetry-major.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  "biology-workbook": { fileName: "biology-sample-checksheet.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "major-workbook-extended": { fileName: "applied-widgetry-major-extended.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "major-workbook-reworded": { fileName: "applied-widgetry-major-reworded.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "second-major-workbook": { fileName: "gadget-studies-major.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },

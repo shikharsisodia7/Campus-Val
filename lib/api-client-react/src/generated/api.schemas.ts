@@ -1898,6 +1898,26 @@ export const RequirementItemCustomizationKind = {
   custom: "custom",
 } as const;
 
+export type RequirementItemCustomizationNoteSourceType =
+  (typeof RequirementItemCustomizationNoteSourceType)[keyof typeof RequirementItemCustomizationNoteSourceType];
+
+export const RequirementItemCustomizationNoteSourceType = {
+  DEGREE_CHECKSHEET: "DEGREE_CHECKSHEET",
+} as const;
+
+/**
+ * Set when the note was transferred from the student's own Degree Checksheet.
+ */
+export type RequirementItemCustomizationNoteSource = {
+  type: RequirementItemCustomizationNoteSourceType;
+  /** The document's title when the note was made. */
+  label: string;
+  /** @nullable */
+  anchor?: string | null;
+  /** False once the document has been deleted; the note stays. */
+  documentAvailable: boolean;
+};
+
 /**
  * The student's PLANNING customization of a requirement. Not an SCU requirement and never a claim about the degree.
  */
@@ -1923,6 +1943,8 @@ export interface RequirementItemCustomization {
   sourceVersionAtEdit?: string | null;
   /** @nullable */
   sourceVersionNow?: string | null;
+  /** Set when the note was transferred from the student's own Degree Checksheet. */
+  noteSource?: RequirementItemCustomizationNoteSource;
   updatedAt: string;
 }
 
@@ -2026,6 +2048,26 @@ export interface RequirementCustomizationSummary {
   orphaned: number;
 }
 
+export type NoteSourceInputType =
+  (typeof NoteSourceInputType)[keyof typeof NoteSourceInputType];
+
+export const NoteSourceInputType = {
+  DEGREE_CHECKSHEET: "DEGREE_CHECKSHEET",
+} as const;
+
+/**
+ * Where a My Note came from: one of the student's own Degree Checksheets. Provenance only. The server checks the document is the signed-in student's own and takes the label from it; the note text is whatever the student chose to save.
+ */
+export interface NoteSourceInput {
+  type: NoteSourceInputType;
+  documentId: number;
+  /**
+   * @maxLength 120
+   * @nullable
+   */
+  anchor?: string | null;
+}
+
 export interface RequirementEditInput {
   /** @maxLength 300 */
   sourceKey: string;
@@ -2040,6 +2082,7 @@ export interface RequirementEditInput {
    */
   note?: string | null;
   hidden?: boolean;
+  noteSource?: NoteSourceInput;
 }
 
 export type RequirementResolveInputAction =
@@ -2072,6 +2115,7 @@ export interface CustomRequirementInput {
    * @nullable
    */
   note?: string | null;
+  noteSource?: NoteSourceInput;
 }
 
 export type CustomRequirementPatchMove =

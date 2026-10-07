@@ -65,6 +65,19 @@ export const requirementCustomizationsTable = pgTable(
     baseSourceVersion: text("base_source_version"),
     /** Source edits only: which provider produced the base ("current_bulletin"). */
     baseSourceType: text("base_source_type"),
+    /**
+     * Where the student's note came from, when they transferred it from one of
+     * their own Degree Checksheets ("DEGREE_CHECKSHEET"). Provenance only: the note
+     * itself is the student's text and stays when the document is replaced or deleted.
+     * No file content is stored here, and no foreign key: deleting the document
+     * must not delete the student's planning note.
+     */
+    noteSourceType: text("note_source_type"),
+    noteSourceDocumentId: integer("note_source_document_id"),
+    /** The document's title when the note was made, so a deleted source can still be named. */
+    noteSourceLabel: text("note_source_label"),
+    /** A safe pointer inside the document ("Biology!D40"), when it has one. */
+    noteSourceAnchor: text("note_source_anchor"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

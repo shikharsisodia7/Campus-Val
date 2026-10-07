@@ -40,7 +40,7 @@ any document shows the source with nothing of the student's on it.
 
 | It does not | Why |
 | --- | --- |
-| Change the requirements sidebar beside the Degree Plan, or any requirement calculation | The professor has not decided what that sidebar should be benchmarked against. See [The open question](#the-open-question). |
+| Change the requirements sidebar beside the Degree Plan, or any requirement calculation, **by itself** | Tracking is separate. The only way a checksheet reaches the sidebar is the student's own explicit **Add to planning** action, which saves a My Note or a My requirement on the plan they chose ([CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md)). It never changes a calculation, and never creates a Department Note. See also [The open question](#the-open-question). |
 | Decide which checksheet applies to a student, or pick a "latest" one | A student may be allowed to follow a different curriculum than their entry year suggests. The student chooses. |
 | Add, complete or move a course on the Degree Plan, Quarter Plan or Tentative Degree Plan | Tracking is reference-only. |
 | Read, change or appear in an Academic Progress Report | The APR feature is separate and unchanged. |
@@ -53,6 +53,8 @@ These are enforced by tests, not only by intent: see
 `degree-checksheets.access-control.test.ts` ("scope guards").
 
 ## Where it is
+
+The page is a three-way comparison workspace (2026-10-06): **Planning Requirements | Degree Checksheet | Workday APR**, with the student's own **Add to planning** action from a checksheet row or tracking note into a My Note or My requirement ([CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md)). The checksheet cards below are unchanged apart from tighter tracking columns.
 
 Additional Features → Planning tools → **Degree Checksheets** (`/degree-checksheets`).
 It is registered in `lib/pilot-features.ts` as `PILOT_VISIBLE`. It may later move
@@ -563,11 +565,18 @@ round.
 | Open the original | new tab | downloaded with the student's session into the app's cache and handed to the phone's viewer |
 | "Show original only" | yes | yes |
 | Link to SCU's checksheets page | yes | yes |
+| **Add to planning** (a My Note or My requirement on a plan the student picks) | from a spreadsheet row, a My Tracking entry or the toolbar | from the sheet of any tracked cell, marker or list entry, or the toolbar |
 
-The one difference is PDF pages. Drawing a PDF needs a native PDF renderer or
-an embedded browser, neither of which the app has; adding one is a native
-dependency and a new store build. My Tracking works for a PDF as for any
-document.
+PDF pages are drawn on the phone from PNGs the server renders (the phone has no
+PDF renderer of its own). My Tracking works for a PDF as for any document.
+
+**Add to planning** saves through the same endpoints as the web app's Planning
+Requirements, with the same rules (a course code that belongs to exactly one
+requirement preselects it; nothing else is guessed; duplicates are caught), shared
+from `lib/api-client-react/src/checksheets/transfer.ts`. The app has no
+Planning Requirements sidebar of its own, so the sheet shows the requirement's
+current My Note before saving, and the note is on the web sidebar at once. See
+[CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md).
 
 A status list does not fit inside a table cell on a phone, so tapping a
 "MY TRACKING" cell opens a sheet with the status, the quarter and the year.
@@ -582,7 +591,7 @@ Files: `app/(home)/checksheets.tsx` (the screen), `components/checksheets/*`
 New native modules: `expo-document-picker`, `expo-file-system`, `expo-sharing`.
 They need a new build of the app; an over-the-air update cannot add them.
 
-Verified: types, 26 tests of layout, rules and saving, and a production
+Verified: types, 35 tests of layout, rules, saving and Add to planning, and a production
 compile of the whole app for iOS and Android (`pnpm --filter
 @workspace/campusval-mobile run bundle`). **Not verified: the app running on a
 phone or a simulator.** This machine has neither Xcode nor an Android emulator

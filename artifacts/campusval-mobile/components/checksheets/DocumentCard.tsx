@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@clerk/expo';
 import {
@@ -25,6 +25,7 @@ import { EditDetailsSheet, ErrorNote } from './DetailsSheet';
 import { MyTracking, SaveIndicator } from './MyTracking';
 import { DocPreview, ImagePreview, PdfPreview, SheetPreview, type PreviewProps } from './Previews';
 import { TrackingEditor, type EditorTarget } from './TrackingEditor';
+import { AddToPlanningSheet, type PlanningTransfer } from './AddToPlanningSheet';
 import type { Colors, Styles } from './theme';
 
 const ICON: Record<string, React.ComponentProps<typeof Feather>['name']> = {
@@ -63,6 +64,14 @@ export function DocumentCard({
   const [placingMarker, setPlacingMarker] = useState(false);
   const [relinkKey, setRelinkKey] = useState<string | null>(null);
   const [target, setTarget] = useState<EditorTarget | null>(null);
+  /** "Add to planning": what is being taken into the student's Planning Requirements, and the confirmation after. */
+  const [transfer, setTransfer] = useState<PlanningTransfer | null>(null);
+  const [transferred, setTransferred] = useState<string | null>(null);
+  useEffect(() => {
+    if (!transferred) return;
+    const timer = setTimeout(() => setTransferred(null), 6000);
+    return () => clearTimeout(timer);
+  }, [transferred]);
   const [details, setDetails] = useState<'rename' | 'edit' | null>(null);
   const [phase, setPhase] = useState<UploadPhase>('idle');
   const [working, setWorking] = useState<'open' | 'delete' | null>(null);
@@ -298,8 +307,14 @@ export function DocumentCard({
                 testID="add-marker"
               />
             )}
+            <Action icon="list" label="Add to planning" onPress={() => setTransfer({ text: '', anchor: null })} colors={colors} styles={styles} testID="add-to-planning" />
             <SaveIndicator tracking={tracking} colors={colors} styles={styles} />
           </View>
+          {transferred && (
+            <Text style={[styles.small, styles.strong]} accessibilityLiveRegion="polite" testID="transfer-done">
+              {transferred}
+            </Text>
+          )}
 
           {picking && !relink && (
             <Text style={[styles.small, styles.strong]} accessibilityLiveRegion="polite">
@@ -361,7 +376,31 @@ export function DocumentCard({
         </View>
       )}
 
-      <TrackingEditor target={target} entries={tracking.entries} onClose={() => setTarget(null)} colors={colors} styles={styles} />
+      <TrackingEditor
+        target={target}
+        entries={tracking.entries}
+        onClose={() => setTarget(null)}
+        onAddToPlanning={(text, anchor) => {
+          setTarget(null);
+          // One sheet at a time: iOS cannot present the next one while the last is still closing.
+          setTimeout(() => setTransfer({ text, anchor }), Platform.OS === 'ios' ? 450 : 0);
+        }}
+        colors={colors}
+        styles={styles}
+      />
+      {transfer && (
+        <AddToPlanningSheet
+          document={document}
+          transfer={transfer}
+          onClose={() => setTransfer(null)}
+          onSaved={(message) => {
+            setTransfer(null);
+            setTransferred(message);
+          }}
+          colors={colors}
+          styles={styles}
+        />
+      )}
       {details && (
         <EditDetailsSheet document={document} onlyTitle={details === 'rename'} onClose={() => setDetails(null)} colors={colors} styles={styles} />
       )}

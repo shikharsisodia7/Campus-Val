@@ -31,6 +31,7 @@ import {
   SaveRequirementEditBody,
   UpdateCustomRequirementBody,
 } from "@workspace/api-zod";
+import { existingOwnDocumentIds, findOwnDocumentTitle } from "../lib/checksheets/note-source";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
 import {
@@ -165,8 +166,43 @@ const asStored = (rows: RequirementCustomizationRow[]): StoredCustomization[] =>
     baseTitle: r.baseTitle,
     baseSourceVersion: r.baseSourceVersion,
     baseSourceType: r.baseSourceType,
+    noteSourceType: r.noteSourceType,
+    noteSourceDocumentId: r.noteSourceDocumentId,
+    noteSourceLabel: r.noteSourceLabel,
+    noteSourceAnchor: r.noteSourceAnchor,
     updatedAt: r.updatedAt,
   }));
+
+/**
+ * A note transferred from a Degree Checksheet records WHICH document, never its content. The
+ * document must be the signed-in student's own (another student's id is refused, not trusted),
+ * and its label is read from the document, not from the request. Null when there is no source.
+ */
+type NoteSourceFields = Pick<
+  typeof requirementCustomizationsTable.$inferInsert,
+  "noteSourceType" | "noteSourceDocumentId" | "noteSourceLabel" | "noteSourceAnchor"
+>;
+const NO_NOTE_SOURCE: NoteSourceFields = { noteSourceType: null, noteSourceDocumentId: null, noteSourceLabel: null, noteSourceAnchor: null };
+
+async function resolveNoteSource(
+  userId: string,
+  source: { type: "DEGREE_CHECKSHEET"; documentId: number; anchor?: string | null },
+): Promise<NoteSourceFields | null> {
+  const doc = await findOwnDocumentTitle(userId, source.documentId);
+  if (!doc) return null;
+  return {
+    noteSourceType: "DEGREE_CHECKSHEET",
+    noteSourceDocumentId: doc.id,
+    noteSourceLabel: cleanText(doc.title, 160, false) ?? "Degree Checksheet",
+    noteSourceAnchor: cleanText(source.anchor ?? null, 120, false),
+  };
+}
+
+/** Which of the rows' source documents still exist for this student. */
+async function availableDocumentIds(userId: string, rows: RequirementCustomizationRow[]): Promise<Set<number>> {
+  const ids = [...new Set(rows.map((r) => r.noteSourceDocumentId).filter((id): id is number => id != null))];
+  return existingOwnDocumentIds(userId, ids);
+}
 
 async function summaryFor(ctx: PlanContext) {
   const rows = await listCustomizations(ctx.plan.id);
@@ -193,7 +229,7 @@ const baseOf = (found: NonNullable<ReturnType<typeof findItem>>, provider: Requi
 router.get("/plans/:id/requirements", requireAuth, async (req, res) => {
   const ctx = await loadContext(req, res);
   if (!ctx) return;
-  const { groups, orphaned, summary } = composeRequirementOverlay(ctx.built.tree, asStored(ctx.rows));
+  const { groups, orphaned, summary } = composeRequirementOverlay(ctx.built.tree, asStored(ctx.rows), await availableDocumentIds(req.userId!, ctx.rows));
   if (summary.sourceChanged > 0 || summary.orphaned > 0) {
     logger.warn(
       { event: "requirement_customization_needs_review", provider: ctx.built.provider, sourceChanged: summary.sourceChanged, orphaned: summary.orphaned },
@@ -214,7 +250,7 @@ router.put("/plans/:id/requirement-customizations", requireAuth, async (req, res
   const ctx = await loadContext(req, res);
   if (!ctx) return;
   if (ctx.unavailable) return res.status(503).json(UNAVAILABLE);
-  const { sourceKey, title, note, hidden } = parsed.data;
+  const { sourceKey, title, note, hidden, noteSource } = parsed.data;
   const found = findItem(ctx.built.tree, sourceKey);
   if (!found) return res.status(404).json({ error: "That requirement is not in this plan's sidebar." });
 
@@ -224,6 +260,14 @@ router.put("/plans/:id/requirement-customizations", requireAuth, async (req, res
   if (nextTitle !== null && nextTitle === found.entry.item.label) nextTitle = null;
   const nextNote = note === undefined ? (existing?.note ?? null) : cleanText(note, 600, true);
   const nextHidden = hidden === undefined ? (existing?.hidden ?? false) : hidden;
+  let sourceFields: Partial<NoteSourceFields> = {};
+  if (noteSource) {
+    const resolved = await resolveNoteSource(req.userId!, noteSource);
+    if (!resolved) return res.status(400).json({ error: "That Degree Checksheet could not be found." });
+    sourceFields = resolved;
+  }
+  // No note, no source: clearing the note clears where it came from.
+  if (nextNote === null) sourceFields = NO_NOTE_SOURCE;
 
   if (nextTitle === null && nextNote === null && !nextHidden) {
     if (existing) await deleteCustomizations(ctx.plan.id, [existing.id]);
@@ -241,6 +285,7 @@ router.put("/plans/:id/requirement-customizations", requireAuth, async (req, res
     note: nextNote,
     hidden: nextHidden,
     ...baseOf(found, ctx.built.provider),
+    ...sourceFields,
     updatedBy: req.userId!,
   };
   // One atomic upsert: two first edits of the same requirement (two tabs) cannot collide.
@@ -329,7 +374,7 @@ router.post("/plans/:id/custom-requirements", requireAuth, async (req, res) => {
   const ctx = await loadContext(req, res);
   if (!ctx) return;
   if (ctx.unavailable) return res.status(503).json(UNAVAILABLE);
-  const { groupKey, title, note, courseCodes } = parsed.data;
+  const { groupKey, title, note, courseCodes, noteSource } = parsed.data;
   if (!ctx.built.tree.some((g) => g.stableKey === groupKey)) {
     return res.status(404).json({ error: "That group is not in this plan's sidebar." });
   }
@@ -340,6 +385,13 @@ router.post("/plans/:id/custom-requirements", requireAuth, async (req, res) => {
   }
   const codes = cleanCourseCodes(courseCodes, isCatalogCode);
   if (!codes) return res.status(400).json({ error: "Courses must be in the SCU catalog (at most 8)." });
+  let customSource: NoteSourceFields = NO_NOTE_SOURCE;
+  if (noteSource) {
+    const resolved = await resolveNoteSource(req.userId!, noteSource);
+    if (!resolved) return res.status(400).json({ error: "That Degree Checksheet could not be found." });
+    customSource = resolved;
+  }
+  const customNote = cleanText(note ?? null, 600, true);
   const inGroup = ctx.rows.filter((r) => r.entryType === "custom" && r.groupKey === groupKey);
   await db.insert(requirementCustomizationsTable).values({
     planId: ctx.plan.id,
@@ -350,7 +402,8 @@ router.post("/plans/:id/custom-requirements", requireAuth, async (req, res) => {
     courseCodes: codes,
     position: inGroup.reduce((m, r) => Math.max(m, r.position), -1) + 1,
     title: cleanTitle,
-    note: cleanText(note ?? null, 600, true),
+    note: customNote,
+    ...(customNote ? customSource : NO_NOTE_SOURCE),
     updatedBy: req.userId!,
   });
   res.status(201).json(await summaryFor(ctx));

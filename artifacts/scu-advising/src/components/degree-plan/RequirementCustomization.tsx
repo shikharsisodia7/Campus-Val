@@ -15,6 +15,9 @@ import {
   useResolveRequirementSourceChange,
   useSaveRequirementEdit,
   useUpdateCustomRequirement,
+  PLANNING_NOTE_MAX,
+  PLANNING_TITLE_MAX,
+  type NoteSourceInput,
   type OrphanedCustomization,
   type RequirementCustomizationSummary,
   type RequirementGroup,
@@ -45,8 +48,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AlertTriangle, ArrowDown, ArrowUp, EyeOff, Pencil, Plus, RotateCcw, Trash2, Undo2 } from "lucide-react";
 
-export const TITLE_MAX = 160;
-export const NOTE_MAX = 600;
+export const TITLE_MAX = PLANNING_TITLE_MAX;
+export const NOTE_MAX = PLANNING_NOTE_MAX;
 
 export interface RequirementsMeta {
   sourceLabel: string;
@@ -86,14 +89,14 @@ export function useRequirementActions(planId: number) {
     busy,
     error,
     clearError: () => setError(null),
-    saveEdit: (sourceKey: string, fields: { title?: string | null; note?: string | null; hidden?: boolean }) =>
-      run(() => save.mutateAsync({ id: planId, data: { sourceKey, ...fields } })),
+    saveEdit: (sourceKey: string, fields: { title?: string | null; note?: string | null; hidden?: boolean }, noteSource?: NoteSourceInput) =>
+      run(() => save.mutateAsync({ id: planId, data: { sourceKey, ...fields, ...(noteSource ? { noteSource } : {}) } })),
     resetOne: (sourceKey: string) => run(() => reset.mutateAsync({ id: planId, params: { sourceKey } })),
     resetAll: () => run(() => reset.mutateAsync({ id: planId, params: { all: true } })),
     resolve: (sourceKey: string, action: "keep_mine" | "use_source") =>
       run(() => resolve.mutateAsync({ id: planId, data: { sourceKey, action } })),
-    addCustom: (groupKey: string, title: string, note: string | null, courseCodes: string[] = []) =>
-      run(() => create.mutateAsync({ id: planId, data: { groupKey, title, note, courseCodes } })),
+    addCustom: (groupKey: string, title: string, note: string | null, courseCodes: string[] = [], noteSource?: NoteSourceInput) =>
+      run(() => create.mutateAsync({ id: planId, data: { groupKey, title, note, courseCodes, ...(noteSource ? { noteSource } : {}) } })),
     updateCustom: (
       customId: string,
       patch: { title?: string; note?: string | null; done?: boolean; courseCodes?: string[]; move?: "up" | "down" },
@@ -157,6 +160,12 @@ export function CustomizationNote({ item }: { item: RequirementItem }) {
     >
       <span className="font-semibold">{c.kind === "custom" ? "Note: " : "My Note: "}</span>
       {c.note}
+      {c.noteSource && (
+        <span className="mt-0.5 block text-[9px] text-sky-800/80" data-testid={`my-note-source-${item.id}`}>
+          From: {c.noteSource.label}
+          {c.noteSource.documentAvailable ? "" : " (source document no longer available)"}
+        </span>
+      )}
     </p>
   );
 }

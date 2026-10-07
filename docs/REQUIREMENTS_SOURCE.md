@@ -178,6 +178,14 @@ student edited: `base_fingerprint`, `base_title`, `base_source_version`,
 `base_source_type`, plus `created_at`, `updated_at`, `updated_by`. Typed columns,
 no free-form blobs. Unique on `(plan_id, entry_type, target_key)`.
 
+Migration `0007_note_source_provenance` adds four nullable columns for a note the
+student took from one of their own Degree Checksheets: `note_source_type`
+(`DEGREE_CHECKSHEET`), `note_source_document_id` (no foreign key: deleting the
+document keeps the note), `note_source_label` (the document's title, read on the
+server) and `note_source_anchor` (a safe pointer such as `Biology!row 40`). No file
+content is stored. The API returns it as `customization.noteSource` with
+`documentAvailable`. See [CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md).
+
 `composeRequirementOverlay` is pure and never touches `status`, `complete`,
 `satisfiedBy`, `plannedBy`, `courses` or any count. Tests assert those are equal
 with and without a customization.

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { TYPING_DELAY_MS, type ChecksheetTracking, type TrackingEntry } from "@/hooks/use-degree-checksheets";
 import { MyTrackingTag, StatusSelect, TermSelect } from "./TrackingControls";
 import { termLabel, trackingStatusLabel } from "./checksheet-format";
+import { useTransfer } from "./TransferContext";
 
 /**
  * "My Tracking": the student's own list for one document.
@@ -281,6 +282,7 @@ function EntryRow({
 }) {
   const noteId = useId();
   const labelId = useId();
+  const transfer = useTransfer();
   // Held locally so the field can be emptied while typing a new name.
   const [labelDraft, setLabelDraft] = useState(entry.itemLabel ?? "");
   return (
@@ -339,17 +341,34 @@ function EntryRow({
         onChange={(term, termYear) => tracking.change(entry.key, { term, termYear })}
         testId={`checksheet-entry-term-${entry.key}`}
       />
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="h-9 w-9 text-destructive hover:text-destructive"
-        onClick={() => tracking.remove(entry.key)}
-        aria-label={`Remove the entry for ${name}`}
-        data-testid={`checksheet-entry-remove-${entry.key}`}
-      >
-        <Trash2 className="h-4 w-4" aria-hidden="true" />
-      </Button>
+      <div className="flex items-center gap-1">
+        {transfer && (entry.note || entry.itemLabel) && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9"
+            // The annotation's own id is the stable anchor (provenance only; nothing of the entry is copied but the words).
+            onClick={() => transfer({ text: [entry.itemLabel, entry.note].filter(Boolean).join(": "), anchor: entry.id != null ? `annotation:${entry.id}` : null })}
+            aria-label={`Add ${name} to my Planning Requirements`}
+            title="Add to planning"
+            data-testid={`checksheet-entry-transfer-${entry.key}`}
+          >
+            <ListPlus className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 text-destructive hover:text-destructive"
+          onClick={() => tracking.remove(entry.key)}
+          aria-label={`Remove the entry for ${name}`}
+          data-testid={`checksheet-entry-remove-${entry.key}`}
+        >
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      </div>
     </li>
   );
 }

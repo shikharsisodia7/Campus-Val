@@ -107,6 +107,8 @@ unmapped notes, overrides with a missing target or group, duplicate overrides, s
 content is read), and sample-plan courses that are not in the catalog. The 108 `course_not_in_catalog` warnings are real: the course catalog is the 2025-26 scrape and
 the requirement data names courses of the 2026-27 Bulletin.
 
+> The same sidebar is also shown on the Degree Checksheets and Academic Progress Report pages, and a student can add a My Note or My requirement to it from a checksheet: [CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md).
+
 ## Department Notes
 
 A Department Note is advising guidance a department stands behind, shown beside a requirement (or a whole program), for every student whose plan includes that program.
