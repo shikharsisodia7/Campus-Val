@@ -15,6 +15,8 @@ import {
   useResolveRequirementSourceChange,
   useSaveRequirementEdit,
   useUpdateCustomRequirement,
+  PLANNING_NOTE_MAX,
+  PLANNING_TITLE_MAX,
   type NoteSourceInput,
   type OrphanedCustomization,
   type RequirementCustomizationSummary,
@@ -46,8 +48,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AlertTriangle, ArrowDown, ArrowUp, EyeOff, Pencil, Plus, RotateCcw, Trash2, Undo2 } from "lucide-react";
 
-export const TITLE_MAX = 160;
-export const NOTE_MAX = 600;
+export const TITLE_MAX = PLANNING_TITLE_MAX;
+export const NOTE_MAX = PLANNING_NOTE_MAX;
 
 export interface RequirementsMeta {
   sourceLabel: string;

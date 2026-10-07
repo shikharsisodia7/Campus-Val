@@ -18,6 +18,7 @@ import {
   REQUIREMENTS_DRAWER_WIDTH,
 } from "@/lib/workspace-layout";
 import { WorkdayAprPanel } from "@/components/progress-report/WorkdayAprPanel";
+import { planContextLabel } from "@workspace/api-client-react";
 
 /**
  * The comparison workspace used by Degree Checksheets and the Academic Progress
@@ -52,12 +53,6 @@ function readRails(): Rails {
   } catch {
     return { left: true, right: true };
   }
-}
-
-/** How a plan is named in "Compare against": "Degree Plan", or "Tentative Degree Plan — <name>". */
-export function comparePlanLabel(plan: { name: string; planType: string }): string {
-  if (plan.planType === "degree") return "Degree Plan";
-  return /tentative degree plan/i.test(plan.name) ? plan.name : `Tentative Degree Plan — ${plan.name}`;
 }
 
 export function PlanningComparisonWorkspace({
@@ -122,7 +117,7 @@ export function PlanningComparisonWorkspace({
             <SelectContent>
               {plans.map((p) => (
                 <SelectItem key={p.id} value={String(p.id)} className="text-xs">
-                  {comparePlanLabel(p)}
+                  {planContextLabel(p)}
                 </SelectItem>
               ))}
             </SelectContent>

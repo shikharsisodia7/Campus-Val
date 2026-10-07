@@ -305,7 +305,7 @@ export function Palette() {
           )}
         </div>
         <p className="mt-0.5 text-[11px] text-muted-foreground">
-          Declared and proposed majors, minors &amp; Professional Preparation — editable planning space, distinct from your official APR on the right.
+          Declared and proposed majors, minors &amp; Professional Preparation — editable planning space, distinct from your official Workday APR.
         </p>
         {isDepartmentAdmin && (
           <Link href="/admin/program-requirements" className="mt-1 inline-block text-[11px] font-medium text-amber-800 underline underline-offset-2" data-testid="link-program-requirements-admin">

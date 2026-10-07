@@ -91,6 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 variant="ghost"
                 size="sm"
                 title="Report Error / Suggest Changes"
+                aria-label="Report Error / Suggest Changes"
                 data-testid="button-report-error"
                 className="hidden shrink-0 items-center gap-1.5 px-2 text-muted-foreground hover:text-foreground lg:flex"
               >
@@ -98,7 +99,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <span className="hidden whitespace-nowrap text-sm 2xl:inline">
                   Report Error / Suggest Changes
                 </span>
-                <span className="whitespace-nowrap text-sm 2xl:hidden">Report Error</span>
+                {/* Icon only from lg to xl: with its words the button ran into the navigation at tablet widths. */}
+                <span className="hidden whitespace-nowrap text-sm xl:inline 2xl:hidden">Report Error</span>
               </Button>
             }
           />

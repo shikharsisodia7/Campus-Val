@@ -1,5 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { RequirementItem } from "@workspace/api-client-react";
+import {
+  filterCandidates,
+  isDuplicateNote,
+  mergedNote,
+  planContextLabel,
+  transferCandidates,
+  reliableTarget,
+} from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,40 +40,8 @@ export interface TransferSource {
   anchor?: string | null;
 }
 
-const COURSE_CODE = /\b([A-Za-z]{2,5})\s?(\d{1,3}[A-Za-z]{0,2})\b/g;
-const normalizeCode = (code: string) => code.toUpperCase().replace(/\s+/g, " ").trim();
-/** Text as the server stores it (spaces collapsed), for comparing a draft with a saved note. */
-const sameWords = (text: string) => text.replace(/[ \t]+/g, " ").trim().toLowerCase();
-
-/** The course codes written in a piece of text (BIOL 1A, MATH 11). Deterministic: no similarity guessing. */
-export function courseCodesIn(text: string): string[] {
-  const out = new Set<string>();
-  for (const m of text.matchAll(COURSE_CODE)) out.add(normalizeCode(`${m[1]} ${m[2]}`));
-  return [...out];
-}
-
-interface Candidate {
-  item: RequirementItem;
-  groupId: string;
-  groupTitle: string;
-}
-
-/**
- * The requirement a piece of text belongs to, when it can be known for certain: every course
- * code the text names is a course of ONE requirement, and no other requirement lists any of
- * them. Otherwise null, and the student chooses.
- */
-export function reliableTarget(text: string, candidates: Candidate[]): { candidate: Candidate; code: string } | null {
-  const codes = courseCodesIn(text);
-  if (codes.length === 0) return null;
-  const hits = new Map<string, { candidate: Candidate; code: string }>();
-  for (const candidate of candidates) {
-    const own = candidate.item.courses.map(normalizeCode);
-    const code = codes.find((c) => own.includes(c));
-    if (code) hits.set(candidate.item.stableKey ?? candidate.item.id, { candidate, code });
-  }
-  return hits.size === 1 ? [...hits.values()][0]! : null;
-}
+// The matching rules are shared with the mobile app (lib/api-client-react/src/checksheets/transfer.ts).
+export { courseCodesIn, reliableTarget } from "@workspace/api-client-react";
 
 /**
  * Put focus back on the control that opened the dialog. Radix only does this for its own
@@ -96,16 +71,8 @@ export function AddToPlanningDialog({
   const { toast } = useToast();
   const ids = { note: useId(), title: useId(), group: useId(), search: useId(), options: useId() };
 
-  const candidates = useMemo<Candidate[]>(
-    () =>
-      (requirements ?? []).flatMap((group) =>
-        group.items
-          // A source requirement can carry a note; a student's own requirement is edited in the sidebar.
-          .filter((item) => !!item.stableKey && item.customization?.kind !== "custom")
-          .map((item) => ({ item, groupId: group.id, groupTitle: group.title })),
-      ),
-    [requirements],
-  );
+  // A source requirement can carry a note; a student's own requirement is edited in the sidebar.
+  const candidates = useMemo(() => transferCandidates(requirements), [requirements]);
   const groups = useMemo(() => (requirements ?? []).filter((g) => !!g.stableKey), [requirements]);
 
   const [mode, setMode] = useState<"note" | "custom">("note");
@@ -142,21 +109,18 @@ export function AddToPlanningDialog({
   const existingNote = target?.item.customization?.kind === "edit" ? (target.item.customization.note ?? "") : "";
   const normalizedDraft = draft.trim();
   // An obvious exact duplicate: the words are already in that requirement's My Note.
-  const isDuplicate = !!existingNote && !!normalizedDraft && sameWords(existingNote).includes(sameWords(normalizedDraft));
+  const isDuplicate = isDuplicateNote(existingNote, normalizedDraft);
   const appending = !!existingNote && existingChoice === "append";
-  const merged = appending ? `${existingNote}\n${normalizedDraft}` : normalizedDraft;
+  const merged = mergedNote(existingNote, normalizedDraft, existingChoice);
   const noteLength = mode === "note" ? merged.length : normalizedDraft.length;
   const tooLong = noteLength > NOTE_MAX;
   const cleanCustomTitle = customTitle.replace(/\s+/g, " ").trim().slice(0, TITLE_MAX);
 
-  const filtered = candidates.filter((c) => {
-    const q = query.trim().toLowerCase();
-    return !q || `${c.item.label} ${c.groupTitle} ${c.item.courses.join(" ")}`.toLowerCase().includes(q);
-  });
+  const filtered = filterCandidates(candidates, query);
 
   if (!source) return null;
   const noteSource = { type: "DEGREE_CHECKSHEET" as const, documentId: source.documentId, anchor: source.anchor ?? null };
-  const planName = activePlan?.name ?? "your plan";
+  const planName = activePlan ? planContextLabel(activePlan) : "your plan";
   const canSave =
     !!activePlan &&
     !actions.busy &&

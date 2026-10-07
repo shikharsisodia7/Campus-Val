@@ -161,7 +161,7 @@ function DetailsFields({ fields, set, styles, colors }: { fields: Fields; set: (
   );
 }
 
-function SheetFrame({ title, onClose, busy, children, colors, styles }: { title: string; onClose: () => void; busy: boolean; children: React.ReactNode; colors: Colors; styles: Styles }) {
+export function SheetFrame({ title, onClose, busy, children, colors, styles }: { title: string; onClose: () => void; busy: boolean; children: React.ReactNode; colors: Colors; styles: Styles }) {
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={() => !busy && onClose()}>
       <View style={styles.sheet}>
