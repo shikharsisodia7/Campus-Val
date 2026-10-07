@@ -192,3 +192,9 @@ use.
 
 The full API test suite empties `course_sections` in the database it runs
 against. Run the seed after it and before the browser tests.
+
+The seeded rows are a manual snapshot, so after 24 hours CampusVal shows every
+one of them as UNKNOWN, as it must for stale data. Test D then fails on its
+OPEN badge. That is the seed's age, not a bug: re-run the seed (it replaces
+the rows with fresh ones) before a browser run on a database seeded the day
+before.
