@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
+import { withExplicitSslMode } from "./ssl-mode";
 
 const { Pool } = pg;
 
@@ -25,7 +26,8 @@ if (!process.env.DATABASE_URL) {
 const poolMax = Number(process.env.DATABASE_POOL_MAX);
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  // sslmode=require (Neon's default) stays verify-full, as pg 8 already treats it; see ssl-mode.ts.
+  connectionString: withExplicitSslMode(process.env.DATABASE_URL),
   max: Number.isInteger(poolMax) && poolMax > 0 ? poolMax : 5,
   connectionTimeoutMillis: 10_000,
   idleTimeoutMillis: 30_000,

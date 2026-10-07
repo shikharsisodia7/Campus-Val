@@ -37,6 +37,23 @@ catalog:
 
 minimumReleaseAge: 1440
 
+# Supply chain: no transitive dependency from git or a tarball URL, and no package version whose
+# publishing evidence is weaker than an earlier version's (provenance dropped: a possible takeover).
+# The exclusions are the exact versions already locked on 2026-10-07 that come from release lines
+# published before their maintainers added provenance (pnpm reported each as a "downgrade"). Any
+# other version of these packages is still checked.
+blockExoticSubdeps: true
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - '@vercel/cli-config@0.2.2'
+  - '@vercel/cli-exec@1.0.1'
+  - '@vercel/oidc@3.8.2'
+  - chokidar@4.0.3
+  - pino@9.14.0
+  - react-native-worklets@0.5.1
+  - semver@6.3.1
+  - ua-parser-js@1.0.41
+
 minimumReleaseAgeExclude:
   - '@replit/*'
   - stripe-replit-sync
@@ -51,8 +68,12 @@ overrides:
   # Security: packages other packages bring in, held at the release that fixes
   # a published vulnerability. Each stays within its major version. Remove an
   # entry once the package that brings it in asks for a fixed release itself.
-  # (pnpm audit, 2026-09-28; proxy-addr added 2026-10-06; braces and sprintf-js have no fixed release yet.)
+  # (pnpm audit, 2026-09-28; proxy-addr added 2026-10-06; braces and sprintf-js have no fixed release yet;
+  # lodash (bundled into the web app by recharts) and fast-copy (server, via pino-pretty) added 2026-10-07
+  # from Dependabot, which also sees what Vite bundles.)
   '@xmldom/xmldom@<0.8.15': ^0.8.15
+  'lodash@<4.18.0': ^4.18.0
+  'fast-copy@>=4.0.0 <4.1.0': ^4.1.0
   'brace-expansion@<1.1.18': ^1.1.18
   'brace-expansion@>=2.0.0 <2.1.4': ^2.1.4
   'form-data@>=4.0.0 <4.0.6': ^4.0.6
