@@ -216,7 +216,7 @@ export function ChecksheetDocumentCard({
         </button>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <Button asChild variant="outline" size="sm" className="h-9 text-xs md:h-8">
+          <Button asChild variant="outline" size="sm" className="h-9 text-xs xl:h-8">
             <a
               href={originalFileUrl(document.id)}
               target="_blank"
@@ -228,22 +228,22 @@ export function ChecksheetDocumentCard({
               Open original
             </a>
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs md:h-8" onClick={() => show("rename")} data-testid={`checksheet-rename-${document.id}`}>
+          <Button variant="outline" size="sm" className="h-9 text-xs xl:h-8" onClick={() => show("rename")} data-testid={`checksheet-rename-${document.id}`}>
             <Pencil className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Rename
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs md:h-8" onClick={() => show("details")} data-testid={`checksheet-details-${document.id}`}>
+          <Button variant="outline" size="sm" className="h-9 text-xs xl:h-8" onClick={() => show("details")} data-testid={`checksheet-details-${document.id}`}>
             <Settings2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Edit details
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs md:h-8" onClick={() => show("replace")} data-testid={`checksheet-replace-${document.id}`}>
+          <Button variant="outline" size="sm" className="h-9 text-xs xl:h-8" onClick={() => show("replace")} data-testid={`checksheet-replace-${document.id}`}>
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Replace
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-9 text-xs text-destructive hover:text-destructive md:h-8"
+            className="h-9 text-xs text-destructive hover:text-destructive xl:h-8"
             onClick={() => setConfirmDelete(true)}
             disabled={deleteMutation.isPending}
             data-testid={`checksheet-delete-${document.id}`}
@@ -319,7 +319,7 @@ export function ChecksheetDocumentCard({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 gap-1.5 text-xs md:h-8"
+                    className="h-9 gap-1.5 text-xs xl:h-8"
                     onPointerDown={() => (pressedSelection.current = selectedInDocument())}
                     onClick={() => {
                       // Whatever the student has selected in this document, to start from (or nothing: they write the note).
@@ -338,7 +338,7 @@ export function ChecksheetDocumentCard({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs md:h-8"
+                  className="h-9 gap-1.5 text-xs xl:h-8"
                   aria-pressed={!showTracking}
                   onClick={() => setShowTracking((v) => !v)}
                   data-testid={`checksheet-toggle-tracking-${document.id}`}

@@ -585,8 +585,9 @@ test("D. A PDF: drawn in the app, zoom, pages, and a marker that holds its place
   await expectMarkerAt(page, marker, page1, placed);
   await card.getByTestId("checksheet-zoom-level").click();
 
-  // RESIZE the window: same spot.
-  await page.setViewportSize({ width: 900, height: 900 });
+  // RESIZE the window: same spot. (1280 keeps the three-region layout, so the checksheet column narrows;
+  // below xl the side panels become drawers and the checksheet gets WIDER instead.)
+  await page.setViewportSize({ width: 1280, height: 900 });
   await expect.poll(async () => (await markerFraction(page, marker, page1)).width).toBeLessThan(placed.width);
   await expectMarkerAt(page, marker, page1, placed);
   await page.setViewportSize({ width: 1440, height: 900 });
