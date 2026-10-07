@@ -437,8 +437,30 @@ test("E2. sharing the plan with an advisor shares neither the checksheet, the AP
   }
 });
 
-test("F. the source checksheet can be deleted: the student's note stays and says its source is gone", async ({ browser }) => {
+test("F. replacing the source checksheet leaves the note as it is; deleting it keeps the note and says its source is gone", async ({ browser }) => {
   const { page, context } = await as(browser, "student-a");
+  const noteNow = async () =>
+    (await api(page, "get", `/api/plans/${tentativeId}/requirements`)).body.groups.find((g: any) => g.kind === "major").items.find((i: any) => i.stableKey === BIOL_1A)
+      .customization;
+  const before = await noteNow();
+  // Replace the checksheet with a different file, through the page's own Replace.
+  await page.goto("/degree-checksheets");
+  const card = sheetCard(page);
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await card.locator('[data-testid^="checksheet-replace-"]').click();
+  const form = card.getByTestId("checksheet-replace-form");
+  const file = path.join(SHOTS, CHECKSHEET_FIXTURE_FILES["major-workbook"].fileName);
+  writeFileSync(file, await buildChecksheetFixture("major-workbook"));
+  await form.getByTestId("checksheet-input-file").setInputFiles(file);
+  await form.getByTestId("checksheet-replace-submit").click();
+  await expect(card.locator('[data-testid^="checksheet-replaced-"]')).toBeVisible({ timeout: 40_000 });
+  expect((await api(page, "get", "/api/degree-checksheets")).body.documents.find((d: any) => d.id === docId).sourceVersion).toBe(2);
+  // The student's note is theirs now: not rewritten, not removed, still pointing at the document.
+  const after = await noteNow();
+  expect(after.note).toBe(before.note);
+  expect(after.noteSource).toEqual(before.noteSource);
+  expect(after.noteSource.documentAvailable).toBe(true);
+
   expect((await api(page, "delete", `/api/degree-checksheets/${docId}`)).status).toBeLessThan(300);
   await page.goto("/degree-checksheets");
   await chooseCompareTarget(page, /XR Biology/);
@@ -488,3 +510,43 @@ for (const [name, width, height] of [["laptop-1280", 1280, 800], ["tablet-1024",
     await context.close();
   });
 }
+
+test("I. in a phone browser: upload, add a checksheet row to planning, and find it in the Planning Requirements drawer", async ({ browser }) => {
+  const { page, context } = await as(browser, "student-a", { width: 390, height: 844 });
+  await page.goto("/degree-checksheets");
+  await expect(page.getByTestId("compare-layout")).toBeVisible({ timeout: 30_000 });
+  await chooseCompareTarget(page, /XR Biology/);
+  const file = path.join(SHOTS, CHECKSHEET_FIXTURE_FILES["biology-workbook"].fileName);
+  writeFileSync(file, await buildChecksheetFixture("biology-workbook"));
+  await page.getByTestId("button-upload-checksheet").first().click();
+  const upload = page.getByTestId("checksheet-upload-dialog");
+  await upload.getByTestId("checksheet-input-file").setInputFiles(file);
+  await upload.getByTestId("checksheet-field-title").fill(`${MARK} Phone Checksheet`);
+  await upload.getByTestId("checksheet-upload-submit").click();
+  await expect(upload).toBeHidden({ timeout: 40_000 });
+  const card = sheetCard(page);
+  await expect(card.locator("tr", { hasText: "BIOL 1A" }).first()).toBeVisible({ timeout: 20_000 });
+
+  await card.locator("tr", { hasText: "BIOL 1A" }).first().getByRole("button", { name: /Add row \d+ to my Planning Requirements/ }).click();
+  const dialog = page.getByTestId("add-to-planning-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(page.getByTestId("transfer-target")).toContainText("BIOL 1A");
+  // The dialog fits the phone once it has opened (it slides in): nothing to scroll sideways.
+  await expect.poll(async () => (await dialog.boundingBox())!.x).toBeGreaterThanOrEqual(0);
+  const box = await dialog.boundingBox();
+  expect(box!.x + box!.width).toBeLessThanOrEqual(390 + 1);
+  if (await page.getByTestId("transfer-replace").count()) await page.getByTestId("transfer-replace").check();
+  await page.getByTestId("transfer-note").fill(`${MARK} added from a phone`);
+  await shot(page, "phone-transfer-dialog");
+  await page.getByTestId("transfer-save").click();
+  await expect(dialog).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+  await page.getByTestId("button-open-requirements").click();
+  const drawer = page.getByTestId("requirements-drawer");
+  await drawer.locator('[data-group-kind="major"] button').first().click();
+  await expect(drawer.locator(`[data-stable-key="${BIOL_1A}"]`).getByTestId(/^my-note-(?!source-)/)).toContainText(`${MARK} added from a phone`, { timeout: 10_000 });
+  await expect(drawer.locator(`[data-stable-key="${BIOL_1A}"]`).getByTestId(/^my-note-source-/)).toContainText(`${MARK} Phone Checksheet`);
+  await shot(page, "phone-requirements-drawer");
+  await context.close();
+});

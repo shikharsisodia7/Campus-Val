@@ -124,7 +124,7 @@ export function PlanningComparisonWorkspace({
           </Select>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <div className="hidden items-center gap-1.5 xl:flex" role="group" aria-label="Show or hide side panels">
             <Button
               type="button"
@@ -155,7 +155,8 @@ export function PlanningComparisonWorkspace({
           </div>
 
           {/* Below xl: the same two panels open in drawers. */}
-          <div className="flex items-center gap-1.5 xl:hidden">
+          {/* Wraps on a narrow phone rather than pushing the page sideways. */}
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5 xl:hidden">
             <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
               <SheetTrigger asChild>
                 <Button type="button" variant="outline" size="sm" className="h-8 text-xs" aria-haspopup="dialog" data-testid="button-open-requirements">
