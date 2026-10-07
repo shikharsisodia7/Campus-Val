@@ -593,9 +593,15 @@ They need a new build of the app; an over-the-air update cannot add them.
 
 Verified: types, 35 tests of layout, rules, saving and Add to planning, and a production
 compile of the whole app for iOS and Android (`pnpm --filter
-@workspace/campusval-mobile run bundle`). **Not verified: the app running on a
-phone or a simulator.** This machine has neither Xcode nor an Android emulator
-image set up for it.
+@workspace/campusval-mobile run bundle`). **Run on Android (2026-10-06):** in an Android 14
+emulator through Expo Go (SDK 54), against production, as the synthetic student: sign-in by
+emailed code, the Checksheets tab with a real SCU checklist, a tracked cell's sheet, and *Add to
+planning* saving a My Note on a Tentative Degree Plan (confirmed on the server). Not run on a
+physical phone, and not on iOS (this machine has no Xcode).
+
+Sign-in in the app is by **emailed code** or Google: that is what the sign-in instance allows
+(password is not a sign-in method there). New accounts are created on the website, whose sign-up
+asks for everything the instance requires; the app's *Sign up* screen opens it.
 
 ## Tests
 
