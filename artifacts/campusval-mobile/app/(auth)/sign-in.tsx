@@ -38,12 +38,19 @@ export default function SignInPage() {
   const { startSSOFlow } = useSSO();
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [code, setCode] = useState('');
+  // CampusVal's sign-in instance signs in with an emailed one-time code (or Google); passwords are
+  // not a sign-in method there, so the app asks for the email first and then the code.
+  const [step, setStep] = useState<'email' | 'code'>('email');
   const [ssoLoading, setSsoLoading] = useState(false);
 
-  const handleSignIn = async () => {
-    const { error } = await signIn.password({ emailAddress: email, password });
+  const handleSendCode = async () => {
+    const { error } = await signIn.emailCode.sendCode({ emailAddress: email.trim() });
+    if (!error) setStep('code');
+  };
+
+  const handleVerify = async () => {
+    const { error } = await signIn.emailCode.verifyCode({ code: code.trim() });
     if (error) return;
     if (signIn.status === 'complete') {
       await signIn.finalize({
@@ -53,6 +60,12 @@ export default function SignInPage() {
         },
       });
     }
+  };
+
+  const useDifferentEmail = () => {
+    signIn.reset();
+    setCode('');
+    setStep('email');
   };
 
   const handleGoogle = useCallback(async () => {
@@ -86,7 +99,8 @@ export default function SignInPage() {
   }
 
   const styles = makeStyles(colors, insets);
-  const canSubmit = email.trim().length > 0 && password.length > 0 && fetchStatus !== 'fetching';
+  const busy = fetchStatus === 'fetching';
+  const canSubmit = !busy && (step === 'email' ? /\S+@\S+\.\S+/.test(email.trim()) : code.trim().length >= 6);
 
   return (
     <KeyboardAvoidingView
@@ -129,51 +143,59 @@ export default function SignInPage() {
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Email */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="you@scu.edu"
-            placeholderTextColor={colors.mutedForeground}
-            autoCorrect={false}
-          />
-          {errors?.fields?.identifier && (
-            <Text style={styles.errorText}>{errors.fields.identifier.message}</Text>
-          )}
-        </View>
-
-        {/* Password */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Password</Text>
-          <View style={styles.passwordRow}>
+        {step === 'email' ? (
+          <View style={styles.field}>
+            <Text style={styles.label}>Email</Text>
             <TextInput
-              style={[styles.input, styles.passwordInput]}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              placeholder="Password"
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+              placeholder="you@scu.edu"
               placeholderTextColor={colors.mutedForeground}
+              autoCorrect={false}
+              accessibilityLabel="Email"
+              testID="sign-in-email"
             />
-            <Pressable
-              onPress={() => setShowPassword(v => !v)}
-              style={styles.eyeButton}
-            >
-              <Ionicons
-                name={showPassword ? 'eye-off' : 'eye'}
-                size={20}
-                color={colors.mutedForeground}
-              />
-            </Pressable>
+            {errors?.fields?.identifier && (
+              <Text style={styles.errorText}>{errors.fields.identifier.message}</Text>
+            )}
+            <Text style={styles.hint}>We'll email you a 6-digit sign-in code.</Text>
           </View>
-          {errors?.fields?.password && (
-            <Text style={styles.errorText}>{errors.fields.password.message}</Text>
-          )}
-        </View>
+        ) : (
+          <View style={styles.field}>
+            <Text style={styles.label}>Code sent to {email.trim()}</Text>
+            <TextInput
+              style={[styles.input, styles.codeInput]}
+              value={code}
+              onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
+              placeholder="123456"
+              placeholderTextColor={colors.mutedForeground}
+              maxLength={6}
+              autoFocus
+              accessibilityLabel="Sign-in code"
+              testID="sign-in-code"
+            />
+            {errors?.fields?.code && (
+              <Text style={styles.errorText} accessibilityLiveRegion="polite">
+                That code didn't work. Check the latest email, or send a new code.
+              </Text>
+            )}
+            <View style={styles.codeActions}>
+              <Pressable onPress={() => void handleSendCode()} disabled={busy} accessibilityRole="button" style={styles.linkButton} testID="sign-in-resend">
+                <Text style={styles.footerLink}>Send a new code</Text>
+              </Pressable>
+              <Pressable onPress={useDifferentEmail} accessibilityRole="button" style={styles.linkButton} testID="sign-in-change-email">
+                <Text style={styles.footerLink}>Use a different email</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* General error */}
         {errors?.global && errors.global.length > 0 && (
@@ -189,13 +211,16 @@ export default function SignInPage() {
             (!canSubmit) && styles.primaryDisabled,
             pressed && canSubmit && styles.pressed,
           ]}
-          onPress={handleSignIn}
+          onPress={() => void (step === 'email' ? handleSendCode() : handleVerify())}
           disabled={!canSubmit}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canSubmit, busy }}
+          testID="sign-in-submit"
         >
-          {fetchStatus === 'fetching' ? (
+          {busy ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.primaryButtonText}>Sign In</Text>
+            <Text style={styles.primaryButtonText}>{step === 'email' ? 'Email me a code' : 'Sign In'}</Text>
           )}
         </Pressable>
 
@@ -262,9 +287,10 @@ function makeStyles(colors: ReturnType<typeof useColors>, insets: { top: number;
       color: colors.foreground,
       backgroundColor: colors.card,
     },
-    passwordRow: { flexDirection: 'row', alignItems: 'center' },
-    passwordInput: { flex: 1 },
-    eyeButton: { position: 'absolute', right: 12, padding: 4 },
+    hint: { fontSize: 12, color: colors.mutedForeground, marginTop: 6, fontFamily: 'Inter_400Regular' },
+    codeInput: { fontSize: 22, letterSpacing: 6, textAlign: 'center', fontFamily: 'Inter_600SemiBold' },
+    codeActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+    linkButton: { minHeight: 44, justifyContent: 'center' },
     errorText: { fontSize: 12, color: colors.destructive, marginTop: 4, fontFamily: 'Inter_400Regular' },
     alertBox: {
       backgroundColor: '#FEF2F2',
