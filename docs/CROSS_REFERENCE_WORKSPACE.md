@@ -29,10 +29,12 @@ Nothing here compares the three for the student. CampusVal does **not** tick a c
 - `components/degree-plan/Palette.tsx` is the Planning Requirements sidebar. It is mounted only by the two workspaces (`DegreePlanWorkspace`, `PlanningComparisonWorkspace`). The same Edit requirements mode (edit, hide/restore, reset, My requirement) works on every page it appears on; Department Notes are read-only for students everywhere.
 - `components/progress-report/WorkdayAprPanel.tsx` is the compact APR sidebar, shared with Degree Plan and Quarter Planning. Its content is unchanged (no Academic Period, Units or Grade; grouping, collapse, upload dates, several APRs).
 - `components/degree-plan/usePlanningWorkspace.ts` is the one place that decides the active plan and loads its requirements. Every page that shows the sidebar reads and refreshes the **same query keys**, so a note saved on one page is on all of them at once, and nothing keeps a drifting copy. After any save the plan queries are refreshed by one predicate (every key under `/api/plans`).
-- `lib/workspace-layout.ts` holds the column widths and the region height, so Degree Plan, Tentative Degree Plan, Degree Checksheets and the APR page cannot drift apart (left rail 260–320px, 320–400px from 1536px; compact APR 330–380px, 400–460px from 1536px).
+- `lib/workspace-layout.ts` holds the column widths, the comparison pages' starting panel sizes and the region height, so Degree Plan, Tentative Degree Plan, Degree Checksheets and the APR page cannot drift apart (Degree Plan: left rail 260–320px, 320–400px from 1536px; compact APR 330–380px, 400–460px from 1536px. Comparison pages: left 24% of the workspace, 26% on the APR page, compact APR 27%, which at 1440px are the same ~320px and ~370px).
 - `components/degree-plan/single-sidebar.structure.test.ts` fails if a second copy of any of this appears.
 
-`PlanningComparisonWorkspace` is the shared layout for the two comparison pages. On wide screens each region scrolls on its own and the regions fill the screen below the header (the page itself does not scroll), so keeping your place in a checksheet is independent of the APR or the requirements list. The side panels can be hidden for a wider checksheet (remembered in `localStorage`, a convenience only). The main content renders at once; only the side panels wait for plan data. CampusVal had no resizable panels and none were added: the widths are fixed defaults.
+`PlanningComparisonWorkspace` is the shared layout for the two comparison pages. On wide screens each region scrolls on its own and the regions fill the screen below the header (the page itself does not scroll), so keeping your place in a checksheet is independent of the APR or the requirements list. The side panels can be hidden for a wider checksheet (remembered in `localStorage`, a convenience only). The main content renders at once; only the side panels wait for plan data.
+
+The regions are resizable, with the resizable panels CampusVal already had (`components/ui/resizable.tsx`, `react-resizable-panels`; no new dependency): drag a handle, or focus it ("Resize Planning Requirements", "Resize Workday APR") and use the arrow keys. Each page remembers its sizes in this browser (`localStorage`, a convenience only). The limits keep the Workday text and the checksheet readable however far a student drags (a side panel 17–40% for the requirements, 21–40% for the APR; the checksheet never below 30%). Degree Plan and Tentative Degree Plan keep their fixed columns.
 
 ## The checksheet column
 
@@ -105,7 +107,7 @@ The uploaded file, its rendered source and its original content are never modifi
 
 ## Responsive
 
-- **≥1280px (`xl`):** three regions on Degree Checksheets, two on the APR page; both side panels can be hidden; each region scrolls on its own.
+- **≥1280px (`xl`):** three regions on Degree Checksheets, two on the APR page; the regions can be resized (drag or arrow keys) and both side panels can be hidden; each region scrolls on its own.
 - **Below 1280px:** the main content takes the width and the page scrolls normally (no scroll region inside a phone screen). *Planning Requirements* (and, on Degree Checksheets, *Academic Progress Reports*) open as drawers from the toolbar, which wraps rather than widening the page. The transfer dialog works at every width. Checked at 1600, 1440, 1280, 1024, 768, 430 and 390px.
 
 ## Accessibility
@@ -116,7 +118,7 @@ Each region is a labelled landmark (`Planning Requirements`, the main content, `
 
 | What | Where |
 | --- | --- |
-| Layout, regions, scrolling, collapse, plan selector, drawers, main renders while the plan loads | `PlanningComparisonWorkspace.test.tsx` |
+| Layout, regions, scrolling, resize handles (named, keyboard-operable, shared starting sizes), collapse, plan selector, drawers, main renders while the plan loads | `PlanningComparisonWorkspace.test.tsx` |
 | Which plan each page starts from; one requirements query for one plan | `usePlanningWorkspace.test.tsx` |
 | One sidebar, one APR panel, one requirements query, shared widths | `single-sidebar.structure.test.ts` |
 | Show where it went (incl. a new My requirement), "From:" and a deleted source | `Palette.focus.test.tsx` |
@@ -124,4 +126,4 @@ Each region is a labelled landmark (`Planning Requirements`, the main content, `
 | The same rules in the mobile app; plan choice; what is sent | `campusval-mobile/lib/planning-transfer.test.ts` |
 | API: scope, label from document, other student refused, replace/delete source, duplicate plan, clearing | `routes/note-source.test.ts` |
 | Provenance reader is narrow and owner-scoped | `degree-checksheets.access-control.test.ts` |
-| Live browser: three-panel layout and scrolling, transfer from a row, from My Tracking to the Degree Plan, no-match flow, duplicate, custom requirement, keyboard only, APR page (edit there, APR unchanged), advisor share leaks nothing, replace then delete the source, another student, five widths, a phone-width transfer | `artifacts/e2e/tests/cross-reference.spec.ts` (project `cross-reference`) |
+| Live browser: three-panel layout and scrolling, resizing by drag and by keyboard (remembered across a reload), transfer from a row, from My Tracking to the Degree Plan, no-match flow, duplicate, custom requirement, keyboard only, APR page (edit there, APR unchanged), advisor share leaks nothing, replace then delete the source, another student, five widths, a phone-width transfer | `artifacts/e2e/tests/cross-reference.spec.ts` (project `cross-reference`) |
