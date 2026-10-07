@@ -339,7 +339,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
       "manualCount": 0,
       "notes": [
         "Planning major — you're planning around Finance (B.S. Commerce) in CampusVal. This updates your CampusVal plan only; your official SCU declaration and Workday APR are unchanged. Verify any formal major change with SCU or your advisor.",
-        "4 required courses not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: FNCE 134, FNCE 137, FNCE 138, FNCE 142.",
+        "4 required courses not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: FNCE 134, FNCE 137, FNCE 138, FNCE 142.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU Undergraduate Bulletin (major department chapter)",
@@ -482,7 +482,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "LANG",
-            "courseCount": 80,
+            "courseCount": 82,
             "tag": "Second Language",
           },
           "courses": [],
@@ -502,7 +502,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "coreArea": {
             "catalogStatedCount": 2,
             "code": "ARTS",
-            "courseCount": 241,
+            "courseCount": 245,
             "tag": "Arts",
           },
           "courses": [],
@@ -566,7 +566,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "coreArea": {
             "catalogStatedCount": 3,
             "code": "DIV",
-            "courseCount": 257,
+            "courseCount": 258,
             "tag": "Diversity",
           },
           "courses": [],
@@ -586,7 +586,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "coreArea": {
             "catalogStatedCount": 25,
             "code": "ETHICS",
-            "courseCount": 52,
+            "courseCount": 54,
             "tag": "Ethics",
           },
           "courses": [
@@ -610,7 +610,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "NATSCI",
-            "courseCount": 52,
+            "courseCount": 53,
             "tag": "Natural Science",
           },
           "courses": [],
@@ -693,7 +693,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "SOCSCI",
-            "courseCount": 32,
+            "courseCount": 33,
             "tag": "Social Science",
           },
           "courses": [
@@ -715,7 +715,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "coreArea": {
             "catalogStatedCount": 7,
             "code": "AW",
-            "courseCount": 34,
+            "courseCount": 35,
             "tag": "Advanced Writing",
           },
           "courses": [
@@ -1387,7 +1387,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
       "lastVerified": "2026-07-23",
       "manualCount": 0,
       "notes": [
-        "1 required course not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: CSEN 21.",
+        "1 required course not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: CSEN 21.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU Undergraduate Bulletin (major department chapter)",
@@ -1527,7 +1527,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "LANG",
-            "courseCount": 80,
+            "courseCount": 82,
             "tag": "Second Language",
           },
           "courses": [],
@@ -1547,7 +1547,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "coreArea": {
             "catalogStatedCount": 2,
             "code": "ARTS",
-            "courseCount": 241,
+            "courseCount": 245,
             "tag": "Arts",
           },
           "courses": [],
@@ -1607,7 +1607,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "coreArea": {
             "catalogStatedCount": 3,
             "code": "DIV",
-            "courseCount": 257,
+            "courseCount": 258,
             "tag": "Diversity",
           },
           "courses": [],
@@ -1627,7 +1627,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "coreArea": {
             "catalogStatedCount": 25,
             "code": "ETHICS",
-            "courseCount": 52,
+            "courseCount": 54,
             "tag": "Ethics",
           },
           "courses": [],
@@ -1647,7 +1647,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "NATSCI",
-            "courseCount": 52,
+            "courseCount": 53,
             "tag": "Natural Science",
           },
           "courses": [],
@@ -1727,7 +1727,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "SOCSCI",
-            "courseCount": 32,
+            "courseCount": 33,
             "tag": "Social Science",
           },
           "courses": [],
@@ -1747,7 +1747,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "coreArea": {
             "catalogStatedCount": 7,
             "code": "AW",
-            "courseCount": 34,
+            "courseCount": 35,
             "tag": "Advanced Writing",
           },
           "courses": [],
@@ -2290,7 +2290,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
       "lastVerified": "2026-07-23",
       "manualCount": 0,
       "notes": [
-        "1 required course not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: CSEN 21.",
+        "1 required course not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: CSEN 21.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU Undergraduate Bulletin (major department chapter)",
@@ -2430,7 +2430,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "LANG",
-            "courseCount": 80,
+            "courseCount": 82,
             "tag": "Second Language",
           },
           "courses": [],
@@ -2450,7 +2450,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "coreArea": {
             "catalogStatedCount": 2,
             "code": "ARTS",
-            "courseCount": 241,
+            "courseCount": 245,
             "tag": "Arts",
           },
           "courses": [],
@@ -2510,7 +2510,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "coreArea": {
             "catalogStatedCount": 3,
             "code": "DIV",
-            "courseCount": 257,
+            "courseCount": 258,
             "tag": "Diversity",
           },
           "courses": [],
@@ -2530,7 +2530,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "coreArea": {
             "catalogStatedCount": 25,
             "code": "ETHICS",
-            "courseCount": 52,
+            "courseCount": 54,
             "tag": "Ethics",
           },
           "courses": [],
@@ -2550,7 +2550,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "NATSCI",
-            "courseCount": 52,
+            "courseCount": 53,
             "tag": "Natural Science",
           },
           "courses": [],
@@ -2630,7 +2630,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "SOCSCI",
-            "courseCount": 32,
+            "courseCount": 33,
             "tag": "Social Science",
           },
           "courses": [],
@@ -2650,7 +2650,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "coreArea": {
             "catalogStatedCount": 7,
             "code": "AW",
-            "courseCount": 34,
+            "courseCount": 35,
             "tag": "Advanced Writing",
           },
           "courses": [],
@@ -3108,7 +3108,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
       "notes": [
         "Planning only — official declaration must be completed through SCU. CampusVal does not declare majors.",
         "Engineering-only course gating applies (CSEN/ECEN/MECH/CENG/BIOE/ENGR/AMTH).",
-        "1 required course not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: ECEN 19.",
+        "1 required course not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: ECEN 19.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU Undergraduate Bulletin (major department chapter)",
@@ -3501,7 +3501,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
       "lastVerified": "2026-07-23",
       "manualCount": 0,
       "notes": [
-        "1 required course not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: BIOL 184.",
+        "1 required course not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: BIOL 184.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU Undergraduate Bulletin (major department chapter)",
@@ -3641,7 +3641,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "LANG",
-            "courseCount": 80,
+            "courseCount": 82,
             "tag": "Second Language",
           },
           "courses": [],
@@ -3661,7 +3661,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "coreArea": {
             "catalogStatedCount": 2,
             "code": "ARTS",
-            "courseCount": 241,
+            "courseCount": 245,
             "tag": "Arts",
           },
           "courses": [],
@@ -3721,7 +3721,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "coreArea": {
             "catalogStatedCount": 3,
             "code": "DIV",
-            "courseCount": 257,
+            "courseCount": 258,
             "tag": "Diversity",
           },
           "courses": [],
@@ -3741,7 +3741,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "coreArea": {
             "catalogStatedCount": 25,
             "code": "ETHICS",
-            "courseCount": 52,
+            "courseCount": 54,
             "tag": "Ethics",
           },
           "courses": [],
@@ -3761,7 +3761,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "NATSCI",
-            "courseCount": 52,
+            "courseCount": 53,
             "tag": "Natural Science",
           },
           "courses": [],
@@ -3841,7 +3841,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "SOCSCI",
-            "courseCount": 32,
+            "courseCount": 33,
             "tag": "Social Science",
           },
           "courses": [],
@@ -3861,7 +3861,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "coreArea": {
             "catalogStatedCount": 7,
             "code": "AW",
-            "courseCount": 34,
+            "courseCount": 35,
             "tag": "Advanced Writing",
           },
           "courses": [],
@@ -4517,7 +4517,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
       "lastVerified": "2026-07-23",
       "manualCount": 0,
       "notes": [
-        "4 required courses not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: FNCE 134, FNCE 137, FNCE 138, FNCE 142.",
+        "4 required courses not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: FNCE 134, FNCE 137, FNCE 138, FNCE 142.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU Undergraduate Bulletin (major department chapter)",
@@ -4666,7 +4666,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "LANG",
-            "courseCount": 80,
+            "courseCount": 82,
             "tag": "Second Language",
           },
           "courses": [],
@@ -4686,7 +4686,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "coreArea": {
             "catalogStatedCount": 2,
             "code": "ARTS",
-            "courseCount": 241,
+            "courseCount": 245,
             "tag": "Arts",
           },
           "courses": [],
@@ -4752,7 +4752,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "coreArea": {
             "catalogStatedCount": 3,
             "code": "DIV",
-            "courseCount": 257,
+            "courseCount": 258,
             "tag": "Diversity",
           },
           "courses": [],
@@ -4772,7 +4772,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "coreArea": {
             "catalogStatedCount": 25,
             "code": "ETHICS",
-            "courseCount": 52,
+            "courseCount": 54,
             "tag": "Ethics",
           },
           "courses": [
@@ -4796,7 +4796,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "NATSCI",
-            "courseCount": 52,
+            "courseCount": 53,
             "tag": "Natural Science",
           },
           "courses": [],
@@ -4879,7 +4879,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "SOCSCI",
-            "courseCount": 32,
+            "courseCount": 33,
             "tag": "Social Science",
           },
           "courses": [
@@ -4901,7 +4901,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "coreArea": {
             "catalogStatedCount": 7,
             "code": "AW",
-            "courseCount": 34,
+            "courseCount": 35,
             "tag": "Advanced Writing",
           },
           "courses": [
@@ -5575,7 +5575,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
       "lastVerified": "2026-07-23",
       "manualCount": 0,
       "notes": [
-        "1 required course not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: CSEN 21.",
+        "1 required course not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: CSEN 21.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU Undergraduate Bulletin (major department chapter)",
@@ -5715,7 +5715,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "LANG",
-            "courseCount": 80,
+            "courseCount": 82,
             "tag": "Second Language",
           },
           "courses": [],
@@ -5735,7 +5735,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "coreArea": {
             "catalogStatedCount": 2,
             "code": "ARTS",
-            "courseCount": 241,
+            "courseCount": 245,
             "tag": "Arts",
           },
           "courses": [],
@@ -5795,7 +5795,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "coreArea": {
             "catalogStatedCount": 3,
             "code": "DIV",
-            "courseCount": 257,
+            "courseCount": 258,
             "tag": "Diversity",
           },
           "courses": [],
@@ -5815,7 +5815,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "coreArea": {
             "catalogStatedCount": 25,
             "code": "ETHICS",
-            "courseCount": 52,
+            "courseCount": 54,
             "tag": "Ethics",
           },
           "courses": [],
@@ -5835,7 +5835,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "NATSCI",
-            "courseCount": 52,
+            "courseCount": 53,
             "tag": "Natural Science",
           },
           "courses": [],
@@ -5915,7 +5915,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "coreArea": {
             "catalogStatedCount": 0,
             "code": "SOCSCI",
-            "courseCount": 32,
+            "courseCount": 33,
             "tag": "Social Science",
           },
           "courses": [],
@@ -5935,7 +5935,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "coreArea": {
             "catalogStatedCount": 7,
             "code": "AW",
-            "courseCount": 34,
+            "courseCount": 35,
             "tag": "Advanced Writing",
           },
           "courses": [],

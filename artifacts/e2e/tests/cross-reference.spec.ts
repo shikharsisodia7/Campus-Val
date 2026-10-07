@@ -131,7 +131,7 @@ test("A. Degree Checksheets: Planning Requirements | checksheet | Workday APR, e
   docId = (await api(page, "get", "/api/degree-checksheets")).body.documents[0].id;
 
   // Three labelled regions, in order, side by side, not overlapping.
-  const regions = page.getByTestId("compare-layout").locator(":scope > section[aria-label]");
+  const regions = page.getByTestId("compare-layout").locator("[data-panel][aria-label]");
   await expect(regions).toHaveCount(3);
   expect(await regions.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).toEqual(["Planning Requirements", "Degree Checksheets", "Workday APR"]);
   const boxes = await Promise.all(["compare-left", "compare-main", "compare-right"].map((id) => page.getByTestId(id).boundingBox()));
@@ -171,6 +171,38 @@ test("A. Degree Checksheets: Planning Requirements | checksheet | Workday APR, e
   expect((await scrollTops()).main).toBe(after.main);
   await shot(page, "checksheets-three-panel-1440");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  // The regions can be resized: drag the handle, or focus it and use the arrow keys. The page remembers it.
+  const leftWidth = async () => (await page.getByTestId("compare-left").boundingBox())!.width;
+  const before = await leftWidth();
+  const handle = (await page.getByTestId("resize-left").boundingBox())!;
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2 + 120, handle.y + handle.height / 2, { steps: 8 });
+  await page.mouse.up();
+  const dragged = await leftWidth();
+  expect(dragged).toBeGreaterThan(before + 80);
+  // The layout is saved a moment after the last change (the library waits 100ms): wait for it, as a person would.
+  const savedLeft = () =>
+    page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem("react-resizable-panels:campusval.compare.checksheets") ?? "{}") as Record<string, { layout: number[] }>;
+      return Math.max(0, ...Object.values(state).map((v) => v.layout[0] ?? 0));
+    });
+  await expect.poll(savedLeft).toBeGreaterThan(26);
+  await page.reload();
+  await expect(page.getByTestId("compare-left")).toBeVisible({ timeout: 30_000 });
+  await expect.poll(leftWidth).toBeGreaterThan(before + 80);
+  await page.getByTestId("resize-left").focus();
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(leftWidth).toBeLessThan(dragged - 40);
+  await expect(page.getByTestId("resize-left")).toHaveAttribute("aria-label", "Resize Planning Requirements");
+  await shot(page, "checksheets-resized");
+  // Back to the starting sizes for the rest of the run.
+  await page.evaluate(() => Object.keys(localStorage).filter((k) => k.includes("campusval.compare.")).forEach((k) => localStorage.removeItem(k)));
+  await page.reload();
+  await expect(page.getByTestId("compare-left")).toBeVisible({ timeout: 30_000 });
+  await expect.poll(leftWidth).toBeLessThan(before + 10);
 
   // Panels can be hidden for a wider checksheet, and come back.
   await page.getByTestId("toggle-left-rail").click();
@@ -370,6 +402,44 @@ test("D2. the whole transfer works from the keyboard, and focus comes back to wh
   await context.close();
 });
 
+test("D3. checksheet notes about CTW leave CTW in the Core: the Biology Major lists no Core area, in the data or in either sidebar", async ({ browser }) => {
+  const { page, context } = await as(browser, "student-a");
+  // A Core area worded as a Major requirement is how Core content once showed up under every major.
+  const CORE_AREA = /^(critical thinking (and|&) writing\s*\d?|ctw\s*\d)$/i;
+  const view = (await api(page, "get", `/api/plans/${tentativeId}/requirements`)).body;
+  const ctw = view.groups.flatMap((g: any) => g.items.filter((i: any) => /#ctw\d$/.test(i.stableKey ?? "")).map((i: any) => ({ group: g, item: i })));
+  expect(ctw.length).toBeGreaterThan(0);
+  for (const { group } of ctw) expect(group.category).toBe("CORE");
+  // The notes moved from the checksheet (D, D2) are on that Core requirement...
+  expect(ctw.some(({ item }: any) => String(item.customization?.note ?? "").includes(`${MARK} advisor approves the portfolio`))).toBe(true);
+  // ...and the Major has none of it.
+  const majors = view.groups.filter((g: any) => g.category === "MAJOR");
+  expect(majors.length).toBeGreaterThan(0);
+  for (const item of majors.flatMap((g: any) => g.items)) {
+    expect(item.stableKey ?? "").not.toMatch(/^university-core|#ctw\d$/);
+    expect(String(item.label ?? "").replace(/^[A-Z]{2,5}\s?\d+[A-Z]*\s+[—-]\s+/, "").trim()).not.toMatch(CORE_AREA);
+  }
+
+  // On screen, in the Degree Checksheets sidebar and on the Tentative Degree Plan page (same plan, same data).
+  const coreAreaInMajor = '[data-group-kind="major"] [data-stable-key^="university-core"], [data-group-kind="major"] [data-stable-key*="#ctw"]';
+  await page.goto("/degree-checksheets");
+  await chooseCompareTarget(page, /XR Biology/);
+  await openMajorGroup(page);
+  await expect(left(page).locator(`[data-stable-key="${BIOL_1A}"]`)).toBeVisible();
+  await expect(left(page).locator(coreAreaInMajor)).toHaveCount(0);
+  const coreTrigger = left(page).locator('[data-group-kind="university_core"] button').first();
+  if ((await coreTrigger.getAttribute("aria-expanded")) !== "true") await coreTrigger.click();
+  await expect(left(page).locator('[data-group-kind="university_core"] [data-stable-key$="#ctw1"]')).toHaveCount(1);
+
+  await page.goto("/tentative-plans");
+  const palette = page.locator('[data-testid="requirements-palette"]:visible').first();
+  await expect(palette).toBeVisible({ timeout: 30_000 });
+  await palette.locator('[data-group-kind="major"] button').first().click();
+  await expect(palette.locator(`[data-stable-key="${BIOL_1A}"]`)).toBeVisible();
+  await expect(palette.locator(coreAreaInMajor)).toHaveCount(0);
+  await context.close();
+});
+
 test("E. the Academic Progress Report page: Planning Requirements and the full APR, with no second APR sidebar", async ({ browser }) => {
   const { page, context } = await as(browser, "student-a");
   // The plan chosen on Degree Checksheets is the plan the APR page starts from.
@@ -377,7 +447,7 @@ test("E. the Academic Progress Report page: Planning Requirements and the full A
   await chooseCompareTarget(page, /XR Biology/);
   await page.goto("/progress-report");
   await expect(page.getByTestId("compare-layout")).toBeVisible({ timeout: 30_000 });
-  const regions = page.getByTestId("compare-layout").locator(":scope > section[aria-label]");
+  const regions = page.getByTestId("compare-layout").locator("[data-panel][aria-label]");
   expect(await regions.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).toEqual(["Planning Requirements", "Full Academic Progress Reports"]);
   await expect(left(page)).toBeVisible();
   await expect(page.getByTestId("compare-right")).toHaveCount(0);

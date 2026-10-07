@@ -197,6 +197,11 @@ pnpm --filter @workspace/campusval-mobile run test    # the mobile app's logic
 pnpm --filter @workspace/campusval-mobile run bundle  # compiles the app for iOS and Android
 ```
 
+`pnpm run ci:local` runs every step of `.github/workflows/ci.yml` on this machine (a throwaway
+Postgres in Docker, the committed code only) and reports the result to GitHub as the commit
+status **`ci/local`**. Use it while GitHub Actions is blocked by the account's billing: the
+Actions "test" check then fails in seconds without running anything.
+
 Browser tests run against a running server, signed in as synthetic test
 students (`artifacts/e2e`, keys in `artifacts/e2e/.env.e2e.local`):
 

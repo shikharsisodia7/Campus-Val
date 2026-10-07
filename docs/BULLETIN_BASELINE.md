@@ -104,8 +104,9 @@ It reports, and never edits: duplicate ids and stable keys, empty labels, course
 provenance, and the classification errors `core_requirement_under_major`, `university_rule_under_major`, `major_requirement_under_core`,
 `core_item_without_phase`, `university_rule_with_courses`. With `--db`: notes mapped to a requirement that no longer exists, notes outside their program,
 unmapped notes, overrides with a missing target or group, duplicate overrides, student customization keys that exist in no program's tree (keys only: no student
-content is read), and sample-plan courses that are not in the catalog. The 108 `course_not_in_catalog` warnings are real: the course catalog is the 2025-26 scrape and
-the requirement data names courses of the 2026-27 Bulletin.
+content is read), and sample-plan courses that are not in the catalog. The `course_not_in_catalog` warnings are real: the course catalog is the 2025-26 scrape and
+the requirement data names courses of the 2026-27 Bulletin. 30 of the original 108 were closed from the 2026-27 Bulletin's own course listings
+(`pnpm run import:bulletin-courses`); 70 remain, each listed in [audits/catalog-gaps-2026-10-06.md](./audits/catalog-gaps-2026-10-06.md).
 
 > The same sidebar is also shown on the Degree Checksheets and Academic Progress Report pages, and a student can add a My Note or My requirement to it from a checksheet: [CROSS_REFERENCE_WORKSPACE.md](./CROSS_REFERENCE_WORKSPACE.md).
 
