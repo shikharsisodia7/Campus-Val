@@ -55,9 +55,13 @@ describe("Degree Checksheets layout", () => {
     expect(layout.getAttribute("data-rails")).toBe("LR");
   });
 
-  it("gives each region its own scrolling, with the main region able to take keyboard focus", () => {
+  it("gives each region its own scrolling on wide screens, with the main region able to take keyboard focus", () => {
     render(<PlanningComparisonWorkspace main={<p>m</p>} mainLabel="Degree Checksheets" showCompactApr />);
-    expect(screen.getByTestId("compare-main").className).toContain("overflow-y-auto");
+    const mainClasses = screen.getByTestId("compare-main").className.split(/\s+/);
+    expect(mainClasses).toContain("xl:overflow-y-auto");
+    // Below xl the page itself scrolls: no scroll region inside a phone screen.
+    expect(mainClasses).not.toContain("overflow-y-auto");
+    expect(screen.getByTestId("compare-layout").className).toMatch(/xl:h-\[calc\(100dvh-/);
     expect(screen.getByTestId("compare-left").className).toContain("overflow-hidden");
     expect(screen.getByTestId("compare-right").className).toContain("overflow-hidden");
     expect(screen.getByTestId("compare-main").getAttribute("tabindex")).toBe("-1");
@@ -76,6 +80,23 @@ describe("Degree Checksheets layout", () => {
     expect(screen.getByTestId("compare-layout").getAttribute("data-rails")).toBe("");
     fireEvent.click(screen.getByTestId("toggle-left-rail"));
     expect(screen.getByTestId("compare-layout").getAttribute("data-rails")).toBe("L");
+  });
+});
+
+describe("while the plan loads", () => {
+  it("shows the main content at once, and a placeholder only where the requirements will be", () => {
+    workspace.plansLoading = true;
+    render(<PlanningComparisonWorkspace main={<div data-testid="checksheet-main">Checksheet</div>} mainLabel="Degree Checksheets" showCompactApr />);
+    expect(within(screen.getByTestId("compare-main")).getByTestId("checksheet-main")).toBeTruthy();
+    expect(within(screen.getByTestId("compare-left")).getByRole("status", { name: "Loading your Planning Requirements" })).toBeTruthy();
+    expect(screen.queryByTestId("requirements-palette")).toBeNull();
+    expect(within(screen.getByTestId("compare-right")).getByTestId("workday-apr-panel")).toBeTruthy();
+  });
+
+  it("names a tentative plan the same way everywhere", () => {
+    render(<PlanningComparisonWorkspace main={<p>m</p>} mainLabel="Degree Checksheets" showCompactApr />);
+    fireEvent.keyDown(screen.getByTestId("compare-plan-trigger"), { key: "Enter" });
+    expect(screen.getAllByText("Tentative Degree Plan — Finance").length).toBeGreaterThan(0);
   });
 });
 

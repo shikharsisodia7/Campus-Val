@@ -161,7 +161,8 @@ export function Palette() {
     setFlashKey(key);
     // After the group has opened: scroll THIS sidebar to it (another copy of the sidebar, in a closed drawer, does its own).
     window.setTimeout(() => {
-      rootRef.current?.querySelector<HTMLElement>(`[data-stable-key="${CSS.escape(key)}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      const card = Array.from(rootRef.current?.querySelectorAll<HTMLElement>("[data-stable-key]") ?? []).find((el) => el.dataset.stableKey === key);
+      card?.scrollIntoView?.({ block: "center", behavior: "smooth" });
     }, 80);
     return undefined;
   }, [pendingFocus, requirements]);

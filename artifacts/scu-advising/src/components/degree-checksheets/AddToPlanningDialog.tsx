@@ -50,7 +50,8 @@ export { courseCodesIn, reliableTarget } from "@workspace/api-client-react";
  */
 function returnFocus(to: HTMLElement | null | undefined) {
   if (!to) return;
-  const target = to.isConnected ? to : to.dataset.testid ? document.querySelector<HTMLElement>(`[data-testid="${CSS.escape(to.dataset.testid)}"]`) : null;
+  const testId = to.dataset.testid;
+  const target = to.isConnected ? to : testId ? Array.from(document.querySelectorAll<HTMLElement>("[data-testid]")).find((el) => el.dataset.testid === testId) : null;
   target?.focus();
 }
 
