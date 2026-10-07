@@ -1634,7 +1634,7 @@ export function getMajorRequirements(
   const notes: string[] = [...(recipe.notes ?? [])];
   if (missingFromCatalog.length > 0) {
     notes.push(
-      `${missingFromCatalog.length} required course${missingFromCatalog.length === 1 ? "" : "s"} not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: ${missingFromCatalog.join(", ")}.`,
+      `${missingFromCatalog.length} required course${missingFromCatalog.length === 1 ? "" : "s"} not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: ${missingFromCatalog.join(", ")}.`,
     );
   }
   if (skipLang) {

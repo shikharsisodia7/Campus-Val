@@ -1,5 +1,24 @@
 # Catalog gaps behind the 108 `course_not_in_catalog` audit warnings
 
+> **Update, 2026-10-06 evening: 30 of these codes are now in the catalog, 59 remain (70 warnings, was 108).**
+> `pnpm --filter @workspace/api-server run import:bulletin-courses -- --write` reads the 2026-27 Bulletin's own
+> course listings (chapters 3 to 5) rather than searching page text for a code. A listing is a heading such as
+> "142. Feedback Control Systems" followed by a description ending "(4 units)"; the heading has no subject code,
+> so a course is attributed to a subject only when the nearest catalogued courses before and after it on the same
+> page belong to that subject. A code is added only when exactly one listing qualifies and it states its units; its
+> title, units and description are the Bulletin's, its prerequisite sentence is kept word for word, no prerequisite
+> rules are inferred, and each entry's `notes` names the Bulletin page it came from.
+>
+> Added: ANTH 5, ARTH 106, BIOL 11, BIOL 189A, BIOL 189B, COMM 129, COMM 142, COMM 153, COMM 160, ENGL 179AW,
+> ENGL 91, ETHN 20, FNCE 127, FNCE 128, FNCE 129, FREN 101, HIST 182B, ITAL 100, MECH 121R, MECH 142, MGMT 136,
+> MGMT 176, MKTG 175, MKTG 188, MKTG 190, MUSC 128, SOCI 149, THTR 165, THTR 41, THTR 42.
+>
+> Eight of those (BIOL 11, BIOL 189B, COMM 129, COMM 153, ENGL 179AW, MGMT 176, MUSC 128, THTR 42) were in group
+> **B** below: the text search missed them because listings omit the subject code. They are in the 2026-27 Bulletin. The remaining 59 are still listed below; the importer reports each one it
+> could not place (ranges such as "CHIN 100-102", combined lecture/lab entries, multi-paragraph descriptions such as
+> MUSC 133, or no listing at all) and leaves it for a person. One visible effect: the Mechanical Engineering major now
+> shows MECH 142 as a requirement instead of a "not in our catalog" note.
+
 _2026-10-06. Evidence from crawling the 68 department pages of the 2026-27 Undergraduate Bulletin (chapters 3 to 5) and searching them for each code._
 
 The course catalog is the **2025-26** scrape; the requirement data names **2026-27** courses. 89 distinct codes are affected. They split into:

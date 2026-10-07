@@ -19,6 +19,7 @@
     "test": "vitest run",
     "import:department-notes": "tsx scripts/import-department-notes.ts",
     "import:sample-plans": "tsx scripts/import-sample-plans.ts",
+    "import:bulletin-courses": "tsx scripts/import-bulletin-courses.ts",
     "snapshot:bulletin": "tsx scripts/snapshot-bulletin.ts",
     "diff:bulletin": "tsx scripts/diff-bulletin.ts",
     "admin:scope": "tsx scripts/admin-scope.ts"

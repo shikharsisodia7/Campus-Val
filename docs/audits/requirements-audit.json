@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-06T09:29:30.153Z",
+  "generatedAt": "2026-10-07T04:24:50.668Z",
   "provider": "current_bulletin",
   "counts": {
     "majors": 50,
@@ -9,33 +9,21 @@
     "concentrations": 46,
     "classificationErrors": 0,
     "groups": 130,
-    "requirements": 1009,
-    "findings": 125,
+    "requirements": 1010,
+    "findings": 87,
     "byCategory": {
-      "data_integrity": 108,
+      "data_integrity": 70,
       "missing_provenance": 0,
       "academic_content": 17
     },
     "bySeverity": {
       "error": 0,
-      "warning": 110,
+      "warning": 72,
       "info": 15
     },
     "missingProvenanceGroups": 0
   },
   "findings": [
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "college",
-      "program": "Leavey School of Business",
-      "group": "University Core Curriculum",
-      "groupKey": "university-core:lsb",
-      "requirement": "Ethics",
-      "requirementKey": "university-core:lsb#ethics",
-      "message": "MGMT 136 is not in the course catalog."
-    },
     {
       "code": "listed_in_school_and_major_groups",
       "category": "academic_content",
@@ -226,7 +214,7 @@
       "groupKey": "major:french-francophone-studies",
       "requirement": null,
       "requirementKey": null,
-      "message": "10 required courses not in our current catalog snapshot — verify in the SCU 2025-26 Bulletin: FREN 1, FREN 2, FREN 3, FREN 21A, FREN 21B, FREN 110, FREN 137, FREN 145, FREN 175, FREN 199."
+      "message": "10 required courses not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: FREN 1, FREN 2, FREN 3, FREN 21A, FREN 21B, FREN 110, FREN 137, FREN 145, FREN 175, FREN 199."
     },
     {
       "code": "course_not_in_catalog",
@@ -269,18 +257,6 @@
       "category": "data_integrity",
       "severity": "warning",
       "programType": "minor",
-      "program": "Arts Management (ARTM-MIN)",
-      "group": "Minor Requirements — Arts Management",
-      "groupKey": "minor-artm-min",
-      "requirement": "One Marketing course (MKTG 181 preferred, or MKTG 186/190) — choose 1",
-      "requirementKey": "minor-artm-min#minor-ARTM-MIN-4",
-      "message": "MKTG 190 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
       "program": "Asian American Studies (ASAM-MIN)",
       "group": "Minor Requirements — Asian American Studies",
       "groupKey": "minor-asam-min",
@@ -299,30 +275,6 @@
       "requirement": "One Asian American Studies course — choose 1",
       "requirementKey": "minor-asam-min#minor-ASAM-MIN-2",
       "message": "ETHN 55 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Biotechnology (BTEC-MIN)",
-      "group": "Minor Requirements — Biotechnology",
-      "groupKey": "minor-btec-min",
-      "requirement": "One additional ethics/contemporary-topics course — choose 1",
-      "requirementKey": "minor-btec-min#minor-BTEC-MIN-3",
-      "message": "BIOL 189A is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Biotechnology (BTEC-MIN)",
-      "group": "Minor Requirements — Biotechnology",
-      "groupKey": "minor-btec-min",
-      "requirement": "One additional ethics/contemporary-topics course — choose 1",
-      "requirementKey": "minor-btec-min#minor-BTEC-MIN-3",
-      "message": "BIOL 189B is not in the course catalog."
     },
     {
       "code": "course_not_in_catalog",
@@ -454,43 +406,7 @@
       "groupKey": "minor-clas-min",
       "requirement": "Non-language classics courses (Ancient Studies track) — choose 4",
       "requirementKey": "minor-clas-min#minor-CLAS-MIN-2",
-      "message": "ARTH 106 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Classics and Ancient Studies (CLAS-MIN)",
-      "group": "Minor Requirements — Classics and Ancient Studies",
-      "groupKey": "minor-clas-min",
-      "requirement": "Non-language classics courses (Ancient Studies track) — choose 4",
-      "requirementKey": "minor-clas-min#minor-CLAS-MIN-2",
       "message": "ARTH 110 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Creative Writing (CWRT-MIN)",
-      "group": "Minor Requirements — Creative Writing",
-      "groupKey": "minor-cwrt-min",
-      "requirement": "Creative writing workshops — choose 2",
-      "requirementKey": "minor-cwrt-min#minor-CWRT-MIN-2",
-      "message": "ENGL 91 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Creative Writing (CWRT-MIN)",
-      "group": "Minor Requirements — Creative Writing",
-      "groupKey": "minor-cwrt-min",
-      "requirement": "Selected creative writing electives — choose 3",
-      "requirementKey": "minor-cwrt-min#minor-CWRT-MIN-3",
-      "message": "ENGL 179AW is not in the course catalog."
     },
     {
       "code": "minimum_exceeds_listed_courses",
@@ -569,30 +485,6 @@
       "category": "data_integrity",
       "severity": "warning",
       "programType": "minor",
-      "program": "Ethnic Studies (ETHN-MIN)",
-      "group": "Minor Requirements — Ethnic Studies",
-      "groupKey": "minor-ethn-min",
-      "requirement": "Ethnic Studies foundations — choose 2",
-      "requirementKey": "minor-ethn-min#minor-ETHN-MIN-2",
-      "message": "ETHN 20 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "French & Francophone Studies (FREN-MIN)",
-      "group": "Minor Requirements — French & Francophone Studies",
-      "groupKey": "minor-fren-min",
-      "requirement": "Advanced French language — choose 1",
-      "requirementKey": "minor-fren-min#minor-FREN-MIN-1",
-      "message": "FREN 101 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
       "program": "Geospatial Analysis (GEOA-MIN)",
       "group": "Minor Requirements — Geospatial Analysis",
       "groupKey": "minor-geoa-min",
@@ -623,18 +515,6 @@
       "requirement": "Social science foundations — choose 2",
       "requirementKey": "minor-intl-min#minor-INTL-MIN-1",
       "message": "COMM 107A is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Italian Studies (ITAL-MIN)",
-      "group": "Minor Requirements — Italian Studies",
-      "groupKey": "minor-ital-min",
-      "requirement": "Advanced Italian language — choose 1",
-      "requirementKey": "minor-ital-min#minor-ITAL-MIN-1",
-      "message": "ITAL 100 is not in the course catalog."
     },
     {
       "code": "course_not_in_catalog",
@@ -677,42 +557,6 @@
       "category": "data_integrity",
       "severity": "warning",
       "programType": "minor",
-      "program": "Journalism (JOUR-MIN)",
-      "group": "Minor Requirements — Journalism",
-      "groupKey": "minor-jour-min",
-      "requirement": "Journalism electives (approved COMM list or COMM 190 practicum) — choose 6",
-      "requirementKey": "minor-jour-min#minor-JOUR-MIN-2",
-      "message": "COMM 142 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Journalism (JOUR-MIN)",
-      "group": "Minor Requirements — Journalism",
-      "groupKey": "minor-jour-min",
-      "requirement": "Journalism electives (approved COMM list or COMM 190 practicum) — choose 6",
-      "requirementKey": "minor-jour-min#minor-JOUR-MIN-2",
-      "message": "COMM 160 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Latina/o/x Studies (LATX-MIN)",
-      "group": "Minor Requirements — Latina/o/x Studies",
-      "groupKey": "minor-latx-min",
-      "requirement": "Required: ETHN 5, ETHN 20 — choose 2",
-      "requirementKey": "minor-latx-min#minor-LATX-MIN-1",
-      "message": "ETHN 20 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
       "program": "Latina/o/x Studies (LATX-MIN)",
       "group": "Minor Requirements — Latina/o/x Studies",
       "groupKey": "minor-latx-min",
@@ -730,55 +574,7 @@
       "groupKey": "minor-musc-min",
       "requirement": "Ethnomusicology/Music History elective — choose 1",
       "requirementKey": "minor-musc-min#minor-MUSC-MIN-5",
-      "message": "MUSC 128 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Music (MUSC-MIN)",
-      "group": "Minor Requirements — Music",
-      "groupKey": "minor-musc-min",
-      "requirement": "Ethnomusicology/Music History elective — choose 1",
-      "requirementKey": "minor-musc-min#minor-MUSC-MIN-5",
       "message": "MUSC 133 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Musical Theatre (MUTH-MIN)",
-      "group": "Minor Requirements — Musical Theatre",
-      "groupKey": "minor-muth-min",
-      "requirement": "Two electives — choose 2",
-      "requirementKey": "minor-muth-min#minor-MUTH-MIN-6",
-      "message": "THTR 165 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Organizational, Business, and Professional Communication (OBPC-MIN)",
-      "group": "Minor Requirements — Organizational, Business, and Professional Communication",
-      "groupKey": "minor-obpc-min",
-      "requirement": "Upper-division Communication electives (approved list) — choose 6",
-      "requirementKey": "minor-obpc-min#minor-OBPC-MIN-2",
-      "message": "COMM 129 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Organizational, Business, and Professional Communication (OBPC-MIN)",
-      "group": "Minor Requirements — Organizational, Business, and Professional Communication",
-      "groupKey": "minor-obpc-min",
-      "requirement": "Upper-division Communication electives (approved list) — choose 6",
-      "requirementKey": "minor-obpc-min#minor-OBPC-MIN-2",
-      "message": "COMM 153 is not in the course catalog."
     },
     {
       "code": "course_not_in_catalog",
@@ -833,18 +629,6 @@
       "category": "data_integrity",
       "severity": "warning",
       "programType": "minor",
-      "program": "Public Health (PUBH-MIN)",
-      "group": "Minor Requirements — Public Health",
-      "groupKey": "minor-pubh-min",
-      "requirement": "Natural science — choose 1",
-      "requirementKey": "minor-pubh-min#minor-PUBH-MIN-4",
-      "message": "BIOL 11 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
       "program": "Spanish Studies (SPAN-MIN)",
       "group": "Minor Requirements — Spanish Studies",
       "groupKey": "minor-span-min",
@@ -863,42 +647,6 @@
       "requirement": "Advanced Spanish language: SPAN 100 or 101 — choose 1",
       "requirementKey": "minor-span-min#minor-SPAN-MIN-1",
       "message": "SPAN 101 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Theatre (THTR-MIN)",
-      "group": "Minor Requirements — Theatre",
-      "groupKey": "minor-thtr-min",
-      "requirement": "THTR 41 or 42 — choose 1",
-      "requirementKey": "minor-thtr-min#minor-THTR-MIN-2",
-      "message": "THTR 41 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Theatre (THTR-MIN)",
-      "group": "Minor Requirements — Theatre",
-      "groupKey": "minor-thtr-min",
-      "requirement": "THTR 41 or 42 — choose 1",
-      "requirementKey": "minor-thtr-min#minor-THTR-MIN-2",
-      "message": "THTR 42 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Urban Education (URBN-MIN)",
-      "group": "Minor Requirements — Urban Education",
-      "groupKey": "minor-urbn-min",
-      "requirement": "Electives — choose 2",
-      "requirementKey": "minor-urbn-min#minor-URBN-MIN-3",
-      "message": "HIST 182B is not in the course catalog."
     },
     {
       "code": "course_not_in_catalog",
@@ -982,18 +730,6 @@
       "groupKey": "minor-entr-min",
       "requirement": "Approved entrepreneurship electives — choose 2",
       "requirementKey": "minor-entr-min#minor-ENTR-MIN-2",
-      "message": "MKTG 175 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Entrepreneurship (ENTR-MIN)",
-      "group": "Minor Requirements — Entrepreneurship",
-      "groupKey": "minor-entr-min",
-      "requirement": "Approved entrepreneurship electives — choose 2",
-      "requirementKey": "minor-entr-min#minor-ENTR-MIN-2",
       "message": "PHSC 157 is not in the course catalog."
     },
     {
@@ -1054,18 +790,6 @@
       "groupKey": "minor-intb-min",
       "requirement": "Foreign language (one course) — choose 1",
       "requirementKey": "minor-intb-min#minor-INTB-MIN-1",
-      "message": "ITAL 100 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "International Business (INTB-MIN)",
-      "group": "Minor Requirements — International Business",
-      "groupKey": "minor-intb-min",
-      "requirement": "Foreign language (one course) — choose 1",
-      "requirementKey": "minor-intb-min#minor-INTB-MIN-1",
       "message": "SPAN 23 is not in the course catalog."
     },
     {
@@ -1079,18 +803,6 @@
       "requirement": "Business fundamentals: BUSN 70/170, ACTG 11/11A, ECON 1, ECON 2, ECON 3, MGMT 80, MGMT 136/6 — choose 6",
       "requirementKey": "minor-intb-min#minor-INTB-MIN-2",
       "message": "ACTG 11A is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "International Business (INTB-MIN)",
-      "group": "Minor Requirements — International Business",
-      "groupKey": "minor-intb-min",
-      "requirement": "Business fundamentals: BUSN 70/170, ACTG 11/11A, ECON 1, ECON 2, ECON 3, MGMT 80, MGMT 136/6 — choose 6",
-      "requirementKey": "minor-intb-min#minor-INTB-MIN-2",
-      "message": "MGMT 136 is not in the course catalog."
     },
     {
       "code": "course_not_in_catalog",
@@ -1114,103 +826,7 @@
       "groupKey": "minor-mktg-min",
       "requirement": "Approved marketing electives — choose 4",
       "requirementKey": "minor-mktg-min#minor-MKTG-MIN-2",
-      "message": "MKTG 175 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Marketing (MKTG-MIN)",
-      "group": "Minor Requirements — Marketing",
-      "groupKey": "minor-mktg-min",
-      "requirement": "Approved marketing electives — choose 4",
-      "requirementKey": "minor-mktg-min#minor-MKTG-MIN-2",
-      "message": "MKTG 188 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Marketing (MKTG-MIN)",
-      "group": "Minor Requirements — Marketing",
-      "groupKey": "minor-mktg-min",
-      "requirement": "Approved marketing electives — choose 4",
-      "requirementKey": "minor-mktg-min#minor-MKTG-MIN-2",
-      "message": "MKTG 190 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Marketing (MKTG-MIN)",
-      "group": "Minor Requirements — Marketing",
-      "groupKey": "minor-mktg-min",
-      "requirement": "Approved marketing electives — choose 4",
-      "requirementKey": "minor-mktg-min#minor-MKTG-MIN-2",
       "message": "MKTG 194 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Real Estate (RLES-MIN)",
-      "group": "Minor Requirements — Real Estate",
-      "groupKey": "minor-rles-min",
-      "requirement": "Real Estate finance — choose 1",
-      "requirementKey": "minor-rles-min#minor-RLES-MIN-2",
-      "message": "FNCE 127 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Real Estate (RLES-MIN)",
-      "group": "Minor Requirements — Real Estate",
-      "groupKey": "minor-rles-min",
-      "requirement": "Real Estate finance — choose 1",
-      "requirementKey": "minor-rles-min#minor-RLES-MIN-2",
-      "message": "FNCE 129 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Real Estate (RLES-MIN)",
-      "group": "Minor Requirements — Real Estate",
-      "groupKey": "minor-rles-min",
-      "requirement": "Real Estate electives (primary list) — choose 3",
-      "requirementKey": "minor-rles-min#minor-RLES-MIN-3",
-      "message": "FNCE 127 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Real Estate (RLES-MIN)",
-      "group": "Minor Requirements — Real Estate",
-      "groupKey": "minor-rles-min",
-      "requirement": "Real Estate electives (primary list) — choose 3",
-      "requirementKey": "minor-rles-min#minor-RLES-MIN-3",
-      "message": "FNCE 129 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Real Estate (RLES-MIN)",
-      "group": "Minor Requirements — Real Estate",
-      "groupKey": "minor-rles-min",
-      "requirement": "Real Estate electives (primary list) — choose 3",
-      "requirementKey": "minor-rles-min#minor-RLES-MIN-3",
-      "message": "FNCE 128 is not in the course catalog."
     },
     {
       "code": "course_not_in_catalog",
@@ -1256,18 +872,6 @@
       "program": "Retail Studies (RTLM-MIN)",
       "group": "Minor Requirements — Retail Studies",
       "groupKey": "minor-rtlm-min",
-      "requirement": "Technology/information systems skill — choose 1",
-      "requirementKey": "minor-rtlm-min#minor-RTLM-MIN-5",
-      "message": "SOCI 149 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Retail Studies (RTLM-MIN)",
-      "group": "Minor Requirements — Retail Studies",
-      "groupKey": "minor-rtlm-min",
       "requirement": "BUSN 198R",
       "requirementKey": "minor-rtlm-min#minor-RTLM-MIN-7-busn-198r",
       "message": "BUSN 198R is not in the course catalog."
@@ -1283,18 +887,6 @@
       "requirement": "MKTG 169",
       "requirementKey": "minor-rtlm-min#minor-RTLM-MIN-7-mktg-169",
       "message": "MKTG 169 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Sustainable Food Systems (SFS-MIN)",
-      "group": "Minor Requirements — Sustainable Food Systems",
-      "groupKey": "minor-sfs-min",
-      "requirement": "Cultural/Societal Dimension (choose 2) — choose 2",
-      "requirementKey": "minor-sfs-min#minor-SFS-MIN-1",
-      "message": "ANTH 5 is not in the course catalog."
     },
     {
       "code": "course_not_in_catalog",
@@ -1331,18 +923,6 @@
       "requirement": "Innovation and Change Dimension (choose 2) — choose 2",
       "requirementKey": "minor-sfs-min#minor-SFS-MIN-3",
       "message": "MGMT 42 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Sustainable Food Systems (SFS-MIN)",
-      "group": "Minor Requirements — Sustainable Food Systems",
-      "groupKey": "minor-sfs-min",
-      "requirement": "Innovation and Change Dimension (choose 2) — choose 2",
-      "requirementKey": "minor-sfs-min#minor-SFS-MIN-3",
-      "message": "MGMT 176 is not in the course catalog."
     },
     {
       "code": "course_not_in_catalog",
@@ -1403,18 +983,6 @@
       "requirement": "Experiential Learning Dimension (choose 1, some require program-director approval) — choose 1",
       "requirementKey": "minor-sfs-min#minor-SFS-MIN-4",
       "message": "ELSJ 135 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Aerospace Engineering (AERO-MIN)",
-      "group": "Minor Requirements — Aerospace Engineering",
-      "groupKey": "minor-aero-min",
-      "requirement": "Fundamental courses (choose two) — choose 2",
-      "requirementKey": "minor-aero-min#minor-AERO-MIN-1",
-      "message": "MECH 121R is not in the course catalog."
     },
     {
       "code": "course_not_in_catalog",
@@ -1493,36 +1061,12 @@
       "category": "data_integrity",
       "severity": "warning",
       "programType": "minor",
-      "program": "Construction Management (CNST-MIN)",
-      "group": "Minor Requirements — Construction Management",
-      "groupKey": "minor-cnst-min",
-      "requirement": "Two electives — choose 2",
-      "requirementKey": "minor-cnst-min#minor-CNST-MIN-4",
-      "message": "FNCE 129 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
       "program": "General Engineering (GENG-MIN)",
       "group": "Minor Requirements — General Engineering",
       "groupKey": "minor-geng-min",
       "requirement": "Approved disciplinary electives — choose 2",
       "requirementKey": "minor-geng-min#minor-GENG-MIN-5",
       "message": "ECEN 33 is not in the course catalog."
-    },
-    {
-      "code": "course_not_in_catalog",
-      "category": "data_integrity",
-      "severity": "warning",
-      "programType": "minor",
-      "program": "Mechanical Engineering (MECH-MIN)",
-      "group": "Minor Requirements — Mechanical Engineering",
-      "groupKey": "minor-mech-min",
-      "requirement": "Approved two-course technical sequence — choose 2",
-      "requirementKey": "minor-mech-min#minor-MECH-MIN-4",
-      "message": "MECH 142 is not in the course catalog."
     }
   ]
 }

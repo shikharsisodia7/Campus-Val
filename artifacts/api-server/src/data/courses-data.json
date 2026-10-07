@@ -45364,5 +45364,545 @@
     "prereqLogic": "None listed in bulletin",
     "prereqGroups": [],
     "corequisites": []
+  },
+  {
+    "code": "ANTH 5",
+    "title": "Popular Culture and Bioanthropology",
+    "department": "ANTH",
+    "departmentName": "Anthropology",
+    "units": 4,
+    "description": "From King Kong to Clan of the Cave Bear, students examine popular culture interpretations of biological anthropology. After reviewing the history of biological anthropology, we analyze popular avenues (film, cartoons, newspapers, fiction) through which the public has been informed about human variation, the human fossil record, primate behavior, and human genetics.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/anthropology.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "ARTH 106",
+    "title": "Art and Architecture of the Roman Republic and the Early Empire",
+    "department": "ARTH",
+    "departmentName": "Art History",
+    "units": 5,
+    "description": "Chronological survey of artistic development in Republican and Imperial Rome. Related issues include the influence of Greek and Etruscan art, the relationship between political ideology and public art programs, and the impact of improved materials on building design. Cross-listed as CLAS 117.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/art-and-art-history.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "BIOL 11",
+    "title": "Microbes and Humanity L&L",
+    "department": "BIOL",
+    "departmentName": "Biology",
+    "units": 4,
+    "description": "The microbial world constantly surrounds and permeates humanity, and affects people in far more ways than “just” a global pandemic. This course introduces basic concepts of microbiology, explores harmful and helpful interactions between people and microbes in our everyday lives, and critically examines the impact of infectious diseases in medicine and public health. Laboratory experiments will use tools from clinical and food microbiology to illustrate and encourage scientific exploration. Laboratory 15 hours. Does not satisfy requirements for the biology major.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "BIOL 189A",
+    "title": "Topics in Cell and Molecular Biology",
+    "department": "BIOL",
+    "departmentName": "Biology",
+    "units": 2,
+    "description": "Seminar dealing with contemporary research in cellular and molecular biology and biotechnology. Students are required to lead discussions and participate in critical analyses of recently published research articles. May be taken up to two times for credit. Does not count as an upper-division course toward a major or minor in biology on its own, but is required in conjunction with BIOL 171 to count toward the biotechnology minor when BIOL 189 and 171 are taken during the same quarter. Prerequisites: BIOL 1C and concurrent enrollment in BIOL 110, 113, 171, 174, or 175.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "BIOL 1C and concurrent enrollment in BIOL 110, 113, 171, 174, or 175",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "BIOL 189B",
+    "title": "Topics in Ethics and Biology",
+    "department": "BIOL",
+    "departmentName": "Biology",
+    "units": 2,
+    "description": "Seminar dealing with historical and contemporary ethical issues in science and technology. Students are required to lead discussions and participate in critical analyses of recently published research articles. May be taken up to two times for credit. Does not count as an upper-division course toward a major or minor in biology on its own, but is required in conjunction with BIOL 169 to count toward the biotechnology minor when BIOL 189 and 169 are taken during the same quarter. Prerequisites: BIOL 1C and concurrent enrollment in BIOL 169.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "BIOL 1C and concurrent enrollment in BIOL 169",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "COMM 129",
+    "title": "Advanced Public Speaking",
+    "department": "COMM",
+    "departmentName": "Communication",
+    "units": 5,
+    "description": "This course, which builds on the foundations that students developed in COMM 2, provides students with a deeper engagement with theories, concepts, and skills essential to excellent public speaking. Students will study key classical and contemporary rhetorical theories in order to become stronger public speakers across a variety of audiences and occasions. Prerequisite: COMM 2.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "COMM 2",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "COMM 142",
+    "title": "Visual Cultural Communication",
+    "department": "COMM",
+    "departmentName": "Communication",
+    "units": 5,
+    "description": "In this course students use photography to explore questions about representation of diverse cultures and identities; they advance their digital photography skills while reflecting on the ethics of representing others and themselves. In their final projects students create long-form visual stories exploring aspects of local communities. Prerequisite: COMM 3, or permission of the instructor",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "COMM 153",
+    "title": "Dialogue and Deliberation",
+    "department": "COMM",
+    "departmentName": "Communication",
+    "units": 5,
+    "description": "How can we address differences and resolve conflicts fairly and effectively? This course introduces students to the role of dialogue and deliberation in creating healthier and more democratic organizations, workplaces, and societies. Students learn a range of research-based approaches to handling difference and conflict, and develop communicative skills used by effective individuals, professionals, and community members in real-world situations. Projects include taking part in formal dialogues and deliberations on current issues, both as participants and moderators, and designing ways for institutions to involve stakeholders and the public in conflict resolution and policy development. Prerequisites: COMM 1 and COMM 2 for majors, no prerequisite for non-majors.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "COMM 1 and COMM 2 for majors, no prerequisite for non-majors",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "COMM 160",
+    "title": "Data & Research Based Reporting",
+    "department": "COMM",
+    "departmentName": "Communication",
+    "units": 5,
+    "description": "This course introduces students to depth reporting, using public records and data. Students will learn to report relevant information intelligently and responsibly using data, and will learn how to access and use public records to complete interesting stories. Throughout the course, students will improve their research skills and will further their technique in advanced storytelling. Prerequisite: COMM 60 or permission of the instructor.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "COMM 60 or permission of the instructor",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "ENGL 179AW",
+    "title": "Playwriting",
+    "department": "ENGL",
+    "departmentName": "English",
+    "units": 5,
+    "description": "Also listed as THTR 170. For description, see THTR 170. May be repeated for credit when topics differ.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/english.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "ENGL 91",
+    "title": "Literary Magazine Production: Santa Clara Review",
+    "department": "ENGL",
+    "departmentName": "English",
+    "units": 1,
+    "description": "Reading, viewing and critiquing poetry, fiction, nonfiction, and art for publication in the Santa Clara Review, facilitated by student editors and a faculty advisor. Students are graded P/NP only. May be repeated for credit.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/english.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "ETHN 20",
+    "title": "Introduction to Chicana/o/x and Latina/o/x Studies",
+    "department": "ETHN",
+    "departmentName": "Ethnic Studies",
+    "units": 4,
+    "description": "Since 1996, Latinas/os/xs have constituted the largest racial/ethnic minority population in the United States. Despite the significance of this population, most non-Latinas/os/xs have little knowledge of the history, challenges, and important contributions made by this complex population. This class will begin to remedy that gap in knowledge by introducing students to the history and contemporary struggles of Chicanas/os/xs and Latinas/os/xs in the United States, focusing particular attention on the experiences of the largest groups of Latinas/os/xs today: Mexican Americans, Puerto Ricans, Central Americans, and Cuban Americans.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/ethnic-studies.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "FNCE 127",
+    "title": "Introduction to Real Estate Transactions",
+    "department": "FNCE",
+    "departmentName": "Finance",
+    "units": 5,
+    "description": "This course uses real-life investments as a comprehensive means of exploring all phases of the real estate investment life cycle, from identifying potential transactions, examining various valuation methods, conducting due diligence, determining financing alternatives, implementing property management strategies, and analyzing disposition timing. Students will explore various types of real estate investments: multi-family, office, hotel, and ground-up development. This course does not satisfy an upper-division elective for finance majors and is not included when calculating the finance major GPA. Prerequisite: FNCE 118.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "FNCE 118",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/finance.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "FNCE 128",
+    "title": "Real Estate Finance",
+    "department": "FNCE",
+    "departmentName": "Finance",
+    "units": 5,
+    "description": "Exploration of the real estate market, including investments in residential and commercial real estate by individuals, partnerships, and trusts. Emphasis is on the valuation and cash flow analysis of these projects and an understanding of financing alternatives. Prerequisites: FNCE 121 or 121S.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "FNCE 121 or 121S",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/finance.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "FNCE 129",
+    "title": "Real Estate Development",
+    "department": "FNCE",
+    "departmentName": "Finance",
+    "units": 5,
+    "description": "Examines the complex and interdisciplinary process of real estate development, including conceptual planning, feasibility studies, financing, legal documentation, and project management. Explores ways that developers mitigate risks throughout the development process. Describes different types of commercial real estate products and the roles of key players in today’s real estate profession. Students will also gain exposure to the ethical issues frequently encountered in real estate development. This course does not satisfy an upper-division elective for finance majors and is not included when calculating the finance major GPA. Prerequisites: FNCE 118.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "FNCE 118",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/finance.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "FREN 101",
+    "title": "Introduction to Literary and Cultural Analysis",
+    "department": "FREN",
+    "departmentName": "French",
+    "units": 5,
+    "description": "This is an introductory course on literary analysis preparing students to all subsequent upper-division courses in French and Francophone Studies. This course is designed to help students develop critical thinking and reflect on how language and culture impact the creation of meaning in different genres including prose, poetry, and theater. Students will acquire critical vocabulary and skills that they will apply to close readings of literary texts. Course conducted in French. Prerequisite: FREN 22, 22A, or 100 or Placement Test recommendation.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "FREN 22, 22A, or 100 or Placement Test recommendation",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/modern-languages-and-literatures.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "HIST 182B",
+    "title": "Childhood in the United States",
+    "department": "HIST",
+    "departmentName": "History",
+    "units": 5,
+    "description": "This course focuses on the history of childhood in the United States, examining both different moments of childhood as well as how American societies defined childhood. Until the mid-late nineteenth century the concept of “priceless child” was not established, and adults saw children as sources of labor as well as a continuation of a patrilineal line. Students will learn about the relationship between childhood and public organizations including, but not limited to, legislatures, educational institutions, and courts. Looking at the history of childhood in the US reveals changing ideas about family, gender, schooling, race, religion, and a nation’s values. This is a hybrid lower-division and upper-division course. Lower-division listed as HIST 82B.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/history.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "ITAL 100",
+    "title": "Introduction to Italian Studies",
+    "department": "ITAL",
+    "departmentName": "Italian",
+    "units": 5,
+    "description": "This foundational course emphasizes the development of oral communication, cultural literacy, and analytic skills through different genres of cultural expressions, including literary texts. In this course students will gain a deeper insight into Italian language, history, geography, and cultural practices and perspectives. Course conducted in Italian. Required of all majors and minors. Prerequisite: ITAL 22 or equivalent course abroad or scoring at level 100 in the SCU placement exam.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "ITAL 22 or equivalent course abroad or scoring at level 100 in the SCU placement exam",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/modern-languages-and-literatures.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "MECH 121R",
+    "title": "Thermodynamics I Recitation",
+    "department": "MECH",
+    "departmentName": "Mechanical Engineering",
+    "units": 1,
+    "description": "Recitation for MECH 121. Corequisite: MECH 121.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/mechanical-engineering.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "MECH 142",
+    "title": "Feedback Control Systems",
+    "department": "MECH",
+    "departmentName": "Mechanical Engineering",
+    "units": 4,
+    "description": "Introduction to system theory, transfer functions, and state space modeling of physical systems. Course topics include stability, analysis and design of PID, Lead/Lag, other forms of controllers in time and frequency domains, root locus, Bode diagrams, state space pole placement, and gain and phase margins. Prerequisite: MECH 141. Corequisite: MECH 142L.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "MECH 141",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/mechanical-engineering.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "MGMT 136",
+    "title": "Business Ethics",
+    "department": "MGMT",
+    "departmentName": "Management",
+    "units": 5,
+    "description": "A normative inquiry into the ethical issues that arise in business and how they should be managed. Students will learn to apply ethical frameworks, theories, or concepts to real-world cases and dilemmas. The course focuses on contemporary ethical issues, with particular emphasis on those arising from cutting-edge technology innovation in Silicon Valley. Upon completing this course, students will be able to describe (1) Ethical dilemmas in business, including around DEI and the utilization of AI, and identify and articulate an ethically justifiable response, using appropriate ethical frameworks; and (2) Critically evaluate the roles of corporate social responsibility, stakeholders, and sustainability in modern business. Prerequisite: Students must have completed 60 units. Students who have completed MGMT 6, PHIL 26 or PHIL 109 may not take this course for credit.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "Students must have completed 60 units",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/management.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "MGMT 176",
+    "title": "Sustainable Food Systems",
+    "department": "MGMT",
+    "departmentName": "Management",
+    "units": 5,
+    "description": "In this course, you will study the existing food system, food access issues, justice, sovereignty, and opportunities to use technology and innovation to create a more just and sustainable food system. We will examine how food policy and lobbying affect food production and consumption and how food policy addresses food insecurity, health risks associated with food, and climate change. The first third of the class focuses on agricultural production, food policy, and issues of access and affordability. The second part analyzes the role of food production in climate change, supply chains, and opportunities for creating more sustainable, traceable, and transparent supply chains. In the final third of the course, we will discuss disruptive innovation opportunities as agents of change in the agricultural and food technology fields. Prerequisite: Students must have completed 60 units.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "Students must have completed 60 units",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/management.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "MKTG 175",
+    "title": "Internet Marketing and E-commerce",
+    "department": "MKTG",
+    "departmentName": "Marketing",
+    "units": 5,
+    "description": "This course introduces the fundamentals of internet marketing and e-commerce and provides students with hands-on experience in developing and evaluating effective digital strategies. Topics include: history of internet marketing and e-commerce, key elements of e-business models, and how to build and evaluate websites, display ads, search engine marketing, email marketing, mobile marketing, and social media marketing. Project required. Prerequisite: MKTG 181 or 181S.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "MKTG 181 or 181S",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/marketing.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "MKTG 188",
+    "title": "Marketing in Online Game & Entertainment Industry",
+    "department": "MKTG",
+    "departmentName": "Marketing",
+    "units": 5,
+    "description": "The course explores marketing strategies that shape interactive entertainment's development, distribution, and consumption. Emphasis is on feature online games, but class materials also include emerging platforms, music, fashion, and other creative industries. Key areas include advertising, licensing, sponsorships, publishing, syndication, and promotion that apply across the entertainment industry. Prerequisite: MKTG 181 or 181S.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "MKTG 181 or 181S",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/marketing.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "MKTG 190",
+    "title": "Brand and Content Marketing",
+    "department": "MKTG",
+    "departmentName": "Marketing",
+    "units": 5,
+    "description": "Brand & Content Marketing examines the components of brand and brand strategy and how they inform content marketing principles, strategies, function, form and style of an integrated physical and online portfolio of paid, owned, shared and earned (POSE) media. The course will examine the written, verbal and visual frameworks, formats and styles required to execute an integrated message strategy across multiple media platforms. Students will demonstrate their comprehension by completing a number of tactical executions against real-life project and marketing objectives. Prerequisite: MKTG 181 or 181S.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "MKTG 181 or 181S",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/marketing.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "MUSC 128",
+    "title": "First Nights: Five Musical Premieres",
+    "department": "MUSC",
+    "departmentName": "Music",
+    "units": 5,
+    "description": "Explore landmark moments in music history through five cornerstone pieces of Western Classical Music; Orfeo (1607) by Caludio Monteverdi, Messiah (1742) by George Frideric Handel, Ninth Symphony (1824) by Ludwig van Beethoven, Symphonie fantastique (1830) by Hector Berlioz, and The Rite of Spring (1913) by Igor Stravinsky. Using Thomas Forrest Kelly’s Book, First Nights: Five Musical Premieres, the class will dive into the cultural, political, and social climates surrounding the premiere of each of these transformative works. Through Melody, Harmony, Rhythm, Orchestration, and Text, we will gain a deeper understanding of the composer’s musical language and meaning. Music Majors and minors will do additional musical analysis of select sections of each piece, providing a deeper understanding of how the music was constructed. The course will culminate in an interview, paper, and presentation on a living composers First Night of a piece of music. No advanced musical background required.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/music.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "SOCI 149",
+    "title": "Tech and Society",
+    "department": "SOCI",
+    "departmentName": "Sociology",
+    "units": 5,
+    "description": "This class explores the interplay between technology and society in arenas such as biotech, fintech, ag-tech, information and communication technologies, etc. Students will explore the influence of society on the development of science/technology and the potential reciprocal influences of scientific and technology on society.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/sociology.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "THTR 165",
+    "title": "Broadway!",
+    "department": "THTR",
+    "departmentName": "Theatre",
+    "units": 5,
+    "description": "This class is an exploration and appreciation of that truly American art form - the Broadway musical! From its origins in vaudeville and burlesque, all the way to current blockbuster musicals, we’ll see how musical theatre both reflects and defines American popular culture. We will watch, read about and listen to your favorite performers and the shows that made them famous, while tracing their musical influences and ancestors. Offered in alternate years.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/theatre-and-dance.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "THTR 41",
+    "title": "Theatre History I: U.S. Perspectives",
+    "department": "THTR",
+    "departmentName": "Theatre",
+    "units": 4,
+    "description": "This course examines theatrical histories, texts, performance practices, and audience reception in the United States. Students explore how theatre shapes diverse identities and experiences, with attention to intersectionality across race, gender, sexuality, class, age, ability, and religion. The course considers how performance engages systems of power and inequality, and how it both reinforces and challenges social structures. Through analysis, discussion, and creative research, students develop frameworks for understanding theatre as a historical site of cultural expression and social debate.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/theatre-and-dance.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "THTR 42",
+    "title": "Theatre History II: Global Perspectives",
+    "department": "THTR",
+    "departmentName": "Theatre",
+    "units": 4,
+    "description": "This course examines theatrical histories, texts, and performance practices across global contexts beyond the United States. Students explore how theatre shapes and reflects diverse identities and cultures, with attention to intersectionality and systems of power, colonialism, and globalization. Through analysis, discussion, and creative research, students develop frameworks for understanding theatre as a site of cultural expression and social debate, connecting historical traditions to contemporary global issues.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/theatre-and-dance.html); not in the 2025-26 catalog snapshot."
   }
 ]
