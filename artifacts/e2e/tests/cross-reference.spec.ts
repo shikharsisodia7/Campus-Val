@@ -402,6 +402,44 @@ test("D2. the whole transfer works from the keyboard, and focus comes back to wh
   await context.close();
 });
 
+test("D3. checksheet notes about CTW leave CTW in the Core: the Biology Major lists no Core area, in the data or in either sidebar", async ({ browser }) => {
+  const { page, context } = await as(browser, "student-a");
+  // A Core area worded as a Major requirement is how Core content once showed up under every major.
+  const CORE_AREA = /^(critical thinking (and|&) writing\s*\d?|ctw\s*\d)$/i;
+  const view = (await api(page, "get", `/api/plans/${tentativeId}/requirements`)).body;
+  const ctw = view.groups.flatMap((g: any) => g.items.filter((i: any) => /#ctw\d$/.test(i.stableKey ?? "")).map((i: any) => ({ group: g, item: i })));
+  expect(ctw.length).toBeGreaterThan(0);
+  for (const { group } of ctw) expect(group.category).toBe("CORE");
+  // The notes moved from the checksheet (D, D2) are on that Core requirement...
+  expect(ctw.some(({ item }: any) => String(item.customization?.note ?? "").includes(`${MARK} advisor approves the portfolio`))).toBe(true);
+  // ...and the Major has none of it.
+  const majors = view.groups.filter((g: any) => g.category === "MAJOR");
+  expect(majors.length).toBeGreaterThan(0);
+  for (const item of majors.flatMap((g: any) => g.items)) {
+    expect(item.stableKey ?? "").not.toMatch(/^university-core|#ctw\d$/);
+    expect(String(item.label ?? "").replace(/^[A-Z]{2,5}\s?\d+[A-Z]*\s+[—-]\s+/, "").trim()).not.toMatch(CORE_AREA);
+  }
+
+  // On screen, in the Degree Checksheets sidebar and on the Tentative Degree Plan page (same plan, same data).
+  const coreAreaInMajor = '[data-group-kind="major"] [data-stable-key^="university-core"], [data-group-kind="major"] [data-stable-key*="#ctw"]';
+  await page.goto("/degree-checksheets");
+  await chooseCompareTarget(page, /XR Biology/);
+  await openMajorGroup(page);
+  await expect(left(page).locator(`[data-stable-key="${BIOL_1A}"]`)).toBeVisible();
+  await expect(left(page).locator(coreAreaInMajor)).toHaveCount(0);
+  const coreTrigger = left(page).locator('[data-group-kind="university_core"] button').first();
+  if ((await coreTrigger.getAttribute("aria-expanded")) !== "true") await coreTrigger.click();
+  await expect(left(page).locator('[data-group-kind="university_core"] [data-stable-key$="#ctw1"]')).toHaveCount(1);
+
+  await page.goto("/tentative-plans");
+  const palette = page.locator('[data-testid="requirements-palette"]:visible').first();
+  await expect(palette).toBeVisible({ timeout: 30_000 });
+  await palette.locator('[data-group-kind="major"] button').first().click();
+  await expect(palette.locator(`[data-stable-key="${BIOL_1A}"]`)).toBeVisible();
+  await expect(palette.locator(coreAreaInMajor)).toHaveCount(0);
+  await context.close();
+});
+
 test("E. the Academic Progress Report page: Planning Requirements and the full APR, with no second APR sidebar", async ({ browser }) => {
   const { page, context } = await as(browser, "student-a");
   // The plan chosen on Degree Checksheets is the plan the APR page starts from.
