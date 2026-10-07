@@ -28,7 +28,6 @@ const STUDENT_B_EMAIL = "e2e-student-b+clerk_test@scu.edu";
 const BIOLOGY = "major:biology";
 const BIOL_1A = "major:biology#biol-1a";
 const MARK = `e2e-${Date.now()}`;
-const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:18080";
 
 async function sessionReady(page: Page) {
   await expect.poll(async () => (await page.request.get("/api/plans")).status(), { timeout: 30_000 }).toBe(200);
@@ -36,7 +35,8 @@ async function sessionReady(page: Page) {
 
 /** A fresh page signed in as one of the synthetic users. */
 async function as(browser: Browser, state: "student-a" | "student-b" | "advisor-y") {
-  const context = await browser.newContext({ storageState: STORAGE(state), baseURL, viewport: { width: 1440, height: 900 } });
+  // No baseURL here: contexts made from the `browser` fixture inherit the config's (E2E_BASE_URL, else production).
+  const context = await browser.newContext({ storageState: STORAGE(state), viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   await page.goto("/");
   await sessionReady(page);
@@ -65,11 +65,21 @@ async function choose(page: Page, triggerTestId: string, option: RegExp | string
 test.describe.configure({ mode: "serial" });
 
 let noteId: number | null = null;
+// Advisor Y must be the super admin of the server under test (ADMIN_EMAILS). Production has no
+// synthetic admin, and must not: there the suite is skipped with this reason instead of failing.
+let superAdmin = true;
+const NOT_SUPER_ADMIN = "Advisor Y is not this server's super admin (ADMIN_EMAILS); run against a local or staging server.";
 
 test.beforeAll(async ({ browser }) => {
   // Notes left by an interrupted earlier run would show up in the sidebar; archive them.
   const first = await as(browser, "advisor-y");
-  const detail = (await api(first.page, "get", `/api/admin/department/programs/${encodeURIComponent(BIOLOGY)}`)).body;
+  const program = await api(first.page, "get", `/api/admin/department/programs/${encodeURIComponent(BIOLOGY)}`);
+  superAdmin = program.status === 200;
+  if (!superAdmin) {
+    await first.context.close();
+    return;
+  }
+  const detail = program.body;
   for (const n of detail.notes.filter((x: any) => x.body.startsWith("e2e-") && x.status !== "archived")) {
     await api(first.page, "patch", `/api/admin/department/notes/${n.id}`, { status: "archived" });
   }
@@ -83,7 +93,12 @@ test.beforeAll(async ({ browser }) => {
   await a.context.close();
 });
 
+test.beforeEach(() => {
+  test.skip(!superAdmin, NOT_SUPER_ADMIN);
+});
+
 test.afterAll(async ({ browser }) => {
+  if (!superAdmin) return;
   const y = await as(browser, "advisor-y");
   await api(y.page, "delete", "/api/admin/department/scopes", { email: STUDENT_B_EMAIL, programKey: BIOLOGY });
   await y.context.close();
@@ -278,7 +293,7 @@ test("E. a plain student cannot open the admin page; a super admin can manage sc
 
 for (const [name, width, height] of [["tablet-1024", 1024, 768], ["tablet-768", 768, 1024], ["phone-430", 430, 932]] as const) {
   test(`F. the requirements sidebar, notes and Sample Plan dialog are usable at ${name}`, async ({ browser }) => {
-    const context = await browser.newContext({ storageState: STORAGE("student-a"), baseURL, viewport: { width, height } });
+    const context = await browser.newContext({ storageState: STORAGE("student-a"), viewport: { width, height } });
     const page = await context.newPage();
     await page.goto("/tentative-plans");
     await sessionReady(page);

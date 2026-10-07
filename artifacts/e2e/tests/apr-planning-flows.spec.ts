@@ -572,10 +572,11 @@ test("E. small screens: the APR becomes an accessible drawer; the full APR scrol
   }
 });
 
-test("F. APR stays private under advisor sharing", async ({ browser }: { browser: Browser }) => {
+test("F. APR stays private under advisor sharing", async ({ browser, baseURL }: { browser: Browser; baseURL?: string }) => {
   const student = await browser.newContext({ storageState: path.resolve(__dirname, "../storage/student-a.json") });
   const advisor = await browser.newContext({ storageState: path.resolve(__dirname, "../storage/advisor-y.json") });
-  const base = process.env.E2E_BASE_URL ?? "http://localhost:18080";
+  // The config's baseURL (E2E_BASE_URL, else production): one default for every spec.
+  const base = baseURL!;
   const sp = await student.newPage();
   const ap = await advisor.newPage();
   await sp.goto(base + "/");
