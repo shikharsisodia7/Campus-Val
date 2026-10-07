@@ -131,7 +131,7 @@ test("A. Degree Checksheets: Planning Requirements | checksheet | Workday APR, e
   docId = (await api(page, "get", "/api/degree-checksheets")).body.documents[0].id;
 
   // Three labelled regions, in order, side by side, not overlapping.
-  const regions = page.getByTestId("compare-layout").locator(":scope > section[aria-label]");
+  const regions = page.getByTestId("compare-layout").locator("[data-panel][aria-label]");
   await expect(regions).toHaveCount(3);
   expect(await regions.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).toEqual(["Planning Requirements", "Degree Checksheets", "Workday APR"]);
   const boxes = await Promise.all(["compare-left", "compare-main", "compare-right"].map((id) => page.getByTestId(id).boundingBox()));
@@ -171,6 +171,31 @@ test("A. Degree Checksheets: Planning Requirements | checksheet | Workday APR, e
   expect((await scrollTops()).main).toBe(after.main);
   await shot(page, "checksheets-three-panel-1440");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  // The regions can be resized: drag the handle, or focus it and use the arrow keys. The page remembers it.
+  const leftWidth = async () => (await page.getByTestId("compare-left").boundingBox())!.width;
+  const before = await leftWidth();
+  const handle = (await page.getByTestId("resize-left").boundingBox())!;
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2 + 120, handle.y + handle.height / 2, { steps: 8 });
+  await page.mouse.up();
+  const dragged = await leftWidth();
+  expect(dragged).toBeGreaterThan(before + 80);
+  await page.reload();
+  await expect(page.getByTestId("compare-left")).toBeVisible({ timeout: 30_000 });
+  await expect.poll(leftWidth).toBeGreaterThan(before + 80);
+  await page.getByTestId("resize-left").focus();
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(leftWidth).toBeLessThan(dragged - 40);
+  await expect(page.getByTestId("resize-left")).toHaveAttribute("aria-label", "Resize Planning Requirements");
+  await shot(page, "checksheets-resized");
+  // Back to the starting sizes for the rest of the run.
+  await page.evaluate(() => Object.keys(localStorage).filter((k) => k.includes("campusval.compare.")).forEach((k) => localStorage.removeItem(k)));
+  await page.reload();
+  await expect(page.getByTestId("compare-left")).toBeVisible({ timeout: 30_000 });
+  await expect.poll(leftWidth).toBeLessThan(before + 10);
 
   // Panels can be hidden for a wider checksheet, and come back.
   await page.getByTestId("toggle-left-rail").click();
@@ -377,7 +402,7 @@ test("E. the Academic Progress Report page: Planning Requirements and the full A
   await chooseCompareTarget(page, /XR Biology/);
   await page.goto("/progress-report");
   await expect(page.getByTestId("compare-layout")).toBeVisible({ timeout: 30_000 });
-  const regions = page.getByTestId("compare-layout").locator(":scope > section[aria-label]");
+  const regions = page.getByTestId("compare-layout").locator("[data-panel][aria-label]");
   expect(await regions.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).toEqual(["Planning Requirements", "Full Academic Progress Reports"]);
   await expect(left(page)).toBeVisible();
   await expect(page.getByTestId("compare-right")).toHaveCount(0);

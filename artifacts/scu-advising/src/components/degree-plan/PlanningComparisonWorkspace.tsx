@@ -10,13 +10,9 @@ import { AprReferenceSheet } from "@/components/progress-report/AprReferenceShee
 import { DegreePlanProvider } from "./DegreePlanContext";
 import { Palette } from "./Palette";
 import { usePlanningWorkspace } from "./usePlanningWorkspace";
-import {
-  COMPARISON_HEIGHT,
-  PLANNING_LEFT_ONLY_COLUMNS,
-  PLANNING_RIGHT_ONLY_COLUMNS,
-  PLANNING_THREE_COLUMNS,
-  REQUIREMENTS_DRAWER_WIDTH,
-} from "@/lib/workspace-layout";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useMinWidth } from "@/hooks/use-mobile";
+import { COMPARISON_HEIGHT, COMPARISON_PANEL_SIZES, REQUIREMENTS_DRAWER_WIDTH, WIDE_LAYOUT_MIN_WIDTH } from "@/lib/workspace-layout";
 import { WorkdayAprPanel } from "@/components/progress-report/WorkdayAprPanel";
 import { planContextLabel } from "@workspace/api-client-react";
 
@@ -36,6 +32,10 @@ import { planContextLabel } from "@workspace/api-client-react";
  *
  * The main content renders at once: it does not depend on the plan, so it never
  * waits for plan data. Only the side panels show a placeholder while it loads.
+ *
+ * On wide screens the regions are resizable (CampusVal's own resizable panels:
+ * drag a handle, or focus it and use the arrow keys), and each page remembers its
+ * sizes in this browser. Either side panel can also be hidden.
  *
  * Below `xl` there is no room for three regions: the main content takes the
  * width, the page scrolls as a normal page (no scroll region inside a phone
@@ -77,9 +77,9 @@ export function PlanningComparisonWorkspace({
     }
   }, [rails]);
 
+  const wide = useMinWidth(WIDE_LAYOUT_MIN_WIDTH);
   const left = rails.left;
   const right = showCompactApr && rails.right;
-  const columns = left && right ? PLANNING_THREE_COLUMNS : left ? PLANNING_LEFT_ONLY_COLUMNS : right ? PLANNING_RIGHT_ONLY_COLUMNS : "";
   const planPending = plansLoading || (!!activePlanId && planLoading);
   const noPlan = !plansLoading && plans.length === 0;
 
@@ -178,31 +178,65 @@ export function PlanningComparisonWorkspace({
         </div>
       </div>
 
-      <div
-        className={`grid grid-cols-1 gap-3 ${COMPARISON_HEIGHT} ${columns}`}
-        data-testid="compare-layout"
-        data-rails={`${left ? "L" : ""}${right ? "R" : ""}`}
-        data-plan={activePlan ? activePlan.id : undefined}
-      >
-        {left && (
-          <section aria-label="Planning Requirements" className="hidden h-full min-h-0 min-w-0 overflow-hidden xl:block" data-testid="compare-left">
-            {requirementsPanel}
+      {wide ? (
+        <div className={COMPARISON_HEIGHT} data-testid="compare-layout" data-rails={`${left ? "L" : ""}${right ? "R" : ""}`} data-plan={activePlan ? activePlan.id : undefined}>
+          <ResizablePanelGroup
+            direction="horizontal"
+            // One remembered layout per page; the library keeps one per combination of visible panels.
+            autoSaveId={showCompactApr ? "campusval.compare.checksheets" : "campusval.compare.apr"}
+            keyboardResizeBy={3}
+          >
+            {left && (
+              <>
+                <ResizablePanel
+                  id="compare-left"
+                  order={1}
+                  tagName="section"
+                  aria-label="Planning Requirements"
+                  defaultSize={showCompactApr ? COMPARISON_PANEL_SIZES.left : COMPARISON_PANEL_SIZES.leftAlone}
+                  minSize={COMPARISON_PANEL_SIZES.leftMin}
+                  maxSize={COMPARISON_PANEL_SIZES.sideMax}
+                  className="h-full min-h-0 min-w-0"
+                  data-testid="compare-left"
+                >
+                  {requirementsPanel}
+                </ResizablePanel>
+                <ResizableHandle withHandle className="mx-1.5" aria-label="Resize Planning Requirements" data-testid="resize-left" />
+              </>
+            )}
+            <ResizablePanel id="compare-main" order={2} tagName="section" aria-label={mainLabel} minSize={COMPARISON_PANEL_SIZES.mainMin} className="h-full min-h-0 min-w-0">
+              <div className="h-full overflow-y-auto overscroll-contain rounded-md" data-testid="compare-main" tabIndex={-1}>
+                {main}
+              </div>
+            </ResizablePanel>
+            {right && (
+              <>
+                <ResizableHandle withHandle className="mx-1.5" aria-label="Resize Workday APR" data-testid="resize-right" />
+                <ResizablePanel
+                  id="compare-right"
+                  order={3}
+                  tagName="section"
+                  aria-label="Workday APR"
+                  defaultSize={COMPARISON_PANEL_SIZES.right}
+                  minSize={COMPARISON_PANEL_SIZES.rightMin}
+                  maxSize={COMPARISON_PANEL_SIZES.sideMax}
+                  className="h-full min-h-0 min-w-0"
+                  data-testid="compare-right"
+                >
+                  <WorkdayAprPanel />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        </div>
+      ) : (
+        // Narrow screens: the main content only, scrolling with the page; the side panels are the drawers above.
+        <div data-testid="compare-layout" data-rails="" data-plan={activePlan ? activePlan.id : undefined}>
+          <section aria-label={mainLabel} className="min-w-0 rounded-md" data-testid="compare-main" tabIndex={-1}>
+            {main}
           </section>
-        )}
-        <section
-          aria-label={mainLabel}
-          className="min-h-0 min-w-0 rounded-md xl:h-full xl:overflow-y-auto xl:overscroll-contain"
-          data-testid="compare-main"
-          tabIndex={-1}
-        >
-          {main}
-        </section>
-        {right && (
-          <section aria-label="Workday APR" className="hidden h-full min-h-0 min-w-0 overflow-hidden xl:block" data-testid="compare-right">
-            <WorkdayAprPanel />
-          </section>
-        )}
-      </div>
+        </div>
+      )}
     </DegreePlanProvider>
   );
 }

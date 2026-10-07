@@ -57,14 +57,19 @@ describe("Degree Checksheets layout", () => {
 
   it("gives each region its own scrolling on wide screens, with the main region able to take keyboard focus", () => {
     render(<PlanningComparisonWorkspace main={<p>m</p>} mainLabel="Degree Checksheets" showCompactApr />);
-    const mainClasses = screen.getByTestId("compare-main").className.split(/\s+/);
-    expect(mainClasses).toContain("xl:overflow-y-auto");
-    // Below xl the page itself scrolls: no scroll region inside a phone screen.
-    expect(mainClasses).not.toContain("overflow-y-auto");
-    expect(screen.getByTestId("compare-layout").className).toMatch(/xl:h-\[calc\(100dvh-/);
-    expect(screen.getByTestId("compare-left").className).toContain("overflow-hidden");
-    expect(screen.getByTestId("compare-right").className).toContain("overflow-hidden");
+    expect(screen.getByTestId("compare-main").className.split(/\s+/)).toContain("overflow-y-auto");
     expect(screen.getByTestId("compare-main").getAttribute("tabindex")).toBe("-1");
+    expect(screen.getByTestId("compare-layout").className).toMatch(/xl:h-\[calc\(100dvh-/);
+  });
+
+  it("can be resized: a named handle between each pair of regions, operable from the keyboard", () => {
+    render(<PlanningComparisonWorkspace main={<p>m</p>} mainLabel="Degree Checksheets" showCompactApr />);
+    const handles = screen.getAllByRole("separator");
+    expect(handles.map((h) => h.getAttribute("aria-label"))).toEqual(["Resize Planning Requirements", "Resize Workday APR"]);
+    for (const handle of handles) expect(handle.getAttribute("tabindex")).toBe("0");
+    // The regions start at the shared proportions (the left rail and the compact APR of Degree Plan).
+    expect(screen.getByTestId("compare-left").getAttribute("data-panel-size")).toBe("24.0");
+    expect(screen.getByTestId("compare-right").getAttribute("data-panel-size")).toBe("27.0");
   });
 
   it("collapses either side panel, remembers it, and restores it", () => {
@@ -138,6 +143,21 @@ describe("the plan being compared against", () => {
 });
 
 describe("below the desktop width", () => {
+  it("shows only the main content, scrolling with the page, with no resizable regions", () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ matches: false, media: query, addEventListener: () => {}, removeEventListener: () => {} })) as unknown as typeof window.matchMedia;
+    try {
+      render(<PlanningComparisonWorkspace main={<div data-testid="checksheet-main">Checksheet</div>} mainLabel="Degree Checksheets" showCompactApr />);
+      expect(screen.queryByTestId("compare-left")).toBeNull();
+      expect(screen.queryByTestId("compare-right")).toBeNull();
+      expect(screen.queryAllByRole("separator")).toHaveLength(0);
+      expect(within(screen.getByTestId("compare-main")).getByTestId("checksheet-main")).toBeTruthy();
+      expect(screen.getByTestId("compare-main").className).not.toMatch(/overflow-y-auto/);
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
   it("offers the same two panels in drawers rather than three crushed columns", () => {
     render(<PlanningComparisonWorkspace main={<p>m</p>} mainLabel="Degree Checksheets" showCompactApr />);
     expect(screen.getByTestId("button-open-requirements").textContent).toContain("Planning Requirements");
