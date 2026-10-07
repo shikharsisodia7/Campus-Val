@@ -64,6 +64,12 @@
 - [ ] Secrets created in Secret Manager — **SCU**
 - [ ] Neon / Blob credentials (stored as non-sensitive Vercel vars) rotated at cut-over
 
+## Dependencies
+- [x] `pnpm audit --prod` (2026-10-06): 2 advisories, both with **no fixed release published** and both **unreachable** in CampusVal:
+  - `braces` ≤3.0.3 (high), via `http-proxy-middleware` → `micromatch`. micromatch/braces run only for a glob `pathFilter`; the Clerk proxy (`middlewares/clerkProxyMiddleware.ts`) sets none, so every request takes the plain string-prefix match.
+  - `sprintf-js` ≤1.1.3 (moderate), via `mammoth` → `argparse`. argparse is used only by mammoth's command-line tool (`bin/mammoth`); CampusVal imports the library, which never loads it.
+  Re-check when braces 3.0.4 / sprintf-js 1.1.4 are published and pin them in `pnpm-workspace.yaml` overrides.
+
 ## Logging
 - [x] No request bodies, file content, grades, prompts or tokens in logs ([LOGGING.md](LOGGING.md))
 - [x] Auth headers and upload tokens redacted

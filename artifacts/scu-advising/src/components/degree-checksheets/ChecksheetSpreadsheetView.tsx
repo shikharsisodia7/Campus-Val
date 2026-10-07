@@ -213,6 +213,8 @@ function SheetGrid({
             <tr key={r} data-source-row={r + 1}>
               <th
                 scope="row"
+                // Named "Row N" so a screen reader announces the row, not the "Add row" button inside it.
+                aria-label={`Row ${r + 1}`}
                 className="sticky left-0 z-10 border border-border bg-muted px-1 py-0.5 text-right text-[10px] font-normal tabular-nums text-muted-foreground"
               >
                 {r + 1}
