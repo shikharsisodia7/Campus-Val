@@ -408,8 +408,11 @@ test("C. Tentative Degree Plan: label, APR reference", async ({ page }) => {
   await page.goto("/tentative-plans");
   await expect(page.getByRole("heading", { name: "Tentative Degree Plan" }).first()).toBeVisible({ timeout: 20_000 });
   const startBlank = page.getByTestId("button-start-blank-tentative");
-  if (await startBlank.isVisible().catch(() => false)) await startBlank.click();
   const panel = page.getByTestId("workday-apr-panel").first();
+  // The heading renders before the plans load: wait for the page to settle into one of its two
+  // states (no tentative plan yet, or a plan with its APR reference) before deciding which it is.
+  await expect(startBlank.or(panel).first()).toBeVisible({ timeout: 30_000 });
+  if (await startBlank.isVisible()) await startBlank.click();
   await expect(panel).toBeVisible({ timeout: 30_000 });
   await expect(panel.locator('[data-testid^="apr-sidebar-document-toggle-"]').first()).toContainText("Finance Major");
   await expect(page.getByTestId("degree-plan-progress-column")).toBeVisible();
