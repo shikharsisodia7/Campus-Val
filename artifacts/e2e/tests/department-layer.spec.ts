@@ -198,6 +198,60 @@ test("B. the sidebar shows a Department Note apart from My Note, read-only, and 
   await context.close();
 });
 
+test("B2. a Department Note on a Core requirement stays under Core, and shows on every page with the planning sidebar", async ({ browser }) => {
+  test.setTimeout(180_000);
+  const CTW1 = "university-core:cas#ctw1";
+  // Not MARK: test D finds "this run's note" by that prefix. Still "e2e-", so beforeAll archives a leftover.
+  const body = `e2e-core-${Date.now()} Biology: take CTW 1 in the first year`;
+  // Student B is Biology's department administrator (beforeAll); the note goes through the real API.
+  const b = await as(browser, "student-b");
+  const created = await api(b.page, "post", "/api/admin/department/notes", { programKey: BIOLOGY, targetKey: CTW1, body, kind: "advising", status: "published" });
+  expect(created.status).toBe(201);
+
+  const { page, context } = await as(browser, "student-a");
+  const plans = (await api(page, "get", "/api/plans")).body.plans;
+  const degree = plans.find((p: any) => p.planType === "degree");
+  const tentative = plans.find((p: any) => p.planType === "tentative"); // the Biology Sample Plan loaded in A
+  // null means "the student's profile"; restoring null puts that back.
+  const original = degree.programs ?? null;
+  // The Degree Plan page shows the Degree Plan, so for this check it is a Biology plan too; restored below.
+  expect((await api(page, "patch", `/api/plans/${degree.id}`, { programs: { primaryMajor: "BIOL", additionalMajors: [], minors: [], professionalGoals: [] } })).status).toBe(200);
+  try {
+    // The server: CTW 1 is still a Core requirement carrying Biology's note; the Biology major does not list it.
+    for (const id of [degree.id, tentative.id]) {
+      const view = (await api(page, "get", `/api/plans/${id}/requirements`)).body;
+      const core = view.groups.find((g: any) => g.items.some((i: any) => i.stableKey === CTW1));
+      expect(core.category).toBe("CORE");
+      const notes = core.items.find((i: any) => i.stableKey === CTW1).departmentNotes;
+      expect(notes.find((n: any) => n.body === body).programTitle).toBe("Biology");
+      expect(view.groups.find((g: any) => g.stableKey === BIOLOGY).items.some((i: any) => i.stableKey === CTW1)).toBe(false);
+    }
+
+    // The screen: the same read-only note, in the Core group of the one shared sidebar, on all four pages.
+    for (const route of ["/degree-plan", "/tentative-plans", "/degree-checksheets", "/progress-report"]) {
+      await page.goto(route);
+      await expect(palette(page)).toBeVisible({ timeout: 30_000 });
+      const coreGroup = palette(page).locator('[data-group-kind="university_core"]').first();
+      const header = coreGroup.locator("button").first();
+      if ((await header.getAttribute("aria-expanded")) !== "true") await header.click();
+      const card = coreGroup.locator(`[data-stable-key="${CTW1}"]`);
+      await expect(card, route).toBeVisible({ timeout: 15_000 });
+      const note = card.getByTestId(/^department-note-\d+$/).filter({ hasText: body });
+      await expect(note, route).toContainText("Department Note");
+      await expect(note, route).toContainText("Biology");
+      await expect(note.getByRole("textbox"), route).toHaveCount(0);
+      await expect(palette(page).locator(`[data-group-kind="major"] [data-stable-key="${CTW1}"]`), route).toHaveCount(0);
+    }
+    await shot(page, "core-department-note-apr-page");
+  } finally {
+    expect((await api(page, "patch", `/api/plans/${degree.id}`, { programs: original })).status).toBe(200);
+    // The note is this test's own: archived again by the admin who wrote it.
+    if (created.status === 201) await api(b.page, "patch", `/api/admin/department/notes/${created.body.id}`, { status: "archived" });
+    await b.context.close();
+    await context.close();
+  }
+});
+
 test("C. a Biology department admin maintains Biology, sees only Biology, and students see the change", async ({ browser }) => {
   const b = await as(browser, "student-b");
   expect((await api(b.page, "get", "/api/admin/department/programs")).body.programs.map((p: any) => p.programKey)).toEqual([BIOLOGY]);
