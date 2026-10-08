@@ -74,8 +74,12 @@ export interface SaveState {
 
 export interface QueueEvents<T extends SavedEntry> {
   onState(state: SaveState): void;
-  /** The server accepted a save for this entry. */
-  onSaved(key: string, entry: T): void;
+  /**
+   * The server accepted a save for this entry. `superseded` is true when a newer change to the same
+   * entry was queued while this one was on its way: the server's copy is already out of date, so
+   * the screen should keep what the student just did rather than jump back to it.
+   */
+  onSaved(key: string, entry: T, info: { superseded: boolean }): void;
   /** The server removed this entry. */
   onRemoved(key: string): void;
   /** Someone else changed this entry; `current` is what the server holds. */
@@ -235,7 +239,7 @@ export class TrackingSaveQueue<T extends SavedEntry = SavedEntry> {
         slot.revision = saved.revision;
         slot.origin = null;
         this.lastOutcome = "saved";
-        this.events.onSaved(key, saved);
+        this.events.onSaved(key, saved, { superseded: slot.pending !== null });
       } else {
         const saved = await this.api.update(slot.id, {
           ...change.values,
@@ -245,7 +249,7 @@ export class TrackingSaveQueue<T extends SavedEntry = SavedEntry> {
         });
         slot.revision = saved.revision;
         this.lastOutcome = "saved";
-        this.events.onSaved(key, saved);
+        this.events.onSaved(key, saved, { superseded: slot.pending !== null });
       }
     } catch (err) {
       if (err instanceof SaveConflict) {
