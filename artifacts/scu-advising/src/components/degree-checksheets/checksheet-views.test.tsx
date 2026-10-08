@@ -478,10 +478,14 @@ describe("markers on a page or picture", () => {
     fireEvent.change(screen.getByTestId("checksheet-marker-note-id:21"), { target: { value: "Took with lab" } });
     expect(change).toHaveBeenLastCalledWith("id:21", { note: "Took with lab" }, 700);
 
+    // The spy does not redraw the marker, as on a slow page where the second nudge comes before the
+    // first is drawn: the second must build on the first (right THEN up), not on the place still drawn.
     fireEvent.click(screen.getByLabelText("Move marker 1 on page 2 right"));
     expect(movePoint).toHaveBeenLastCalledWith("id:21", { page: 1, x: 0.26, y: 0.5 }, 700);
     fireEvent.click(screen.getByLabelText("Move marker 1 on page 2 up"));
-    expect(movePoint).toHaveBeenLastCalledWith("id:21", { page: 1, x: 0.25, y: 0.49 }, 700);
+    expect(movePoint).toHaveBeenLastCalledWith("id:21", { page: 1, x: 0.26, y: 0.49 }, 700);
+    fireEvent.click(screen.getByLabelText("Move marker 1 on page 2 right"));
+    expect(movePoint).toHaveBeenLastCalledWith("id:21", { page: 1, x: 0.27, y: 0.49 }, 700);
 
     fireEvent.click(screen.getByTestId("checksheet-marker-delete-id:21"));
     expect(remove).toHaveBeenCalledWith("id:21");

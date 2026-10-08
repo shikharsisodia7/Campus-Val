@@ -232,14 +232,19 @@ export function createChecksheetHooks(api: ChecksheetApi) {
           },
           {
             onState: setSaveState,
-            onSaved: (key, saved) => {
+            onSaved: (key, saved, { superseded }) => {
               // The server's values are adopted for fields the student is not
-              // in the middle of changing; the local entry keeps its key.
+              // in the middle of changing; the local entry keeps its key. When a
+              // newer change is already queued (a marker nudged again while the
+              // last nudge was saving), the screen keeps the newer place instead
+              // of jumping back to the one just saved.
               setEntries((list) =>
                 list.map((entry) =>
-                  entry.key === key
-                    ? { ...entry, id: saved.id, anchorType: saved.anchorType, anchor: saved.anchor, detached: saved.detached, field: entryFromServer(saved).field ?? entry.field }
-                    : entry,
+                  entry.key !== key
+                    ? entry
+                    : superseded
+                      ? { ...entry, id: saved.id, anchorType: saved.anchorType }
+                      : { ...entry, id: saved.id, anchorType: saved.anchorType, anchor: saved.anchor, detached: saved.detached, field: entryFromServer(saved).field ?? entry.field },
                 ),
               );
             },

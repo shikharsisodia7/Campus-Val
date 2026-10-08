@@ -100,6 +100,39 @@ describe("saving an entry the server already has", () => {
   });
 });
 
+describe("telling the screen whether a save is already out of date", () => {
+  it("marks a save superseded when a newer change to the same entry was queued while it was on its way", async () => {
+    const seen: boolean[] = [];
+    const calls: Deferred<SavedEntry>[] = [];
+    const queue = new TrackingSaveQueue(
+      {
+        create: () => Promise.reject(new Error("not used")),
+        update: () => {
+          const done = deferred<SavedEntry>();
+          calls.push(done);
+          return done.promise;
+        },
+        remove: () => Promise.resolve(),
+      },
+      { onState: () => undefined, onSaved: (_key, _entry, info) => seen.push(info.superseded), onRemoved: () => undefined, onConflict: () => undefined },
+    );
+    const settle = async () => {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    };
+    queue.adopt("id:7", { id: 7, revision: 1 });
+    queue.save("id:7", {}, { anchor: { page: 0, x: 0.07, y: 0.15 } });
+    // A second nudge while the first is still saving.
+    queue.save("id:7", {}, { anchor: { page: 0, x: 0.08, y: 0.15 } });
+    calls[0]!.resolve({ id: 7, revision: 2 } as never);
+    await settle();
+    expect(seen).toEqual([true]);
+    // The newer place goes out next and, with nothing after it, is current.
+    calls[1]!.resolve({ id: 7, revision: 3 } as never);
+    await settle();
+    expect(seen).toEqual([true, false]);
+  });
+});
+
 describe("order: an older save can never overwrite a newer value", () => {
   it("keeps ONE request in flight per entry and sends later changes after it", async () => {
     const h = harness();

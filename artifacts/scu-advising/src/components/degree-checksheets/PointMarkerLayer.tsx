@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, CircleDashed, Clock, Move, PencilLine, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -124,8 +124,18 @@ function Marker({
   const summary =
     [trackingStatusLabel(entry.status), termLabel(entry.term, entry.termYear)].filter(Boolean).join(", ") || "no status yet";
   const name = `marker ${number} on ${pageLabel}`;
-  const step = (dx: number, dy: number) =>
-    tracking.movePoint(entry.key, { page: entry.anchor.page ?? 0, ...nudge(position, dx, dy) }, TYPING_DELAY_MS);
+  // The place the last nudge sent. A second nudge can come before the page redraws with the first;
+  // it must build on that place, not on the one still drawn. Once the drawn place changes (caught
+  // up, or moved some other way) it is the truth again.
+  const ahead = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    ahead.current = null;
+  }, [position.x, position.y]);
+  const step = (dx: number, dy: number) => {
+    const next = nudge(ahead.current ?? position, dx, dy);
+    ahead.current = next;
+    tracking.movePoint(entry.key, { page: entry.anchor.page ?? 0, ...next }, TYPING_DELAY_MS);
+  };
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
