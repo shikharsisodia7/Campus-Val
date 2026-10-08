@@ -19,6 +19,9 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL: BASE_URL,
+    // The browser keeps the test runner's time zone. Tests compute dates ("Uploaded Oct 7") on the
+    // runner, and a browser in a container defaults to UTC, which is a day ahead in the evening.
+    timezoneId: Intl.DateTimeFormat().resolvedOptions().timeZone,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
