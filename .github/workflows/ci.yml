@@ -8,7 +8,9 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # A named image, not ubuntu-latest (which moves to Ubuntu 26 from 2026-10-19), so the runner
+    # only changes when this line does.
+    runs-on: ubuntu-24.04
 
     services:
       postgres:

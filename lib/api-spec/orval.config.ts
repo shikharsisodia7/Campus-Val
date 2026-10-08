@@ -28,7 +28,8 @@ export default defineConfig({
       mode: "split",
       baseUrl: "/api",
       clean: true,
-      prettier: true,
+      // orval 8.22+ replaced `prettier: true` with `formatter`.
+      formatter: "prettier",
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -54,7 +55,8 @@ export default defineConfig({
       schemas: { path: "generated/types", type: "typescript" },
       mode: "split",
       clean: true,
-      prettier: true,
+      // orval 8.22+ replaced `prettier: true` with `formatter`.
+      formatter: "prettier",
       override: {
         zod: {
           coerce: {

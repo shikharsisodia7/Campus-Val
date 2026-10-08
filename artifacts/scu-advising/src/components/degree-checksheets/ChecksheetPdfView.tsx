@@ -88,7 +88,8 @@ export default function ChecksheetPdfView({
         });
         const pdf = await task.promise;
         if (cancelled) {
-          void pdf.destroy();
+          // PDF.js 6 releases a document through its loading task (PDFDocumentProxy has no destroy()).
+          void task.destroy();
           return;
         }
         setLoad({ state: "ready", pdf });
