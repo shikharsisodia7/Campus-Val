@@ -17,6 +17,8 @@
  * Auth is stubbed (x-test-user / x-test-email); the routes and database are real.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import express from "express";
 import request from "supertest";
 import { eq, inArray, like } from "drizzle-orm";
@@ -64,6 +66,8 @@ app.use("/api", samplePlansRouter);
 
 const STUDENT = `test-dept-student-${RUN}`;
 const OTHER_STUDENT = `test-dept-other-${RUN}`;
+/** Another Arts and Sciences major: the same University Core, a different department. */
+const CAS_STUDENT = `test-dept-cas-${RUN}`;
 const BIO_ADMIN = `bio-admin-${RUN}@scu.edu`;
 const FIN_ADMIN = `fin-admin-${RUN}@scu.edu`;
 const PLAIN = `plain-${RUN}@scu.edu`;
@@ -79,6 +83,7 @@ const asSuper = (r: request.Test) => as("super-user", SUPER, r);
 
 const biology = listPrograms().find((p) => p.type === "major" && p.title === "Biology")!;
 const finance = listPrograms().find((p) => p.type === "major" && /finance/i.test(p.title))!;
+const otherCasMajor = listPrograms().find((p) => p.type === "major" && p.college === "CAS" && p.programKey !== biology.programKey)!;
 const bioTree = programTree(biology.programKey)!;
 const bioGroup = bioTree.tree.find((g) => g.stableKey === biology.programKey)!;
 const bioItem = bioGroup.items[0]!;
@@ -89,6 +94,7 @@ const marker = `dept-test-${RUN}`;
 
 let studentPlan: number;
 let otherPlan: number;
+let casPlan: number;
 
 const view = async (user: string, planId: number) =>
   (await as(user, null, request(app).get(`/api/plans/${planId}/requirements`)).expect(200)).body;
@@ -96,13 +102,13 @@ const find = (body: any, key: string) => body.groups.flatMap((g: any) => g.items
 const groupOf = (body: any, key: string) => body.groups.find((g: any) => g.stableKey === key);
 
 async function cleanup() {
-  const plans = await db.select({ id: academicPlansTable.id }).from(academicPlansTable).where(inArray(academicPlansTable.userId, [STUDENT, OTHER_STUDENT]));
+  const plans = await db.select({ id: academicPlansTable.id }).from(academicPlansTable).where(inArray(academicPlansTable.userId, [STUDENT, OTHER_STUDENT, CAS_STUDENT]));
   const ids = plans.map((p) => p.id);
   if (ids.length > 0) {
     await db.delete(planItemsTable).where(inArray(planItemsTable.planId, ids));
     await db.delete(academicPlansTable).where(inArray(academicPlansTable.id, ids));
   }
-  await db.delete(studentProfilesTable).where(inArray(studentProfilesTable.userId, [STUDENT, OTHER_STUDENT]));
+  await db.delete(studentProfilesTable).where(inArray(studentProfilesTable.userId, [STUDENT, OTHER_STUDENT, CAS_STUDENT]));
   await db.delete(departmentRequirementNotesTable).where(like(departmentRequirementNotesTable.createdBy, `%-${RUN}@scu.edu`));
   await db.delete(departmentRequirementNotesTable).where(like(departmentRequirementNotesTable.createdBy, `super-${RUN}%`));
   await db.delete(departmentRequirementOverridesTable).where(like(departmentRequirementOverridesTable.createdBy, `%-${RUN}@scu.edu`));
@@ -111,13 +117,13 @@ async function cleanup() {
   await db.delete(samplePlansTable).where(like(samplePlansTable.slug, `test-${RUN}-%`));
 }
 
-async function profileFor(userId: string) {
+async function profileFor(userId: string, major = biology.code) {
   await db.insert(studentProfilesTable).values({
     userId,
     name: "Dept Test",
     studentType: "undergraduate",
     college: "College of Arts and Sciences",
-    major: biology.code,
+    major,
     startTerm: "fall",
     startYear: 2025,
     expectedGradTerm: "spring",
@@ -135,6 +141,9 @@ beforeAll(async () => {
   studentPlan = mine.body.plans.find((p: any) => p.planType === "degree").id;
   const theirs = await as(OTHER_STUDENT, null, request(app).get("/api/plans")).expect(200);
   otherPlan = theirs.body.plans.find((p: any) => p.planType === "degree").id;
+  await profileFor(CAS_STUDENT, otherCasMajor.code);
+  const cas = await as(CAS_STUDENT, null, request(app).get("/api/plans")).expect(200);
+  casPlan = cas.body.plans.find((p: any) => p.planType === "degree").id;
   // Scopes are database rows, granted by a super admin through the API.
   await asSuper(request(app).post("/api/admin/department/scopes")).send({ email: BIO_ADMIN, programKey: biology.programKey }).expect(201);
   await asSuper(request(app).post("/api/admin/department/scopes")).send({ email: FIN_ADMIN, programKey: finance.programKey }).expect(201);
@@ -230,6 +239,19 @@ describe("Department Notes beside a student's My Note", () => {
     const merged = find(after, bioItem.stableKey);
     expect(merged.customization.note).toBe("ask my advisor");
     expect(merged.departmentNotes.map((n: any) => n.body)).toEqual([`${marker} biology note`]);
+  });
+
+  it("keeps a department's Core note on the Core requirement, under Core, and only for that department's students", async () => {
+    const mine = await view(STUDENT, studentPlan);
+    // Classification is the Bulletin's: the noted Core requirement stays in Core, never in the Biology major.
+    expect(groupOf(mine, coreGroup.stableKey).items.map((i: any) => i.stableKey)).toContain(coreItem.stableKey);
+    expect(groupOf(mine, biology.programKey).items.map((i: any) => i.stableKey)).not.toContain(coreItem.stableKey);
+    expect(find(mine, coreItem.stableKey).departmentNotes.find((n: any) => n.body === `${marker} core note`).programTitle).toBe("Biology");
+    // Another Arts and Sciences major sees the same Core requirement, without Biology's note.
+    const theirs = await view(CAS_STUDENT, casPlan);
+    const same = find(theirs, coreItem.stableKey);
+    expect(same).toBeDefined();
+    expect((same.departmentNotes ?? []).map((n: any) => n.body)).not.toContain(`${marker} core note`);
   });
 
   it("gives a student no way to write a Department Note", async () => {
@@ -525,3 +547,31 @@ describe("provenance inspector", () => {
     await prov(asBio, biology.programKey, "major:biology#no-such").expect(404);
   });
 });
+
+describe("only department administration writes Department Notes", () => {
+  it("has exactly two writers: the admin service behind the department routes, and the checklist import script", () => {
+    // A student's checksheet upload, its tracking and "Add to planning" can therefore never create or change
+    // a Department Note: none of their code writes the table.
+    const root = path.resolve(import.meta.dirname, "..", "..");
+    const writes = /\b(insert|update|delete)\(departmentRequirementNotesTable\)/;
+    const writers: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const file = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(file);
+        else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts") && writes.test(fs.readFileSync(file, "utf8"))) {
+          writers.push(path.relative(root, file).split(path.sep).join("/"));
+        }
+      }
+    };
+    walk(path.join(root, "src"));
+    walk(path.join(root, "scripts"));
+    expect(writers.sort()).toEqual(["scripts/import-department-notes.ts", "src/lib/department/service.ts"]);
+    // The service is reached only through routes that check department access on the server.
+    const routes = fs.readFileSync(path.join(root, "src", "routes", "department-admin.ts"), "utf8");
+    const writeRoutes = routes.split("\n").filter((line) => /router\.(post|patch|put|delete)\(/.test(line));
+    expect(writeRoutes.length).toBeGreaterThan(0);
+    for (const line of writeRoutes) expect(line).toMatch(/requireAuth, (requireDepartmentAccess|requireSuperAdmin)/);
+  });
+});
+
