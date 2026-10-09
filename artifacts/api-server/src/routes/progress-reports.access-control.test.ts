@@ -75,6 +75,9 @@ describe("structural guards", () => {
         "get /progress-reports/:id/workbook",
         "get /progress-reports/:id/file",
         "put /progress-reports/:id/file",
+        "get /progress-reports/assessment",
+        "put /progress-reports/:id/assessment/items/:itemKey",
+        "delete /progress-reports/:id/assessment/items/:itemKey",
       ].sort(),
     );
     for (const [, method, path, middlewares] of handlers) {
@@ -89,7 +92,7 @@ describe("structural guards", () => {
     expect(APR).not.toMatch(/req\.(body|query|params)(\.|\[["'])userId/);
     expect(APR).not.toMatch(/req\.(body|query|params)\b[^;\n]*userId/);
     const handlers = APR.split(/\nrouter\.(?:get|put|post|patch|delete)\(/).slice(1);
-    expect(handlers).toHaveLength(9);
+    expect(handlers).toHaveLength(12);
     for (const handler of handlers) {
       // Storage-unavailable short circuits aside, each handler derives the owner itself.
       expect(handler).toMatch(/const userId = req\.userId!/);
@@ -112,6 +115,23 @@ describe("structural guards", () => {
     expect(shares).not.toMatch(/getPrivateObjectStorage/);
     expect(shares).not.toMatch(/progressReportsTable/);
     expect(shares).not.toMatch(/lib\/apr\//);
+    expect(shares).not.toMatch(/degree-completion|degreeCompletionOverridesTable/);
+  });
+
+  it("the Degree Completion Assessment's corrections are read and written in one module, always scoped to the owner", () => {
+    const users = ALL.filter((p) => /degreeCompletionOverridesTable/.test(text(p))).map(rel);
+    expect(users).toEqual(["lib/degree-completion/service.ts"]);
+    const service = text(join(SRC, "lib", "degree-completion", "service.ts"));
+    const statements = [...service.matchAll(/\.(?:from|update|delete)\(degreeCompletionOverridesTable\)[\s\S]*?;/g)].map((m) => m[0]);
+    expect(statements.length).toBeGreaterThanOrEqual(3);
+    for (const statement of statements) {
+      // Either filtered by the owner, or addressed by the id of a row just read under the owner filter.
+      expect(statement, statement.slice(0, 120)).toMatch(/degreeCompletionOverridesTable\.userId|degreeCompletionOverridesTable\.id, existing\.id/);
+    }
+    // The engine reads the APR only through the grade-free projection and never touches the database.
+    const engine = text(join(SRC, "lib", "degree-completion", "engine.ts"));
+    expect(engine).not.toMatch(/@workspace\/db|progressReportsTable/);
+    expect(engine).toMatch(/projectForSidebar/);
   });
 
   it("the client DTO never carries a storage path, an owner id, or the legacy interpretation", () => {
@@ -305,6 +325,42 @@ describe("user B, knowing user A's document ids, gets nothing", () => {
     }
     const del = await request(app).delete(`/api/progress-reports/${docId}`).set("x-test-user", OTHER).send({ userId: STUDENT });
     expect(del.status).toBe(404);
+  });
+});
+
+describe("the Degree Completion Assessment is as private as the APR", () => {
+  it("user B gets only their own assessment, never user A's", async () => {
+    const mine = await request(app).get("/api/progress-reports/assessment").set("x-test-user", STUDENT);
+    expect(mine.status).toBe(200);
+    expect(mine.body.documents.map((d: any) => d.report.id).sort()).toEqual([docId, secondDocId].sort());
+    const theirs = await request(app).get(`/api/progress-reports/assessment?userId=${STUDENT}`).set("x-test-user", OTHER);
+    expect(theirs.status).toBe(200);
+    expect(theirs.body.documents.map((d: any) => d.report.id)).not.toContain(docId);
+    expect(JSON.stringify(theirs.body)).not.toMatch(/Finance Major|FNCE 121|Core: LSB|secret-finance/);
+  });
+
+  it("user B cannot correct, reset or probe user A's assessment, even with a real item key", async () => {
+    const mine = await request(app).get("/api/progress-reports/assessment").set("x-test-user", STUDENT);
+    const item = mine.body.documents.find((d: any) => d.report.id === docId).programs[0].items[0];
+    await request(app).put(`/api/progress-reports/${docId}/assessment/items/${item.key}`).set("x-test-user", STUDENT).send({ note: "mine" }).expect(200);
+
+    const put = await request(app).put(`/api/progress-reports/${docId}/assessment/items/${item.key}`).set("x-test-user", OTHER).send({ status: "complete", userId: STUDENT });
+    expect(put.status).toBe(400); // unknown field refused before anything else
+    const put2 = await request(app).put(`/api/progress-reports/${docId}/assessment/items/${item.key}`).set("x-test-user", OTHER).send({ status: "complete" });
+    const del = await request(app).delete(`/api/progress-reports/${docId}/assessment/items/${item.key}`).set("x-test-user", OTHER);
+    expect([put2.status, del.status]).toEqual([404, 404]);
+    const after = await request(app).get("/api/progress-reports/assessment").set("x-test-user", STUDENT);
+    const same = after.body.documents.find((d: any) => d.report.id === docId).programs[0].items[0];
+    expect(same.correction).toMatchObject({ status: null, note: "mine" });
+    await request(app).delete(`/api/progress-reports/${docId}/assessment/items/${item.key}`).set("x-test-user", STUDENT).expect(204);
+  });
+
+  it("an advisor with a valid plan share sees no assessment: theirs is their own (empty), and the shared plan carries none", async () => {
+    const own = await request(app).get("/api/progress-reports/assessment").set("x-test-user", ADVISOR).set("x-test-email", ADVISOR_EMAIL);
+    expect(own.body.documents).toEqual([]);
+    const shared = await request(app).get(`/api/advisor/shared-students/${STUDENT}/plan`).set("x-test-user", ADVISOR).set("x-test-email", ADVISOR_EMAIL);
+    expect(shared.status).toBe(200);
+    expect(JSON.stringify(shared.body)).not.toMatch(/assessment|Needs Review|appears_complete|needs_review/i);
   });
 });
 
