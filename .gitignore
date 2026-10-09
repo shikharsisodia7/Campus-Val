@@ -73,3 +73,7 @@ attached_assets/
 .env*
 !.env.example
 .cursor/mcp.json
+
+# Ad-hoc local QA scripts (never committed)
+*.tmp.mjs
+*.tmp.ts
