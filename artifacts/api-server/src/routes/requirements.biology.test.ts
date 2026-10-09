@@ -12,7 +12,7 @@ import { currentBulletinProvider } from "../lib/requirements-source/current-bull
 const profile = (over: Partial<StudentProfileRow> = {}) =>
   ({
     userId: "bio-test",
-    major: "Biology",
+    major: "BIOL",
     college: "College of Arts and Sciences",
     completedCourseCodes: [],
     secondMajor: null,
@@ -93,7 +93,7 @@ describe("Biology Degree Plan sidebar", () => {
   });
 
   it("a minor's choose-N requirement also carries its full course list", () => {
-    const withMinor = buildRequirementsResponse(profile({ major: "Psychology", minor: "Biology" }));
+    const withMinor = buildRequirementsResponse(profile({ major: "PSYC", minor: "Biology" }));
     const minor = withMinor.groups.find((g) => g.kind === "minor")!;
     const choice = minor.items.find((i) => i.choice);
     if (choice) expect(choice.choice!.lists[0]!.courses).toEqual(choice.courses);
