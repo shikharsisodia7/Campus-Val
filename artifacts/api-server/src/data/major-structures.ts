@@ -112,7 +112,12 @@ export const BIOLOGY_STRUCTURE: MajorStructure = {
     "*Requires faculty mentor",
   ],
   lists: {
-    cmb: { key: "cmb", label: "Theme: Cell and Molecular Biology (CMB)", courses: BIOLOGY_THEME_CMB },
+    cmb: {
+      key: "cmb",
+      label: "Theme: Cell and Molecular Biology (CMB)",
+      courses: BIOLOGY_THEME_CMB,
+      note: "The 2026-27 Bulletin titles BIOL 115 “Animal Development L&L”; CampusVal's course catalog still shows its earlier title.",
+    },
     eeb: { key: "eeb", label: "Theme: Ecology, Evolution and Biodiversity (EEB)", courses: BIOLOGY_THEME_EEB },
     mod: { key: "mod", label: "Theme: Biological Modeling (MOD)", courses: BIOLOGY_THEME_MOD },
     "jes-lab": {
