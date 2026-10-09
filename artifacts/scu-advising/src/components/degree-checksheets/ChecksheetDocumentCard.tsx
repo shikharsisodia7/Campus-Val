@@ -62,7 +62,7 @@ import { MyTrackingPanel } from "./MyTrackingPanel";
 import { AddToPlanningDialog, type TransferSource } from "./AddToPlanningDialog";
 import { TransferProvider, type TransferStart } from "./TransferContext";
 import { useOptionalDegreePlanContext } from "@/components/degree-plan/DegreePlanContext";
-import { SaveIndicator } from "./TrackingControls";
+import { MyTrackingTag, SaveIndicator } from "./TrackingControls";
 import {
   FORMAT_LABEL,
   checksheetCategoryLabel,
@@ -173,7 +173,7 @@ export function ChecksheetDocumentCard({
 
   return (
     <Card ref={cardRef} className="overflow-hidden" data-testid={`checksheet-document-${document.id}`} data-checksheet-card={document.id}>
-      <div className="flex flex-wrap items-start gap-x-3 gap-y-2 p-3 sm:p-4">
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-2 p-3 sm:p-4 xl:gap-y-1.5 xl:p-2.5">
         <button
           type="button"
           className="flex min-w-0 flex-1 basis-64 items-start gap-2 rounded-sm text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -189,13 +189,12 @@ export function ChecksheetDocumentCard({
           )}
           <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
           <span className="min-w-0">
-            <span className="block break-words font-serif text-lg font-semibold leading-tight" data-testid="checksheet-title">
+            <span className="block break-words font-serif text-lg font-semibold leading-tight xl:text-base" data-testid="checksheet-title">
               {document.title}
             </span>
-            <span className="mt-0.5 block break-words text-xs text-muted-foreground" data-testid="checksheet-summary">
-              {summary.join(" · ")}
-            </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
+            <span className="mt-0.5 block break-words text-xs text-muted-foreground">
+              <span data-testid="checksheet-summary">{summary.join(" · ")}</span>
+              <span aria-hidden="true">{" · "}</span>
               {document.academicYearLabel && (
                 <>
                   <span className="font-medium text-foreground" data-testid="checksheet-year">
@@ -208,15 +207,15 @@ export function ChecksheetDocumentCard({
                 {formatUploadDate(document.uploadedAt)}
               </span>
             </span>
-            <span className="mt-0.5 block break-all text-[11px] text-muted-foreground">
+            <span className="mt-0.5 block break-all text-[11px] text-muted-foreground xl:text-[10px]">
               {document.fileName} · {FORMAT_LABEL[document.sourceFormat]} · {formatBytes(document.fileSize)} · File status:{" "}
               <span data-testid="checksheet-status">{renderStatusLabel(document)}</span>
             </span>
           </span>
         </button>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Button asChild variant="outline" size="sm" className="h-9 text-xs xl:h-8">
+        <div className="flex flex-wrap items-center gap-1.5 xl:gap-1">
+          <Button asChild variant="outline" size="sm" className="h-9 text-xs xl:h-7 xl:px-2 xl:text-[11px]">
             <a
               href={originalFileUrl(document.id)}
               target="_blank"
@@ -228,22 +227,22 @@ export function ChecksheetDocumentCard({
               Open original
             </a>
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs xl:h-8" onClick={() => show("rename")} data-testid={`checksheet-rename-${document.id}`}>
+          <Button variant="outline" size="sm" className="h-9 text-xs xl:h-7 xl:px-2 xl:text-[11px]" onClick={() => show("rename")} data-testid={`checksheet-rename-${document.id}`}>
             <Pencil className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Rename
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs xl:h-8" onClick={() => show("details")} data-testid={`checksheet-details-${document.id}`}>
+          <Button variant="outline" size="sm" className="h-9 text-xs xl:h-7 xl:px-2 xl:text-[11px]" onClick={() => show("details")} data-testid={`checksheet-details-${document.id}`}>
             <Settings2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Edit details
           </Button>
-          <Button variant="outline" size="sm" className="h-9 text-xs xl:h-8" onClick={() => show("replace")} data-testid={`checksheet-replace-${document.id}`}>
+          <Button variant="outline" size="sm" className="h-9 text-xs xl:h-7 xl:px-2 xl:text-[11px]" onClick={() => show("replace")} data-testid={`checksheet-replace-${document.id}`}>
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             Replace
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-9 text-xs text-destructive hover:text-destructive xl:h-8"
+            className="h-9 text-xs text-destructive hover:text-destructive xl:h-7 xl:px-2 xl:text-[11px]"
             onClick={() => setConfirmDelete(true)}
             disabled={deleteMutation.isPending}
             data-testid={`checksheet-delete-${document.id}`}
@@ -257,7 +256,7 @@ export function ChecksheetDocumentCard({
       <div id={panelId} hidden={!open} className="border-t border-border/60">
         {/* Rendered only while open, so a collapsed document costs nothing. */}
         {open && (
-          <div className="space-y-3 p-3 sm:p-4">
+          <div className="space-y-3 p-3 sm:p-4 xl:space-y-2 xl:p-2.5">
             {mode === "rename" && <RenameForm document={document} onDone={() => setMode("view")} />}
             {mode === "details" && <DetailsForm document={document} onDone={() => setMode("view")} />}
             {mode === "replace" && (
@@ -293,7 +292,7 @@ export function ChecksheetDocumentCard({
             )}
 
             {sourceUrl && (
-              <p className="text-xs text-muted-foreground" data-testid={`checksheet-source-${document.id}`}>
+              <p className="text-xs text-muted-foreground xl:text-[11px]" data-testid={`checksheet-source-${document.id}`}>
                 You recorded where this document came from:{" "}
                 <a
                   href={sourceUrl}
@@ -307,10 +306,10 @@ export function ChecksheetDocumentCard({
               </p>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-              <p className="min-w-0 flex-1 basis-64 text-xs text-muted-foreground" data-testid="checksheet-source-notice">
-                The document below is shown as you uploaded it and is never changed. Anything marked “My tracking”
-                is your own entry, kept separately.
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+              <p className="min-w-0 flex-1 basis-64 text-xs text-muted-foreground xl:text-[11px]" data-testid="checksheet-source-notice">
+                The document below is shown as you uploaded it and is never changed. Anything marked{" "}
+                <MyTrackingTag className="align-middle normal-case tracking-normal" /> is your own entry, kept separately.
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <SaveIndicator state={tracking.saveState} onRetry={tracking.retry} testId={`checksheet-save-${document.id}`} />
@@ -319,7 +318,7 @@ export function ChecksheetDocumentCard({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 gap-1.5 text-xs xl:h-8"
+                    className="h-9 gap-1.5 text-xs xl:h-7 xl:px-2 xl:text-[11px]"
                     onPointerDown={() => (pressedSelection.current = selectedInDocument())}
                     onClick={() => {
                       // Whatever the student has selected in this document, to start from (or nothing: they write the note).
@@ -338,7 +337,7 @@ export function ChecksheetDocumentCard({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 gap-1.5 text-xs xl:h-8"
+                  className="h-9 gap-1.5 text-xs xl:h-7 xl:px-2 xl:text-[11px]"
                   aria-pressed={!showTracking}
                   onClick={() => setShowTracking((v) => !v)}
                   data-testid={`checksheet-toggle-tracking-${document.id}`}

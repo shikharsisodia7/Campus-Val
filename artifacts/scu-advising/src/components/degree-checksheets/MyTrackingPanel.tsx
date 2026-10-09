@@ -68,7 +68,7 @@ export function MyTrackingPanel({
   return (
     <section
       aria-labelledby={headingId}
-      className="space-y-3 rounded-md border border-primary/25 bg-primary/[0.03] p-3"
+      className="space-y-3 rounded-md border border-primary/25 bg-primary/[0.03] p-3 xl:space-y-2 xl:p-2.5"
       data-testid={`checksheet-my-tracking-${documentId}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -77,7 +77,7 @@ export function MyTrackingPanel({
         </h3>
         <MyTrackingTag />
       </div>
-      <p className="text-xs text-muted-foreground" data-testid="checksheet-tracking-help">
+      <p className="text-xs text-muted-foreground xl:text-[11px]" data-testid="checksheet-tracking-help">
         Your own planning notes for this document. They are saved in CampusVal, only you can see them, and they
         never change the original file.
         {inlineAvailable && " Where this document has a Status or Quarter column, you can also fill it in directly above."}
@@ -253,11 +253,11 @@ export function MyTrackingPanel({
             maxLength={200}
             placeholder="e.g. Upper-division elective"
             onChange={(e) => setLabel(e.target.value)}
-            className="h-9"
+            className="h-9 xl:h-7 xl:text-xs"
             data-testid="checksheet-manual-label"
           />
         </div>
-        <Button type="submit" size="sm" className="h-9 gap-1.5" disabled={!label.trim()} data-testid="checksheet-manual-submit">
+        <Button type="submit" size="sm" className="h-9 gap-1.5 xl:h-7 xl:text-xs" disabled={!label.trim()} data-testid="checksheet-manual-submit">
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add to my list
         </Button>
@@ -287,11 +287,11 @@ function EntryRow({
   const [labelDraft, setLabelDraft] = useState(entry.itemLabel ?? "");
   return (
     <li
-      className="grid gap-2 rounded-md border border-border bg-background p-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:items-end"
+      className="grid gap-2 rounded-md border border-border bg-background p-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:items-end xl:grid-cols-[minmax(0,1fr)_7.5rem_9.5rem_auto] xl:items-center xl:gap-1.5 xl:p-1.5"
       data-testid={`checksheet-entry-${entry.key}`}
       data-entry-type={entry.anchorType}
     >
-      <div className="min-w-0 space-y-1">
+      <div className="min-w-0 space-y-1 xl:flex xl:flex-wrap xl:items-center xl:gap-1.5 xl:space-y-0">
         {heading}
         {editableLabel && (
           <>
@@ -302,7 +302,7 @@ function EntryRow({
               id={labelId}
               value={labelDraft}
               maxLength={200}
-              className="h-9"
+              className="h-9 xl:h-7 xl:min-w-0 xl:flex-1 xl:text-xs"
               onChange={(e) => {
                 setLabelDraft(e.target.value);
                 // An empty name is not saved; the last saved name stays.
@@ -323,7 +323,7 @@ function EntryRow({
           value={entry.note ?? ""}
           maxLength={500}
           placeholder="Note (optional)"
-          className="h-8 text-xs"
+          className="h-8 text-xs xl:h-7 xl:min-w-0 xl:flex-1"
           onChange={(e) => tracking.change(entry.key, { note: e.target.value || null }, TYPING_DELAY_MS)}
           data-testid={`checksheet-entry-note-${entry.key}`}
         />
@@ -347,7 +347,7 @@ function EntryRow({
             type="button"
             variant="outline"
             size="icon"
-            className="h-9 w-9"
+            className="h-9 w-9 xl:h-7 xl:w-7"
             // The annotation's own id is the stable anchor (provenance only; nothing of the entry is copied but the words).
             onClick={() => transfer({ text: [entry.itemLabel, entry.note].filter(Boolean).join(": "), anchor: entry.id != null ? `annotation:${entry.id}` : null })}
             aria-label={`Add ${name} to my Planning Requirements`}
@@ -361,7 +361,7 @@ function EntryRow({
           type="button"
           variant="outline"
           size="icon"
-          className="h-9 w-9 text-destructive hover:text-destructive"
+          className="h-9 w-9 text-destructive hover:text-destructive xl:h-7 xl:w-7"
           onClick={() => tracking.remove(entry.key)}
           aria-label={`Remove the entry for ${name}`}
           data-testid={`checksheet-entry-remove-${entry.key}`}

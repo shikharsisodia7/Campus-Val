@@ -51,7 +51,7 @@ function ChecksheetWorkspace() {
   const actions = (
     <div className="flex flex-wrap gap-2">
       <Button
-        className="h-9 gap-2 text-sm"
+        className="h-9 gap-2 text-sm xl:h-8 xl:text-xs"
         onClick={() => setUploading(true)}
         disabled={available !== true || atLimit}
         title={atLimit ? `You can keep up to ${data?.maxDocuments} documents.` : undefined}
@@ -60,7 +60,7 @@ function ChecksheetWorkspace() {
         <Upload className="h-4 w-4" aria-hidden="true" />
         Upload Checksheet
       </Button>
-      <Button asChild variant="outline" className="h-9 gap-2 text-sm">
+      <Button asChild variant="outline" className="h-9 gap-2 text-sm xl:h-8 xl:text-xs">
         <a
           href={SCU_CHECKSHEETS_URL}
           target="_blank"
@@ -77,18 +77,25 @@ function ChecksheetWorkspace() {
 
   return (
     <div className="space-y-3 pr-1" data-testid="checksheet-workspace">
-      <Card className="px-3 py-2" data-testid="card-checksheets-help">
-        <ul className="list-disc space-y-0.5 pl-4 text-xs leading-relaxed text-foreground">
-          <li>
-            Checksheets are advising resources published by SCU departments. <strong>You choose</strong> the
-            document that fits your planning and upload it here.
-          </li>
-          <li>
-            Your status and quarter entries are your own planning notes. The original document is never changed,
-            and only you can see what you upload or enter.
-          </li>
-          <li>Workday is the definitive reference for degree completion.</li>
-        </ul>
+      {/* One line, with the rest a click away: the documents are what this page is for. */}
+      <Card className="px-3 py-1.5" data-testid="card-checksheets-help">
+        <p className="text-xs leading-relaxed text-foreground">
+          Your entries are your own planning notes; the original document is never changed.{" "}
+          <strong>Workday is the definitive reference for degree completion.</strong>
+        </p>
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer select-none underline-offset-2 hover:underline">About Degree Checksheets</summary>
+          <ul className="mt-0.5 list-disc space-y-0.5 pl-4 leading-relaxed">
+            <li>
+              Checksheets are advising resources published by SCU departments. <strong>You choose</strong> the
+              document that fits your planning and upload it here.
+            </li>
+            <li>
+              Your status and quarter entries are your own planning notes. The original document is never changed,
+              and only you can see what you upload or enter.
+            </li>
+          </ul>
+        </details>
       </Card>
 
       {isLoading && (
@@ -143,8 +150,8 @@ function ChecksheetWorkspace() {
 
       {available === true && documents.length > 0 && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground" data-testid="checksheet-document-count">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground xl:text-xs" data-testid="checksheet-document-count">
               {documents.length} document{documents.length === 1 ? "" : "s"} uploaded. Open one at a time, or
               several.
             </p>
@@ -159,7 +166,7 @@ function ChecksheetWorkspace() {
                   type="button"
                   size="sm"
                   variant={active === option.value ? "default" : "outline"}
-                  className={cn("h-9 text-xs")}
+                  className={cn("h-9 text-xs xl:h-7")}
                   aria-pressed={active === option.value}
                   onClick={() => setFilter(option.value)}
                   data-testid={`checksheet-filter-${option.value}`}

@@ -9,10 +9,15 @@ const context = await browser.newContext({ storageState: "storage/student-a.json
 const page = await context.newPage();
 await page.goto(base + path, { waitUntil: "networkidle" });
 await page.waitForTimeout(1500);
+for (const sel of (process.env.QA_CLICK ?? "").split("||").filter(Boolean)) {
+  await page.locator(sel).first().click();
+  await page.waitForTimeout(1200);
+}
+if (process.env.QA_SCROLL) await page.locator(process.env.QA_SCROLL).first().scrollIntoViewIfNeeded();
 if (evalJs) {
   const result = await page.evaluate(evalJs);
   console.log(JSON.stringify(result, null, 1));
 }
-await page.screenshot({ path: out, fullPage: true });
+await page.screenshot({ path: out, fullPage: process.env.QA_FULL !== "0" });
 console.log("shot", out, await page.evaluate(() => [window.innerWidth, document.documentElement.scrollWidth, document.body.scrollHeight]));
 await browser.close();
