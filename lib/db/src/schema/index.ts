@@ -32,3 +32,4 @@ export * from "./plan-shares";
 export * from "./degree-checksheets";
 export * from "./requirement-customizations";
 export * from "./department-requirements";
+export * from "./degree-completion";

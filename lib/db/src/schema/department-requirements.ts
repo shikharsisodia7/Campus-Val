@@ -73,6 +73,14 @@ export const departmentRequirementNotesTable = pgTable(
     targetKey: text("target_key"),
     bulletinEdition: text("bulletin_edition").notNull(),
     body: text("body").notNull(),
+    /** Optional short heading ("Courses that fulfill the CMB theme"). */
+    title: text("title"),
+    /**
+     * Optional catalog course codes the note refers to (a course list the
+     * department maintains). Codes only, validated against the catalog; the
+     * note text stays free-form.
+     */
+    courseCodes: jsonb("course_codes").$type<string[]>().notNull().default([]),
     /** Optional label: requirement | sequence | core_overlap | advising. */
     noteKind: text("note_kind"),
     status: text("status").notNull().default("draft"),
