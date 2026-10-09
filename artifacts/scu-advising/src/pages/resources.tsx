@@ -12,6 +12,7 @@ import {
 import {
   OFFICIAL_RESOURCES,
   PRE_PROFESSIONAL_TRACKS,
+  visibleTrustedResources,
 } from "@/data/advising-resources";
 
 /**
