@@ -7,7 +7,7 @@ import { AvailabilityService } from "./service";
 export * from "./types";
 export * from "./freshness";
 export { AvailabilityService, sectionKey } from "./service";
-export type { TermAvailability, LiveFeedState } from "./service";
+export type { TermAvailability, LiveFeedState, TermDiagnostics, RefreshOutcome } from "./service";
 
 type Env = Record<string, string | undefined>;
 
@@ -58,6 +58,8 @@ export function buildAvailabilityService(env: Env = process.env): AvailabilitySe
     fixture,
     manual: new ManualPasteAvailabilityProvider(),
     cacheTtlMs: intOr(env["WORKDAY_AVAILABILITY_CACHE_TTL_SECONDS"], 60, 5, 3600) * 1000,
+    // Shortest gap a student's "Refresh availability" may force (bounded upstream traffic).
+    minRefreshIntervalMs: intOr(env["WORKDAY_AVAILABILITY_MIN_REFRESH_SECONDS"], 30, 5, 3600) * 1000,
     livePolicy: {
       liveWithinMs: intOr(env["WORKDAY_AVAILABILITY_LIVE_WITHIN_SECONDS"], 120, 5, 3600) * 1000,
       staleAfterMs: intOr(env["WORKDAY_AVAILABILITY_STALE_AFTER_SECONDS"], 900, 30, 86_400) * 1000,
