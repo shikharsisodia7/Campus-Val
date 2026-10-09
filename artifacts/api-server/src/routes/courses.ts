@@ -9,6 +9,9 @@ import {
 import { requiredComponentsFor } from "../lib/course-components";
 import { courseTermSections } from "../lib/term-sections";
 import { getAvailabilityService, sectionKey, type ResolvedAvailability } from "../lib/availability";
+import { timingSafeEqual } from "node:crypto";
+import { requireAuth } from "../middlewares/requireAuth";
+import { requireRole } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -232,6 +235,75 @@ router.get("/section-availability/status", async (req, res) => {
     sectionsWithKnownAvailability: known,
     counts,
   });
+});
+
+/**
+ * POST /section-availability/refresh  { term, year }
+ *
+ * "Refresh availability" during registration. Signed-in students only, and
+ * bounded twice: one forced upstream call per term per
+ * WORKDAY_AVAILABILITY_MIN_REFRESH_SECONDS whoever asks (in the service), and
+ * one request per student per that interval (here). With no live source there
+ * is nothing to refresh, and the answer says so: a static schedule is never
+ * presented as refreshed live data.
+ */
+const lastRefreshByUser = new Map<string, number>();
+router.post("/section-availability/refresh", requireAuth, async (req, res) => {
+  const term = String(req.body?.term ?? "");
+  const year = Number(req.body?.year);
+  if (!VALID_TERMS.has(term) || !Number.isInteger(year) || year < 2024 || year > 2030) {
+    return res.status(400).json({ error: "term (fall|winter|spring|summer) and year are required" });
+  }
+  const service = getAvailabilityService();
+  const window = service.diagnostics().minRefreshSeconds * 1000;
+  const userId = req.userId!;
+  const last = lastRefreshByUser.get(userId);
+  const now = Date.now();
+  if (last !== undefined && now - last < window) {
+    return res.status(429).json({ refreshed: false, reason: "too_soon", retryAfterSeconds: Math.ceil((window - (now - last)) / 1000) });
+  }
+  lastRefreshByUser.set(userId, now);
+  if (lastRefreshByUser.size > 5000) lastRefreshByUser.delete(lastRefreshByUser.keys().next().value!);
+  const outcome = await service.refreshTerm(term as Term, year);
+  res.json(outcome);
+});
+
+/**
+ * GET /admin/availability/status — for watching availability during
+ * registration: whether a live source is configured, cache/refresh settings,
+ * and per term the last attempt, last success, failures (count and category)
+ * and sections updated. Administrators only; never a URL, credential or body.
+ */
+router.get("/admin/availability/status", requireAuth, requireRole("admin"), (_req, res) => {
+  res.json(getAvailabilityService().diagnostics());
+});
+
+/**
+ * POST /internal/availability/refresh — the scheduled-ingestion hook. A
+ * scheduler (Cloud Scheduler, a cron job, Vercel Cron) calls it with
+ * "Authorization: Bearer $AVAILABILITY_INGEST_SECRET"; it refreshes the terms
+ * named in AVAILABILITY_INGEST_TERMS ("fall-2026,winter-2027"). Off (404)
+ * unless the secret is set. It only warms CampusVal's own cache from the
+ * configured live provider; it never scrapes anything.
+ */
+router.post("/internal/availability/refresh", async (req, res) => {
+  const secret = process.env["AVAILABILITY_INGEST_SECRET"]?.trim();
+  if (!secret || secret.length < 24) return res.status(404).json({ error: "Not found" });
+  const header = req.header("authorization") ?? "";
+  const given = Buffer.from(header.startsWith("Bearer ") ? header.slice(7) : "");
+  const expected = Buffer.from(secret);
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const terms = (process.env["AVAILABILITY_INGEST_TERMS"] ?? "")
+    .split(",")
+    .map((t) => /^(fall|winter|spring|summer)-(\d{4})$/.exec(t.trim()))
+    .filter((m): m is RegExpExecArray => m !== null)
+    .map((m) => ({ term: m[1] as Term, year: Number(m[2]) }));
+  const service = getAvailabilityService();
+  const results = [];
+  for (const t of terms) results.push({ ...t, outcome: await service.refreshTerm(t.term, t.year) });
+  res.json({ liveConfigured: service.liveConfigured, results });
 });
 
 router.get("/courses/:code", (req, res) => {

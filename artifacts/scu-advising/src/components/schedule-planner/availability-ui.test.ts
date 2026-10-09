@@ -1,12 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  bannerFor,
-  countByStatus,
-  freshnessLine,
-  passesAvailabilityView,
-  relativeTime,
-  sourceChip,
-} from "./availability-ui";
+import { bannerFor, countByStatus, freshnessLine, passesAvailabilityView, relativeTime, sourceChip, hiddenByOpenView, componentOpenGaps } from "./availability-ui";
 
 const NOW = new Date("2026-09-19T20:00:00Z");
 const ago = (ms: number) => new Date(NOW.getTime() - ms).toISOString();
@@ -16,11 +9,31 @@ describe("Open Sections / All Sections", () => {
     for (const s of ["open", "waitlist", "full", "unknown"] as const) expect(passesAvailabilityView(s, "all")).toBe(true);
   });
 
-  it("Open Sections hides only what is KNOWN not to be open", () => {
+  it("Open Sections shows only sections reported open: unknown is not open", () => {
     expect(passesAvailabilityView("open", "open")).toBe(true);
-    expect(passesAvailabilityView("unknown", "open")).toBe(true);
+    expect(passesAvailabilityView("unknown", "open")).toBe(false);
     expect(passesAvailabilityView("waitlist", "open")).toBe(false);
     expect(passesAvailabilityView("full", "open")).toBe(false);
+    for (const s of ["open", "unknown", "waitlist", "full"] as const) expect(passesAvailabilityView(s, "all")).toBe(true);
+  });
+
+  it("says what Open Sections left out, by reason", () => {
+    expect(
+      hiddenByOpenView([{ availabilityStatus: "open" }, { availabilityStatus: "full" }, { availabilityStatus: "waitlist" }, { availabilityStatus: "unknown" }, { availabilityStatus: "unknown" }]),
+    ).toEqual({ full: 1, waitlist: 1, unknown: 2, total: 4 });
+  });
+
+  it("an open lecture does not make a lecture + lab course open: each required part needs an open section", () => {
+    const sections = [
+      { componentType: "lecture", availabilityStatus: "open" as const },
+      { componentType: "lab", availabilityStatus: "full" as const },
+      { componentType: "lab", availabilityStatus: "waitlist" as const },
+      { componentType: "discussion", availabilityStatus: "unknown" as const },
+    ];
+    expect(componentOpenGaps(sections, ["lecture", "lab", "discussion"])).toEqual({ closed: ["lab"], unknown: ["discussion"] });
+    expect(componentOpenGaps([...sections, { componentType: "lab", availabilityStatus: "open" as const }], ["lecture", "lab"])).toEqual({ closed: [], unknown: [] });
+    // A part with no sections listed yet is not judged here.
+    expect(componentOpenGaps(sections, ["lecture", "studio"])).toEqual({ closed: [], unknown: [] });
   });
 
   it("counts sections by status", () => {

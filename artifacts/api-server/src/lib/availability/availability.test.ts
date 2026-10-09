@@ -533,3 +533,64 @@ describe("WorkdayAvailabilityProvider over a real HTTP connection", () => {
     expect(t.bySection.size).toBe(0);
   });
 });
+
+describe("refresh and diagnostics (Fall registration monitoring)", () => {
+  it("records attempts, successes, failures (with category) and sections updated, per term", async () => {
+    let now = NOW;
+    let fail = false;
+    const live = fakeProvider(
+      "workday_live",
+      async () => (fail ? { ok: false, reason: "timeout", message: "x" } : okResult([rec({ sectionNumber: "01", status: "open" }), rec({ sectionNumber: "02", status: "full" })])),
+      true,
+    );
+    const svc = new AvailabilityService({ live, manual: emptyManual(), now: () => now, cacheTtlMs: 60_000, minRefreshIntervalMs: 30_000 });
+    await svc.getTermAvailability("fall", 2026);
+    let d = svc.diagnostics();
+    expect(d).toMatchObject({ liveConfigured: true, provider: "workday_live", cacheTtlSeconds: 60, minRefreshSeconds: 30 });
+    expect(d.terms).toEqual([
+      expect.objectContaining({ term: "fall", year: 2026, totalSuccesses: 1, totalFailures: 0, consecutiveFailures: 0, sectionsUpdated: 2, lastFailureReason: null }),
+    ]);
+    fail = true;
+    now = new Date(NOW.getTime() + 61_000);
+    await svc.getTermAvailability("fall", 2026);
+    d = svc.diagnostics();
+    expect(d.terms[0]).toMatchObject({ totalFailures: 1, consecutiveFailures: 1, lastFailureReason: "timeout", sectionsUpdated: 2 });
+    expect(JSON.stringify(d)).not.toMatch(/https?:|token|Bearer/i);
+  });
+
+  it("a refresh is bounded: one forced upstream call per interval, whoever asks", async () => {
+    let now = NOW;
+    const live = fakeProvider("workday_live", async () => okResult([rec({ sectionNumber: "01", status: "open" })]), true);
+    const svc = new AvailabilityService({ live, manual: emptyManual(), now: () => now, cacheTtlMs: 300_000, minRefreshIntervalMs: 30_000 });
+    await svc.getTermAvailability("fall", 2026);
+    expect(live.calls).toBe(1);
+    expect(await svc.refreshTerm("fall", 2026)).toMatchObject({ refreshed: false, reason: "too_soon" });
+    expect(live.calls).toBe(1);
+    now = new Date(NOW.getTime() + 31_000);
+    expect(await svc.refreshTerm("fall", 2026)).toEqual({ refreshed: true });
+    expect(live.calls).toBe(2);
+  });
+
+  it("a failed refresh keeps serving the last good answer (stale-if-error), never a fabricated one", async () => {
+    let now = NOW;
+    let fail = false;
+    const live = fakeProvider(
+      "workday_live",
+      async () => (fail ? { ok: false, reason: "upstream_error", message: "x" } : okResult([rec({ sectionNumber: "01", status: "open" })])),
+      true,
+    );
+    const svc = new AvailabilityService({ live, manual: emptyManual(), now: () => now, cacheTtlMs: 300_000, minRefreshIntervalMs: 10_000 });
+    await svc.getTermAvailability("fall", 2026);
+    fail = true;
+    now = new Date(NOW.getTime() + 11_000);
+    expect(await svc.refreshTerm("fall", 2026)).toEqual({ refreshed: false, reason: "failed", failure: "upstream_error" });
+    const t = await svc.getTermAvailability("fall", 2026);
+    expect(t.bySection.get(sectionKey("CSCI 10", "01"))!.availabilityStatus).toBe("open");
+  });
+
+  it("with no live source there is nothing to refresh, and it says so", async () => {
+    const svc = new AvailabilityService({ live: null, manual: emptyManual(), now: () => NOW });
+    expect(await svc.refreshTerm("fall", 2026)).toEqual({ refreshed: false, reason: "not_live" });
+    expect(svc.diagnostics()).toMatchObject({ liveConfigured: false, provider: null, terms: [] });
+  });
+});

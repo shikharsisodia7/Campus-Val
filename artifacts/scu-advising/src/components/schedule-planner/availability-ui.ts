@@ -21,13 +21,43 @@ export type SectionAvailabilityLike = {
 };
 
 /**
- * "Open Sections" hides only what CampusVal KNOWS is not open (full or
- * waitlisted). A section whose availability is unknown is kept — hiding it
- * could hide a section that is actually open — and is labelled UNKNOWN.
+ * "Open Sections" shows ONLY sections the configured availability source
+ * reports open. Unknown is not open: a section that merely exists, or whose
+ * capacity is missing, is never treated as open. Everything else stays under
+ * "All Sections", and the list says how many were left out and why.
  */
 export function passesAvailabilityView(status: AvailabilityStatus, view: AvailabilityView): boolean {
   if (view === "all") return true;
-  return status === "open" || status === "unknown";
+  return status === "open";
+}
+
+/** What "Open Sections" leaves out, by reason, so the list can say so. */
+export function hiddenByOpenView(sections: { availabilityStatus: AvailabilityStatus }[]) {
+  const c = countByStatus(sections);
+  return { full: c.full, waitlist: c.waitlist, unknown: c.unknown, total: c.full + c.waitlist + c.unknown };
+}
+
+/**
+ * For a course that needs several components (lecture + lab), the components
+ * with NO section reported open. An open lecture does not make the course
+ * open: the student needs a viable combination. Only components whose
+ * availability is known are judged; a component with only unknown sections is
+ * reported separately, never as open or closed.
+ */
+export function componentOpenGaps(
+  sections: { componentType?: string | null; availabilityStatus: AvailabilityStatus }[],
+  required: string[],
+): { closed: string[]; unknown: string[] } {
+  const closed: string[] = [];
+  const unknown: string[] = [];
+  for (const component of required) {
+    const mine = sections.filter((s) => (s.componentType ?? "unknown") === component);
+    if (mine.length === 0) continue; // not published yet: said elsewhere
+    if (mine.some((s) => s.availabilityStatus === "open")) continue;
+    if (mine.every((s) => s.availabilityStatus === "unknown")) unknown.push(component);
+    else closed.push(component);
+  }
+  return { closed, unknown };
 }
 
 export function countByStatus(sections: { availabilityStatus: AvailabilityStatus }[]) {
