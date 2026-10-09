@@ -59,6 +59,11 @@ Built from the variables the code actually reads (`process.env` / `import.meta.e
 | `WORKDAY_AVAILABILITY_AUTH_TOKEN` | CV | If enabled | **Yes** | Credential issued by SCU |
 | `WORKDAY_AVAILABILITY_AUTH_HEADER`, `_AUTH_SCHEME`, `_TIMEOUT_MS`, `_CACHE_TTL_SECONDS`, `_LIVE_WITHIN_SECONDS`, `_STALE_AFTER_SECONDS` | CV | No | No | Availability tuning |
 | `AVAILABILITY_FIXTURE_ENABLED` | CV | No | No | Dev-only sample seat data (ignored in production) |
+| `WORKDAY_AVAILABILITY_MIN_REFRESH_SECONDS` | CV | No | No | Shortest gap a "Refresh availability" may force per term (default 30) |
+| `AVAILABILITY_INGEST_SECRET` | CV | No | **Yes** | Enables the scheduled-ingestion hook `POST /api/internal/availability/refresh` (24+ characters) |
+| `AVAILABILITY_INGEST_TERMS` | CV | With the secret | No | Terms the hook refreshes, `fall-2026,winter-2027` |
+| `DEGREE_COMPLETION_ASSESSMENT_ENABLED` | CV | No | No | Set `false` to hide the Degree Completion Assessment (default on). See [DEGREE_COMPLETION_ASSESSMENT.md](DEGREE_COMPLETION_ASSESSMENT.md) |
+| `DEGREE_COMPLETION_IN_PROGRESS_REMAINING_IS_ADDITIONAL` | CV | No | No | Registrar-dependent assessment subrule, default `false` |
 | `REQUIREMENTS_BENCHMARK_PROVIDER` | CV | No | No | Requirements source selector (default current Bulletin) |
 | `REQUIREMENTS_BULLETIN_EDITION` | CV | No | No | Which loaded Bulletin edition builds the sidebar (default: the latest). See [BULLETIN_BASELINE.md](BULLETIN_BASELINE.md) |
 | `MIGRATIONS_DIR` | CV | No | No | Override migration folder |
