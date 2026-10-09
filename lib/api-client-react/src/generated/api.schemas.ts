@@ -1968,6 +1968,47 @@ export interface RequirementItemCustomization {
   updatedAt: string;
 }
 
+export type RequirementChoiceKind =
+  (typeof RequirementChoiceKind)[keyof typeof RequirementChoiceKind];
+
+export const RequirementChoiceKind = {
+  choose: "choose",
+  alternatives: "alternatives",
+} as const;
+
+export type RequirementChoiceListsItem = {
+  key: string;
+  label: string;
+  /** @nullable */
+  note: string | null;
+  courses: string[];
+};
+
+export type RequirementChoiceAlternativesItem = {
+  label: string;
+  courses: string[];
+  recommended: boolean;
+};
+
+/**
+ * How a choice requirement is satisfied, when it is one: "choose N" from named Bulletin course lists, or one of several alternative course sets. Counts are CampusVal's planning view; each course counts toward one requirement of the program only. Null for a single-course requirement.
+ * @nullable
+ */
+export type RequirementChoice = {
+  kind: RequirementChoiceKind;
+  /**
+   * How many courses a choose rule needs. Null for alternatives or a unit-based minimum.
+   * @nullable
+   */
+  minimum: number | null;
+  completedCount: number;
+  plannedCount: number;
+  /** The named course lists a choose rule draws on, in the Bulletin's order. */
+  lists: RequirementChoiceListsItem[];
+  /** The course sets of an alternatives rule; completing any one satisfies it. */
+  alternatives: RequirementChoiceAlternativesItem[];
+} | null;
+
 export type DepartmentNoteOrigin =
   (typeof DepartmentNoteOrigin)[keyof typeof DepartmentNoteOrigin];
 
@@ -2025,6 +2066,12 @@ export interface RequirementItem {
   /** completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither. */
   status?: RequirementItemStatus;
   complete: boolean;
+  /**
+   * The Bulletin heading this requirement sits under inside its group ("Upper-division themes — one course from each, all with laboratory"). Null when the group has no sub-headings.
+   * @nullable
+   */
+  section?: string | null;
+  choice?: RequirementChoice | null;
   /** Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note). */
   departmentNotes?: DepartmentNote[];
   /** Present when a department changed this requirement's wording or added it. */

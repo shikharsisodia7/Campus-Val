@@ -1302,6 +1302,51 @@ export const GetDegreeRequirementsResponse = zod.object({
               "completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither.",
             ),
           complete: zod.boolean(),
+          section: zod
+            .string()
+            .nullish()
+            .describe(
+              'The Bulletin heading this requirement sits under inside its group (\"Upper-division themes — one course from each, all with laboratory\"). Null when the group has no sub-headings.',
+            ),
+          choice: zod
+            .object({
+              kind: zod.enum(["choose", "alternatives"]),
+              minimum: zod
+                .number()
+                .nullable()
+                .describe(
+                  "How many courses a choose rule needs. Null for alternatives or a unit-based minimum.",
+                ),
+              completedCount: zod.number(),
+              plannedCount: zod.number(),
+              lists: zod
+                .array(
+                  zod.object({
+                    key: zod.string(),
+                    label: zod.string(),
+                    note: zod.string().nullable(),
+                    courses: zod.array(zod.string()),
+                  }),
+                )
+                .describe(
+                  "The named course lists a choose rule draws on, in the Bulletin's order.",
+                ),
+              alternatives: zod
+                .array(
+                  zod.object({
+                    label: zod.string(),
+                    courses: zod.array(zod.string()),
+                    recommended: zod.boolean(),
+                  }),
+                )
+                .describe(
+                  "The course sets of an alternatives rule; completing any one satisfies it.",
+                ),
+            })
+            .nullish()
+            .describe(
+              'How a choice requirement is satisfied, when it is one: \"choose N\" from named Bulletin course lists, or one of several alternative course sets. Counts are CampusVal\'s planning view; each course counts toward one requirement of the program only. Null for a single-course requirement.',
+            ),
           departmentNotes: zod
             .array(
               zod.object({
@@ -2564,6 +2609,51 @@ export const GetPlanRequirementsResponse = zod
                 "completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither.",
               ),
             complete: zod.boolean(),
+            section: zod
+              .string()
+              .nullish()
+              .describe(
+                'The Bulletin heading this requirement sits under inside its group (\"Upper-division themes — one course from each, all with laboratory\"). Null when the group has no sub-headings.',
+              ),
+            choice: zod
+              .object({
+                kind: zod.enum(["choose", "alternatives"]),
+                minimum: zod
+                  .number()
+                  .nullable()
+                  .describe(
+                    "How many courses a choose rule needs. Null for alternatives or a unit-based minimum.",
+                  ),
+                completedCount: zod.number(),
+                plannedCount: zod.number(),
+                lists: zod
+                  .array(
+                    zod.object({
+                      key: zod.string(),
+                      label: zod.string(),
+                      note: zod.string().nullable(),
+                      courses: zod.array(zod.string()),
+                    }),
+                  )
+                  .describe(
+                    "The named course lists a choose rule draws on, in the Bulletin's order.",
+                  ),
+                alternatives: zod
+                  .array(
+                    zod.object({
+                      label: zod.string(),
+                      courses: zod.array(zod.string()),
+                      recommended: zod.boolean(),
+                    }),
+                  )
+                  .describe(
+                    "The course sets of an alternatives rule; completing any one satisfies it.",
+                  ),
+              })
+              .nullish()
+              .describe(
+                'How a choice requirement is satisfied, when it is one: \"choose N\" from named Bulletin course lists, or one of several alternative course sets. Counts are CampusVal\'s planning view; each course counts toward one requirement of the program only. Null for a single-course requirement.',
+              ),
             departmentNotes: zod
               .array(
                 zod.object({

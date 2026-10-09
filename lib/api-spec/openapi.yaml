@@ -4468,6 +4468,14 @@ components:
             planned = a planned course would satisfy it; open = neither.
         complete:
           type: boolean
+        section:
+          type: [string, "null"]
+          description: >-
+            The Bulletin heading this requirement sits under inside its group
+            ("Upper-division themes — one course from each, all with laboratory").
+            Null when the group has no sub-headings.
+        choice:
+          $ref: "#/components/schemas/RequirementChoice"
         departmentNotes:
           type: array
           description: >-
@@ -4496,6 +4504,50 @@ components:
         - needsVerification
         - satisfiedBy
         - complete
+    RequirementChoice:
+      type: [object, "null"]
+      description: >-
+        How a choice requirement is satisfied, when it is one: "choose N" from
+        named Bulletin course lists, or one of several alternative course sets.
+        Counts are CampusVal's planning view; each course counts toward one
+        requirement of the program only. Null for a single-course requirement.
+      required: [kind, minimum, completedCount, plannedCount, lists, alternatives]
+      properties:
+        kind:
+          type: string
+          enum: [choose, alternatives]
+        minimum:
+          type: [integer, "null"]
+          description: "How many courses a choose rule needs. Null for alternatives or a unit-based minimum."
+        completedCount:
+          type: integer
+        plannedCount:
+          type: integer
+        lists:
+          type: array
+          description: The named course lists a choose rule draws on, in the Bulletin's order.
+          items:
+            type: object
+            required: [key, label, note, courses]
+            properties:
+              key: { type: string }
+              label: { type: string }
+              note: { type: [string, "null"] }
+              courses:
+                type: array
+                items: { type: string }
+        alternatives:
+          type: array
+          description: The course sets of an alternatives rule; completing any one satisfies it.
+          items:
+            type: object
+            required: [label, courses, recommended]
+            properties:
+              label: { type: string }
+              courses:
+                type: array
+                items: { type: string }
+              recommended: { type: boolean }
     DepartmentNote:
       type: object
       required: [id, body, kind, programKey, programTitle, sourceLabel, sourceUrl, sourceReference, origin, reviewed, updatedAt]

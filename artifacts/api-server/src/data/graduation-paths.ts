@@ -1539,6 +1539,32 @@ const UNIVERSITY_CORE_AREAS: { label: string; description: string }[] = [
   { label: "Foreign Language (3 quarters)", description: "B.A. only — 3-quarter intro sequence (waivable with AP/IB 4+ or proficiency exam)." },
 ];
 
+/** B.S. / professional degrees do not require the 3-quarter language sequence. */
+function skipsLanguage(recipe: MajorRecipe): boolean {
+  return (
+    !!recipe.noLanguage ||
+    recipe.college === "SOE" ||
+    recipe.college === "LSB" ||
+    recipe.mathTrack === "calc-stem" ||
+    recipe.mathTrack === "calc-life"
+  );
+}
+
+function universityCoreAreasGroup(skipLang: boolean): { label: string; courses: MajorRequirementCourse[] } {
+  const coreAreas = UNIVERSITY_CORE_AREAS.filter((a) => !(skipLang && a.label.startsWith("Foreign Language")));
+  return {
+    label: "University Core (areas — pick approved courses)",
+    courses: coreAreas.map((a) => ({
+      code: a.label,
+      title: a.label,
+      units: 4,
+      description: a.description,
+      completed: false,
+      category: "university-core" as const,
+    })),
+  };
+}
+
 export interface MajorRequirements {
   major: string;
   title: string;
@@ -1627,26 +1653,8 @@ export function getMajorRequirements(
   }
 
   // University Core (informational areas — not real course codes).
-  const skipLang =
-    recipe.noLanguage ||
-    recipe.college === "SOE" ||
-    recipe.college === "LSB" ||
-    recipe.mathTrack === "calc-stem" ||
-    recipe.mathTrack === "calc-life";
-  const coreAreas = UNIVERSITY_CORE_AREAS.filter(
-    (a) => !(skipLang && a.label.startsWith("Foreign Language")),
-  );
-  groups.push({
-    label: "University Core (areas — pick approved courses)",
-    courses: coreAreas.map((a) => ({
-      code: a.label,
-      title: a.label,
-      units: 4,
-      description: a.description,
-      completed: false,
-      category: "university-core" as const,
-    })),
-  });
+  const skipLang = skipsLanguage(recipe);
+  groups.push(universityCoreAreasGroup(skipLang));
 
   const notes: string[] = [...(recipe.notes ?? [])];
   if (missingFromCatalog.length > 0) {
