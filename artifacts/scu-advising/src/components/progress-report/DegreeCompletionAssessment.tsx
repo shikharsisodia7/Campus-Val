@@ -426,7 +426,7 @@ function AssessmentRow({ item, isAdmin, actions }: { item: DegreeCompletionItem;
           </div>
         </div>
       )}
-      {(isAdmin || import.meta.env.DEV) && (
+      {isAdmin && (
         <details className="mt-1 text-[10px] text-muted-foreground" data-testid={`dca-inspector-${item.key}`}>
           <summary className="cursor-pointer">Source inspector</summary>
           <dl className="mt-0.5 grid grid-cols-[auto,1fr] gap-x-2 font-mono">
