@@ -4692,6 +4692,259 @@ export const GetProgressReportSidebarResponse = zod.object({
 });
 
 /**
+ * A PLANNING AID derived on every request from the caller's own uploaded APRs:
+ * what appears to remain. Not Workday, not an official degree audit; Workday is
+ * the definitive reference for degree completion. Only Workday's explicit
+ * "Not Satisfied" is reported as remaining; "In Progress" is never reported as
+ * complete. The automatic result is returned beside the student's corrections.
+ * Owner-only; never reachable through a plan share.
+ * @summary CampusVal's Degree Completion Assessment of the caller's own APRs
+ */
+export const GetDegreeCompletionAssessmentResponse = zod.object({
+  enabled: zod.boolean(),
+  disclaimer: zod.string(),
+  ruleVersion: zod.string(),
+  available: zod.boolean(),
+  options: zod
+    .object({
+      inProgressRemainingIsAdditional: zod.boolean().optional(),
+    })
+    .optional(),
+  documents: zod.array(
+    zod.object({
+      report: zod.object({
+        id: zod.number(),
+        label: zod.string(),
+        category: zod
+          .enum([
+            "primary_major",
+            "second_major",
+            "additional_major",
+            "minor",
+            "additional_minor",
+            "other",
+          ])
+          .describe(
+            "What the student says this APR is for. Any number of documents may share a category,\nso nothing limits how many majors or minors a student can have. Never inferred from\nthe file.\n",
+          ),
+        displayOrder: zod.number(),
+        fileName: zod.string(),
+        fileSize: zod.number(),
+        contentType: zod.string(),
+        sourceFormat: zod.enum(["xlsx", "pdf"]),
+        uploadedAt: zod.coerce
+          .date()
+          .describe(
+            "When the CURRENT file was added to CampusVal. A replacement moves it forward. Not a Workday timestamp.",
+          ),
+        importStatus: zod
+          .enum(["processing", "ready", "unsupported", "failed"])
+          .describe(
+            'The state of the FILE IMPORT. \"ready\" means the file was read and can be displayed —\nit says nothing about academic requirements.\n',
+          ),
+        importErrorCode: zod.string().nullable(),
+        importErrorMessage: zod.string().nullable(),
+        sheetCount: zod
+          .number()
+          .describe(
+            "Sheets in the stored structural copy (0 when there is none).",
+          ),
+        tableFromPdf: zod
+          .boolean()
+          .optional()
+          .describe(
+            "True when the table was recovered from a PDF's text positions rather than read from spreadsheet cells. The original PDF remains the faithful copy.",
+          ),
+        fileFingerprint: zod
+          .string()
+          .nullish()
+          .describe(
+            "First 12 hex characters of the file's SHA-256, tying what is displayed to the file it came from.",
+          ),
+        createdAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+      state: zod.enum(["ready", "unrecognized_layout", "unavailable"]),
+      programs: zod.array(
+        zod.object({
+          key: zod.string(),
+          sheet: zod.string(),
+          block: zod.string().nullable(),
+          items: zod.array(
+            zod.object({
+              key: zod.string(),
+              label: zod
+                .string()
+                .describe("The requirement as Workday wrote it."),
+              aprStatus: zod
+                .string()
+                .nullable()
+                .describe("Workday's status, verbatim."),
+              remaining: zod
+                .string()
+                .nullable()
+                .describe("Workday's Remaining cell, verbatim."),
+              remainingKind: zod.string().nullable(),
+              remainingAmount: zod.number().nullable(),
+              registrations: zod.array(
+                zod.object({
+                  text: zod.string(),
+                  inProgress: zod.boolean(),
+                }),
+              ),
+              group: zod.string(),
+              groupKind: zod.string(),
+              automatic: zod.object({
+                state: zod.enum([
+                  "CLEAR_REMAINING",
+                  "LIKELY_COMPLETE",
+                  "AMBIGUOUS",
+                ]),
+                reason: zod.string(),
+                explanation: zod.string(),
+              }),
+              correction: zod
+                .object({
+                  status: zod
+                    .union([
+                      zod.literal("remaining"),
+                      zod.literal("complete"),
+                      zod.literal(null),
+                    ])
+                    .nullable(),
+                  hidden: zod.boolean(),
+                  note: zod.string().nullable(),
+                  sourceChanged: zod
+                    .boolean()
+                    .describe(
+                      "The APR row changed since the correction; it is not applied until confirmed.",
+                    ),
+                  updatedAt: zod.string(),
+                })
+                .nullable(),
+              effective: zod.enum([
+                "remaining",
+                "appears_complete",
+                "needs_review",
+                "complete_for_planning",
+              ]),
+              confidence: zod.enum([
+                "CLEAR_REMAINING",
+                "LIKELY_COMPLETE",
+                "AMBIGUOUS",
+                "USER_CORRECTED",
+              ]),
+              adjusted: zod.boolean(),
+              trace: zod
+                .object({
+                  sheet: zod.string(),
+                  sheetIndex: zod.number(),
+                  row: zod.number(),
+                  block: zod.string().nullable(),
+                  blockIndex: zod.number(),
+                  rule: zod.string(),
+                  ruleVersion: zod.string(),
+                  fingerprint: zod.string(),
+                })
+                .describe(
+                  "Where and why, for proofing. Shown to administrators and developers only.",
+                ),
+            }),
+          ),
+          summary: zod.object({
+            remaining: zod.number(),
+            needsReview: zod.number(),
+            appearsComplete: zod.number(),
+            adjusted: zod.number(),
+            hidden: zod.number(),
+          }),
+        }),
+      ),
+      unassessableSheets: zod.array(
+        zod.object({
+          sheet: zod.string(),
+          reason: zod.string(),
+        }),
+      ),
+      orphaned: zod.array(
+        zod.object({
+          itemKey: zod.string(),
+          sourceLabel: zod.string(),
+          status: zod.string().nullable(),
+          hidden: zod.boolean(),
+          note: zod.string().nullable(),
+          updatedAt: zod.string(),
+        }),
+      ),
+      summary: zod.union([
+        zod.object({
+          remaining: zod.number(),
+          needsReview: zod.number(),
+          appearsComplete: zod.number(),
+          adjusted: zod.number(),
+          hidden: zod.number(),
+        }),
+        zod.null(),
+      ]),
+    }),
+  ),
+});
+
+/**
+ * @summary Save the student's correction of one assessment item (never changes the APR)
+ */
+
+export const correctDegreeCompletionItemPathItemKeyRegExp = new RegExp(
+  "^[0-9a-f]{16}$",
+);
+
+export const CorrectDegreeCompletionItemParams = zod.object({
+  id: zod.coerce.number().min(1),
+  itemKey: zod.coerce
+    .string()
+    .regex(correctDegreeCompletionItemPathItemKeyRegExp),
+});
+
+export const correctDegreeCompletionItemBodyNoteMax = 4000;
+
+export const CorrectDegreeCompletionItemBody = zod.object({
+  status: zod
+    .union([
+      zod.literal("remaining"),
+      zod.literal("complete"),
+      zod.literal(null),
+    ])
+    .nullish()
+    .describe(
+      "remaining = mark as remaining; complete = complete for planning; null = use the APR-based result.",
+    ),
+  hidden: zod.boolean().optional(),
+  note: zod.string().max(correctDegreeCompletionItemBodyNoteMax).nullish(),
+});
+
+export const CorrectDegreeCompletionItemResponse = zod.object({
+  saved: zod.boolean(),
+  itemKey: zod.string(),
+});
+
+/**
+ * @summary Reset one item to the APR-based assessment
+ */
+
+export const resetDegreeCompletionItemPathItemKeyRegExp = new RegExp(
+  "^[0-9a-f]{16}$",
+);
+
+export const ResetDegreeCompletionItemParams = zod.object({
+  id: zod.coerce.number().min(1),
+  itemKey: zod.coerce
+    .string()
+    .regex(resetDegreeCompletionItemPathItemKeyRegExp),
+});
+
+export const ResetDegreeCompletionItemResponse = zod.void();
+
+/**
  * @summary Metadata of one of the caller's APR documents
  */
 

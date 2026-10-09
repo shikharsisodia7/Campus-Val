@@ -2085,6 +2085,209 @@ export interface RequirementItem {
   department?: RequirementItemDepartment;
 }
 
+/**
+ * remaining = mark as remaining; complete = complete for planning; null = use the APR-based result.
+ * @nullable
+ */
+export type DegreeCompletionCorrectionInputStatus =
+  | (typeof DegreeCompletionCorrectionInputStatus)[keyof typeof DegreeCompletionCorrectionInputStatus]
+  | null;
+
+export const DegreeCompletionCorrectionInputStatus = {
+  remaining: "remaining",
+  complete: "complete",
+} as const;
+
+export interface DegreeCompletionCorrectionInput {
+  /**
+   * remaining = mark as remaining; complete = complete for planning; null = use the APR-based result.
+   * @nullable
+   */
+  status?: DegreeCompletionCorrectionInputStatus;
+  hidden?: boolean;
+  /**
+   * @maxLength 4000
+   * @nullable
+   */
+  note?: string | null;
+}
+
+export type DegreeCompletionItemRegistrationsItem = {
+  text: string;
+  inProgress: boolean;
+};
+
+export type DegreeCompletionItemAutomaticState =
+  (typeof DegreeCompletionItemAutomaticState)[keyof typeof DegreeCompletionItemAutomaticState];
+
+export const DegreeCompletionItemAutomaticState = {
+  CLEAR_REMAINING: "CLEAR_REMAINING",
+  LIKELY_COMPLETE: "LIKELY_COMPLETE",
+  AMBIGUOUS: "AMBIGUOUS",
+} as const;
+
+export type DegreeCompletionItemAutomatic = {
+  state: DegreeCompletionItemAutomaticState;
+  reason: string;
+  explanation: string;
+};
+
+/**
+ * @nullable
+ */
+export type DegreeCompletionItemCorrectionStatus =
+  | (typeof DegreeCompletionItemCorrectionStatus)[keyof typeof DegreeCompletionItemCorrectionStatus]
+  | null;
+
+export const DegreeCompletionItemCorrectionStatus = {
+  remaining: "remaining",
+  complete: "complete",
+} as const;
+
+/**
+ * @nullable
+ */
+export type DegreeCompletionItemCorrection = {
+  /** @nullable */
+  status: DegreeCompletionItemCorrectionStatus;
+  hidden: boolean;
+  /** @nullable */
+  note: string | null;
+  /** The APR row changed since the correction; it is not applied until confirmed. */
+  sourceChanged: boolean;
+  updatedAt: string;
+} | null;
+
+export type DegreeCompletionItemEffective =
+  (typeof DegreeCompletionItemEffective)[keyof typeof DegreeCompletionItemEffective];
+
+export const DegreeCompletionItemEffective = {
+  remaining: "remaining",
+  appears_complete: "appears_complete",
+  needs_review: "needs_review",
+  complete_for_planning: "complete_for_planning",
+} as const;
+
+export type DegreeCompletionItemConfidence =
+  (typeof DegreeCompletionItemConfidence)[keyof typeof DegreeCompletionItemConfidence];
+
+export const DegreeCompletionItemConfidence = {
+  CLEAR_REMAINING: "CLEAR_REMAINING",
+  LIKELY_COMPLETE: "LIKELY_COMPLETE",
+  AMBIGUOUS: "AMBIGUOUS",
+  USER_CORRECTED: "USER_CORRECTED",
+} as const;
+
+/**
+ * Where and why, for proofing. Shown to administrators and developers only.
+ */
+export type DegreeCompletionItemTrace = {
+  sheet: string;
+  sheetIndex: number;
+  row: number;
+  /** @nullable */
+  block: string | null;
+  blockIndex: number;
+  rule: string;
+  ruleVersion: string;
+  fingerprint: string;
+};
+
+export interface DegreeCompletionItem {
+  key: string;
+  /** The requirement as Workday wrote it. */
+  label: string;
+  /**
+   * Workday's status, verbatim.
+   * @nullable
+   */
+  aprStatus: string | null;
+  /**
+   * Workday's Remaining cell, verbatim.
+   * @nullable
+   */
+  remaining: string | null;
+  /** @nullable */
+  remainingKind: string | null;
+  /** @nullable */
+  remainingAmount: number | null;
+  registrations: DegreeCompletionItemRegistrationsItem[];
+  group: string;
+  groupKind: string;
+  automatic: DegreeCompletionItemAutomatic;
+  /** @nullable */
+  correction: DegreeCompletionItemCorrection;
+  effective: DegreeCompletionItemEffective;
+  confidence: DegreeCompletionItemConfidence;
+  adjusted: boolean;
+  /** Where and why, for proofing. Shown to administrators and developers only. */
+  trace: DegreeCompletionItemTrace;
+}
+
+export interface DegreeCompletionSummary {
+  remaining: number;
+  needsReview: number;
+  appearsComplete: number;
+  adjusted: number;
+  hidden: number;
+}
+
+export type DegreeCompletionAssessmentOptions = {
+  inProgressRemainingIsAdditional?: boolean;
+};
+
+export type DegreeCompletionAssessmentDocumentsItemState =
+  (typeof DegreeCompletionAssessmentDocumentsItemState)[keyof typeof DegreeCompletionAssessmentDocumentsItemState];
+
+export const DegreeCompletionAssessmentDocumentsItemState = {
+  ready: "ready",
+  unrecognized_layout: "unrecognized_layout",
+  unavailable: "unavailable",
+} as const;
+
+export type DegreeCompletionAssessmentDocumentsItemProgramsItem = {
+  key: string;
+  sheet: string;
+  /** @nullable */
+  block: string | null;
+  items: DegreeCompletionItem[];
+  summary: DegreeCompletionSummary;
+};
+
+export type DegreeCompletionAssessmentDocumentsItemUnassessableSheetsItem = {
+  sheet: string;
+  reason: string;
+};
+
+export type DegreeCompletionAssessmentDocumentsItemOrphanedItem = {
+  itemKey: string;
+  sourceLabel: string;
+  /** @nullable */
+  status: string | null;
+  hidden: boolean;
+  /** @nullable */
+  note: string | null;
+  updatedAt: string;
+};
+
+export type DegreeCompletionAssessmentDocumentsItem = {
+  report: ProgressReportDocument;
+  state: DegreeCompletionAssessmentDocumentsItemState;
+  programs: DegreeCompletionAssessmentDocumentsItemProgramsItem[];
+  unassessableSheets: DegreeCompletionAssessmentDocumentsItemUnassessableSheetsItem[];
+  orphaned: DegreeCompletionAssessmentDocumentsItemOrphanedItem[];
+  summary: DegreeCompletionSummary | null;
+};
+
+export interface DegreeCompletionAssessment {
+  enabled: boolean;
+  disclaimer: string;
+  ruleVersion: string;
+  available: boolean;
+  options?: DegreeCompletionAssessmentOptions;
+  documents: DegreeCompletionAssessmentDocumentsItem[];
+}
+
 export type OrphanedCustomizationEntryType =
   (typeof OrphanedCustomizationEntryType)[keyof typeof OrphanedCustomizationEntryType];
 
@@ -2984,6 +3187,11 @@ export const SearchCoursesTerm = {
   spring: "spring",
   summer: "summer",
 } as const;
+
+export type CorrectDegreeCompletionItem200 = {
+  saved: boolean;
+  itemKey: string;
+};
 
 export type DownloadDegreeChecksheetPageImageParams = {
   /**

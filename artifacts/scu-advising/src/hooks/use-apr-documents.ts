@@ -7,6 +7,7 @@ import {
   getListProgressReportsQueryKey,
   getGetProgressReportSidebarQueryKey,
   getGetProgressReportWorkbookQueryKey,
+  getGetDegreeCompletionAssessmentQueryKey,
   useListProgressReports,
   useGetProgressReportSidebar,
   type ProgressReportCategory,
@@ -39,6 +40,8 @@ export function useInvalidateApr() {
     (id?: number) => {
       void qc.invalidateQueries({ queryKey: getListProgressReportsQueryKey() });
       void qc.invalidateQueries({ queryKey: getGetProgressReportSidebarQueryKey() });
+      // The Degree Completion Assessment is derived from the APRs: recompute it whenever one changes.
+      void qc.invalidateQueries({ queryKey: getGetDegreeCompletionAssessmentQueryKey() });
       if (id !== undefined) {
         // A replaced file must never be shown from the previous file's cache.
         qc.removeQueries({ queryKey: getGetProgressReportWorkbookQueryKey(id) });

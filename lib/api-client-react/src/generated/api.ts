@@ -29,6 +29,7 @@ import type {
   CalculateGpaBody,
   CheckPlanBody,
   CheckPrereqsBody,
+  CorrectDegreeCompletionItem200,
   Course,
   CourseComponentPlan,
   CourseDetail,
@@ -53,6 +54,8 @@ import type {
   DegreeChecksheetUpdateInput,
   DegreeChecksheetUploadTarget,
   DegreeChecksheetUploadUrlRequest,
+  DegreeCompletionAssessment,
+  DegreeCompletionCorrectionInput,
   DegreeRequirementsResponse,
   DeletedResponse,
   DownloadDegreeChecksheetPageImageParams,
@@ -6780,6 +6783,295 @@ export function useGetProgressReportSidebar<
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+export const getGetDegreeCompletionAssessmentUrl = () => {
+  return `/api/progress-reports/assessment`;
+};
+
+/**
+ * A PLANNING AID derived on every request from the caller's own uploaded APRs:
+ * what appears to remain. Not Workday, not an official degree audit; Workday is
+ * the definitive reference for degree completion. Only Workday's explicit
+ * "Not Satisfied" is reported as remaining; "In Progress" is never reported as
+ * complete. The automatic result is returned beside the student's corrections.
+ * Owner-only; never reachable through a plan share.
+ * @summary CampusVal's Degree Completion Assessment of the caller's own APRs
+ */
+export const getDegreeCompletionAssessment = async (
+  options?: RequestInit,
+): Promise<DegreeCompletionAssessment> => {
+  return customFetch<DegreeCompletionAssessment>(
+    getGetDegreeCompletionAssessmentUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetDegreeCompletionAssessmentQueryKey = () => {
+  return [`/api/progress-reports/assessment`] as const;
+};
+
+export const getGetDegreeCompletionAssessmentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDegreeCompletionAssessment>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDegreeCompletionAssessment>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDegreeCompletionAssessmentQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDegreeCompletionAssessment>>
+  > = ({ signal }) =>
+    getDegreeCompletionAssessment({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDegreeCompletionAssessment>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDegreeCompletionAssessmentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDegreeCompletionAssessment>>
+>;
+export type GetDegreeCompletionAssessmentQueryError = ErrorType<unknown>;
+
+/**
+ * @summary CampusVal's Degree Completion Assessment of the caller's own APRs
+ */
+
+export function useGetDegreeCompletionAssessment<
+  TData = Awaited<ReturnType<typeof getDegreeCompletionAssessment>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDegreeCompletionAssessment>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDegreeCompletionAssessmentQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getCorrectDegreeCompletionItemUrl = (
+  id: number,
+  itemKey: string,
+) => {
+  return `/api/progress-reports/${id}/assessment/items/${itemKey}`;
+};
+
+/**
+ * @summary Save the student's correction of one assessment item (never changes the APR)
+ */
+export const correctDegreeCompletionItem = async (
+  id: number,
+  itemKey: string,
+  degreeCompletionCorrectionInput: DegreeCompletionCorrectionInput,
+  options?: RequestInit,
+): Promise<CorrectDegreeCompletionItem200> => {
+  return customFetch<CorrectDegreeCompletionItem200>(
+    getCorrectDegreeCompletionItemUrl(id, itemKey),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(degreeCompletionCorrectionInput),
+    },
+  );
+};
+
+export const getCorrectDegreeCompletionItemMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof correctDegreeCompletionItem>>,
+    TError,
+    {
+      id: number;
+      itemKey: string;
+      data: BodyType<DegreeCompletionCorrectionInput>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof correctDegreeCompletionItem>>,
+  TError,
+  {
+    id: number;
+    itemKey: string;
+    data: BodyType<DegreeCompletionCorrectionInput>;
+  },
+  TContext
+> => {
+  const mutationKey = ["correctDegreeCompletionItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof correctDegreeCompletionItem>>,
+    {
+      id: number;
+      itemKey: string;
+      data: BodyType<DegreeCompletionCorrectionInput>;
+    }
+  > = (props) => {
+    const { id, itemKey, data } = props ?? {};
+
+    return correctDegreeCompletionItem(id, itemKey, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CorrectDegreeCompletionItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof correctDegreeCompletionItem>>
+>;
+export type CorrectDegreeCompletionItemMutationBody =
+  BodyType<DegreeCompletionCorrectionInput>;
+export type CorrectDegreeCompletionItemMutationError = ErrorType<void>;
+
+/**
+ * @summary Save the student's correction of one assessment item (never changes the APR)
+ */
+export const useCorrectDegreeCompletionItem = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof correctDegreeCompletionItem>>,
+    TError,
+    {
+      id: number;
+      itemKey: string;
+      data: BodyType<DegreeCompletionCorrectionInput>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof correctDegreeCompletionItem>>,
+  TError,
+  {
+    id: number;
+    itemKey: string;
+    data: BodyType<DegreeCompletionCorrectionInput>;
+  },
+  TContext
+> => {
+  return useMutation(getCorrectDegreeCompletionItemMutationOptions(options));
+};
+
+export const getResetDegreeCompletionItemUrl = (
+  id: number,
+  itemKey: string,
+) => {
+  return `/api/progress-reports/${id}/assessment/items/${itemKey}`;
+};
+
+/**
+ * @summary Reset one item to the APR-based assessment
+ */
+export const resetDegreeCompletionItem = async (
+  id: number,
+  itemKey: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getResetDegreeCompletionItemUrl(id, itemKey), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getResetDegreeCompletionItemMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetDegreeCompletionItem>>,
+    TError,
+    { id: number; itemKey: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resetDegreeCompletionItem>>,
+  TError,
+  { id: number; itemKey: string },
+  TContext
+> => {
+  const mutationKey = ["resetDegreeCompletionItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resetDegreeCompletionItem>>,
+    { id: number; itemKey: string }
+  > = (props) => {
+    const { id, itemKey } = props ?? {};
+
+    return resetDegreeCompletionItem(id, itemKey, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResetDegreeCompletionItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resetDegreeCompletionItem>>
+>;
+
+export type ResetDegreeCompletionItemMutationError = ErrorType<void>;
+
+/**
+ * @summary Reset one item to the APR-based assessment
+ */
+export const useResetDegreeCompletionItem = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetDegreeCompletionItem>>,
+    TError,
+    { id: number; itemKey: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resetDegreeCompletionItem>>,
+  TError,
+  { id: number; itemKey: string },
+  TContext
+> => {
+  return useMutation(getResetDegreeCompletionItemMutationOptions(options));
+};
 
 export const getGetProgressReportDocumentUrl = (id: number) => {
   return `/api/progress-reports/${id}`;

@@ -1808,6 +1808,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProgressReportSidebar"
+  /progress-reports/assessment:
+    get:
+      operationId: getDegreeCompletionAssessment
+      tags: [progress-report]
+      summary: CampusVal's Degree Completion Assessment of the caller's own APRs
+      description: |
+        A PLANNING AID derived on every request from the caller's own uploaded APRs:
+        what appears to remain. Not Workday, not an official degree audit; Workday is
+        the definitive reference for degree completion. Only Workday's explicit
+        "Not Satisfied" is reported as remaining; "In Progress" is never reported as
+        complete. The automatic result is returned beside the student's corrections.
+        Owner-only; never reachable through a plan share.
+      responses:
+        "200":
+          description: The assessment, one entry per APR document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeCompletionAssessment"
+  /progress-reports/{id}/assessment/items/{itemKey}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+      - name: itemKey
+        in: path
+        required: true
+        schema: { type: string, pattern: "^[0-9a-f]{16}$" }
+    put:
+      operationId: correctDegreeCompletionItem
+      tags: [progress-report]
+      summary: Save the student's correction of one assessment item (never changes the APR)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeCompletionCorrectionInput"
+      responses:
+        "200":
+          description: Saved (or removed when nothing is left to keep)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [saved, itemKey]
+                properties:
+                  saved: { type: boolean }
+                  itemKey: { type: string }
+        "400": { description: "Invalid correction" }
+        "404": { description: "Not the caller's APR, or the row is no longer in it" }
+    delete:
+      operationId: resetDegreeCompletionItem
+      tags: [progress-report]
+      summary: Reset one item to the APR-based assessment
+      responses:
+        "204": { description: "Reset" }
+        "404": { description: "Not the caller's APR" }
   /progress-reports/{id}:
     parameters:
       - name: id
@@ -4504,6 +4563,141 @@ components:
         - needsVerification
         - satisfiedBy
         - complete
+    DegreeCompletionCorrectionInput:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: [string, "null"]
+          enum: [remaining, complete, null]
+          description: remaining = mark as remaining; complete = complete for planning; null = use the APR-based result.
+        hidden: { type: boolean }
+        note: { type: [string, "null"], maxLength: 4000 }
+    DegreeCompletionItem:
+      type: object
+      required: [key, label, aprStatus, remaining, remainingKind, remainingAmount, registrations, group, groupKind, automatic, correction, effective, confidence, adjusted, trace]
+      properties:
+        key: { type: string }
+        label: { type: string, description: "The requirement as Workday wrote it." }
+        aprStatus: { type: [string, "null"], description: "Workday's status, verbatim." }
+        remaining: { type: [string, "null"], description: "Workday's Remaining cell, verbatim." }
+        remainingKind: { type: [string, "null"] }
+        remainingAmount: { type: [number, "null"] }
+        registrations:
+          type: array
+          items:
+            type: object
+            required: [text, inProgress]
+            properties:
+              text: { type: string }
+              inProgress: { type: boolean }
+        group: { type: string }
+        groupKind: { type: string }
+        automatic:
+          type: object
+          required: [state, reason, explanation]
+          properties:
+            state: { type: string, enum: [CLEAR_REMAINING, LIKELY_COMPLETE, AMBIGUOUS] }
+            reason: { type: string }
+            explanation: { type: string }
+        correction:
+          type: [object, "null"]
+          required: [status, hidden, note, sourceChanged, updatedAt]
+          properties:
+            status: { type: [string, "null"], enum: [remaining, complete, null] }
+            hidden: { type: boolean }
+            note: { type: [string, "null"] }
+            sourceChanged: { type: boolean, description: "The APR row changed since the correction; it is not applied until confirmed." }
+            updatedAt: { type: string }
+        effective:
+          type: string
+          enum: [remaining, appears_complete, needs_review, complete_for_planning]
+        confidence:
+          type: string
+          enum: [CLEAR_REMAINING, LIKELY_COMPLETE, AMBIGUOUS, USER_CORRECTED]
+        adjusted: { type: boolean }
+        trace:
+          type: object
+          description: Where and why, for proofing. Shown to administrators and developers only.
+          required: [sheet, sheetIndex, row, block, blockIndex, rule, ruleVersion, fingerprint]
+          properties:
+            sheet: { type: string }
+            sheetIndex: { type: integer }
+            row: { type: integer }
+            block: { type: [string, "null"] }
+            blockIndex: { type: integer }
+            rule: { type: string }
+            ruleVersion: { type: string }
+            fingerprint: { type: string }
+    DegreeCompletionSummary:
+      type: object
+      required: [remaining, needsReview, appearsComplete, adjusted, hidden]
+      properties:
+        remaining: { type: integer }
+        needsReview: { type: integer }
+        appearsComplete: { type: integer }
+        adjusted: { type: integer }
+        hidden: { type: integer }
+    DegreeCompletionAssessment:
+      type: object
+      required: [enabled, disclaimer, ruleVersion, available, documents]
+      properties:
+        enabled: { type: boolean }
+        disclaimer: { type: string }
+        ruleVersion: { type: string }
+        available: { type: boolean }
+        options:
+          type: object
+          properties:
+            inProgressRemainingIsAdditional: { type: boolean }
+        documents:
+          type: array
+          items:
+            type: object
+            required: [report, state, programs, unassessableSheets, orphaned, summary]
+            properties:
+              report:
+                $ref: "#/components/schemas/ProgressReportDocument"
+              state: { type: string, enum: [ready, unrecognized_layout, unavailable] }
+              programs:
+                type: array
+                items:
+                  type: object
+                  required: [key, sheet, block, items, summary]
+                  properties:
+                    key: { type: string }
+                    sheet: { type: string }
+                    block: { type: [string, "null"] }
+                    items:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/DegreeCompletionItem"
+                    summary:
+                      $ref: "#/components/schemas/DegreeCompletionSummary"
+              unassessableSheets:
+                type: array
+                items:
+                  type: object
+                  required: [sheet, reason]
+                  properties:
+                    sheet: { type: string }
+                    reason: { type: string }
+              orphaned:
+                type: array
+                items:
+                  type: object
+                  required: [itemKey, sourceLabel, status, hidden, note, updatedAt]
+                  properties:
+                    itemKey: { type: string }
+                    sourceLabel: { type: string }
+                    status: { type: [string, "null"] }
+                    hidden: { type: boolean }
+                    note: { type: [string, "null"] }
+                    updatedAt: { type: string }
+              summary:
+                oneOf:
+                  - $ref: "#/components/schemas/DegreeCompletionSummary"
+                  - type: "null"
     RequirementChoice:
       type: [object, "null"]
       description: >-
