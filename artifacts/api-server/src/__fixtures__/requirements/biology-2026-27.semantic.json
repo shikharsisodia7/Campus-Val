@@ -1,0 +1,215 @@
+{
+  "description": "Semantic snapshot of the Biology B.S. requirements as CampusVal normalizes them. No student data. Regenerate only after re-checking the Bulletin.",
+  "source": "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html",
+  "edition": "2026-27",
+  "lastVerified": "2026-10-09",
+  "structure": [
+    {
+      "section": "foundation",
+      "requirements": [
+        {
+          "key": "biol-intro",
+          "kind": "each",
+          "courses": [
+            "BIOL 1A",
+            "BIOL 1B",
+            "BIOL 1C"
+          ]
+        },
+        {
+          "key": "chemistry",
+          "kind": "each",
+          "courses": [
+            "CHEM 11",
+            "CHEM 12",
+            "CHEM 31",
+            "CHEM 32",
+            "CHEM 33"
+          ]
+        },
+        {
+          "key": "physics",
+          "kind": "alternatives",
+          "options": [
+            [
+              "PHYS 11",
+              "PHYS 12",
+              "PHYS 13"
+            ],
+            [
+              "PHYS 31",
+              "PHYS 32",
+              "PHYS 33"
+            ]
+          ]
+        },
+        {
+          "key": "mathematics",
+          "kind": "alternatives",
+          "options": [
+            [
+              "MATH 35",
+              "MATH 36"
+            ],
+            [
+              "MATH 11",
+              "MATH 12"
+            ]
+          ]
+        },
+        {
+          "key": "biol-101",
+          "kind": "each",
+          "courses": [
+            "BIOL 101"
+          ]
+        }
+      ]
+    },
+    {
+      "section": "themes",
+      "requirements": [
+        {
+          "key": "theme-cmb",
+          "kind": "choose",
+          "count": 1,
+          "courses": [
+            "BIOL 110",
+            "BIOL 112",
+            "BIOL 113",
+            "BIOL 115",
+            "BIOL 122",
+            "BIOL 174",
+            "BIOL 175"
+          ]
+        },
+        {
+          "key": "theme-eeb",
+          "kind": "choose",
+          "count": 1,
+          "courses": [
+            "BIOL 120",
+            "BIOL 134",
+            "BIOL 151",
+            "BIOL 156",
+            "BIOL 158",
+            "BIOL 165",
+            "BIOL 173",
+            "BIOL 180",
+            "BIOL 181"
+          ]
+        },
+        {
+          "key": "theme-mod",
+          "kind": "choose",
+          "count": 1,
+          "courses": [
+            "BIOL 117",
+            "BIOL 160",
+            "BIOL 170",
+            "BIOL 172",
+            "BIOL 178"
+          ]
+        }
+      ]
+    },
+    {
+      "section": "electives",
+      "requirements": [
+        {
+          "key": "electives-lab",
+          "kind": "choose",
+          "count": 2,
+          "courses": [
+            "BIOL 102",
+            "BIOL 104",
+            "BIOL 110",
+            "BIOL 112",
+            "BIOL 113",
+            "BIOL 114AW",
+            "BIOL 115",
+            "BIOL 116",
+            "BIOL 117",
+            "BIOL 120",
+            "BIOL 122",
+            "BIOL 123",
+            "BIOL 124",
+            "BIOL 134",
+            "BIOL 142AW",
+            "BIOL 144",
+            "BIOL 151",
+            "BIOL 156",
+            "BIOL 158",
+            "BIOL 160",
+            "BIOL 165",
+            "BIOL 170",
+            "BIOL 172",
+            "BIOL 173",
+            "BIOL 174",
+            "BIOL 175",
+            "BIOL 176",
+            "BIOL 177",
+            "BIOL 178",
+            "BIOL 180",
+            "BIOL 181",
+            "BIOL 191",
+            "BIOL 198"
+          ]
+        },
+        {
+          "key": "electives-any",
+          "kind": "choose",
+          "count": 2,
+          "courses": [
+            "BIOL 102",
+            "BIOL 104",
+            "BIOL 105",
+            "BIOL 106",
+            "BIOL 110",
+            "BIOL 111",
+            "BIOL 112",
+            "BIOL 113",
+            "BIOL 114AW",
+            "BIOL 115",
+            "BIOL 116",
+            "BIOL 117",
+            "BIOL 119",
+            "BIOL 120",
+            "BIOL 122",
+            "BIOL 123",
+            "BIOL 124",
+            "BIOL 134",
+            "BIOL 142AW",
+            "BIOL 144",
+            "BIOL 145",
+            "BIOL 151",
+            "BIOL 153",
+            "BIOL 156",
+            "BIOL 158",
+            "BIOL 160",
+            "BIOL 164",
+            "BIOL 165",
+            "BIOL 169",
+            "BIOL 170",
+            "BIOL 171",
+            "BIOL 172",
+            "BIOL 173",
+            "BIOL 174",
+            "BIOL 175",
+            "BIOL 176",
+            "BIOL 177",
+            "BIOL 178",
+            "BIOL 179",
+            "BIOL 180",
+            "BIOL 181",
+            "BIOL 189",
+            "BIOL 191",
+            "BIOL 198",
+            "CHEM 141",
+            "CHEM 142"
+          ]
+        }
+      ]
+    }
+  ]
+}
