@@ -4550,10 +4550,17 @@ components:
               recommended: { type: boolean }
     DepartmentNote:
       type: object
-      required: [id, body, kind, programKey, programTitle, sourceLabel, sourceUrl, sourceReference, origin, reviewed, updatedAt]
+      required: [id, title, body, courseCodes, kind, programKey, programTitle, sourceLabel, sourceUrl, sourceReference, origin, reviewed, updatedAt]
       properties:
         id: { type: integer }
+        title:
+          type: [string, "null"]
+          description: Optional heading the department gave the note.
         body: { type: string }
+        courseCodes:
+          type: array
+          description: Catalog course codes the note refers to (a department-maintained course list). Validated against the catalog.
+          items: { type: string }
         kind:
           type: [string, "null"]
           description: requirement | sequence | core_overlap | advising

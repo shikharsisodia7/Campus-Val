@@ -1132,7 +1132,16 @@ export const GetDegreeRequirementsResponse = zod.object({
         .array(
           zod.object({
             id: zod.number(),
+            title: zod
+              .string()
+              .nullable()
+              .describe("Optional heading the department gave the note."),
             body: zod.string(),
+            courseCodes: zod
+              .array(zod.string())
+              .describe(
+                "Catalog course codes the note refers to (a department-maintained course list). Validated against the catalog.",
+              ),
             kind: zod
               .string()
               .nullable()
@@ -1351,7 +1360,16 @@ export const GetDegreeRequirementsResponse = zod.object({
             .array(
               zod.object({
                 id: zod.number(),
+                title: zod
+                  .string()
+                  .nullable()
+                  .describe("Optional heading the department gave the note."),
                 body: zod.string(),
+                courseCodes: zod
+                  .array(zod.string())
+                  .describe(
+                    "Catalog course codes the note refers to (a department-maintained course list). Validated against the catalog.",
+                  ),
                 kind: zod
                   .string()
                   .nullable()
@@ -2439,7 +2457,16 @@ export const GetPlanRequirementsResponse = zod
           .array(
             zod.object({
               id: zod.number(),
+              title: zod
+                .string()
+                .nullable()
+                .describe("Optional heading the department gave the note."),
               body: zod.string(),
+              courseCodes: zod
+                .array(zod.string())
+                .describe(
+                  "Catalog course codes the note refers to (a department-maintained course list). Validated against the catalog.",
+                ),
               kind: zod
                 .string()
                 .nullable()
@@ -2658,7 +2685,16 @@ export const GetPlanRequirementsResponse = zod
               .array(
                 zod.object({
                   id: zod.number(),
+                  title: zod
+                    .string()
+                    .nullable()
+                    .describe("Optional heading the department gave the note."),
                   body: zod.string(),
+                  courseCodes: zod
+                    .array(zod.string())
+                    .describe(
+                      "Catalog course codes the note refers to (a department-maintained course list). Validated against the catalog.",
+                    ),
                   kind: zod
                     .string()
                     .nullable()

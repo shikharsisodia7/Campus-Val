@@ -2019,7 +2019,14 @@ export const DepartmentNoteOrigin = {
 
 export interface DepartmentNote {
   id: number;
+  /**
+   * Optional heading the department gave the note.
+   * @nullable
+   */
+  title: string | null;
   body: string;
+  /** Catalog course codes the note refers to (a department-maintained course list). Validated against the catalog. */
+  courseCodes: string[];
   /**
    * requirement | sequence | core_overlap | advising
    * @nullable

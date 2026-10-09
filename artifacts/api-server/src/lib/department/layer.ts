@@ -22,7 +22,11 @@ import { groupKeyOf } from "./programs";
 /** What a student sees of a Department Note. */
 export interface DepartmentNoteView {
   id: number;
+  /** Optional heading the department gave the note. */
+  title: string | null;
   body: string;
+  /** Catalog courses the note refers to (a department-maintained course list). */
+  courseCodes: string[];
   kind: string | null;
   programKey: string;
   /** "Biology": which program's department wrote it (matters on shared Core items). */
@@ -43,6 +47,8 @@ export interface NoteRecord {
   bulletinEdition: string;
   body: string;
   noteKind: string | null;
+  title: string | null;
+  courseCodes: string[];
   status: string;
   origin: string;
   sourceLabel: string | null;
@@ -109,7 +115,9 @@ type Item = NormalizedItem["item"] & {
 function noteView(note: NoteRecord, titles: ReadonlyMap<string, string>): DepartmentNoteView {
   return {
     id: note.id,
+    title: note.title,
     body: note.body,
+    courseCodes: note.courseCodes,
     kind: note.noteKind,
     programKey: note.programKey,
     programTitle: titles.get(note.programKey) ?? note.programKey,

@@ -144,7 +144,9 @@ function resolveGroup(
       coreArea,
       status: cross.status,
       complete: cross.status === "completed",
-    };
+      section: null,
+      choice: null,
+    } satisfies ResolvedRequirementItem;
   });
   const autoItems = items.filter((i) => i.autoTracked);
   return {
@@ -482,7 +484,7 @@ export function buildRequirementsResponse(
               ? "planned"
               : "open") as RequirementStatus,
           complete: isComplete,
-          section: null,
+          section: null as string | null,
           choice:
             group.courses.length > 0
               ? {
@@ -516,7 +518,9 @@ export function buildRequirementsResponse(
               ? "planned"
               : "open") as RequirementStatus,
           complete: isCompleted,
-        };
+          section: null,
+          choice: null,
+        } satisfies ResolvedRequirementItem;
       });
     });
     const autoItems = items.filter((item) => item.autoTracked);
@@ -557,7 +561,9 @@ export function buildRequirementsResponse(
             ? "planned"
             : "open") as RequirementStatus,
         complete: isCompleted,
-      };
+        section: null,
+        choice: null,
+      } satisfies ResolvedRequirementItem;
     });
     const placeholderItems = goal.placeholders.map((label, index) => ({
       id: `professional-${goal.id}-placeholder-${index + 1}`,
@@ -572,7 +578,9 @@ export function buildRequirementsResponse(
       crossSatisfiedBy: [] as string[],
       status: "open" as RequirementStatus,
       complete: false,
-    }));
+      section: null,
+      choice: null,
+    }) satisfies ResolvedRequirementItem);
     const items = [...courseItems, ...placeholderItems];
     return {
       id: `professional-${goal.id}`,

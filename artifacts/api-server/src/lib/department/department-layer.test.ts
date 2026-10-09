@@ -28,6 +28,8 @@ const note = (over: Partial<NoteRecord> = {}): NoteRecord => ({
   bulletinEdition: "2026-27",
   body: "Take in the first year.",
   noteKind: "sequence",
+  title: null,
+  courseCodes: [],
   status: "published",
   origin: "admin",
   sourceLabel: "Biology department",
