@@ -90,7 +90,7 @@ export function ChecksheetImageView({
         tabIndex={0}
         role="region"
         aria-label={`${title} — picture, scrollable`}
-        className="max-h-[75vh] overflow-auto rounded-md border border-border bg-muted/50 p-3"
+        className="relative max-h-[75vh] overflow-auto rounded-md border border-border bg-muted/50 p-3"
         data-testid="checksheet-image-scroll"
       >
         {failed ? (

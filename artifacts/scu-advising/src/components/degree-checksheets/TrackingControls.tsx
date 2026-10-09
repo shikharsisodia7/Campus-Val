@@ -28,7 +28,7 @@ export function MyTrackingTag({ className, compact = false }: { className?: stri
     // Inside a table cell, beside the control: the icon, with the words for screen readers and on hover.
     // The page says once, in words, what the mark means (checksheet-source-notice).
     return (
-      <span className={cn("inline-flex shrink-0 items-center text-primary", className)} title={TRACKING_HINT}>
+      <span className={cn("relative inline-flex shrink-0 items-center text-primary", className)} title={TRACKING_HINT}>
         <PencilLine className="h-3 w-3" aria-hidden="true" />
         <span className="sr-only">My tracking</span>
       </span>
