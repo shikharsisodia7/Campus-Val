@@ -614,7 +614,7 @@ describe("structured Department Notes: a title and a course list", () => {
     expect(note.title).toBeNull();
     expect(note.courseCodes).toEqual([]);
     const audit = await asBio(request(app).get(`/api/admin/department/programs/${encodeURIComponent(biology.programKey)}/audit`)).expect(200);
-    const entry = audit.body.entries.find((e: any) => e.entityId === row!.id && e.action === "update");
+    const entry = audit.body.entries.find((e: any) => e.entity === "note" && e.action === "update" && e.targetKey === themeKey);
     expect(entry.before.courseCodes).toEqual(["BIOL 110", "BIOL 112"]);
     expect(entry.after.courseCodes).toEqual([]);
   });

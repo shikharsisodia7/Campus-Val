@@ -395,6 +395,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -411,10 +412,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -431,10 +434,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -451,10 +456,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -471,10 +478,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -494,10 +503,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -514,10 +525,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -534,10 +547,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -554,10 +569,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 4,
@@ -576,10 +593,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -598,10 +617,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -618,10 +639,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 25,
@@ -642,10 +665,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -662,10 +687,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -682,10 +709,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -702,10 +731,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -725,10 +756,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -747,10 +780,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -769,10 +804,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -789,10 +826,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -804,6 +843,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -828,6 +868,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
       "items": [
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -841,10 +882,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -858,10 +901,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -875,10 +920,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -892,10 +939,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -909,10 +958,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -926,10 +977,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -944,10 +997,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -962,10 +1017,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -979,10 +1036,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -996,10 +1055,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -1013,10 +1074,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -1030,6 +1093,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -1053,6 +1117,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1064,10 +1129,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1079,10 +1146,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1094,10 +1163,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1109,10 +1180,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1124,6 +1197,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -1475,6 +1549,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -1491,10 +1566,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -1511,10 +1588,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -1531,10 +1610,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -1551,10 +1632,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -1571,10 +1654,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -1591,10 +1676,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -1611,10 +1698,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -1631,10 +1720,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 4,
@@ -1651,10 +1742,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -1671,10 +1764,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -1691,10 +1786,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 25,
@@ -1711,10 +1808,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -1731,10 +1830,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -1751,10 +1852,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -1771,10 +1874,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -1791,10 +1896,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -1811,10 +1918,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -1831,10 +1940,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -1851,10 +1962,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1866,6 +1979,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -1889,6 +2003,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1900,10 +2015,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1915,6 +2032,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -1939,6 +2057,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1950,10 +2069,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1965,10 +2086,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1980,10 +2103,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -1995,10 +2120,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -2010,6 +2137,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -2032,6 +2160,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
       "items": [
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "courses": [
             "BIOL 1A",
@@ -2044,10 +2173,12 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "courses": [],
           "crossSatisfiedBy": [],
@@ -2058,6 +2189,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -2410,6 +2542,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -2426,10 +2559,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -2446,10 +2581,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -2466,10 +2603,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -2486,10 +2625,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -2506,10 +2647,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -2526,10 +2669,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -2546,10 +2691,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -2566,10 +2713,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 4,
@@ -2586,10 +2735,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -2606,10 +2757,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -2626,10 +2779,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 25,
@@ -2646,10 +2801,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -2666,10 +2823,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -2686,10 +2845,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -2706,10 +2867,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -2726,10 +2889,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -2746,10 +2911,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -2766,10 +2933,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -2786,10 +2955,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -2801,6 +2972,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -2824,6 +2996,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -2835,10 +3008,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -2850,6 +3025,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -2874,6 +3050,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -2885,10 +3062,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -2900,10 +3079,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -2915,10 +3096,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -2930,10 +3113,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -2945,6 +3130,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -3294,6 +3480,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "courses": [
             "ANTH 3",
@@ -3306,10 +3493,12 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "courses": [
             "ANTH 110",
@@ -3322,6 +3511,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
@@ -3393,7 +3583,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
     {
       "academicYear": "2026-27",
       "autoCompletedCount": 0,
-      "autoTrackedCount": 21,
+      "autoTrackedCount": 16,
       "category": "MAJOR",
       "id": "major-primary",
       "items": [
@@ -4104,6 +4294,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -4120,10 +4311,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -4140,10 +4333,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -4160,10 +4355,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -4180,10 +4377,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -4200,10 +4399,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -4220,10 +4421,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -4240,10 +4443,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -4260,10 +4465,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 4,
@@ -4280,10 +4487,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -4300,10 +4509,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -4320,10 +4531,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 25,
@@ -4340,10 +4553,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -4360,10 +4575,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -4380,10 +4597,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -4400,10 +4619,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -4420,10 +4641,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -4440,10 +4663,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -4460,10 +4685,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -4480,10 +4707,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -4495,6 +4724,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -4518,6 +4748,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -4529,10 +4760,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -4544,6 +4777,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -4567,6 +4801,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -4578,10 +4813,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -4593,10 +4830,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -4608,10 +4847,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -4623,10 +4864,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -4638,6 +4881,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -4696,6 +4940,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "courses": [
             "ANTH 3",
@@ -4708,10 +4953,12 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "courses": [
             "ANTH 110",
@@ -4724,6 +4971,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
@@ -5183,6 +5431,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
       "items": [
         {
           "autoTracked": true,
+          "choice": null,
           "complete": true,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -5201,10 +5450,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "completed",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": true,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -5223,10 +5474,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "completed",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -5243,10 +5496,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -5263,10 +5518,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": true,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -5288,10 +5545,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "satisfiedBy": [
             "MATH 11",
           ],
+          "section": null,
           "status": "completed",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -5308,10 +5567,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -5328,10 +5589,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -5348,10 +5611,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 4,
@@ -5370,10 +5635,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -5394,10 +5661,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
             "MGMT 80",
           ],
           "satisfiedBy": [],
+          "section": null,
           "status": "planned",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -5414,10 +5683,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 25,
@@ -5438,10 +5709,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -5458,10 +5731,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -5478,10 +5753,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -5498,10 +5775,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -5521,10 +5800,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -5543,10 +5824,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -5565,10 +5848,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -5585,10 +5870,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -5600,6 +5887,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -5624,6 +5912,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
       "items": [
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5637,10 +5926,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5654,10 +5945,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5671,10 +5964,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5688,10 +5983,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5705,10 +6002,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5722,10 +6021,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5740,10 +6041,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5758,10 +6061,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": true,
           "coreArea": null,
           "courses": [
@@ -5777,10 +6082,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "satisfiedBy": [
             "ACTG 11",
           ],
+          "section": null,
           "status": "completed",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5794,10 +6101,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5811,10 +6120,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": true,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [
@@ -5828,6 +6139,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -5851,6 +6163,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -5862,10 +6175,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -5877,10 +6192,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -5892,10 +6209,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -5907,10 +6226,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -5922,6 +6243,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -6273,6 +6595,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -6289,10 +6612,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 5,
@@ -6309,10 +6634,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -6329,10 +6656,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 12,
@@ -6349,10 +6678,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -6369,10 +6700,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -6389,10 +6722,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -6409,10 +6744,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Foundations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -6429,10 +6766,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 4,
@@ -6449,10 +6788,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 2,
@@ -6469,10 +6810,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -6489,10 +6832,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 25,
@@ -6509,10 +6854,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -6529,10 +6876,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -6549,10 +6898,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 3,
@@ -6569,10 +6920,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -6589,10 +6942,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 0,
@@ -6609,10 +6964,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Explorations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -6629,10 +6986,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": {
             "catalogStatedCount": 9,
@@ -6649,10 +7008,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -6664,6 +7025,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": "Integrations",
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -6687,6 +7049,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -6698,10 +7061,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -6713,6 +7078,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
@@ -6737,6 +7103,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
       "items": [
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -6748,10 +7115,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -6763,10 +7132,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -6778,10 +7149,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -6793,10 +7166,12 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
         {
           "autoTracked": false,
+          "choice": null,
           "complete": false,
           "coreArea": null,
           "courses": [],
@@ -6808,6 +7183,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
           "phase": null,
           "plannedBy": [],
           "satisfiedBy": [],
+          "section": null,
           "status": "open",
         },
       ],
