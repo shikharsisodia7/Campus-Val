@@ -19,7 +19,6 @@ import { COURSES, findCourse } from "../data/courses";
 import {
   MAJOR_STRUCTURES,
   resolveMajorStructure,
-  structureRequiredCount,
   type StructuredChoice,
 } from "../data/major-structures";
 import { categoryOfGroupKind } from "../lib/requirements-source/category";
@@ -321,8 +320,9 @@ export function buildRequirementsResponse(
         lastVerified: structure.lastVerified,
         notes: [...scenarioNote, ...majorReqs.notes, ...concentrationNote],
         items,
-        autoTrackedCount: structureRequiredCount(structure),
-        autoCompletedCount: majorReqs.completedCount,
+        // Counted per sidebar item, like every other group (the department layer recounts the same way).
+        autoTrackedCount: items.length,
+        autoCompletedCount: items.filter((i) => i.complete).length,
         manualCount: 0,
       };
     }

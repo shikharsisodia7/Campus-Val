@@ -575,3 +575,80 @@ describe("only department administration writes Department Notes", () => {
   });
 });
 
+
+describe("structured Department Notes: a title and a course list", () => {
+  const themeKey = `${biology.programKey}#theme-cmb`;
+
+  it("lets a department attach a titled course list to a Biology theme requirement", async () => {
+    expect(bioGroup.items.map((i) => i.stableKey)).toContain(themeKey);
+    const created = await asBio(request(app).post("/api/admin/department/notes"))
+      .send({
+        programKey: biology.programKey,
+        targetKey: themeKey,
+        title: `${marker} CMB courses`,
+        body: `${marker} Courses that also overlap with the Biotechnology minor.`,
+        courseCodes: ["biol 110", "BIOL  112", "BIOL 110"],
+        status: "published",
+      })
+      .expect(201);
+    expect(created.body.courseCodes).toEqual(["BIOL 110", "BIOL 112"]);
+    const note = find(await view(STUDENT, studentPlan), themeKey).departmentNotes.find((n: any) => n.id === created.body.id);
+    expect(note.title).toBe(`${marker} CMB courses`);
+    expect(note.courseCodes).toEqual(["BIOL 110", "BIOL 112"]);
+    expect(note.programTitle).toBe("Biology");
+  });
+
+  it("refuses a course that is not in the catalog, naming it, and never substitutes", async () => {
+    const res = await asBio(request(app).post("/api/admin/department/notes"))
+      .send({ programKey: biology.programKey, targetKey: themeKey, body: `${marker} bad list`, courseCodes: ["BIOL 110", "BIOL 999"] })
+      .expect(400);
+    expect(res.body.error).toContain("BIOL 999");
+    const rows = await db.select().from(departmentRequirementNotesTable).where(like(departmentRequirementNotesTable.body, `${marker} bad list%`));
+    expect(rows).toHaveLength(0);
+  });
+
+  it("edits and clears the title and course list, and audits both", async () => {
+    const [row] = await db.select().from(departmentRequirementNotesTable).where(like(departmentRequirementNotesTable.body, `${marker} Courses that%`));
+    await asBio(request(app).patch(`/api/admin/department/notes/${row!.id}`)).send({ title: null, courseCodes: [] }).expect(200);
+    const note = find(await view(STUDENT, studentPlan), themeKey).departmentNotes.find((n: any) => n.id === row!.id);
+    expect(note.title).toBeNull();
+    expect(note.courseCodes).toEqual([]);
+    const audit = await asBio(request(app).get(`/api/admin/department/programs/${encodeURIComponent(biology.programKey)}/audit`)).expect(200);
+    const entry = audit.body.entries.find((e: any) => e.entityId === row!.id && e.action === "update");
+    expect(entry.before.courseCodes).toEqual(["BIOL 110", "BIOL 112"]);
+    expect(entry.after.courseCodes).toEqual([]);
+  });
+});
+
+describe("several departments' notes on one Core requirement", () => {
+  const chemistryMinor = listPrograms().find((p) => p.type === "minor" && p.title === "Chemistry")!;
+
+  it("shows a Biology major's note and a Chemistry minor's note side by side, each labelled, neither overwriting the other", async () => {
+    expect(chemistryMinor).toBeDefined();
+    await asSuper(request(app).post("/api/admin/department/notes"))
+      .send({ programKey: chemistryMinor.programKey, targetKey: coreItem.stableKey, body: `${marker} chemistry core note`, status: "published" })
+      .expect(201);
+    const plan = await asStudent(request(app).post("/api/plans")).send({ name: "Bio + Chem minor" }).expect(201);
+    await asStudent(request(app).patch(`/api/plans/${plan.body.id}`))
+      .send({ programs: { primaryMajor: biology.code, additionalMajors: [], minors: [chemistryMinor.code], professionalGoals: [] } })
+      .expect(200);
+    const body = await view(STUDENT, plan.body.id);
+    expect(body.groups.some((g: any) => g.stableKey === chemistryMinor.programKey)).toBe(true);
+    const notes = find(body, coreItem.stableKey).departmentNotes.filter((n: any) => n.body.startsWith(marker));
+    expect(notes.map((n: any) => [n.programTitle, n.body])).toEqual(
+      expect.arrayContaining([
+        ["Biology", `${marker} core note`],
+        ["Chemistry", `${marker} chemistry core note`],
+      ]),
+    );
+    // The requirement stays Core whichever department wrote about it.
+    expect(groupOf(body, coreGroup.stableKey).items.map((i: any) => i.stableKey)).toContain(coreItem.stableKey);
+  });
+
+  it("shows neither department's Core note to a student with neither program", async () => {
+    const theirs = await view(CAS_STUDENT, casPlan);
+    const bodies = (find(theirs, coreItem.stableKey).departmentNotes ?? []).map((n: any) => n.body);
+    expect(bodies).not.toContain(`${marker} core note`);
+    expect(bodies).not.toContain(`${marker} chemistry core note`);
+  });
+});

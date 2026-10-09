@@ -27,7 +27,7 @@ import { AlertTriangle } from "lucide-react";
 interface Me { superAdmin: boolean; programKeys: string[] | null; edition: string }
 interface Program { programKey: string; type: "major" | "minor"; code: string; title: string; collegeName: string }
 interface AdminNote {
-  id: number; targetKey: string | null; body: string; kind: string | null; status: string; origin: string;
+  id: number; targetKey: string | null; title: string | null; body: string; courseCodes: string[]; kind: string | null; status: string; origin: string;
   sourceLabel: string | null; sourceReference: string | null; sourceAnchorText: string | null; reviewedBy: string | null; updatedBy: string; updatedAt: string;
 }
 interface AdminItem {
@@ -191,9 +191,56 @@ export default function AdminProgramRequirementsPage() {
 
 type Act = (fn: () => Promise<unknown>) => Promise<void>;
 
+/** "BIOL 110, BIOL 112\nCHEM 141" -> ["BIOL 110", "BIOL 112", "CHEM 141"]. The server checks every code against the catalog. */
+function parseCourseList(text: string): string[] {
+  return text
+    .split(/[,;\n]+/)
+    .map((c) => c.trim().toUpperCase().replace(/\s+/g, " "))
+    .filter(Boolean);
+}
+
+/** Title and course list: optional structure around the free-text note. */
+function NoteStructureFields({
+  title,
+  setTitle,
+  courses,
+  setCourses,
+  idPrefix,
+}: {
+  title: string;
+  setTitle: (v: string) => void;
+  courses: string;
+  setCourses: (v: string) => void;
+  idPrefix: string;
+}) {
+  return (
+    <div className="grid gap-1 sm:grid-cols-2">
+      <Input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        maxLength={120}
+        placeholder="Title (optional), e.g. Courses that fulfill the CMB theme"
+        aria-label="Department Note title"
+        className="h-7 text-xs"
+        data-testid={`${idPrefix}-title`}
+      />
+      <Input
+        value={courses}
+        onChange={(e) => setCourses(e.target.value)}
+        placeholder="Courses (optional), e.g. BIOL 110, BIOL 112"
+        aria-label="Courses this note refers to, separated by commas"
+        className="h-7 font-mono text-xs"
+        data-testid={`${idPrefix}-courses`}
+      />
+    </div>
+  );
+}
+
 function NoteRow({ note, act, busy }: { note: AdminNote; act: Act; busy: boolean }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(note.body);
+  const [title, setTitle] = useState(note.title ?? "");
+  const [courses, setCourses] = useState((note.courseCodes ?? []).join(", "));
   const patch = (body: object) => act(() => customFetch(`/api/admin/department/notes/${note.id}`, json("PATCH", body)));
   return (
     <div className="rounded border border-amber-200 bg-amber-50/60 p-1.5 text-xs" data-testid={`admin-note-${note.id}`}>
@@ -203,12 +250,20 @@ function NoteRow({ note, act, busy }: { note: AdminNote; act: Act; busy: boolean
       </div>
       {editing ? (
         <div className="mt-1 space-y-1">
+          <NoteStructureFields title={title} setTitle={setTitle} courses={courses} setCourses={setCourses} idPrefix={`edit-note-${note.id}`} />
           <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={1200} aria-label="Department Note text" />
-          <Button size="sm" className="h-7" disabled={busy || !text.trim()} onClick={async () => { await patch({ body: text }); setEditing(false); }}>Save</Button>
-          <Button size="sm" variant="ghost" className="h-7" onClick={() => { setText(note.body); setEditing(false); }}>Cancel</Button>
+          <Button size="sm" className="h-7" disabled={busy || !text.trim()} data-testid={`save-note-${note.id}`}
+            onClick={async () => { await patch({ body: text, title: title.trim() || null, courseCodes: parseCourseList(courses) }); setEditing(false); }}>Save</Button>
+          <Button size="sm" variant="ghost" className="h-7" onClick={() => { setText(note.body); setTitle(note.title ?? ""); setCourses((note.courseCodes ?? []).join(", ")); setEditing(false); }}>Cancel</Button>
         </div>
       ) : (
-        <p className="mt-0.5 whitespace-pre-line break-words">{note.body}</p>
+        <>
+          {note.title && <p className="mt-0.5 font-semibold">{note.title}</p>}
+          <p className="mt-0.5 whitespace-pre-line break-words">{note.body}</p>
+          {note.courseCodes?.length > 0 && (
+            <p className="mt-0.5 font-mono text-[10px] text-amber-900" data-testid={`admin-note-courses-${note.id}`}>{note.courseCodes.join(", ")}</p>
+          )}
+        </>
       )}
       {!editing && (
         <div className="mt-1 flex flex-wrap gap-1">
@@ -224,18 +279,31 @@ function NoteRow({ note, act, busy }: { note: AdminNote; act: Act; busy: boolean
 
 function AddNote({ programKey, targetKey, act, busy }: { programKey: string; targetKey: string | null; act: Act; busy: boolean }) {
   const [text, setText] = useState("");
+  const [title, setTitle] = useState("");
+  const [courses, setCourses] = useState("");
   const [open, setOpen] = useState(false);
+  const save = async (status: "published" | "draft") => {
+    await act(() =>
+      customFetch(
+        "/api/admin/department/notes",
+        json("POST", { programKey, targetKey, body: text, title: title.trim() || null, courseCodes: parseCourseList(courses), status }),
+      ),
+    );
+    setText("");
+    setTitle("");
+    setCourses("");
+    setOpen(false);
+  };
   if (!open) return <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => setOpen(true)} data-testid="add-department-note">Add Department Note</Button>;
   return (
     <div className="space-y-1">
+      <NoteStructureFields title={title} setTitle={setTitle} courses={courses} setCourses={setCourses} idPrefix="new-note" />
       <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={1200} placeholder="Advising guidance for students, in the department's words" aria-label="New Department Note" data-testid="new-note-text" />
       <div className="flex gap-1">
-        <Button size="sm" className="h-7" disabled={busy || !text.trim()} data-testid="save-note-published"
-          onClick={async () => { await act(() => customFetch("/api/admin/department/notes", json("POST", { programKey, targetKey, body: text, status: "published" }))); setText(""); setOpen(false); }}>
+        <Button size="sm" className="h-7" disabled={busy || !text.trim()} data-testid="save-note-published" onClick={() => save("published")}>
           Publish
         </Button>
-        <Button size="sm" variant="outline" className="h-7" disabled={busy || !text.trim()}
-          onClick={async () => { await act(() => customFetch("/api/admin/department/notes", json("POST", { programKey, targetKey, body: text, status: "draft" }))); setText(""); setOpen(false); }}>
+        <Button size="sm" variant="outline" className="h-7" disabled={busy || !text.trim()} onClick={() => save("draft")}>
           Save as draft
         </Button>
         <Button size="sm" variant="ghost" className="h-7" onClick={() => setOpen(false)}>Cancel</Button>

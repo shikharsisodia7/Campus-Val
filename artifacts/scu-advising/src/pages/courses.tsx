@@ -24,7 +24,14 @@ import { Link } from "wouter";
 const PAGE_SIZE = 60;
 
 export default function Courses() {
-  const [search, setSearch] = useState("");
+  // "/courses?q=BIOL%20174" (a Department Note's course reference) opens the catalog searched for that course.
+  const [search, setSearch] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("q")?.slice(0, 60) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [department, setDepartment] = useState<string | null>(null);
   const [coreOnly, setCoreOnly] = useState(false);
   const [openCode, setOpenCode] = useState<string | null>(null);
