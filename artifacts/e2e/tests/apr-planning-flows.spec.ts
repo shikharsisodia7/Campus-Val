@@ -507,7 +507,8 @@ test("D. Quarter Plan: APR reference, Filter tab Core results, Open vs All Secti
   await expect(badge("1")).toBeVisible();
   await expect(badge("2")).toHaveCount(0); // full hidden
   await expect(badge("3")).toHaveCount(0); // waitlist hidden
-  await expect(badge("5")).toBeVisible(); // unknown stays, labelled
+  await expect(badge("5")).toHaveCount(0); // unknown is not open (professor, 2026-10-09)
+  await expect(page.getByTestId("open-sections-hidden-note")).toContainText("with unknown availability");
   await shot(page, "D4-sections-open-only");
   await page.getByTestId("availability-view-all").click();
   await expect(badge("2")).toBeVisible();
