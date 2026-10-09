@@ -3862,7 +3862,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
                 ],
                 "key": "cmb",
                 "label": "Theme: Cell and Molecular Biology (CMB)",
-                "note": null,
+                "note": "The 2026-27 Bulletin titles BIOL 115 “Animal Development L&L”; CampusVal's course catalog still shows its earlier title.",
               },
             ],
             "minimum": 1,
@@ -4000,7 +4000,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
                 ],
                 "key": "cmb",
                 "label": "Theme: Cell and Molecular Biology (CMB)",
-                "note": null,
+                "note": "The 2026-27 Bulletin titles BIOL 115 “Animal Development L&L”; CampusVal's course catalog still shows its earlier title.",
               },
               {
                 "courses": [
@@ -4143,7 +4143,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
                 ],
                 "key": "cmb",
                 "label": "Theme: Cell and Molecular Biology (CMB)",
-                "note": null,
+                "note": "The 2026-27 Bulletin titles BIOL 115 “Animal Development L&L”; CampusVal's course catalog still shows its earlier title.",
               },
               {
                 "courses": [
