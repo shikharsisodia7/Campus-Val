@@ -32,7 +32,7 @@ function NoteCard({ note, testId }: { note: DepartmentNote; testId: string }) {
       <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
         <Landmark className="h-3 w-3 shrink-0" aria-hidden="true" />
         <span>Department Note</span>
-        <span className="font-normal normal-case tracking-normal text-amber-800/80">· {note.programTitle}</span>
+        <span className="font-normal normal-case tracking-normal text-amber-800">· {note.programTitle}</span>
       </div>
       {note.title && (
         <p className="mt-0.5 font-semibold" data-testid={`${testId}-title`}>
@@ -65,7 +65,7 @@ function NoteCard({ note, testId }: { note: DepartmentNote; testId: string }) {
           {open ? "Show less" : "Show more"}
         </button>
       )}
-      <p className="mt-0.5 text-[9px] leading-snug text-amber-800/80">
+      <p className="mt-0.5 text-[9px] leading-snug text-amber-800">
         {sourceText(note)}
         {note.sourceUrl && (
           <>
