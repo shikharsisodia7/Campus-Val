@@ -80,14 +80,53 @@ Quarter Plan → Find → a course's sections:
 
 - Header banner stating the true source/freshness of the data (table above).
 - **Section availability: [ All Sections ] [ Open Sections ]** (default All).
-  *Open Sections* hides only what CampusVal **knows** is full or waitlisted;
-  sections whose availability is unknown stay visible and labelled UNKNOWN (hiding
-  them could hide a genuinely open section), with a note saying so. If no section has
-  known seat data, *Open Sections* is disabled with an explanation instead of
-  showing an empty list.
+  *Open Sections* shows **only** sections the configured source reports open
+  (professor's rule, 2026-10-09: "Unknown is not Open"). A section that merely
+  exists, or whose capacity is missing, is never treated as open. The list then says
+  what it left out ("Not shown: 2 full, 1 waitlisted, 3 with unknown availability")
+  and *All Sections* shows everything. If no section has known seat data, *Open
+  Sections* is disabled with an explanation instead of showing an empty list.
+- **Lecture + lab (or discussion):** availability is per section, so an open
+  lecture does not make the course open. When a required part has no section
+  reported open, the list says the course cannot be completed from open sections
+  alone right now; a part whose sections are all unknown is named as unknown.
+- **Refresh availability** appears only when a live source is configured (a static
+  schedule or a snapshot has nothing to refresh and is never presented as
+  refreshed). See [Refresh, diagnostics and scheduled ingestion](#refresh-diagnostics-and-scheduled-ingestion).
 - Each section: text badge (OPEN / WAITLIST / FULL / UNKNOWN — color is additive),
   source chip, and a freshness line ("Updated 2 minutes ago (…)").
 - Full/waitlisted sections stay addable, with a "line up a backup" warning.
+
+## Refresh, diagnostics and scheduled ingestion
+
+_2026-10-09, for testing during Fall registration._ Polling, not push: a bounded
+refresh is enough and keeps upstream traffic predictable.
+
+| Piece | What it does | Bound |
+| --- | --- | --- |
+| Cache | One upstream call per term per `WORKDAY_AVAILABILITY_CACHE_TTL_SECONDS` (default 60), whoever asks | single-flight, 32 terms |
+| `POST /api/section-availability/refresh` `{term, year}` | A signed-in student's "Refresh availability": forces one upstream call for the term | one forced call per term per `WORKDAY_AVAILABILITY_MIN_REFRESH_SECONDS` (default 30), and one request per student per interval (429 otherwise) |
+| `POST /api/internal/availability/refresh` | Scheduled ingestion: Cloud Scheduler / cron / Vercel Cron calls it with `Authorization: Bearer $AVAILABILITY_INGEST_SECRET`; refreshes `AVAILABILITY_INGEST_TERMS` (`fall-2026,winter-2027`) | 404 unless a 24+ character secret is set; constant-time check; same per-term bound |
+| `GET /api/admin/availability/status` | Administrators: live source configured?, provider, cache / refresh / freshness settings, and per term: last attempt, last success, consecutive and total failures, last failure category (`timeout`, `unauthorized`, `upstream_error`, …), sections updated | admin only; never a URL, credential or upstream body |
+
+A failed refresh keeps the last good answer (stale-if-error), aged by the same
+freshness rules; with nothing cached the state is "unavailable" and planning
+continues with the Registrar schedule (UNKNOWN badges).
+
+### Monitoring during Fall registration (runbook)
+
+1. Confirm the live source: `GET /api/admin/availability/status` → `liveConfigured: true`,
+   `provider: "workday_live"`. While it is `false`, CampusVal is showing the
+   Registrar schedule (and any manual snapshot): nothing is live, and the UI says so.
+2. During the registration window set `WORKDAY_AVAILABILITY_CACHE_TTL_SECONDS` to what
+   SCU's rate limit allows (e.g. 60), `WORKDAY_AVAILABILITY_MIN_REFRESH_SECONDS` to 30,
+   and schedule the ingestion hook every few minutes for the registration terms.
+3. Watch `terms[].lastSuccessAt`, `consecutiveFailures`, `lastFailureReason` and
+   `sectionsUpdated`. A rising `consecutiveFailures` with `unauthorized` is a credential
+   problem; `timeout`/`upstream_error` is the upstream; `sectionsUpdated` near 0 for a
+   term that has sections is a mapping problem (`normalizeUpstreamPayload`).
+4. Students see "Updated N minutes ago" from the data's own timestamp; past
+   `WORKDAY_AVAILABILITY_STALE_AFTER_SECONDS` it becomes OUT OF DATE / UNKNOWN by itself.
 
 ## Configuration
 
@@ -104,6 +143,9 @@ All from the environment (`.env.example`); nothing is hard-coded.
 | `WORKDAY_AVAILABILITY_LIVE_WITHIN_SECONDS` | 120 | Younger than this ⇒ "live". |
 | `WORKDAY_AVAILABILITY_STALE_AFTER_SECONDS` | 900 | Older ⇒ stale ⇒ unknown. |
 | `AVAILABILITY_FIXTURE_ENABLED` | `false` | Dev only; ignored (with a warning) in production. |
+| `WORKDAY_AVAILABILITY_MIN_REFRESH_SECONDS` | 30 | Shortest gap a "Refresh availability" may force per term. |
+| `AVAILABILITY_INGEST_SECRET` | — | Enables the scheduled-ingestion hook (24+ characters). |
+| `AVAILABILITY_INGEST_TERMS` | — | Terms the hook refreshes, `fall-2026,winter-2027`. |
 
 ## The input contract
 

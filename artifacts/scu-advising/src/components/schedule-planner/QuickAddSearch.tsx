@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { useSearchCourses, useListCourseSections, useGetCourseComponents, useAddScheduleEvent, useUpdateScheduleEvent, useGetSectionAvailabilityStatus, getSearchCoursesQueryKey, getListCourseSectionsQueryKey, getGetCourseComponentsQueryKey, getGetSectionAvailabilityStatusQueryKey } from "@workspace/api-client-react";
+import { useSearchCourses, useListCourseSections, useGetCourseComponents, useAddScheduleEvent, useUpdateScheduleEvent, useGetSectionAvailabilityStatus, getSearchCoursesQueryKey, getListCourseSectionsQueryKey, getGetCourseComponentsQueryKey, getGetSectionAvailabilityStatusQueryKey, customFetch } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { COMPONENT_LABEL, COMPONENT_ORDER, componentLabel } from "./course-components";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,10 @@ import { useScheduleWorkspace } from "./useScheduleWorkspace";
 import { format12 } from "./utils";
 import {
   bannerFor,
+  componentOpenGaps,
   countByStatus,
   freshnessLine,
+  hiddenByOpenView,
   passesAvailabilityView,
   sourceChip,
   type AvailabilityView,
@@ -141,6 +144,37 @@ export function QuickAddSearch({
 
   const addMut = useAddScheduleEvent();
   const updateMut = useUpdateScheduleEvent();
+
+  // "Refresh availability": only offered when a live source exists (a static
+  // schedule has nothing to refresh, and is never presented as refreshed).
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNote, setRefreshNote] = useState<string | null>(null);
+  const refreshAvailability = async () => {
+    if (!workspace.activeTerm || !workspace.activeYear) return;
+    setRefreshing(true);
+    setRefreshNote(null);
+    try {
+      const outcome = await customFetch<{ refreshed: boolean; reason?: string; retryAfterSeconds?: number }>(
+        "/api/section-availability/refresh",
+        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ term: workspace.activeTerm, year: workspace.activeYear }) },
+      );
+      setRefreshNote(
+        outcome.refreshed
+          ? null
+          : outcome.reason === "too_soon"
+            ? `Availability was refreshed moments ago. Try again in ${outcome.retryAfterSeconds ?? 30} seconds.`
+            : "Workday availability could not be reached. The last known data is still shown.",
+      );
+    } catch (err: any) {
+      const retry = err?.data?.retryAfterSeconds;
+      setRefreshNote(retry ? `You refreshed moments ago. Try again in ${retry} seconds.` : "Availability could not be refreshed right now.");
+    } finally {
+      setRefreshing(false);
+      void queryClient.invalidateQueries({ queryKey: getGetSectionAvailabilityStatusQueryKey(statusParams) });
+      if (selectedCourse) void queryClient.invalidateQueries({ queryKey: getListCourseSectionsQueryKey(selectedCourse, sectionsParams) });
+    }
+  };
 
   // Sections this course already has on the active schedule, keyed by which
   // COMPONENT they are. A course such as CHEM 11 legitimately needs a lecture
@@ -349,6 +383,13 @@ export function QuickAddSearch({
                   const known = counts.open + counts.waitlist + counts.full;
                   const openDisabled = known === 0;
                   const shown = sections.filter((x) => passesAvailabilityView(x.availabilityStatus, availabilityView));
+                  const hidden = hiddenByOpenView(sections);
+                  const required = (componentPlan?.components ?? [])
+                    .filter((c) => c.required)
+                    .map((c) => c.componentType as string);
+                  const gaps = isMultiComponentCourse && known > 0
+                    ? componentOpenGaps(sections, required.length > 0 ? required : offeredComponents.filter((c) => c !== "unknown"))
+                    : { closed: [], unknown: [] };
                   return (
                     <>
                       <div
@@ -363,7 +404,23 @@ export function QuickAddSearch({
                         data-testid="availability-banner"
                         data-state={availabilityStatus?.state ?? "not_connected"}
                       >
-                        {banner.text}
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span>{banner.text}</span>
+                          {availabilityStatus?.liveConfigured && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-[10px]"
+                              disabled={refreshing}
+                              onClick={() => void refreshAvailability()}
+                              data-testid="refresh-availability"
+                            >
+                              {refreshing ? "Refreshing…" : "Refresh availability"}
+                            </Button>
+                          )}
+                        </div>
+                        {refreshNote && <p className="mt-1" data-testid="refresh-availability-note">{refreshNote}</p>}
                       </div>
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
@@ -406,10 +463,28 @@ export function QuickAddSearch({
                             Open Sections needs seat data for this quarter, which isn't available yet — all sections are shown.
                           </p>
                         )}
-                        {!openDisabled && availabilityView === "open" && counts.unknown > 0 && (
-                          <p className="text-[10px] text-muted-foreground" data-testid="open-sections-unknown-note">
-                            {counts.unknown} section{counts.unknown === 1 ? " has" : "s have"} unknown availability and
-                            {counts.unknown === 1 ? " is" : " are"} still shown — CampusVal only hides sections it knows are full or waitlisted.
+                        {!openDisabled && availabilityView === "open" && hidden.total > 0 && (
+                          <p className="text-[10px] text-muted-foreground" data-testid="open-sections-hidden-note">
+                            Showing only sections reported open. Not shown:{" "}
+                            {[
+                              hidden.full > 0 ? `${hidden.full} full` : null,
+                              hidden.waitlist > 0 ? `${hidden.waitlist} waitlisted` : null,
+                              hidden.unknown > 0 ? `${hidden.unknown} with unknown availability` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(", ")}
+                            . Choose All Sections to see them.
+                          </p>
+                        )}
+                        {gaps.closed.length > 0 && (
+                          <p className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] text-amber-900" data-testid="open-component-gap">
+                            No {gaps.closed.map(componentLabel).join(" or ")} section is reported open right now. This course needs one section of
+                            each part, so it cannot be completed from open sections alone at the moment.
+                          </p>
+                        )}
+                        {gaps.unknown.length > 0 && (
+                          <p className="text-[10px] text-muted-foreground" data-testid="open-component-unknown">
+                            {gaps.unknown.map(componentLabel).join(" and ")} availability is unknown — check Workday for an open section.
                           </p>
                         )}
                       </div>
@@ -418,8 +493,8 @@ export function QuickAddSearch({
                           className="text-center p-3 text-xs text-muted-foreground bg-muted/30 rounded-md"
                           data-testid="availability-filter-empty"
                         >
-                          No open sections right now. Full and waitlisted sections stay listed under "All Sections" —
-                          CampusVal never hides them permanently.
+                          No section is reported open right now. Full, waitlisted and unknown sections stay listed under
+                          "All Sections" — CampusVal never hides them permanently.
                         </div>
                       )}
                     </>

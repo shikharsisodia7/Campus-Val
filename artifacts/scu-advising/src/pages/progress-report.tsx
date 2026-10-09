@@ -14,6 +14,7 @@ import { APR_UPLOAD_PHASE_LABEL, useAprDocuments, useAprUpload } from "@/hooks/u
 import { UploadZone, type SelectedFile } from "@/components/progress-report/UploadZone";
 import { AprDocumentCard } from "@/components/progress-report/AprDocumentCard";
 import { APR_CATEGORY_OPTIONS } from "@/components/progress-report/apr-format";
+import { DegreeCompletionAssessment } from "@/components/progress-report/DegreeCompletionAssessment";
 
 /**
  * The full Academic Progress Report page: every APR the student has uploaded,
@@ -136,6 +137,9 @@ function FullAprWorkspace() {
           ))}
         </section>
       )}
+
+      {/* Secondary to the APR, never instead of it: CampusVal's editable planning reading of it. */}
+      {available === true && reports.length > 0 && <DegreeCompletionAssessment />}
     </div>
   );
 }

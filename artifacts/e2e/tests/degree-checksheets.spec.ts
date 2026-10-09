@@ -910,6 +910,10 @@ for (const size of [
       const widths = await scroll.evaluate((el) => ({ inner: el.scrollWidth, outer: el.clientWidth }));
       expect(widths.inner).toBeGreaterThan(widths.outer);
       await noHorizontalOverflow(page, `${size.name} open spreadsheet`);
+      // A phone browser widens its layout viewport to fit anything that escapes a scroll box
+      // (e.g. an absolutely positioned screen-reader label in a far-right cell); scrollWidth then
+      // still equals innerWidth, so check the layout width itself.
+      expect(await page.evaluate(() => window.innerWidth), `${size.name} layout viewport with a grid open`).toBe(size.width);
       // Controls are large enough to touch, and text is readable.
       const control = major.getByLabel("My status for Widget Mathematics I, WIDG 111");
       await control.scrollIntoViewIfNeeded();

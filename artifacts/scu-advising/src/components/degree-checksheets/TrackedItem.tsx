@@ -75,8 +75,8 @@ export function PickItemToolbar({
 }) {
   return (
     <div className="space-y-2" data-testid="checksheet-pick-toolbar">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 p-1.5">
-        <span className="px-1 text-xs text-muted-foreground" data-testid="checksheet-pick-count">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 p-1.5 xl:p-1">
+        <span className="px-1 text-xs text-muted-foreground xl:text-[11px]" data-testid="checksheet-pick-count">
           {count === 0
             ? "Track any course or requirement in a table: choose its cell."
             : `You are tracking ${count} ${count === 1 ? "cell" : "cells"} you chose.`}
@@ -85,7 +85,7 @@ export function PickItemToolbar({
           type="button"
           size="sm"
           variant={picking ? "default" : "outline"}
-          className="h-9 gap-1.5"
+          className="h-9 gap-1.5 xl:h-7 xl:px-2 xl:text-[11px]"
           aria-pressed={picking}
           onClick={() => onChange(!picking)}
           data-testid="checksheet-pick-item"

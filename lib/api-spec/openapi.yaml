@@ -1808,6 +1808,65 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProgressReportSidebar"
+  /progress-reports/assessment:
+    get:
+      operationId: getDegreeCompletionAssessment
+      tags: [progress-report]
+      summary: CampusVal's Degree Completion Assessment of the caller's own APRs
+      description: |
+        A PLANNING AID derived on every request from the caller's own uploaded APRs:
+        what appears to remain. Not Workday, not an official degree audit; Workday is
+        the definitive reference for degree completion. Only Workday's explicit
+        "Not Satisfied" is reported as remaining; "In Progress" is never reported as
+        complete. The automatic result is returned beside the student's corrections.
+        Owner-only; never reachable through a plan share.
+      responses:
+        "200":
+          description: The assessment, one entry per APR document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DegreeCompletionAssessment"
+  /progress-reports/{id}/assessment/items/{itemKey}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+      - name: itemKey
+        in: path
+        required: true
+        schema: { type: string, pattern: "^[0-9a-f]{16}$" }
+    put:
+      operationId: correctDegreeCompletionItem
+      tags: [progress-report]
+      summary: Save the student's correction of one assessment item (never changes the APR)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DegreeCompletionCorrectionInput"
+      responses:
+        "200":
+          description: Saved (or removed when nothing is left to keep)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [saved, itemKey]
+                properties:
+                  saved: { type: boolean }
+                  itemKey: { type: string }
+        "400": { description: "Invalid correction" }
+        "404": { description: "Not the caller's APR, or the row is no longer in it" }
+    delete:
+      operationId: resetDegreeCompletionItem
+      tags: [progress-report]
+      summary: Reset one item to the APR-based assessment
+      responses:
+        "204": { description: "Reset" }
+        "404": { description: "Not the caller's APR" }
   /progress-reports/{id}:
     parameters:
       - name: id
@@ -4468,6 +4527,14 @@ components:
             planned = a planned course would satisfy it; open = neither.
         complete:
           type: boolean
+        section:
+          type: [string, "null"]
+          description: >-
+            The Bulletin heading this requirement sits under inside its group
+            ("Upper-division themes — one course from each, all with laboratory").
+            Null when the group has no sub-headings.
+        choice:
+          $ref: "#/components/schemas/RequirementChoice"
         departmentNotes:
           type: array
           description: >-
@@ -4496,12 +4563,198 @@ components:
         - needsVerification
         - satisfiedBy
         - complete
+    DegreeCompletionCorrectionInput:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: [string, "null"]
+          enum: [remaining, complete, null]
+          description: remaining = mark as remaining; complete = complete for planning; null = use the APR-based result.
+        hidden: { type: boolean }
+        note: { type: [string, "null"], maxLength: 4000 }
+    DegreeCompletionItem:
+      type: object
+      required: [key, label, aprStatus, remaining, remainingKind, remainingAmount, registrations, group, groupKind, automatic, correction, effective, confidence, adjusted, trace]
+      properties:
+        key: { type: string }
+        label: { type: string, description: "The requirement as Workday wrote it." }
+        aprStatus: { type: [string, "null"], description: "Workday's status, verbatim." }
+        remaining: { type: [string, "null"], description: "Workday's Remaining cell, verbatim." }
+        remainingKind: { type: [string, "null"] }
+        remainingAmount: { type: [number, "null"] }
+        registrations:
+          type: array
+          items:
+            type: object
+            required: [text, inProgress]
+            properties:
+              text: { type: string }
+              inProgress: { type: boolean }
+        group: { type: string }
+        groupKind: { type: string }
+        automatic:
+          type: object
+          required: [state, reason, explanation]
+          properties:
+            state: { type: string, enum: [CLEAR_REMAINING, LIKELY_COMPLETE, AMBIGUOUS] }
+            reason: { type: string }
+            explanation: { type: string }
+        correction:
+          type: [object, "null"]
+          required: [status, hidden, note, sourceChanged, updatedAt]
+          properties:
+            status: { type: [string, "null"], enum: [remaining, complete, null] }
+            hidden: { type: boolean }
+            note: { type: [string, "null"] }
+            sourceChanged: { type: boolean, description: "The APR row changed since the correction; it is not applied until confirmed." }
+            updatedAt: { type: string }
+        effective:
+          type: string
+          enum: [remaining, appears_complete, needs_review, complete_for_planning]
+        confidence:
+          type: string
+          enum: [CLEAR_REMAINING, LIKELY_COMPLETE, AMBIGUOUS, USER_CORRECTED]
+        adjusted: { type: boolean }
+        trace:
+          type: object
+          description: Where and why, for proofing. Shown to administrators and developers only.
+          required: [sheet, sheetIndex, row, block, blockIndex, rule, ruleVersion, fingerprint]
+          properties:
+            sheet: { type: string }
+            sheetIndex: { type: integer }
+            row: { type: integer }
+            block: { type: [string, "null"] }
+            blockIndex: { type: integer }
+            rule: { type: string }
+            ruleVersion: { type: string }
+            fingerprint: { type: string }
+    DegreeCompletionSummary:
+      type: object
+      required: [remaining, needsReview, appearsComplete, adjusted, hidden]
+      properties:
+        remaining: { type: integer }
+        needsReview: { type: integer }
+        appearsComplete: { type: integer }
+        adjusted: { type: integer }
+        hidden: { type: integer }
+    DegreeCompletionAssessment:
+      type: object
+      required: [enabled, disclaimer, ruleVersion, available, documents]
+      properties:
+        enabled: { type: boolean }
+        disclaimer: { type: string }
+        ruleVersion: { type: string }
+        available: { type: boolean }
+        options:
+          type: object
+          properties:
+            inProgressRemainingIsAdditional: { type: boolean }
+        documents:
+          type: array
+          items:
+            type: object
+            required: [report, state, programs, unassessableSheets, orphaned, summary]
+            properties:
+              report:
+                $ref: "#/components/schemas/ProgressReportDocument"
+              state: { type: string, enum: [ready, unrecognized_layout, unavailable] }
+              programs:
+                type: array
+                items:
+                  type: object
+                  required: [key, sheet, block, items, summary]
+                  properties:
+                    key: { type: string }
+                    sheet: { type: string }
+                    block: { type: [string, "null"] }
+                    items:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/DegreeCompletionItem"
+                    summary:
+                      $ref: "#/components/schemas/DegreeCompletionSummary"
+              unassessableSheets:
+                type: array
+                items:
+                  type: object
+                  required: [sheet, reason]
+                  properties:
+                    sheet: { type: string }
+                    reason: { type: string }
+              orphaned:
+                type: array
+                items:
+                  type: object
+                  required: [itemKey, sourceLabel, status, hidden, note, updatedAt]
+                  properties:
+                    itemKey: { type: string }
+                    sourceLabel: { type: string }
+                    status: { type: [string, "null"] }
+                    hidden: { type: boolean }
+                    note: { type: [string, "null"] }
+                    updatedAt: { type: string }
+              summary:
+                oneOf:
+                  - $ref: "#/components/schemas/DegreeCompletionSummary"
+                  - type: "null"
+    RequirementChoice:
+      type: [object, "null"]
+      description: >-
+        How a choice requirement is satisfied, when it is one: "choose N" from
+        named Bulletin course lists, or one of several alternative course sets.
+        Counts are CampusVal's planning view; each course counts toward one
+        requirement of the program only. Null for a single-course requirement.
+      required: [kind, minimum, completedCount, plannedCount, lists, alternatives]
+      properties:
+        kind:
+          type: string
+          enum: [choose, alternatives]
+        minimum:
+          type: [integer, "null"]
+          description: "How many courses a choose rule needs. Null for alternatives or a unit-based minimum."
+        completedCount:
+          type: integer
+        plannedCount:
+          type: integer
+        lists:
+          type: array
+          description: The named course lists a choose rule draws on, in the Bulletin's order.
+          items:
+            type: object
+            required: [key, label, note, courses]
+            properties:
+              key: { type: string }
+              label: { type: string }
+              note: { type: [string, "null"] }
+              courses:
+                type: array
+                items: { type: string }
+        alternatives:
+          type: array
+          description: The course sets of an alternatives rule; completing any one satisfies it.
+          items:
+            type: object
+            required: [label, courses, recommended]
+            properties:
+              label: { type: string }
+              courses:
+                type: array
+                items: { type: string }
+              recommended: { type: boolean }
     DepartmentNote:
       type: object
-      required: [id, body, kind, programKey, programTitle, sourceLabel, sourceUrl, sourceReference, origin, reviewed, updatedAt]
+      required: [id, title, body, courseCodes, kind, programKey, programTitle, sourceLabel, sourceUrl, sourceReference, origin, reviewed, updatedAt]
       properties:
         id: { type: integer }
+        title:
+          type: [string, "null"]
+          description: Optional heading the department gave the note.
         body: { type: string }
+        courseCodes:
+          type: array
+          description: Catalog course codes the note refers to (a department-maintained course list). Validated against the catalog.
+          items: { type: string }
         kind:
           type: [string, "null"]
           description: requirement | sequence | core_overlap | advising

@@ -54,7 +54,7 @@ export function ChecksheetDocumentView({
       showTracking && hasTable && <PickItemToolbar picking={picking} onChange={setPicking} count={chosen} />
     )}
     <div
-      className="max-h-[75vh] overflow-auto rounded-md border border-border bg-background"
+      className="relative max-h-[75vh] overflow-auto rounded-md border border-border bg-background"
       tabIndex={0}
       role="region"
       aria-label={`${title} — document, scrollable`}
@@ -244,7 +244,7 @@ function Table({
   const textOf = (cell: ChecksheetDocTableCell | undefined) => (cell?.runs ?? []).map((run) => run.text).join("").trim();
 
   return (
-    <div className="overflow-x-auto" data-testid={`checksheet-doc-table-${index}`}>
+    <div className="relative overflow-x-auto" data-testid={`checksheet-doc-table-${index}`}>
       <table className="w-max min-w-full border-collapse text-[13px]">
         <tbody>
           {rows.map((row, r) => {

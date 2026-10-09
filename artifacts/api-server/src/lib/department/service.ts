@@ -32,6 +32,9 @@ export type NoteStatus = (typeof NOTE_STATUSES)[number];
 export const NOTE_KINDS = ["requirement", "sequence", "core_overlap", "advising"] as const;
 
 export const MAX_NOTE_LENGTH = 1200;
+export const MAX_NOTE_TITLE = 120;
+/** A department course list (a theme's courses, an overlap list) can be long; still bounded. */
+export const MAX_NOTE_COURSES = 60;
 export const MAX_OVERRIDE_TITLE = 160;
 export const MAX_OVERRIDE_DESCRIPTION = 600;
 export const MAX_ADDED_COURSES = 12;
@@ -114,6 +117,8 @@ const asNoteRecord = (r: DepartmentRequirementNoteRow): NoteRecord => ({
   bulletinEdition: r.bulletinEdition,
   body: r.body,
   noteKind: r.noteKind,
+  title: r.title ?? null,
+  courseCodes: r.courseCodes ?? [],
   status: r.status,
   origin: r.origin,
   sourceLabel: r.sourceLabel,
@@ -198,6 +203,37 @@ export function cleanNoteBody(value: unknown): string {
   return text;
 }
 
+/** An optional one-line heading. Plain text, like the body. */
+export function cleanNoteTitle(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") throw new DepartmentError(400, "The note title must be text.");
+  return cleanText(value, MAX_NOTE_TITLE, false);
+}
+
+/**
+ * The catalog courses a note refers to. Every code must be a CampusVal catalog
+ * course (named in the error when it is not), duplicates are dropped and the
+ * department's order is kept. Nothing is guessed or substituted.
+ */
+export function cleanNoteCourses(value: unknown): string[] {
+  if (value === null || value === undefined) return [];
+  if (!Array.isArray(value)) throw new DepartmentError(400, "Course references must be a list of course codes.");
+  const out: string[] = [];
+  const unknown: string[] = [];
+  for (const raw of value) {
+    if (typeof raw !== "string") continue;
+    const code = raw.trim().toUpperCase().replace(/\s+/g, " ");
+    if (!code) continue;
+    if (!isCatalogCode(code)) unknown.push(code);
+    else if (!out.includes(code)) out.push(code);
+  }
+  if (unknown.length > 0) {
+    throw new DepartmentError(400, `Not in the CampusVal course catalog: ${unknown.slice(0, 10).join(", ")}.`);
+  }
+  if (out.length > MAX_NOTE_COURSES) throw new DepartmentError(400, `A note can list at most ${MAX_NOTE_COURSES} courses.`);
+  return out;
+}
+
 function resolveEditionOrThrow(requested?: string | null): string {
   try {
     return resolveBulletinEdition(requested ?? null).edition.id;
@@ -222,6 +258,8 @@ export interface NewNote {
   programKey: string;
   targetKey: string | null;
   body: string;
+  title?: string | null;
+  courseCodes?: string[] | null;
   kind?: string | null;
   status?: "draft" | "published";
   edition?: string | null;
@@ -230,6 +268,8 @@ export interface NewNote {
 export async function createNote(actor: Actor, input: NewNote): Promise<DepartmentRequirementNoteRow> {
   const program = assertNoteTarget(input.programKey, input.targetKey);
   const body = cleanNoteBody(input.body);
+  const title = cleanNoteTitle(input.title);
+  const courseCodes = cleanNoteCourses(input.courseCodes);
   const edition = resolveEditionOrThrow(input.edition);
   const status = input.status === "published" ? "published" : "draft";
   const kind = input.kind && (NOTE_KINDS as readonly string[]).includes(input.kind) ? input.kind : null;
@@ -241,6 +281,8 @@ export async function createNote(actor: Actor, input: NewNote): Promise<Departme
       targetKey: input.targetKey,
       bulletinEdition: edition,
       body,
+      title,
+      courseCodes,
       noteKind: kind,
       status,
       origin: "admin",
@@ -259,7 +301,7 @@ export async function createNote(actor: Actor, input: NewNote): Promise<Departme
     action: status === "published" ? "create_published" : "create",
     targetKey: input.targetKey,
     before: null,
-    after: { body, status, kind },
+    after: { body, title, courseCodes, status, kind },
   });
   return row!;
 }
@@ -271,6 +313,8 @@ export async function getNote(id: number): Promise<DepartmentRequirementNoteRow 
 
 export interface NotePatch {
   body?: string;
+  title?: string | null;
+  courseCodes?: string[] | null;
   kind?: string | null;
   status?: "draft" | "published" | "archived";
   /** Anchor an unmapped (or any) note to a requirement of its program. */
@@ -278,9 +322,18 @@ export interface NotePatch {
 }
 
 export async function updateNote(actor: Actor, existing: DepartmentRequirementNoteRow, patch: NotePatch) {
-  const before = { body: existing.body, status: existing.status, kind: existing.noteKind, targetKey: existing.targetKey };
+  const before = {
+    body: existing.body,
+    title: existing.title,
+    courseCodes: existing.courseCodes,
+    status: existing.status,
+    kind: existing.noteKind,
+    targetKey: existing.targetKey,
+  };
   const next: Partial<typeof departmentRequirementNotesTable.$inferInsert> = { updatedBy: actor.email };
   if (patch.body !== undefined) next.body = cleanNoteBody(patch.body);
+  if (patch.title !== undefined) next.title = cleanNoteTitle(patch.title);
+  if (patch.courseCodes !== undefined) next.courseCodes = cleanNoteCourses(patch.courseCodes);
   if (patch.kind !== undefined) {
     next.noteKind = patch.kind && (NOTE_KINDS as readonly string[]).includes(patch.kind) ? patch.kind : null;
   }
@@ -315,7 +368,14 @@ export async function updateNote(actor: Actor, existing: DepartmentRequirementNo
     action: patch.status && patch.status !== existing.status ? patch.status : "update",
     targetKey: nextTarget,
     before,
-    after: { body: row!.body, status: row!.status, kind: row!.noteKind, targetKey: row!.targetKey },
+    after: {
+      body: row!.body,
+      title: row!.title,
+      courseCodes: row!.courseCodes,
+      status: row!.status,
+      kind: row!.noteKind,
+      targetKey: row!.targetKey,
+    },
   });
   return row!;
 }

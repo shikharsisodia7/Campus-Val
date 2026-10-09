@@ -33,6 +33,7 @@ import {
 } from "@/lib/requirement-category";
 import { DepartmentMarks, DepartmentNotes, GroupDepartmentNotes } from "./DepartmentNotes";
 import { RequirementCourseDiscovery } from "./RequirementCourseDiscovery";
+import { RequirementChoiceDetails, choiceSummary, countedLine, hasCourseList } from "./RequirementChoiceDetails";
 import {
   AddRequirementButton,
   CustomizationMarks,
@@ -259,14 +260,21 @@ export function Palette() {
     );
   };
 
-  const isPlanned = (reqId: string, courses: string[]) => {
+  const isPlanned = (req: RequirementItem) => {
     if (!activePlan) return false;
+    // A choice requirement's courses overlap other requirements (an elective
+    // list includes the theme courses), so only the server's allocation may
+    // call it planned; here only a placeholder made for it counts.
     return activePlan.items.some(
       (i) =>
-        i.requirementId === reqId ||
-        (i.courseCode && courses.includes(i.courseCode)),
+        i.requirementId === req.id ||
+        (!req.choice && i.courseCode && req.courses.includes(i.courseCode)),
     );
   };
+  const plannedCourseCodes = useMemo(
+    () => new Set((activePlan?.items ?? []).map((i) => i.courseCode).filter((c): c is string => !!c)),
+    [activePlan?.items],
+  );
 
   const filteredCatalog = catalog
     ?.filter(
@@ -513,7 +521,7 @@ export function Palette() {
                         group.
                       </p>
                     )}
-                    {group.items.map((req) => {
+                    {group.items.map((req, index) => {
                       const custom = req.customization;
                       const isCustom = custom?.kind === "custom";
                       const isHidden =
@@ -521,6 +529,12 @@ export function Palette() {
                       // "Hide from my plan": gone from the student's own view,
                       // still there (dimmed, with Restore) while editing.
                       if (isHidden && !editing) return null;
+                      // The Bulletin's sub-heading, once at the top of its run of requirements.
+                      const isVisible = (r: RequirementItem) =>
+                        editing || !(r.customization?.kind === "edit" && r.customization.hidden && !r.customization.sourceChanged);
+                      const previousVisible = group.items.slice(0, index).filter(isVisible).at(-1);
+                      const sectionHeading =
+                        req.section && req.section !== previousVisible?.section ? req.section : null;
                       // The server resolves cross-satisfaction: a planned major
                       // course carrying a Core designation marks that Core
                       // requirement "planned" (never "completed"). Fall back to
@@ -530,7 +544,7 @@ export function Palette() {
                         serverStatus === "completed" || req.complete;
                       const planned =
                         serverStatus === "planned" ||
-                        isPlanned(req.id, req.courses);
+                        isPlanned(req);
                       const status = completed
                         ? "completed"
                         : planned
@@ -539,8 +553,16 @@ export function Palette() {
                       const crossSatisfiedBy = req.crossSatisfiedBy ?? [];
 
                       return (
+                        <div key={req.id} className="space-y-1">
+                        {sectionHeading && (
+                          <h3
+                            className="px-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                            data-testid="requirement-section-heading"
+                          >
+                            {sectionHeading}
+                          </h3>
+                        )}
                         <div
-                          key={req.id}
                           data-stable-key={req.stableKey}
                           data-customized={custom ? custom.kind : undefined}
                           data-flash={flashKey === req.stableKey ? "true" : undefined}
@@ -612,7 +634,7 @@ export function Palette() {
                                 </Button>
                               )}
 
-                              {req.courses.length > 0 && (
+                              {req.courses.length > 0 && !req.choice && (
                                 <div className="pt-1">
                                   <div className="mb-1 text-[10px] font-medium uppercase text-muted-foreground">
                                     Or add course:
@@ -630,16 +652,17 @@ export function Palette() {
                                         {c}
                                       </Badge>
                                     ))}
-                                    {req.courses.length > 5 && (
-                                      <Badge
-                                        variant="outline"
-                                        className="border-dashed text-[10px] text-muted-foreground"
-                                      >
-                                        +{req.courses.length - 5} more
-                                      </Badge>
-                                    )}
                                   </div>
                                 </div>
+                              )}
+                              {hasCourseList(req) && (
+                                <RequirementChoiceDetails
+                                  req={req}
+                                  catalog={catalog}
+                                  onAdd={(code) => handleAddCourse(code, group, req)}
+                                  disabled={addPlanItem.isPending}
+                                  plannedCourses={plannedCourseCodes}
+                                />
                               )}
 
                               <RequirementCourseDiscovery
@@ -654,6 +677,12 @@ export function Palette() {
                           {status === "completed" && (
                             <div className="mt-1 text-[10px] text-emerald-700">
                               Satisfied
+                            </div>
+                          )}
+                          {status !== "unmet" && req.choice && (
+                            <div className="mt-1 space-y-0.5 text-[10px] text-muted-foreground" data-testid={`choice-counted-${req.id}`}>
+                              {choiceSummary(req) && <p>{choiceSummary(req)}</p>}
+                              {countedLine(req) && <p>{countedLine(req)}</p>}
                             </div>
                           )}
                           {status === "planned" && (
@@ -695,6 +724,7 @@ export function Palette() {
                               onEdit={() => setDialog({ kind: "edit", item: req, group })}
                             />
                           )}
+                        </div>
                         </div>
                       );
                     })}

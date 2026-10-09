@@ -17,13 +17,23 @@ export const TRACKING_HINT = "Your own tracking, saved in CampusVal. It does not
 // Compact from xl up, where the checksheet shares the screen with Planning Requirements and the APR:
 // 32px tall, still well above the 24px minimum target. Phones and tablets (touch) keep 36px.
 const SELECT =
-  "h-9 min-w-0 rounded-md border border-primary/40 bg-background px-1.5 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-60 xl:h-8 xl:px-1 xl:text-xs";
+  "h-9 min-w-0 rounded-md border border-primary/40 bg-background px-1.5 text-sm text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-60 xl:h-7 xl:px-1 xl:text-xs";
 
 /**
  * The small mark that sets the student's entries apart from the department's
  * text: an icon AND words, never colour alone.
  */
-export function MyTrackingTag({ className }: { className?: string }) {
+export function MyTrackingTag({ className, compact = false }: { className?: string; compact?: boolean }) {
+  if (compact) {
+    // Inside a table cell, beside the control: the icon, with the words for screen readers and on hover.
+    // The page says once, in words, what the mark means (checksheet-source-notice).
+    return (
+      <span className={cn("relative inline-flex shrink-0 items-center text-primary", className)} title={TRACKING_HINT}>
+        <PencilLine className="h-3 w-3" aria-hidden="true" />
+        <span className="sr-only">My tracking</span>
+      </span>
+    );
+  }
   return (
     <span
       className={cn(

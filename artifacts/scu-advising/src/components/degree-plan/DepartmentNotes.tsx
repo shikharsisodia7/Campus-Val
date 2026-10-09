@@ -32,9 +32,29 @@ function NoteCard({ note, testId }: { note: DepartmentNote; testId: string }) {
       <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
         <Landmark className="h-3 w-3 shrink-0" aria-hidden="true" />
         <span>Department Note</span>
-        <span className="font-normal normal-case tracking-normal text-amber-800/80">· {note.programTitle}</span>
+        <span className="font-normal normal-case tracking-normal text-amber-800">· {note.programTitle}</span>
       </div>
+      {note.title && (
+        <p className="mt-0.5 font-semibold" data-testid={`${testId}-title`}>
+          {note.title}
+        </p>
+      )}
       <p className="mt-0.5 whitespace-pre-line break-words">{shown}</p>
+      {note.courseCodes && note.courseCodes.length > 0 && (
+        <ul className="mt-1 flex flex-wrap gap-1" aria-label="Courses this note refers to" data-testid={`${testId}-courses`}>
+          {note.courseCodes.map((code) => (
+            <li key={code}>
+              <a
+                href={`/courses?q=${encodeURIComponent(code)}`}
+                className="inline-block rounded border border-amber-300 bg-white/70 px-1 font-mono text-[10px] text-amber-900 underline-offset-2 hover:underline"
+                title={`Look up ${code} in the course catalog`}
+              >
+                {code}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
       {long && (
         <button
           type="button"
@@ -45,7 +65,7 @@ function NoteCard({ note, testId }: { note: DepartmentNote; testId: string }) {
           {open ? "Show less" : "Show more"}
         </button>
       )}
-      <p className="mt-0.5 text-[9px] leading-snug text-amber-800/80">
+      <p className="mt-0.5 text-[9px] leading-snug text-amber-800">
         {sourceText(note)}
         {note.sourceUrl && (
           <>

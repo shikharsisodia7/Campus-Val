@@ -74,6 +74,20 @@ Only the 2026-27 edition has data today; no older edition is invented.
 `data/bulletin-snapshots/2026-27.json` freezes every program's normalized tree (groups, requirements, stable keys, provenance; no student data).
 A unit test fails if the file is not what the data produces: run `pnpm run snapshot:bulletin` after a Bulletin data change and commit the result.
 
+### Structured majors: themes, choices and alternatives
+
+_2026-10-09._ A major whose Bulletin entry is built from choices ("one course from each theme", "four electives, at least two with
+laboratory", "PHYS 11-13 or PHYS 31-33") is written in `data/major-structures.ts` as a `MajorStructure`: sections of requirements,
+each one of three rules (**each** course required, **choose N** from named course lists, **alternatives**), with the Bulletin's
+paragraph kept verbatim beside it. Allocation is deterministic: requirements resolve in Bulletin order and a course counts toward
+one requirement only. The sidebar receives each item's `section` (sub-heading) and `choice` (named lists, counts, alternatives);
+every requirement with a long course list can be opened in full, for any program. Majors without a structure keep their recipe.
+
+Biology is the first structured major (Provost demo): see [audits/biology-proofing-2026-10-09.md](./audits/biology-proofing-2026-10-09.md).
+To add another: transcribe the Bulletin section into a `MajorStructure`, add it to `MAJOR_STRUCTURES`, write a semantic fixture
+test like `major-structures.test.ts`, run `pnpm run snapshot:bulletin`, and check `audit:requirements --db` for notes or student
+edits anchored to keys the change removes.
+
 ## Categories and the Core/Major classification
 
 Canonical categories (`lib/requirements-source/category.ts`): `UNIVERSITY`, `CORE`, `SCHOOL`, `MAJOR`, `MINOR`, `CONCENTRATION`, `OTHER`.
@@ -140,6 +154,17 @@ A student's private upload is never a source of global notes.
 
 Result on the 40 real CAS checklists (QA database): 30 programs matched, 10 files skipped (each with its reason in the report), **225 published**, **2 draft**, **179 unmapped**.
 Imported notes are published *unreviewed* and labelled so; the department's own administrators review them in Program Requirements Admin.
+
+### Titles and course lists
+
+_2026-10-09._ A Department Note can carry an optional **title** and a list of **catalog course codes** (migration `0008`): the
+courses of a theme, an overlap list, a sequence. Admins enter them in the existing note editor (comma-separated codes); every code
+must be a CampusVal catalog course and an unknown one is refused by name, never substituted. Students see the title, the text and
+the codes as links into the course catalog. Structural requirements stay in the Bulletin data; a note is for guidance the
+Bulletin does not state (do not repeat a list the requirement already shows).
+
+Several programs can note the same Core requirement (a Biology major's note and a Chemistry minor's note on CTW 1): each is shown
+with its program's name, neither replaces the other, and each appears only on plans that include that program.
 
 ## Department administration
 

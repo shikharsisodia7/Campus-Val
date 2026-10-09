@@ -1,4 +1,5 @@
 import type { Term } from "./courses";
+import { MAJOR_STRUCTURES, resolveMajorStructure, structureRequiredCount, type MajorStructure } from "./major-structures";
 
 export type PathType = "three_year" | "four_year";
 export type College = "SOE" | "LSB" | "CAS";
@@ -85,6 +86,13 @@ interface MajorRecipe {
   // sourceUrl for the exact concentration requirements. See
   // docs/SCU_PROGRAM_CATALOG.md.
   concentrations?: MajorConcentration[];
+  /**
+   * The major as the Bulletin structures it (themes, "choose N", alternative
+   * sequences). When present it is what the requirements sidebar shows;
+   * lowerDiv/upperDiv then only seed the illustrative four-year example.
+   * See data/major-structures.ts.
+   */
+  structure?: MajorStructure;
 }
 
 interface MajorConcentration {
@@ -238,8 +246,14 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Biology",
     college: "CAS",
     mathTrack: "calc-life",
-    lowerDiv: ["BIOL 1A", "BIOL 1B", "BIOL 1C", "CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "PHYS 11", "PHYS 12"],
-    upperDiv: ["BIOL 172", "BIOL 174", "BIOL 178", "BIOL 180", "BIOL 184", "BIOL 188"],
+    lowerDiv: ["BIOL 1A", "BIOL 1B", "BIOL 1C", "CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33", "PHYS 11", "PHYS 12", "PHYS 13"],
+    // The requirements are the Bulletin structure below. This list only seeds
+    // the illustrative four-year example, as ONE selection that satisfies it:
+    // BIOL 101; a CMB, EEB and MOD theme course (174, 180, 178); two electives
+    // with laboratory (175, 172); two more electives, one of them JES (171, 160).
+    // It used to list BIOL 184 and 188, which no Biology requirement names.
+    upperDiv: ["BIOL 101", "BIOL 174", "BIOL 180", "BIOL 178", "BIOL 175", "BIOL 172", "BIOL 171", "BIOL 160"],
+    structure: MAJOR_STRUCTURES["BIOL"],
   },
   CHEM: {
     major: "CHEM",
@@ -1525,6 +1539,32 @@ const UNIVERSITY_CORE_AREAS: { label: string; description: string }[] = [
   { label: "Foreign Language (3 quarters)", description: "B.A. only — 3-quarter intro sequence (waivable with AP/IB 4+ or proficiency exam)." },
 ];
 
+/** B.S. / professional degrees do not require the 3-quarter language sequence. */
+function skipsLanguage(recipe: MajorRecipe): boolean {
+  return (
+    !!recipe.noLanguage ||
+    recipe.college === "SOE" ||
+    recipe.college === "LSB" ||
+    recipe.mathTrack === "calc-stem" ||
+    recipe.mathTrack === "calc-life"
+  );
+}
+
+function universityCoreAreasGroup(skipLang: boolean): { label: string; courses: MajorRequirementCourse[] } {
+  const coreAreas = UNIVERSITY_CORE_AREAS.filter((a) => !(skipLang && a.label.startsWith("Foreign Language")));
+  return {
+    label: "University Core (areas — pick approved courses)",
+    courses: coreAreas.map((a) => ({
+      code: a.label,
+      title: a.label,
+      units: 4,
+      description: a.description,
+      completed: false,
+      category: "university-core" as const,
+    })),
+  };
+}
+
 export interface MajorRequirements {
   major: string;
   title: string;
@@ -1587,8 +1627,11 @@ export function getMajorRequirements(
     if (courses.length > 0) groups.push({ label, courses });
   };
 
-  const math = mathSequenceFor(recipe.mathTrack);
   const groups: MajorRequirements["groups"] = [];
+  if (recipe.structure) {
+    return structuredMajorRequirements(recipe, recipe.structure, completedCourseCodes, catalogLookup);
+  }
+  const math = mathSequenceFor(recipe.mathTrack);
   if (math.length > 0) buildGroup("Math sequence", math, "lower-division");
 
   // For LSB majors, surface the Common Curriculum (Business Core) as its
@@ -1610,26 +1653,8 @@ export function getMajorRequirements(
   }
 
   // University Core (informational areas — not real course codes).
-  const skipLang =
-    recipe.noLanguage ||
-    recipe.college === "SOE" ||
-    recipe.college === "LSB" ||
-    recipe.mathTrack === "calc-stem" ||
-    recipe.mathTrack === "calc-life";
-  const coreAreas = UNIVERSITY_CORE_AREAS.filter(
-    (a) => !(skipLang && a.label.startsWith("Foreign Language")),
-  );
-  groups.push({
-    label: "University Core (areas — pick approved courses)",
-    courses: coreAreas.map((a) => ({
-      code: a.label,
-      title: a.label,
-      units: 4,
-      description: a.description,
-      completed: false,
-      category: "university-core" as const,
-    })),
-  });
+  const skipLang = skipsLanguage(recipe);
+  groups.push(universityCoreAreasGroup(skipLang));
 
   const notes: string[] = [...(recipe.notes ?? [])];
   if (missingFromCatalog.length > 0) {
@@ -1653,6 +1678,92 @@ export function getMajorRequirements(
     notes,
     totalListed: all.length,
     completedCount: all.filter((c) => c.completed).length,
+    groups,
+    concentrations: recipe.concentrations ?? [],
+  };
+}
+
+/**
+ * getMajorRequirements for a major with a Bulletin structure: one group per
+ * requirement, labelled with its rule ("— choose 2"), so a page that lists
+ * courses never presents a list of options as a list of required courses.
+ * Totals count required courses, not options.
+ */
+function structuredMajorRequirements(
+  recipe: MajorRecipe,
+  structure: MajorStructure,
+  completedCourseCodes: string[],
+  catalogLookup: (code: string) => { code: string; title: string; units: number; description: string } | undefined,
+): MajorRequirements {
+  const resolved = resolveMajorStructure(structure, completedCourseCodes);
+  const completed = new Set(completedCourseCodes.map((c) => c.trim().toUpperCase().replace(/\s+/g, " ")));
+  const missing = new Set<string>();
+  const entry = (code: string): MajorRequirementCourse | null => {
+    const found = catalogLookup(code);
+    if (!found) {
+      missing.add(code);
+      return null;
+    }
+    const number = Number.parseInt(code.split(" ")[1] ?? "", 10);
+    return {
+      code,
+      title: found.title,
+      units: found.units,
+      description: found.description,
+      completed: completed.has(code.toUpperCase()),
+      category: number >= 100 ? "upper-division" : "lower-division",
+    };
+  };
+  const groups: MajorRequirements["groups"] = [];
+  let completedCount = 0;
+  const eachGroups = new Map<string, MajorRequirements["groups"][number]>();
+  for (const item of resolved) {
+    if (item.choice === null) {
+      // Courses of one "each" rule share a group named after their section.
+      const label = item.section;
+      let group = eachGroups.get(label);
+      if (!group) {
+        group = { label, courses: [] };
+        eachGroups.set(label, group);
+        groups.push(group);
+      }
+      const e = entry(item.course!);
+      if (e) group.courses.push(e);
+      if (item.status === "completed") completedCount += 1;
+      continue;
+    }
+    const rule =
+      item.choice.kind === "choose"
+        ? ` — choose ${item.choice.minimum}`
+        : ` — ${item.choice.alternatives.map((a) => a.label).join(" or ")}`;
+    groups.push({
+      label: item.choice.kind === "choose" ? `${item.label}${rule}` : item.label,
+      courses: item.courses.map(entry).filter((c): c is MajorRequirementCourse => c !== null),
+    });
+    if (item.choice.kind === "choose") completedCount += Math.min(item.choice.completedCount, item.choice.minimum ?? 0);
+    else if (item.status === "completed") completedCount += item.satisfiedBy.length;
+  }
+  const notes = [...structure.notes, ...(recipe.notes ?? [])];
+  if (missing.size > 0) {
+    notes.push(
+      `${missing.size} course${missing.size === 1 ? "" : "s"} named by the Bulletin ${missing.size === 1 ? "is" : "are"} not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: ${[...missing].join(", ")}.`,
+    );
+  }
+  const skipLang = skipsLanguage(recipe);
+  if (skipLang) {
+    notes.push(
+      "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
+    );
+  }
+  groups.push(universityCoreAreasGroup(skipLang));
+  return {
+    major: recipe.major,
+    title: recipe.title,
+    college: recipe.college,
+    mathTrack: recipe.mathTrack,
+    notes,
+    totalListed: structureRequiredCount(structure),
+    completedCount,
     groups,
     concentrations: recipe.concentrations ?? [],
   };

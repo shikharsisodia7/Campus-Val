@@ -38,6 +38,19 @@ import { aprMaxUploadBytes, aprMaxUploadLabel, APR_MAX_DOCUMENTS_PER_USER } from
 import { readAprWorkbook, workbookPlainText } from "../lib/apr/workbook-reader";
 import { readAprPdf } from "../lib/apr/pdf-table-reader";
 import { projectForSidebar, projectionStats } from "../lib/apr/sidebar-projection";
+import { assessWorkbook, ASSESSMENT_RULE_VERSION } from "../lib/degree-completion/engine";
+import {
+  ASSESSMENT_DISCLAIMER,
+  AssessmentError,
+  assessmentEnabled,
+  assessmentOptions,
+  deleteCorrection,
+  findItem,
+  listCorrections,
+  mergeCorrections,
+  saveCorrection,
+} from "../lib/degree-completion/service";
+import { z } from "zod/v4";
 import { extractStudentId } from "../lib/apr/identity";
 import {
   APR_IMPORT_ERROR_MESSAGE,
@@ -566,6 +579,137 @@ router.get("/progress-reports/sidebar", requireAuth, async (req, res): Promise<v
     }
   }
   res.json({ available: true, documents });
+});
+
+// ─── Degree Completion Assessment ────────────────────────────────────────────
+//
+// CampusVal's planning interpretation of the student's OWN APRs (see
+// lib/degree-completion). Owner-only, exactly like the APR it derives from:
+// every query below is scoped to req.userId and a document id is only ever
+// accepted for a document that user owns. Nothing here is reachable through a
+// plan share. It never writes to progress_reports.
+
+router.get("/progress-reports/assessment", requireAuth, async (req, res): Promise<void> => {
+  noStore(res);
+  const base = { enabled: assessmentEnabled(), disclaimer: ASSESSMENT_DISCLAIMER, ruleVersion: ASSESSMENT_RULE_VERSION };
+  if (!base.enabled) {
+    res.json({ ...base, available: false, documents: [] });
+    return;
+  }
+  if (!isPrivateStorageConfigured()) {
+    res.json({ ...base, available: false, documents: [] });
+    return;
+  }
+  const userId = req.userId!;
+  const options = assessmentOptions();
+  const rows = await listOwned(userId);
+  const corrections = await listCorrections(userId, rows.map((r) => r.id));
+  type Merged = ReturnType<typeof mergeCorrections>;
+  const documents: {
+    report: ReturnType<typeof documentDto>;
+    state: "ready" | "unrecognized_layout" | "unavailable";
+    programs: Merged["programs"];
+    unassessableSheets: ReturnType<typeof assessWorkbook>["unassessableSheets"];
+    orphaned: Merged["orphaned"];
+    summary: Merged["summary"] | null;
+  }[] = [];
+  for (const listed of rows) {
+    const report = documentDto(listed);
+    const mine = corrections.filter((c) => c.aprDocumentId === listed.id);
+    try {
+      const row = await importIfNeeded(req, listed);
+      const workbook = row.hasWorkbook ? await workbookOf(userId, row.id) : null;
+      if (!workbook) {
+        documents.push({ report: documentDto(row), state: "unavailable", programs: [], unassessableSheets: [], orphaned: [], summary: null });
+        continue;
+      }
+      const assessment = assessWorkbook(workbook, options);
+      const merged = mergeCorrections(assessment, mine);
+      documents.push({
+        report: documentDto(row),
+        state: merged.programs.length > 0 ? "ready" : "unrecognized_layout",
+        programs: merged.programs,
+        unassessableSheets: assessment.unassessableSheets,
+        orphaned: merged.orphaned,
+        summary: merged.summary,
+      });
+    } catch {
+      req.log.error({ event: "degree_completion_failed", reportId: listed.id }, "Degree Completion Assessment failed");
+      documents.push({ report, state: "unavailable", programs: [], unassessableSheets: [], orphaned: [], summary: null });
+    }
+  }
+  req.log.info(
+    { event: "degree_completion_assessed", documents: documents.length, items: documents.reduce((n, d) => n + d.programs.reduce((m, p) => m + p.items.length, 0), 0) },
+    "Degree Completion Assessment built",
+  );
+  res.json({ ...base, available: true, options, documents });
+});
+
+const CorrectionBody = z
+  .object({
+    status: z.enum(["remaining", "complete"]).nullable().optional(),
+    hidden: z.boolean().optional(),
+    note: z.string().max(4000).nullable().optional(),
+  })
+  .strict()
+  .refine((b) => b.status !== undefined || b.hidden !== undefined || b.note !== undefined, { message: "Nothing to change." });
+
+const ITEM_KEY_RE = /^[0-9a-f]{16}$/;
+
+router.put("/progress-reports/:id/assessment/items/:itemKey", requireAuth, async (req, res): Promise<void> => {
+  noStore(res);
+  if (!assessmentEnabled()) {
+    res.status(404).json({ error: "The Degree Completion Assessment is not available." });
+    return;
+  }
+  const id = parseId(req);
+  const itemKey = String(req.params["itemKey"] ?? "");
+  const parsed = CorrectionBody.safeParse(req.body);
+  if (id === null || !ITEM_KEY_RE.test(itemKey) || !parsed.success) {
+    res.status(400).json({ error: "Invalid correction." });
+    return;
+  }
+  const userId = req.userId!;
+  // Ownership first: someone else's document is "not found", the same as a missing one.
+  const row = await findOwned(userId, id);
+  if (!row) {
+    res.status(404).json({ error: "APR not found." });
+    return;
+  }
+  try {
+    const workbook = row.hasWorkbook ? await workbookOf(userId, id) : null;
+    const item = workbook ? findItem(assessWorkbook(workbook, assessmentOptions()), itemKey) : null;
+    if (!item) {
+      res.status(404).json({ error: "That requirement is no longer in this APR. You can reset the correction instead." });
+      return;
+    }
+    const saved = await saveCorrection(userId, id, item, parsed.data);
+    res.json({ saved: saved !== null, itemKey });
+  } catch (error) {
+    if (error instanceof AssessmentError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+    req.log.error({ event: "degree_completion_correction_failed", reportId: id }, "Correction could not be saved");
+    res.status(500).json({ error: "The correction could not be saved." });
+  }
+});
+
+router.delete("/progress-reports/:id/assessment/items/:itemKey", requireAuth, async (req, res): Promise<void> => {
+  noStore(res);
+  const id = parseId(req);
+  const itemKey = String(req.params["itemKey"] ?? "");
+  if (id === null || !ITEM_KEY_RE.test(itemKey)) {
+    res.status(400).json({ error: "Invalid request." });
+    return;
+  }
+  const userId = req.userId!;
+  if (!(await findOwned(userId, id))) {
+    res.status(404).json({ error: "APR not found." });
+    return;
+  }
+  await deleteCorrection(userId, id, itemKey);
+  res.status(204).end();
 });
 
 router.get("/progress-reports/:id", requireAuth, async (req, res): Promise<void> => {

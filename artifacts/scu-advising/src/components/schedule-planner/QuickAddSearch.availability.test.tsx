@@ -149,7 +149,7 @@ describe("QuickAddSearch — availability badges, filter, freshness", () => {
     expect(screen.getByTestId("availability-view-open").getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("Open Sections hides FULL and WAITLIST but keeps OPEN and UNKNOWN (never hides a section we aren't sure is unavailable); All Sections restores everything", async () => {
+  it("Open Sections shows only sections reported OPEN (unknown is not open), says what it left out, and All Sections restores everything", async () => {
     const withWaitlist = [
       ...SECTIONS,
       { ...SECTIONS[1], id: "CHEM-11-04-fall-2026", sectionNumber: "04", availabilityStatus: "waitlist", waitlist: 3 },
@@ -159,11 +159,11 @@ describe("QuickAddSearch — availability badges, filter, freshness", () => {
     fireEvent.click(screen.getByTestId("availability-view-open"));
     expect(screen.getByTestId("availability-view-open").getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByTestId("availability-badge-01")).toBeTruthy(); // open
-    expect(screen.getByTestId("availability-badge-03")).toBeTruthy(); // unknown stays, labelled
+    expect(screen.queryByTestId("availability-badge-03")).toBeNull(); // unknown is not open
     expect(screen.queryByTestId("availability-badge-02")).toBeNull(); // full
     expect(screen.queryByTestId("availability-badge-04")).toBeNull(); // waitlist
-    // The student is told what is being kept and why.
-    expect(screen.getByTestId("open-sections-unknown-note").textContent).toMatch(/1 section has unknown availability/);
+    // The student is told what was left out, by reason.
+    expect(screen.getByTestId("open-sections-hidden-note").textContent).toMatch(/1 full, 1 waitlisted, 1 with unknown availability/);
 
     fireEvent.click(screen.getByTestId("availability-view-all"));
     for (const n of ["01", "02", "03", "04"]) expect(screen.getByTestId(`availability-badge-${n}`)).toBeTruthy();
@@ -182,7 +182,7 @@ describe("QuickAddSearch — availability badges, filter, freshness", () => {
     renderWithSections([SECTIONS[1]] as any);
     await screen.findByTestId("availability-badge-02");
     fireEvent.click(screen.getByTestId("availability-view-open"));
-    expect(screen.getByTestId("availability-filter-empty").textContent).toMatch(/No open sections right now/);
+    expect(screen.getByTestId("availability-filter-empty").textContent).toMatch(/No section is reported open right now/);
     fireEvent.click(screen.getByTestId("availability-view-all"));
     expect(screen.getByTestId("availability-badge-02")).toBeTruthy();
   });
@@ -292,5 +292,48 @@ describe("QuickAddSearch — availability badges, filter, freshness", () => {
     );
     expect((await screen.findByTestId("availability-badge-1")).textContent).toContain("UNKNOWN");
     expect(screen.getByText(/Tentative schedule — no seat data yet/)).toBeTruthy();
+  });
+});
+
+describe("QuickAddSearch — lecture + lab and refreshing availability", () => {
+  const params = { term: "fall" as const, year: 2026 };
+  function renderWith(sections: any[], status?: Record<string, unknown>) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(getListCourseSectionsQueryKey("CHEM 11", params), sections);
+    if (status) queryClient.setQueryData(getGetSectionAvailabilityStatusQueryKey(params), status);
+    render(
+      <QueryClientProvider client={queryClient}>
+        <QuickAddSearch workspace={fakeWorkspace()} initialCourse="CHEM 11" />
+      </QueryClientProvider>,
+    );
+  }
+  const lecture = { ...SECTIONS[0], id: "CHEM-11-01-fall-2026", sectionNumber: "01", componentType: "lecture", availabilityStatus: "open" };
+  const labFull = { ...SECTIONS[1], id: "CHEM-11-31-fall-2026", sectionNumber: "31", componentType: "lab", availabilityStatus: "full" };
+  const labOpen = { ...SECTIONS[0], id: "CHEM-11-32-fall-2026", sectionNumber: "32", componentType: "lab", availabilityStatus: "open" };
+
+  it("says the course cannot be completed from open sections when the lecture is open but every lab is full", async () => {
+    renderWith([lecture, labFull]);
+    await screen.findByTestId("availability-badge-01");
+    expect(screen.getByTestId("open-component-gap").textContent).toMatch(/No Lab(oratory)? section is reported open/i);
+    fireEvent.click(screen.getByTestId("availability-view-open"));
+    expect(screen.getByTestId("availability-badge-01")).toBeTruthy();
+    expect(screen.queryByTestId("availability-badge-31")).toBeNull();
+  });
+
+  it("has no warning once an open lab exists", async () => {
+    renderWith([lecture, labFull, labOpen]);
+    await screen.findByTestId("availability-badge-32");
+    expect(screen.queryByTestId("open-component-gap")).toBeNull();
+  });
+
+  it("offers Refresh availability only when a live source is configured", async () => {
+    const base = { term: "fall", year: 2026, lastUpdatedAt: null, sectionsWithKnownAvailability: 2, counts: { open: 1, waitlist: 0, full: 1, unknown: 0 } };
+    renderWith([lecture, labFull], { ...base, state: "manual_snapshot", liveConfigured: false });
+    await screen.findByTestId("availability-badge-01");
+    expect(screen.queryByTestId("refresh-availability")).toBeNull();
+    cleanup();
+    renderWith([lecture, labFull], { ...base, state: "live", liveConfigured: true, lastUpdatedAt: new Date().toISOString() });
+    await screen.findByTestId("availability-badge-01");
+    expect(screen.getByTestId("refresh-availability").textContent).toBe("Refresh availability");
   });
 });

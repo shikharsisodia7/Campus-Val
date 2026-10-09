@@ -68,6 +68,15 @@ export class SingleFlightTtlCache<V> {
     }
   }
 
+  /**
+   * Make the next get() load again, but KEEP the value for peek(): a forced
+   * refresh that fails must still be able to fall back to the last good answer.
+   */
+  expire(key: string): void {
+    const e = this.entries.get(key);
+    if (e) e.storedAt = Number.NEGATIVE_INFINITY;
+  }
+
   clear(): void {
     this.entries.clear();
     this.inflight.clear();

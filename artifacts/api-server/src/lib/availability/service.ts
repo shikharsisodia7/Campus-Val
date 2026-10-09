@@ -62,6 +62,30 @@ export interface TermAvailability {
   fixtureActive: boolean;
 }
 
+/**
+ * What happened with the live source for one term, for operators watching
+ * registration (no URL, credential or upstream body, ever).
+ */
+export interface TermDiagnostics {
+  term: Term;
+  year: number;
+  lastAttemptAt: string | null;
+  lastSuccessAt: string | null;
+  lastFailureAt: string | null;
+  lastFailureReason: ProviderFailureReason | null;
+  consecutiveFailures: number;
+  totalFailures: number;
+  totalSuccesses: number;
+  /** Section records in the last successful response. */
+  sectionsUpdated: number;
+}
+
+export type RefreshOutcome =
+  | { refreshed: true }
+  | { refreshed: false; reason: "not_live" }
+  | { refreshed: false; reason: "too_soon"; retryAfterSeconds: number }
+  | { refreshed: false; reason: "failed"; failure: ProviderFailureReason };
+
 export interface AvailabilityServiceOptions {
   live?: CourseAvailabilityProvider | null;
   fixture?: CourseAvailabilityProvider | null;
@@ -69,6 +93,12 @@ export interface AvailabilityServiceOptions {
   cacheTtlMs?: number;
   /** How long a failed upstream call suppresses further attempts. Default: min(cacheTtlMs, 15 s). */
   failureBackoffMs?: number;
+  /**
+   * The shortest gap between two upstream calls a "Refresh availability"
+   * request may force for one term (bounded upstream traffic during
+   * registration). Defaults to the cache TTL, at least 15 s.
+   */
+  minRefreshIntervalMs?: number;
   livePolicy?: FreshnessPolicy;
   manualPolicy?: FreshnessPolicy;
   now?: () => Date;
@@ -97,6 +127,9 @@ export class AvailabilityService {
   private readonly failures = new Map<string, { at: number; reason: ProviderFailureReason }>();
   /** Failures already reported: every waiter on one shared in-flight call sees the SAME error object. */
   private readonly reported = new WeakSet<Error>();
+  /** term key -> what happened upstream, for the diagnostics endpoint. */
+  private readonly stats = new Map<string, TermDiagnostics>();
+  private readonly minRefreshIntervalMs: number;
 
   constructor(private readonly opts: AvailabilityServiceOptions) {
     this.now = opts.now ?? (() => new Date());
@@ -104,6 +137,73 @@ export class AvailabilityService {
     this.cache = new SingleFlightTtlCache<OkResult>(opts.cacheTtlMs ?? 60_000, 32, () => this.now().getTime());
     this.livePolicy = opts.livePolicy ?? DEFAULT_LIVE_POLICY;
     this.manualPolicy = opts.manualPolicy ?? MANUAL_PASTE_POLICY;
+    this.minRefreshIntervalMs = opts.minRefreshIntervalMs ?? Math.max(opts.cacheTtlMs ?? 60_000, 15_000);
+  }
+
+  private statsFor(term: Term, year: number): TermDiagnostics {
+    const key = `${term}|${year}`;
+    let s = this.stats.get(key);
+    if (!s) {
+      s = {
+        term,
+        year,
+        lastAttemptAt: null,
+        lastSuccessAt: null,
+        lastFailureAt: null,
+        lastFailureReason: null,
+        consecutiveFailures: 0,
+        totalFailures: 0,
+        totalSuccesses: 0,
+        sectionsUpdated: 0,
+      };
+      this.stats.set(key, s);
+      // Bounded like the cache: a long-running process never accumulates every term ever asked for.
+      while (this.stats.size > 32) this.stats.delete(this.stats.keys().next().value!);
+    }
+    return s;
+  }
+
+  /** Configuration and per-term upstream history. Safe to show to an administrator. */
+  diagnostics(): {
+    liveConfigured: boolean;
+    provider: string | null;
+    cacheTtlSeconds: number;
+    minRefreshSeconds: number;
+    liveWithinSeconds: number;
+    staleAfterSeconds: number;
+    fixtureActive: boolean;
+    terms: TermDiagnostics[];
+  } {
+    return {
+      liveConfigured: this.liveConfigured,
+      provider: this.opts.live?.id ?? null,
+      cacheTtlSeconds: Math.round((this.opts.cacheTtlMs ?? 60_000) / 1000),
+      minRefreshSeconds: Math.round(this.minRefreshIntervalMs / 1000),
+      liveWithinSeconds: Math.round(this.livePolicy.liveWithinMs / 1000),
+      staleAfterSeconds: Math.round(this.livePolicy.staleAfterMs / 1000),
+      fixtureActive: !!this.opts.fixture,
+      terms: [...this.stats.values()].map((s) => ({ ...s })),
+    };
+  }
+
+  /**
+   * "Refresh availability": force one upstream call for the term, unless the
+   * last attempt was less than `minRefreshIntervalMs` ago. Never throws; a
+   * failure keeps the last good answer (stale-if-error).
+   */
+  async refreshTerm(term: Term, year: number): Promise<RefreshOutcome> {
+    if (!this.opts.live) return { refreshed: false, reason: "not_live" };
+    const s = this.stats.get(`${term}|${year}`);
+    const last = s?.lastAttemptAt ? Date.parse(s.lastAttemptAt) : null;
+    const elapsed = last === null ? Number.POSITIVE_INFINITY : this.now().getTime() - last;
+    if (elapsed < this.minRefreshIntervalMs) {
+      return { refreshed: false, reason: "too_soon", retryAfterSeconds: Math.ceil((this.minRefreshIntervalMs - elapsed) / 1000) };
+    }
+    const key = `${term}|${year}`;
+    this.cache.expire(key);
+    this.failures.delete(key); // an explicit refresh is allowed past the outage backoff
+    const { failure } = await this.fetchLive(term, year);
+    return failure ? { refreshed: false, reason: "failed", failure } : { refreshed: true };
   }
 
   get liveConfigured(): boolean {
@@ -121,6 +221,8 @@ export class AvailabilityService {
           throw new BackedOff(recent.reason); // do not hammer (or wait on) an upstream that just failed
         }
         let r: ProviderResult;
+        const stats = this.statsFor(term, year);
+        stats.lastAttemptAt = this.now().toISOString();
         try {
           r = await live.getAvailability({ term, year });
         } catch {
@@ -128,9 +230,17 @@ export class AvailabilityService {
         }
         if (!r.ok) {
           this.failures.set(key, { at: this.now().getTime(), reason: r.reason });
+          stats.lastFailureAt = this.now().toISOString();
+          stats.lastFailureReason = r.reason;
+          stats.consecutiveFailures += 1;
+          stats.totalFailures += 1;
           throw new ProviderFailure(r.reason);
         }
         this.failures.delete(key);
+        stats.lastSuccessAt = this.now().toISOString();
+        stats.consecutiveFailures = 0;
+        stats.totalSuccesses += 1;
+        stats.sectionsUpdated = r.records.length;
         return r;
       });
       return { result: value, failure: null };
@@ -222,5 +332,6 @@ export class AvailabilityService {
   clearCache(): void {
     this.cache.clear();
     this.failures.clear();
+    this.stats.clear();
   }
 }

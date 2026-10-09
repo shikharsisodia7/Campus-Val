@@ -16,6 +16,11 @@ import {
   type College,
 } from "../data/graduation-paths";
 import { COURSES, findCourse } from "../data/courses";
+import {
+  MAJOR_STRUCTURES,
+  resolveMajorStructure,
+  type StructuredChoice,
+} from "../data/major-structures";
 import { categoryOfGroupKind } from "../lib/requirements-source/category";
 import { CORE_AREA_BY_REQUIREMENT } from "../data/core-areas";
 import {
@@ -43,6 +48,10 @@ interface ResolvedRequirementItem {
   coreArea?: { tag: string; code: string; courseCount: number; catalogStatedCount: number } | null;
   status: RequirementStatus;
   complete: boolean;
+  /** The Bulletin heading the requirement sits under within its group ("Upper-division themes"). */
+  section?: string | null;
+  /** How a choice requirement is satisfied and which named course lists it draws on. */
+  choice?: StructuredChoice | null;
 }
 
 const router: IRouter = Router();
@@ -134,7 +143,9 @@ function resolveGroup(
       coreArea,
       status: cross.status,
       complete: cross.status === "completed",
-    };
+      section: null,
+      choice: null,
+    } satisfies ResolvedRequirementItem;
   });
   const autoItems = items.filter((i) => i.autoTracked);
   return {
@@ -272,6 +283,49 @@ export function buildRequirementsResponse(
     // major requirements: the University Core has its own group in this sidebar,
     // the recipe's own totals already leave them out, and no course can ever
     // satisfy them here. They are left out of the major group.
+    const structure = MAJOR_STRUCTURES[majorReqs.major];
+    if (structure) {
+      // The Bulletin's own structure: themes, "choose N" lists and alternative
+      // sequences, each course counted toward one requirement only.
+      const resolved = resolveMajorStructure(structure, profile.completedCourseCodes ?? [], [...planned]);
+      const items: ResolvedRequirementItem[] = resolved.map((r) => {
+        const course = r.course ? findCourse(r.course) : undefined;
+        return {
+          id: `major-${idSuffix}-${r.key}`,
+          label: r.course ? (course ? `${r.course} — ${course.title}` : r.course) : r.label,
+          description: r.course
+            ? `${r.description}${course ? ` · ${course.units} unit${course.units === 1 ? "" : "s"}` : " · not in CampusVal's course catalog — verify in the Bulletin"}`
+            : [r.description, ...r.notes].join(" "),
+          courses: r.courses,
+          phase: null,
+          autoTracked: true,
+          needsVerification: false,
+          satisfiedBy: r.satisfiedBy,
+          plannedBy: r.plannedBy,
+          crossSatisfiedBy: [] as string[],
+          status: r.status as RequirementStatus,
+          complete: r.status === "completed",
+          section: r.section,
+          choice: r.choice,
+        };
+      });
+      return {
+        id: `major-${idSuffix}`,
+        title: `Major Requirements — ${majorReqs.title}${isScenarioOnly ? " (proposed)" : ""}`,
+        kind: "major" as const,
+        category: categoryOfGroupKind("major"),
+        sourceUrl: structure.sourceUrl,
+        sourceLabel: structure.sourceLabel,
+        academicYear: structure.catalogYear,
+        lastVerified: structure.lastVerified,
+        notes: [...scenarioNote, ...majorReqs.notes, ...concentrationNote],
+        items,
+        // Counted per sidebar item, like every other group (the department layer recounts the same way).
+        autoTrackedCount: items.length,
+        autoCompletedCount: items.filter((i) => i.complete).length,
+        manualCount: 0,
+      };
+    }
     const majorItemGroups = majorReqs.groups.filter((g) => !g.courses.every((c) => c.category === "university-core"));
     const usedItemIds = new Map<string, number>();
     return {
@@ -311,6 +365,8 @@ export function buildRequirementsResponse(
                 ? "planned"
                 : "open") as RequirementStatus,
             complete: c.completed,
+            section: g.label,
+            choice: null,
           };
         }),
       ),
@@ -428,6 +484,18 @@ export function buildRequirementsResponse(
               ? "planned"
               : "open") as RequirementStatus,
           complete: isComplete,
+          section: null as string | null,
+          choice:
+            group.courses.length > 0
+              ? {
+                  kind: "choose" as const,
+                  minimum: group.minimumUnits ? null : minimum,
+                  completedCount: Math.min(satisfiedBy.length, minimum),
+                  plannedCount: plannedHere.length,
+                  lists: [{ key: "eligible", label: group.label, note: null, courses: group.courses }],
+                  alternatives: [],
+                }
+              : null,
         }];
       }
       return group.courses.map((course) => {
@@ -450,7 +518,9 @@ export function buildRequirementsResponse(
               ? "planned"
               : "open") as RequirementStatus,
           complete: isCompleted,
-        };
+          section: null,
+          choice: null,
+        } satisfies ResolvedRequirementItem;
       });
     });
     const autoItems = items.filter((item) => item.autoTracked);
@@ -491,7 +561,9 @@ export function buildRequirementsResponse(
             ? "planned"
             : "open") as RequirementStatus,
         complete: isCompleted,
-      };
+        section: null,
+        choice: null,
+      } satisfies ResolvedRequirementItem;
     });
     const placeholderItems = goal.placeholders.map((label, index) => ({
       id: `professional-${goal.id}-placeholder-${index + 1}`,
@@ -506,7 +578,9 @@ export function buildRequirementsResponse(
       crossSatisfiedBy: [] as string[],
       status: "open" as RequirementStatus,
       complete: false,
-    }));
+      section: null,
+      choice: null,
+    }) satisfies ResolvedRequirementItem);
     const items = [...courseItems, ...placeholderItems];
     return {
       id: `professional-${goal.id}`,

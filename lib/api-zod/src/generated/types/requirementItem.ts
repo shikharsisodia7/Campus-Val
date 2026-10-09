@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DepartmentNote } from "./departmentNote";
+import type { RequirementChoice } from "./requirementChoice";
 import type { RequirementItemCoreArea } from "./requirementItemCoreArea";
 import type { RequirementItemCustomization } from "./requirementItemCustomization";
 import type { RequirementItemDepartment } from "./requirementItemDepartment";
@@ -37,6 +38,12 @@ export interface RequirementItem {
   /** completed = satisfied by a course with completion provenance; planned = a planned course would satisfy it; open = neither. */
   status?: RequirementItemStatus;
   complete: boolean;
+  /**
+   * The Bulletin heading this requirement sits under inside its group ("Upper-division themes — one course from each, all with laboratory"). Null when the group has no sub-headings.
+   * @nullable
+   */
+  section?: string | null;
+  choice?: RequirementChoice | null;
   /** Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note). */
   departmentNotes?: DepartmentNote[];
   /** Present when a department changed this requirement's wording or added it. */

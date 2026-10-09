@@ -82,6 +82,41 @@ export const OFFICIAL_RESOURCES: OfficialResource[] = [
   },
 ];
 
+/**
+ * A resource the program's faculty lead has provided for a pre-professional
+ * track (a guide, a document, a trusted external page). Being external does
+ * NOT make a resource trusted: only `editorialStatus: "approved"` is shown,
+ * and every one says which organization it comes from. CampusVal ships with
+ * none; they are added only from the professor's own folder.
+ */
+export interface TrustedResource {
+  id: string;
+  title: string;
+  /** Who publishes it ("SCU Pre-Health Advising", "AAMC"). */
+  sourceOrganization: string;
+  /** A link, or the address of a file the professor provided. */
+  url: string;
+  /** For a provided document: its file name, shown so the student knows it is a file. */
+  fileName?: string;
+  description: string;
+  category: "guide" | "document" | "website" | "timeline" | "other";
+  /** "approved" = reviewed by the faculty lead; anything else is never shown to students. */
+  editorialStatus: "approved" | "pending_review";
+  /** Lower first. */
+  displayOrder: number;
+  /** Who approved it and when (ISO date), for provenance. */
+  approvedBy?: string;
+  approvedOn?: string;
+}
+
+/** What a student may see: approved resources only, in the editor's order. */
+export function visibleTrustedResources(resources: readonly TrustedResource[]): TrustedResource[] {
+  return resources
+    .filter((r) => r.editorialStatus === "approved")
+    .slice()
+    .sort((a, b) => a.displayOrder - b.displayOrder || a.title.localeCompare(b.title));
+}
+
 export interface PreProfessionalTrack {
   id: string;
   title: string;
@@ -89,6 +124,8 @@ export interface PreProfessionalTrack {
   officialLabel: string;
   /** Approved guidance content. Empty = render the pending state. */
   approvedContent: string[];
+  /** Trusted resources from the faculty lead's folder. Empty until provided. */
+  trustedResources: TrustedResource[];
   /** What CampusVal needs before showing guidance for this track. */
   pendingNote: string;
 }
@@ -100,6 +137,7 @@ export const PRE_PROFESSIONAL_TRACKS: PreProfessionalTrack[] = [
     officialUrl: "https://www.scu.edu/prehealth/",
     officialLabel: "SCU Pre-Health Advising",
     approvedContent: [],
+    trustedResources: [],
     pendingNote:
       "Course-sequencing and application-timeline guidance will appear here once approved SCU pre-health advising content is added. Until then, use the official SCU Pre-Health Advising office — pre-health preparation is advising guidance layered on top of your major, not a degree requirement, so it is intentionally kept out of your Degree Requirements progress.",
   },
@@ -109,6 +147,7 @@ export const PRE_PROFESSIONAL_TRACKS: PreProfessionalTrack[] = [
     officialUrl: "https://www.scu.edu/careercenter/",
     officialLabel: "SCU Career Center (pre-law advising)",
     approvedContent: [],
+    trustedResources: [],
     pendingNote:
       "Approved SCU pre-law guidance has not been added yet. The Career Center's pre-law advisors are the official resource.",
   },

@@ -159,7 +159,7 @@ function SheetGrid({
 
   return (
     <div
-      className="max-h-[70vh] overflow-auto rounded-md border border-border bg-background"
+      className="relative max-h-[70vh] overflow-auto rounded-md border border-border bg-background"
       tabIndex={0}
       role="region"
       aria-label={`${caption} — scrollable`}

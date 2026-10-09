@@ -28,14 +28,15 @@ export function TrackingCellControls({
   termTestId: string;
 }) {
   return (
-    <>
-      <MyTrackingTag className="mb-0.5" />
-      <span className="flex flex-col gap-1">
+    <span className="flex items-center gap-1">
+      <MyTrackingTag compact />
+      <span className="flex min-w-0 flex-1 flex-wrap gap-1">
         {field !== "term" && (
           <StatusSelect
             value={entry?.status ?? null}
             label={`My status for ${name}`}
             onChange={(status) => onSet({ status })}
+            className="w-auto min-w-[7.25rem] flex-1"
             testId={statusTestId}
           />
         )}
@@ -45,11 +46,12 @@ export function TrackingCellControls({
             year={entry?.termYear ?? null}
             label={`My quarter for ${name}`}
             onChange={(term, termYear) => onSet({ term, termYear })}
+            className="min-w-[9.5rem] flex-1"
             testId={termTestId}
           />
         )}
       </span>
-    </>
+    </span>
   );
 }
 

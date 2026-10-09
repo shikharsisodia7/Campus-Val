@@ -12,6 +12,7 @@ import {
 import {
   OFFICIAL_RESOURCES,
   PRE_PROFESSIONAL_TRACKS,
+  visibleTrustedResources,
 } from "@/data/advising-resources";
 
 /**
@@ -78,7 +79,7 @@ export default function ResourcesPage() {
             <Card key={t.id} className="p-5 space-y-3" data-testid={`track-${t.id}`}>
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="font-medium text-sm">{t.title}</div>
-                {t.approvedContent.length === 0 && (
+                {t.approvedContent.length === 0 && visibleTrustedResources(t.trustedResources).length === 0 && (
                   <Badge variant="outline" className="text-[10px]">
                     Approved content pending
                   </Badge>
@@ -95,6 +96,22 @@ export default function ResourcesPage() {
                   <Info className="h-4 w-4 shrink-0 mt-0.5" />
                   <div>{t.pendingNote}</div>
                 </div>
+              )}
+              {visibleTrustedResources(t.trustedResources).length > 0 && (
+                <ul className="space-y-1.5" data-testid={`trusted-resources-${t.id}`}>
+                  {visibleTrustedResources(t.trustedResources).map((r) => (
+                    <li key={r.id} className="rounded-md border border-border p-2 text-xs">
+                      <a href={r.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline">
+                        {r.title}
+                      </a>
+                      <span className="ml-1 text-muted-foreground">
+                        · {r.sourceOrganization}
+                        {r.fileName ? ` · ${r.fileName}` : ""}
+                      </span>
+                      <p className="mt-0.5 text-muted-foreground">{r.description}</p>
+                    </li>
+                  ))}
+                </ul>
               )}
               <a
                 href={t.officialUrl}

@@ -1354,38 +1354,20 @@
    "category": "MAJOR",
    "kind": "major",
    "title": "Major Requirements — Biology",
-   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/index.html",
-   "sourceLabel": "SCU Undergraduate Bulletin (major department chapter)",
-   "sourceVersion": "2025-26 / 2026-27 Undergraduate Bulletin",
-   "lastVerified": "2026-07-23",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html",
+   "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Biology, Requirements for the Major",
+   "sourceVersion": "2026-27",
+   "lastVerified": "2026-10-09",
    "sourceProgram": "Biology",
    "notes": [
-    "1 required course not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: BIOL 184.",
+    "Seven approved upper-division biology courses, including five with a laboratory component: one course from each of the CMB, EEB and MOD themes (all with laboratory) plus four electives, at least two with laboratory.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
     {
-     "stableKey": "major:biology#math-35",
-     "label": "MATH 35 — Calculus for Life Sciences I",
-     "description": "Math sequence · 4 units",
-     "courses": [
-      "MATH 35"
-     ],
-     "phase": null
-    },
-    {
-     "stableKey": "major:biology#math-36",
-     "label": "MATH 36 — Calculus for Life Sciences II",
-     "description": "Math sequence · 4 units",
-     "courses": [
-      "MATH 36"
-     ],
-     "phase": null
-    },
-    {
      "stableKey": "major:biology#biol-1a",
      "label": "BIOL 1A — Transformations of Energy and Matter L&L",
-     "description": "Major lower-division requirements · 4 units",
+     "description": "BIOL 1A, 1B, and 1C · 4 units",
      "courses": [
       "BIOL 1A"
      ],
@@ -1394,7 +1376,7 @@
     {
      "stableKey": "major:biology#biol-1b",
      "label": "BIOL 1B — Information and Evolution L&L",
-     "description": "Major lower-division requirements · 4 units",
+     "description": "BIOL 1A, 1B, and 1C · 4 units",
      "courses": [
       "BIOL 1B"
      ],
@@ -1403,7 +1385,7 @@
     {
      "stableKey": "major:biology#biol-1c",
      "label": "BIOL 1C — Systems L&L",
-     "description": "Major lower-division requirements · 5 units",
+     "description": "BIOL 1A, 1B, and 1C · 5 units",
      "courses": [
       "BIOL 1C"
      ],
@@ -1412,7 +1394,7 @@
     {
      "stableKey": "major:biology#chem-11",
      "label": "CHEM 11 — General Chemistry I: Bonding and Energy",
-     "description": "Major lower-division requirements · 5 units",
+     "description": "CHEM 11, 12, 31, 32, and 33 · 5 units",
      "courses": [
       "CHEM 11"
      ],
@@ -1421,7 +1403,7 @@
     {
      "stableKey": "major:biology#chem-12",
      "label": "CHEM 12 — General Chemistry II: Molecules in Motion",
-     "description": "Major lower-division requirements · 5 units",
+     "description": "CHEM 11, 12, 31, 32, and 33 · 5 units",
      "courses": [
       "CHEM 12"
      ],
@@ -1430,7 +1412,7 @@
     {
      "stableKey": "major:biology#chem-31",
      "label": "CHEM 31 — Organic Chemistry I",
-     "description": "Major lower-division requirements · 5 units",
+     "description": "CHEM 11, 12, 31, 32, and 33 · 5 units",
      "courses": [
       "CHEM 31"
      ],
@@ -1439,72 +1421,193 @@
     {
      "stableKey": "major:biology#chem-32",
      "label": "CHEM 32 — Organic Chemistry II",
-     "description": "Major lower-division requirements · 5 units",
+     "description": "CHEM 11, 12, 31, 32, and 33 · 5 units",
      "courses": [
       "CHEM 32"
      ],
      "phase": null
     },
     {
-     "stableKey": "major:biology#phys-11",
-     "label": "PHYS 11 — General Physics I",
-     "description": "Major lower-division requirements · 5 units",
+     "stableKey": "major:biology#chem-33",
+     "label": "CHEM 33 — Organic Chemistry III",
+     "description": "CHEM 11, 12, 31, 32, and 33 · 5 units",
      "courses": [
-      "PHYS 11"
+      "CHEM 33"
      ],
      "phase": null
     },
     {
-     "stableKey": "major:biology#phys-12",
-     "label": "PHYS 12 — General Physics II",
-     "description": "Major lower-division requirements · 5 units",
+     "stableKey": "major:biology#physics",
+     "label": "Physics: PHYS 11, 12, 13 or PHYS 31, 32, 33",
+     "description": "Complete one of the two physics sequences.",
      "courses": [
-      "PHYS 12"
+      "PHYS 11",
+      "PHYS 12",
+      "PHYS 13",
+      "PHYS 31",
+      "PHYS 32",
+      "PHYS 33"
      ],
      "phase": null
     },
     {
-     "stableKey": "major:biology#biol-172",
-     "label": "BIOL 172 — Molecular Modeling L&L",
-     "description": "Major upper-division requirements · 5 units",
+     "stableKey": "major:biology#mathematics",
+     "label": "Mathematics: MATH 35 and 36 (recommended) or MATH 11 and 12",
+     "description": "Complete one of the two calculus sequences; the Bulletin recommends MATH 35 and 36.",
      "courses": [
-      "BIOL 172"
+      "MATH 35",
+      "MATH 36",
+      "MATH 11",
+      "MATH 12"
      ],
      "phase": null
     },
     {
-     "stableKey": "major:biology#biol-174",
-     "label": "BIOL 174 — Cell Biology L&L",
-     "description": "Major upper-division requirements · 5 units",
+     "stableKey": "major:biology#biol-101",
+     "label": "BIOL 101 — Biology Research Seminar",
+     "description": "BIOL 101 · 2 units",
      "courses": [
-      "BIOL 174"
+      "BIOL 101"
      ],
      "phase": null
     },
     {
-     "stableKey": "major:biology#biol-178",
-     "label": "BIOL 178 — Bioinformatics L&L",
-     "description": "Major upper-division requirements · 5 units",
+     "stableKey": "major:biology#theme-cmb",
+     "label": "Cell and Molecular Biology (CMB) theme",
+     "description": "One CMB theme course, with laboratory.",
      "courses": [
+      "BIOL 110",
+      "BIOL 112",
+      "BIOL 113",
+      "BIOL 115",
+      "BIOL 122",
+      "BIOL 174",
+      "BIOL 175"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "major:biology#theme-eeb",
+     "label": "Ecology, Evolution and Biodiversity (EEB) theme",
+     "description": "One EEB theme course, with laboratory.",
+     "courses": [
+      "BIOL 120",
+      "BIOL 134",
+      "BIOL 151",
+      "BIOL 156",
+      "BIOL 158",
+      "BIOL 165",
+      "BIOL 173",
+      "BIOL 180",
+      "BIOL 181"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "major:biology#theme-mod",
+     "label": "Biological Modeling (MOD) theme",
+     "description": "One MOD theme course, with laboratory.",
+     "courses": [
+      "BIOL 117",
+      "BIOL 160",
+      "BIOL 170",
+      "BIOL 172",
       "BIOL 178"
      ],
      "phase": null
     },
     {
-     "stableKey": "major:biology#biol-180",
-     "label": "BIOL 180 — Marine Ecology L&L",
-     "description": "Major upper-division requirements · 5 units",
+     "stableKey": "major:biology#electives-lab",
+     "label": "Electives with a laboratory component",
+     "description": "Two elective courses with laboratory, from the Theme or Specialty courses.",
      "courses": [
-      "BIOL 180"
+      "BIOL 110",
+      "BIOL 112",
+      "BIOL 113",
+      "BIOL 115",
+      "BIOL 122",
+      "BIOL 174",
+      "BIOL 175",
+      "BIOL 120",
+      "BIOL 134",
+      "BIOL 151",
+      "BIOL 156",
+      "BIOL 158",
+      "BIOL 165",
+      "BIOL 173",
+      "BIOL 180",
+      "BIOL 181",
+      "BIOL 117",
+      "BIOL 160",
+      "BIOL 170",
+      "BIOL 172",
+      "BIOL 178",
+      "BIOL 102",
+      "BIOL 104",
+      "BIOL 114AW",
+      "BIOL 116",
+      "BIOL 123",
+      "BIOL 124",
+      "BIOL 142AW",
+      "BIOL 144",
+      "BIOL 176",
+      "BIOL 177",
+      "BIOL 191",
+      "BIOL 198"
      ],
      "phase": null
     },
     {
-     "stableKey": "major:biology#biol-188",
-     "label": "BIOL 188 — STEM Education & Social Justice",
-     "description": "Major upper-division requirements · 3 units",
+     "stableKey": "major:biology#electives-any",
+     "label": "Electives, with or without laboratory",
+     "description": "Two more elective courses from the Theme or Specialty courses. A JES course is strongly recommended for one elective. For one of the four electives the Bulletin strongly recommends a Justice and Equity in Science (JES) course: BIOL 102, 169 or 171.",
      "courses": [
-      "BIOL 188"
+      "BIOL 169",
+      "BIOL 171",
+      "BIOL 102",
+      "BIOL 110",
+      "BIOL 112",
+      "BIOL 113",
+      "BIOL 115",
+      "BIOL 122",
+      "BIOL 174",
+      "BIOL 175",
+      "BIOL 120",
+      "BIOL 134",
+      "BIOL 151",
+      "BIOL 156",
+      "BIOL 158",
+      "BIOL 165",
+      "BIOL 173",
+      "BIOL 180",
+      "BIOL 181",
+      "BIOL 117",
+      "BIOL 160",
+      "BIOL 170",
+      "BIOL 172",
+      "BIOL 178",
+      "BIOL 104",
+      "BIOL 114AW",
+      "BIOL 116",
+      "BIOL 123",
+      "BIOL 124",
+      "BIOL 142AW",
+      "BIOL 144",
+      "BIOL 176",
+      "BIOL 177",
+      "BIOL 191",
+      "BIOL 198",
+      "BIOL 105",
+      "BIOL 106",
+      "BIOL 111",
+      "BIOL 119",
+      "BIOL 145",
+      "BIOL 153",
+      "BIOL 164",
+      "BIOL 179",
+      "BIOL 189",
+      "CHEM 141",
+      "CHEM 142"
      ],
      "phase": null
     }

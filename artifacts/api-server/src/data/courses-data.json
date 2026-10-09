@@ -45904,5 +45904,41 @@
     "prereqGroups": [],
     "corequisites": [],
     "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/theatre-and-dance.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "BIOL 114AW",
+    "title": "Advanced Writing in Cell Biology L&L",
+    "department": "BIOL",
+    "departmentName": "Biology",
+    "units": 5,
+    "description": "In this course, students integrate scientific information literacy, scientific writing, and cell biological concepts to produce an NIH style grant proposal on a topic of their choice. The laboratory component of the course is designed to guide the development of narrative writing skills, critical editing, and revision skills to express complex ideas clearly and completely. Laboratory 30 hours. Satisfies Advanced Writing Core Requirement. Prerequisites: BIOL 1C and CHEM 31. Specialty course.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "BIOL 1C and CHEM 31",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "BIOL 142AW",
+    "title": "Natural History of California L&L",
+    "department": "BIOL",
+    "departmentName": "Biology",
+    "units": 5,
+    "description": "This course explores the natural history, biology, and ecology of coastal, riparian, montane, desert, and marine ecosystems of California. Lecture and field activities will allow students to develop species identification skills, contribute to global biodiversity assessments using citizen science, and share newfound expertise with their peers. Students will practice reading, observing, and writing about nature in a variety of settings and modalities, activities designed to guide students to the production of a final portfolio of written products showcasing their growth as scientists and writers. Laboratory and field work 30 hours, including two weekend field trips. Satisfies Advanced Writing Core Requirement. Prerequisite: BIOL 1C or ENVS 21. Specialty course.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "BIOL 1C or ENVS 21",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html); not in the 2025-26 catalog snapshot."
   }
 ]

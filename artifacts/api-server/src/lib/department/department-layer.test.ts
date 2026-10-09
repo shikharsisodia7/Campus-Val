@@ -28,6 +28,8 @@ const note = (over: Partial<NoteRecord> = {}): NoteRecord => ({
   bulletinEdition: "2026-27",
   body: "Take in the first year.",
   noteKind: "sequence",
+  title: null,
+  courseCodes: [],
   status: "published",
   origin: "admin",
   sourceLabel: "Biology department",
@@ -194,7 +196,9 @@ describe("checklist note extraction", () => {
 
   it("sends anything it cannot anchor with certainty to the unmapped queue, never to a guess", () => {
     expect(at("Biology!D44")).toMatchObject({ targetKey: null, status: "unmapped" });
-    expect(at("Biology!D45")).toMatchObject({ targetKey: null, status: "unmapped" }); // PHYS 11/31: the requirement does not list PHYS 11
+    // PHYS 11/31: both codes belong to exactly one requirement, the Bulletin's
+    // "PHYS 11, 12, 13 or PHYS 31, 32, 33", so the exact rule anchors it there.
+    expect(at("Biology!D45")).toMatchObject({ targetKey: "major:biology#physics", status: "published" });
     expect(at("Biology!D46")).toMatchObject({ targetKey: null, status: "unmapped" });
     expect(at("Biology!D46").reason).toMatch(/names no course/);
     expect(candidates.every((c) => c.status === "unmapped" || c.targetKey !== null)).toBe(true);

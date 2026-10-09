@@ -49,6 +49,7 @@ import { AprReferenceSheet } from "@/components/progress-report/AprReferenceShee
 import { ScheduleEvent } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTrackUsage } from "@/hooks/use-track-usage";
+import { DegreeCompletionAssessment } from "@/components/progress-report/DegreeCompletionAssessment";
 
 // Quarter Plan supports fall/winter/spring only (the three academic quarters).
 // Summer is excluded from the term selector; the availability endpoint remains
@@ -381,6 +382,9 @@ export default function Planner() {
               }
               scheduleName={workspace.activeSchedule?.name ?? null}
             />
+
+            {/* What appears to remain (from the student's own APRs), collapsed so the schedule stays first. */}
+            <DegreeCompletionAssessment variant="compact" />
 
             {/* Load Check Collapsible */}
             <Card className="p-4">
