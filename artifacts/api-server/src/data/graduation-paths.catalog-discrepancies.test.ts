@@ -60,10 +60,12 @@ describe("CHEM major no longer references retired course codes", () => {
     expect(chem!.notes.join(" ")).not.toMatch(/CHEM 113|CHEM 124/);
   });
 
-  it("PHYS's MATH 22 requirement resolves in the real catalog (was missing)", () => {
+  it("PHYS lists the Bulletin's differential equations options (AMTH 106 or MATH 23), not the old MATH 22", () => {
     const phys = getMajorRequirements("PHYS", [], findCourse);
     const allCodes = phys!.groups.flatMap((g) => g.courses.map((c) => c.code));
-    expect(allCodes).toContain("MATH 22");
-    expect(phys!.notes.join(" ")).not.toMatch(/MATH 22/);
+    expect(allCodes).toContain("AMTH 106");
+    expect(allCodes).toContain("MATH 23");
+    expect(allCodes).not.toContain("MATH 22");
+    expect(phys!.notes.join(" ")).not.toMatch(/MATH 2[23]/);
   });
 });

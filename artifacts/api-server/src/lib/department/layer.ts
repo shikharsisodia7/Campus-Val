@@ -18,6 +18,7 @@
  */
 import type { NormalizedGroup, NormalizedItem } from "../requirements-source/normalize";
 import { groupKeyOf } from "./programs";
+import { currentTargetKey } from "../requirements-source/stable-keys";
 
 /** What a student sees of a Department Note. */
 export interface DepartmentNoteView {
@@ -187,10 +188,17 @@ export function applyDepartmentLayer(
   );
   const liveOverrides = overrides.filter((o) => edition === null || o.bulletinEdition === edition);
 
+  // A note or edit saved on a requirement key from before its major was restructured follows the
+  // course to the requirement that now holds it.
+  const candidates = tree.flatMap((g) =>
+    g.items.map((e) => ({ stableKey: e.stableKey, courses: e.item.courses, variant: (e.item as { variant?: string | null }).variant ?? null })),
+  );
+  const retarget = (key: string) => currentTargetKey(key, candidates);
+
   const editsByTarget = new Map<string, OverrideRecord>();
   const addsByGroup = new Map<string, OverrideRecord[]>();
   for (const row of liveOverrides) {
-    if (row.entryType === "edit") editsByTarget.set(row.targetKey, row);
+    if (row.entryType === "edit") editsByTarget.set(retarget(row.targetKey), row);
     else if (row.entryType === "added" && row.groupKey) {
       const list = addsByGroup.get(row.groupKey) ?? [];
       list.push(row);
@@ -201,9 +209,10 @@ export function applyDepartmentLayer(
   const programNotes = new Map<string, NoteRecord[]>();
   for (const note of liveNotes) {
     if (note.targetKey) {
-      const list = notesByTarget.get(note.targetKey) ?? [];
+      const target = retarget(note.targetKey);
+      const list = notesByTarget.get(target) ?? [];
       list.push(note);
-      notesByTarget.set(note.targetKey, list);
+      notesByTarget.set(target, list);
     } else {
       const list = programNotes.get(note.programKey) ?? [];
       list.push(note);

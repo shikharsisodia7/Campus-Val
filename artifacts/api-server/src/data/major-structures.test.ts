@@ -9,6 +9,7 @@ import path from "node:path";
 import {
   BIOLOGY_STRUCTURE,
   MAJOR_STRUCTURES,
+  coursesOfList,
   resolveMajorStructure,
   structureCourses,
   structureRequiredCount,
@@ -112,11 +113,13 @@ describe("Biology Bulletin structure (2026-27)", () => {
     expect(codes).not.toContain("BIOL 188");
   });
 
-  it("every structured major's lists are referenced and non-empty", () => {
+  it("every structured major's lists are referenced and hold courses (see major-structures.all.test.ts for the rest)", () => {
     for (const [code, structure] of Object.entries(MAJOR_STRUCTURES)) {
-      for (const list of Object.values(structure.lists)) expect(list.courses.length, `${code} ${list.key}`).toBeGreaterThan(0);
+      for (const list of Object.values(structure.lists)) expect(coursesOfList(list).length, `${code} ${list.key}`).toBeGreaterThan(0);
       const used = new Set(
-        structure.sections.flatMap((s) => s.requirements.flatMap((r) => (r.rule.kind === "choose" ? r.rule.lists : []))),
+        structure.sections.flatMap((s) =>
+          s.requirements.flatMap((r) => (r.rule.kind === "choose" ? r.rule.lists : r.rule.kind === "manual" ? (r.rule.lists ?? []) : [])),
+        ),
       );
       expect([...used].sort()).toEqual(Object.keys(structure.lists).sort());
     }

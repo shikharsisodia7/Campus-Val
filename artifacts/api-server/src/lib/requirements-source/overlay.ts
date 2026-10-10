@@ -17,6 +17,7 @@
  * chooses to keep the edit or take the update.
  */
 import type { NormalizedGroup, SourceGroup, SourceItem } from "./normalize";
+import { currentTargetKey } from "./stable-keys";
 
 export type CustomizationEntryType = "source_edit" | "custom";
 
@@ -117,6 +118,13 @@ export function customRequirementId(targetKey: string): string {
   return `custom-${targetKey}`;
 }
 
+/** The tree's requirement keys with their courses and track, for following a key saved before a restructure. */
+function targetCandidates(tree: NormalizedGroup[]) {
+  return tree.flatMap((g) =>
+    g.items.map((e) => ({ stableKey: e.stableKey, courses: e.item.courses, variant: (e.item as { variant?: string | null }).variant ?? null })),
+  );
+}
+
 /**
  * Rows whose target is not in the source tree. Shared by the overlay (to show
  * them) and by the plan audit (to report them).
@@ -127,11 +135,12 @@ export function findOrphanedCustomizations(
 ): OrphanedCustomization[] {
   const groupKeys = new Set(tree.map((g) => g.stableKey));
   const itemKeys = new Set(tree.flatMap((g) => g.items.map((i) => i.stableKey)));
+  const candidates = targetCandidates(tree);
   const orphans: OrphanedCustomization[] = [];
   for (const row of rows) {
     let reason: OrphanReason | null = null;
     if (row.entryType === "source_edit") {
-      if (!itemKeys.has(row.targetKey)) {
+      if (!itemKeys.has(currentTargetKey(row.targetKey, candidates))) {
         const groupKey = row.targetKey.split("#")[0]!;
         reason = groupKeys.has(groupKey) ? "requirement_not_in_source" : "program_not_in_plan";
       }
@@ -161,8 +170,10 @@ export function composeRequirementOverlay<G extends SourceGroup>(
 ): OverlayResult<G> {
   const edits = new Map<string, StoredCustomization>();
   const customsByGroup = new Map<string, StoredCustomization[]>();
+  const candidates = targetCandidates(tree);
   for (const row of rows) {
-    if (row.entryType === "source_edit") edits.set(row.targetKey, row);
+    // An edit saved on a key from before the major was restructured follows its course.
+    if (row.entryType === "source_edit") edits.set(currentTargetKey(row.targetKey, candidates), row);
     else if (row.groupKey) {
       const list = customsByGroup.get(row.groupKey) ?? [];
       list.push(row);

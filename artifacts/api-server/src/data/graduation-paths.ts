@@ -1783,11 +1783,6 @@ function structuredMajorRequirements(
     else if (item.status === "completed") completedCount += item.satisfiedBy.length;
   }
   const notes = [...structure.notes, ...(recipe.notes ?? [])];
-  if (structure.variants) {
-    notes.push(
-      `${structure.variants.required ? "Students follow one" : "Students may add one"} ${structure.variants.kind}: ${structure.variants.options.map((o) => o.label).join("; ")}. Its requirements are labelled with its name.`,
-    );
-  }
   if (missing.size > 0) {
     notes.push(
       `${missing.size} course${missing.size === 1 ? "" : "s"} named by the Bulletin ${missing.size === 1 ? "is" : "are"} not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: ${[...missing].join(", ")}.`,

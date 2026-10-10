@@ -346,6 +346,8 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
       professionalGoals: [],
       plannedCourses: [],
       primaryMajor: null,
+      // Audit every track / emphasis, not only the requirements a student with none chosen sees.
+      variants: "all",
     });
     provider = built.provider;
     return built.tree;
