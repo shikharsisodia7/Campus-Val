@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const mutate = vi.fn();
@@ -33,6 +33,7 @@ function renderPicker(v = variants) {
 
 describe("TrackPicker", () => {
   beforeEach(() => mutate.mockReset());
+  afterEach(cleanup);
 
   it("asks for a required track with a labelled control and says it is planning only", () => {
     renderPicker();
