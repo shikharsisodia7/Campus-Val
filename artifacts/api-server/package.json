@@ -22,6 +22,7 @@
     "import:bulletin-courses": "tsx scripts/import-bulletin-courses.ts",
     "snapshot:bulletin": "tsx scripts/snapshot-bulletin.ts",
     "diff:bulletin": "tsx scripts/diff-bulletin.ts",
+    "diff:bulletin-source": "tsx scripts/diff-bulletin-source.ts",
     "admin:scope": "tsx scripts/admin-scope.ts"
   },
   "dependencies": {
