@@ -50,6 +50,12 @@ export const GetProfileResponse = zod.object({
   cumulativeGpa: zod.number().nullish(),
   majorGpa: zod.number().nullish(),
   completedCourseCodes: zod.array(zod.string()),
+  majorTracks: zod
+    .record(zod.string(), zod.string())
+    .optional()
+    .describe(
+      "The track \/ emphasis \/ concentration the student follows in a major, by major code (planning intent).",
+    ),
   priorityRegistration: zod.boolean(),
   currentTerm: zod.enum(["fall", "winter", "spring", "summer"]),
   currentYear: zod.number(),
@@ -124,6 +130,12 @@ export const UpsertProfileResponse = zod.object({
   cumulativeGpa: zod.number().nullish(),
   majorGpa: zod.number().nullish(),
   completedCourseCodes: zod.array(zod.string()),
+  majorTracks: zod
+    .record(zod.string(), zod.string())
+    .optional()
+    .describe(
+      "The track \/ emphasis \/ concentration the student follows in a major, by major code (planning intent).",
+    ),
   priorityRegistration: zod.boolean(),
   currentTerm: zod.enum(["fall", "winter", "spring", "summer"]),
   currentYear: zod.number(),
@@ -134,6 +146,65 @@ export const UpsertProfileResponse = zod.object({
  * @summary Permanently delete the current student profile and associated data
  */
 export const DeleteProfileResponse = zod.void();
+
+/**
+ * Planning intent only: it selects which of the Bulletin's tracks the requirements sidebar resolves. It never declares anything with SCU.
+ * @summary Choose (or clear) the track, emphasis or concentration the student follows in a major
+ */
+export const SetMajorTrackBody = zod.object({
+  major: zod.string().describe('The major\'s code (\"BIOE\").'),
+  track: zod
+    .string()
+    .nullable()
+    .describe(
+      "The track's key from the requirement group's `variants.options`, or null to clear it.",
+    ),
+});
+
+export const SetMajorTrackResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  studentId: zod
+    .string()
+    .nullish()
+    .describe(
+      "Optional SCU\/Workday student ID used to verify uploaded progress reports.",
+    ),
+  studentType: zod.enum([
+    "first_year",
+    "transfer",
+    "continuing",
+    "graduate",
+    "postgrad",
+  ]),
+  college: zod
+    .string()
+    .describe('e.g. \"Arts and Sciences\", \"Engineering\", \"Business\"'),
+  major: zod.string(),
+  secondMajor: zod.string().nullish(),
+  minor: zod.string().nullish(),
+  additionalMajors: zod.array(zod.string()),
+  additionalMinors: zod.array(zod.string()),
+  startTerm: zod.enum(["fall", "winter", "spring", "summer"]),
+  startYear: zod.number(),
+  expectedGradTerm: zod.enum(["fall", "winter", "spring", "summer"]),
+  expectedGradYear: zod.number(),
+  unitsCompletedAtSCU: zod.number(),
+  unitsTransferredIn: zod.number(),
+  cumulativeGpa: zod.number().nullish(),
+  majorGpa: zod.number().nullish(),
+  completedCourseCodes: zod.array(zod.string()),
+  majorTracks: zod
+    .record(zod.string(), zod.string())
+    .optional()
+    .describe(
+      "The track \/ emphasis \/ concentration the student follows in a major, by major code (planning intent).",
+    ),
+  priorityRegistration: zod.boolean(),
+  currentTerm: zod.enum(["fall", "winter", "spring", "summer"]),
+  currentYear: zod.number(),
+  updatedAt: zod.coerce.date(),
+});
 
 /**
  * @summary List SCU courses
@@ -467,6 +538,12 @@ export const GetDashboardSummaryResponse = zod.object({
       cumulativeGpa: zod.number().nullish(),
       majorGpa: zod.number().nullish(),
       completedCourseCodes: zod.array(zod.string()),
+      majorTracks: zod
+        .record(zod.string(), zod.string())
+        .optional()
+        .describe(
+          "The track \/ emphasis \/ concentration the student follows in a major, by major code (planning intent).",
+        ),
       priorityRegistration: zod.boolean(),
       currentTerm: zod.enum(["fall", "winter", "spring", "summer"]),
       currentYear: zod.number(),
@@ -967,6 +1044,12 @@ export const GetMajorRequirementsResponse = zod.object({
   groups: zod.array(
     zod.object({
       label: zod.string(),
+      description: zod
+        .string()
+        .optional()
+        .describe(
+          "The Bulletin's words for a requirement CampusVal cannot count from courses (the student tracks it).",
+        ),
       courses: zod.array(
         zod.object({
           code: zod.string(),
@@ -1326,6 +1409,12 @@ export const GetDegreeRequirementsResponse = zod.object({
                 .describe(
                   "How many courses a choose rule needs. Null for alternatives or a unit-based minimum.",
                 ),
+              minDistinctLists: zod
+                .number()
+                .nullish()
+                .describe(
+                  '\"From at least K of these lists\": the number of different lists the courses must cover.',
+                ),
               completedCount: zod.number(),
               plannedCount: zod.number(),
               lists: zod
@@ -1335,6 +1424,12 @@ export const GetDegreeRequirementsResponse = zod.object({
                     label: zod.string(),
                     note: zod.string().nullable(),
                     courses: zod.array(zod.string()),
+                    max: zod
+                      .number()
+                      .nullish()
+                      .describe(
+                        "At most this many courses may come from the list.",
+                      ),
                   }),
                 )
                 .describe(
@@ -1355,6 +1450,18 @@ export const GetDegreeRequirementsResponse = zod.object({
             .nullish()
             .describe(
               'How a choice requirement is satisfied, when it is one: \"choose N\" from named Bulletin course lists, or one of several alternative course sets. Counts are CampusVal\'s planning view; each course counts toward one requirement of the program only. Null for a single-course requirement.',
+            ),
+          variant: zod
+            .string()
+            .nullish()
+            .describe(
+              "The key of the track \/ emphasis \/ concentration this requirement belongs to, when only one does.",
+            ),
+          manual: zod
+            .boolean()
+            .optional()
+            .describe(
+              "True for a requirement CampusVal cannot count from course codes (a department's approved list the Bulletin does not print, units of ensemble, an internship). Shown in the Bulletin's words for the student to track.",
             ),
           departmentNotes: zod
             .array(
@@ -1419,6 +1526,33 @@ export const GetDegreeRequirementsResponse = zod.object({
       autoTrackedCount: zod.number(),
       autoCompletedCount: zod.number(),
       manualCount: zod.number(),
+      variants: zod
+        .object({
+          major: zod
+            .string()
+            .describe("The major's code, for PUT \/profile\/major-track."),
+          kind: zod.enum(["track", "emphasis", "concentration"]),
+          required: zod
+            .boolean()
+            .describe(
+              "True when the student must follow one (Bioengineering's tracks); false for optional emphases.",
+            ),
+          options: zod.array(
+            zod.object({
+              key: zod.string(),
+              label: zod.string(),
+            }),
+          ),
+          selected: zod.string().nullable(),
+          note: zod
+            .string()
+            .nullable()
+            .describe("The Bulletin's own words about choosing one."),
+        })
+        .nullish()
+        .describe(
+          "The tracks, emphases or concentrations the Bulletin defines inside a major, and the one the student follows. Null for a group without them.",
+        ),
     }),
   ),
 });
@@ -2651,6 +2785,12 @@ export const GetPlanRequirementsResponse = zod
                   .describe(
                     "How many courses a choose rule needs. Null for alternatives or a unit-based minimum.",
                   ),
+                minDistinctLists: zod
+                  .number()
+                  .nullish()
+                  .describe(
+                    '\"From at least K of these lists\": the number of different lists the courses must cover.',
+                  ),
                 completedCount: zod.number(),
                 plannedCount: zod.number(),
                 lists: zod
@@ -2660,6 +2800,12 @@ export const GetPlanRequirementsResponse = zod
                       label: zod.string(),
                       note: zod.string().nullable(),
                       courses: zod.array(zod.string()),
+                      max: zod
+                        .number()
+                        .nullish()
+                        .describe(
+                          "At most this many courses may come from the list.",
+                        ),
                     }),
                   )
                   .describe(
@@ -2680,6 +2826,18 @@ export const GetPlanRequirementsResponse = zod
               .nullish()
               .describe(
                 'How a choice requirement is satisfied, when it is one: \"choose N\" from named Bulletin course lists, or one of several alternative course sets. Counts are CampusVal\'s planning view; each course counts toward one requirement of the program only. Null for a single-course requirement.',
+              ),
+            variant: zod
+              .string()
+              .nullish()
+              .describe(
+                "The key of the track \/ emphasis \/ concentration this requirement belongs to, when only one does.",
+              ),
+            manual: zod
+              .boolean()
+              .optional()
+              .describe(
+                "True for a requirement CampusVal cannot count from course codes (a department's approved list the Bulletin does not print, units of ensemble, an internship). Shown in the Bulletin's words for the student to track.",
               ),
             departmentNotes: zod
               .array(
@@ -2746,6 +2904,33 @@ export const GetPlanRequirementsResponse = zod
         autoTrackedCount: zod.number(),
         autoCompletedCount: zod.number(),
         manualCount: zod.number(),
+        variants: zod
+          .object({
+            major: zod
+              .string()
+              .describe("The major's code, for PUT \/profile\/major-track."),
+            kind: zod.enum(["track", "emphasis", "concentration"]),
+            required: zod
+              .boolean()
+              .describe(
+                "True when the student must follow one (Bioengineering's tracks); false for optional emphases.",
+              ),
+            options: zod.array(
+              zod.object({
+                key: zod.string(),
+                label: zod.string(),
+              }),
+            ),
+            selected: zod.string().nullable(),
+            note: zod
+              .string()
+              .nullable()
+              .describe("The Bulletin's own words about choosing one."),
+          })
+          .nullish()
+          .describe(
+            "The tracks, emphases or concentrations the Bulletin defines inside a major, and the one the student follows. Null for a group without them.",
+          ),
       }),
     ),
   })

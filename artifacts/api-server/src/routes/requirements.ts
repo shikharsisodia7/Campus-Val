@@ -19,6 +19,7 @@ import { COURSES, findCourse } from "../data/courses";
 import {
   MAJOR_STRUCTURES,
   resolveMajorStructure,
+  validVariant,
   type StructuredChoice,
 } from "../data/major-structures";
 import { categoryOfGroupKind } from "../lib/requirements-source/category";
@@ -52,6 +53,10 @@ interface ResolvedRequirementItem {
   section?: string | null;
   /** How a choice requirement is satisfied and which named course lists it draws on. */
   choice?: StructuredChoice | null;
+  /** The track / emphasis / concentration the requirement belongs to, when only one does. */
+  variant?: string | null;
+  /** A requirement CampusVal cannot count from course codes: the student tracks it. */
+  manual?: boolean;
 }
 
 const router: IRouter = Router();
@@ -196,6 +201,11 @@ export function buildRequirementsResponse(
    * major never bleeds into the Degree Plan's requirement view.
    */
   primaryMajorOverride: string | null = null,
+  /**
+   * allVariants: resolve every track / emphasis of a major (a department's program tree, which must
+   * show every requirement a note can attach to) instead of the student's own choice.
+   */
+  options: { allVariants?: boolean } = {},
 ) {
   const declaredMajor = profile.major;
   const effectivePrimaryMajor =
@@ -270,7 +280,7 @@ export function buildRequirementsResponse(
       };
     }
     const concentrationNote =
-      majorReqs.concentrations.length > 0
+      majorReqs.concentrations.length > 0 && !MAJOR_STRUCTURES[majorReqs.major]?.variants
         ? [
             `This major has official concentrations/tracks: ${majorReqs.concentrations
               .map((c) => c.title)
@@ -285,9 +295,13 @@ export function buildRequirementsResponse(
     // satisfy them here. They are left out of the major group.
     const structure = MAJOR_STRUCTURES[majorReqs.major];
     if (structure) {
-      // The Bulletin's own structure: themes, "choose N" lists and alternative
-      // sequences, each course counted toward one requirement only.
-      const resolved = resolveMajorStructure(structure, profile.completedCourseCodes ?? [], [...planned]);
+      // The Bulletin's own structure: themes, "choose N" lists, alternative sequences, the student's
+      // track, and requirements the student tracks; each course counted toward one requirement only.
+      const chosenTrack = validVariant(structure, profile.majorTracks?.[majorReqs.major]);
+      const resolved = resolveMajorStructure(structure, profile.completedCourseCodes ?? [], [...planned], {
+        variant: chosenTrack,
+        allVariants: options.allVariants,
+      });
       const items: ResolvedRequirementItem[] = resolved.map((r) => {
         const course = r.course ? findCourse(r.course) : undefined;
         return {
@@ -298,8 +312,9 @@ export function buildRequirementsResponse(
             : [r.description, ...r.notes].join(" "),
           courses: r.courses,
           phase: null,
-          autoTracked: true,
-          needsVerification: false,
+          // A requirement the student tracks is never counted from courses, so never "complete" here.
+          autoTracked: !r.manual,
+          needsVerification: r.manual,
           satisfiedBy: r.satisfiedBy,
           plannedBy: r.plannedBy,
           crossSatisfiedBy: [] as string[],
@@ -307,8 +322,29 @@ export function buildRequirementsResponse(
           complete: r.status === "completed",
           section: r.section,
           choice: r.choice,
+          variant: r.variant,
+          manual: r.manual,
         };
       });
+      const variants = structure.variants
+        ? {
+            major: majorReqs.major,
+            kind: structure.variants.kind,
+            required: structure.variants.required,
+            options: structure.variants.options,
+            selected: chosenTrack,
+            note: structure.variants.note ?? null,
+          }
+        : null;
+      const trackNote = variants
+        ? [
+            chosenTrack
+              ? `Showing the ${variants.options.find((o) => o.key === chosenTrack)!.label} requirements. Change your ${variants.kind} above the list.`
+              : variants.required
+                ? `This major requires one ${variants.kind}. Choose yours above the list to see its requirements.`
+                : `Optional ${variants.kind}s: ${variants.options.map((o) => o.label).join("; ")}. Choose one above the list to add its requirements.`,
+          ]
+        : [];
       return {
         id: `major-${idSuffix}`,
         title: `Major Requirements — ${majorReqs.title}${isScenarioOnly ? " (proposed)" : ""}`,
@@ -318,12 +354,13 @@ export function buildRequirementsResponse(
         sourceLabel: structure.sourceLabel,
         academicYear: structure.catalogYear,
         lastVerified: structure.lastVerified,
-        notes: [...scenarioNote, ...majorReqs.notes, ...concentrationNote],
+        notes: [...scenarioNote, ...trackNote, ...majorReqs.notes, ...concentrationNote],
         items,
+        variants,
         // Counted per sidebar item, like every other group (the department layer recounts the same way).
-        autoTrackedCount: items.length,
-        autoCompletedCount: items.filter((i) => i.complete).length,
-        manualCount: 0,
+        autoTrackedCount: items.filter((i) => i.autoTracked).length,
+        autoCompletedCount: items.filter((i) => i.autoTracked && i.complete).length,
+        manualCount: items.filter((i) => !i.autoTracked).length,
       };
     }
     const majorItemGroups = majorReqs.groups.filter((g) => !g.courses.every((c) => c.category === "university-core"));

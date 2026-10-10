@@ -90,6 +90,32 @@ paths:
         "204":
           description: Profile deleted
 
+  /profile/major-track:
+    put:
+      operationId: setMajorTrack
+      tags: [profile]
+      summary: Choose (or clear) the track, emphasis or concentration the student follows in a major
+      description: >-
+        Planning intent only: it selects which of the Bulletin's tracks the
+        requirements sidebar resolves. It never declares anything with SCU.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetMajorTrackBody"
+      responses:
+        "200":
+          description: Saved profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentProfile"
+        "400":
+          description: Unknown major, or a track the major does not have
+        "404":
+          description: No profile yet
+
   /courses:
     get:
       operationId: listCourses
@@ -3769,6 +3795,10 @@ components:
           type: array
           items:
             type: string
+        majorTracks:
+          type: object
+          additionalProperties: { type: string }
+          description: The track / emphasis / concentration the student follows in a major, by major code (planning intent).
         priorityRegistration:
           type: boolean
         currentTerm:
@@ -3797,6 +3827,16 @@ components:
         - currentTerm
         - currentYear
         - updatedAt
+    SetMajorTrackBody:
+      type: object
+      required: [major, track]
+      properties:
+        major:
+          type: string
+          description: The major's code ("BIOE").
+        track:
+          type: [string, "null"]
+          description: The track's key from the requirement group's `variants.options`, or null to clear it.
     UpsertProfileBody:
       type: object
       properties:
@@ -4535,6 +4575,15 @@ components:
             Null when the group has no sub-headings.
         choice:
           $ref: "#/components/schemas/RequirementChoice"
+        variant:
+          type: [string, "null"]
+          description: The key of the track / emphasis / concentration this requirement belongs to, when only one does.
+        manual:
+          type: boolean
+          description: >-
+            True for a requirement CampusVal cannot count from course codes (a department's approved
+            list the Bulletin does not print, units of ensemble, an internship). Shown in the
+            Bulletin's words for the student to track.
         departmentNotes:
           type: array
           description: >-
@@ -4713,6 +4762,9 @@ components:
         minimum:
           type: [integer, "null"]
           description: "How many courses a choose rule needs. Null for alternatives or a unit-based minimum."
+        minDistinctLists:
+          type: [integer, "null"]
+          description: '"From at least K of these lists": the number of different lists the courses must cover.'
         completedCount:
           type: integer
         plannedCount:
@@ -4730,6 +4782,9 @@ components:
               courses:
                 type: array
                 items: { type: string }
+              max:
+                type: [integer, "null"]
+                description: At most this many courses may come from the list.
         alternatives:
           type: array
           description: The course sets of an alternatives rule; completing any one satisfies it.
@@ -5029,6 +5084,8 @@ components:
           type: integer
         manualCount:
           type: integer
+        variants:
+          $ref: "#/components/schemas/RequirementGroupVariants"
       required:
         - id
         - title
@@ -5042,6 +5099,35 @@ components:
         - autoTrackedCount
         - autoCompletedCount
         - manualCount
+    RequirementGroupVariants:
+      type: [object, "null"]
+      description: >-
+        The tracks, emphases or concentrations the Bulletin defines inside a major, and the one the
+        student follows. Null for a group without them.
+      required: [major, kind, required, options, selected, note]
+      properties:
+        major:
+          type: string
+          description: The major's code, for PUT /profile/major-track.
+        kind:
+          type: string
+          enum: [track, emphasis, concentration]
+        required:
+          type: boolean
+          description: True when the student must follow one (Bioengineering's tracks); false for optional emphases.
+        options:
+          type: array
+          items:
+            type: object
+            required: [key, label]
+            properties:
+              key: { type: string }
+              label: { type: string }
+        selected:
+          type: [string, "null"]
+        note:
+          type: [string, "null"]
+          description: The Bulletin's own words about choosing one.
     RequirementCompletion:
       type: object
       properties:
@@ -5641,6 +5727,9 @@ components:
       properties:
         label:
           type: string
+        description:
+          type: string
+          description: The Bulletin's words for a requirement CampusVal cannot count from courses (the student tracks it).
         courses:
           type: array
           items:

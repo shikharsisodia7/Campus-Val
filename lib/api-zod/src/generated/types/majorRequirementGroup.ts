@@ -9,5 +9,7 @@ import type { MajorRequirementCourse } from "./majorRequirementCourse";
 
 export interface MajorRequirementGroup {
   label: string;
+  /** The Bulletin's words for a requirement CampusVal cannot count from courses (the student tracks it). */
+  description?: string;
   courses: MajorRequirementCourse[];
 }

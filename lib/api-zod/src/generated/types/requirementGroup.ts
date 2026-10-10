@@ -8,6 +8,7 @@
 import type { DepartmentNote } from "./departmentNote";
 import type { RequirementGroupCategory } from "./requirementGroupCategory";
 import type { RequirementGroupKind } from "./requirementGroupKind";
+import type { RequirementGroupVariants } from "./requirementGroupVariants";
 import type { RequirementItem } from "./requirementItem";
 
 export interface RequirementGroup {
@@ -35,4 +36,5 @@ export interface RequirementGroup {
   autoTrackedCount: number;
   autoCompletedCount: number;
   manualCount: number;
+  variants?: RequirementGroupVariants | null;
 }

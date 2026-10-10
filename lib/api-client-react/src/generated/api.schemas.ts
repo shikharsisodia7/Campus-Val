@@ -1540,6 +1540,11 @@ export const Grade = {
   W: "W",
 } as const;
 
+/**
+ * The track / emphasis / concentration the student follows in a major, by major code (planning intent).
+ */
+export type StudentProfileMajorTracks = { [key: string]: string };
+
 export interface StudentProfile {
   id: number;
   name: string;
@@ -1562,10 +1567,22 @@ export interface StudentProfile {
   cumulativeGpa?: number | null;
   majorGpa?: number | null;
   completedCourseCodes: string[];
+  /** The track / emphasis / concentration the student follows in a major, by major code (planning intent). */
+  majorTracks?: StudentProfileMajorTracks;
   priorityRegistration: boolean;
   currentTerm: Term;
   currentYear: number;
   updatedAt: string;
+}
+
+export interface SetMajorTrackBody {
+  /** The major's code ("BIOE"). */
+  major: string;
+  /**
+   * The track's key from the requirement group's `variants.options`, or null to clear it.
+   * @nullable
+   */
+  track: string | null;
 }
 
 export interface UpsertProfileBody {
@@ -1982,6 +1999,11 @@ export type RequirementChoiceListsItem = {
   /** @nullable */
   note: string | null;
   courses: string[];
+  /**
+   * At most this many courses may come from the list.
+   * @nullable
+   */
+  max?: number | null;
 };
 
 export type RequirementChoiceAlternativesItem = {
@@ -2001,6 +2023,11 @@ export type RequirementChoice = {
    * @nullable
    */
   minimum: number | null;
+  /**
+   * "From at least K of these lists": the number of different lists the courses must cover.
+   * @nullable
+   */
+  minDistinctLists?: number | null;
   completedCount: number;
   plannedCount: number;
   /** The named course lists a choose rule draws on, in the Bulletin's order. */
@@ -2079,6 +2106,13 @@ export interface RequirementItem {
    */
   section?: string | null;
   choice?: RequirementChoice | null;
+  /**
+   * The key of the track / emphasis / concentration this requirement belongs to, when only one does.
+   * @nullable
+   */
+  variant?: string | null;
+  /** True for a requirement CampusVal cannot count from course codes (a department's approved list the Bulletin does not print, units of ensemble, an internship). Shown in the Bulletin's words for the student to track. */
+  manual?: boolean;
   /** Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note). */
   departmentNotes?: DepartmentNote[];
   /** Present when a department changed this requirement's wording or added it. */
@@ -2484,6 +2518,40 @@ export const RequirementGroupKind = {
   professional_prep: "professional_prep",
 } as const;
 
+export type RequirementGroupVariantsKind =
+  (typeof RequirementGroupVariantsKind)[keyof typeof RequirementGroupVariantsKind];
+
+export const RequirementGroupVariantsKind = {
+  track: "track",
+  emphasis: "emphasis",
+  concentration: "concentration",
+} as const;
+
+export type RequirementGroupVariantsOptionsItem = {
+  key: string;
+  label: string;
+};
+
+/**
+ * The tracks, emphases or concentrations the Bulletin defines inside a major, and the one the student follows. Null for a group without them.
+ * @nullable
+ */
+export type RequirementGroupVariants = {
+  /** The major's code, for PUT /profile/major-track. */
+  major: string;
+  kind: RequirementGroupVariantsKind;
+  /** True when the student must follow one (Bioengineering's tracks); false for optional emphases. */
+  required: boolean;
+  options: RequirementGroupVariantsOptionsItem[];
+  /** @nullable */
+  selected: string | null;
+  /**
+   * The Bulletin's own words about choosing one.
+   * @nullable
+   */
+  note: string | null;
+} | null;
+
 export interface RequirementGroup {
   id: string;
   /** Present on GET /plans/{id}/requirements. The identifier custom requirements attach to. */
@@ -2509,6 +2577,7 @@ export interface RequirementGroup {
   autoTrackedCount: number;
   autoCompletedCount: number;
   manualCount: number;
+  variants?: RequirementGroupVariants | null;
 }
 
 export type DegreeRequirementsResponseUniversityRules = {
@@ -2900,6 +2969,8 @@ export interface MajorRequirementCourse {
 
 export interface MajorRequirementGroup {
   label: string;
+  /** The Bulletin's words for a requirement CampusVal cannot count from courses (the student tracks it). */
+  description?: string;
   courses: MajorRequirementCourse[];
 }
 

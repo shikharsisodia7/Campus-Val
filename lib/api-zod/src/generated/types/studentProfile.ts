@@ -5,6 +5,7 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { StudentProfileMajorTracks } from "./studentProfileMajorTracks";
 import type { StudentType } from "./studentType";
 import type { Term } from "./term";
 
@@ -30,6 +31,8 @@ export interface StudentProfile {
   cumulativeGpa?: number | null;
   majorGpa?: number | null;
   completedCourseCodes: string[];
+  /** The track / emphasis / concentration the student follows in a major, by major code (planning intent). */
+  majorTracks?: StudentProfileMajorTracks;
   priorityRegistration: boolean;
   currentTerm: Term;
   currentYear: number;

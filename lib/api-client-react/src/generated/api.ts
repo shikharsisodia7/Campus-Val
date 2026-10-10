@@ -126,6 +126,7 @@ import type {
   SectionAvailabilityStatus,
   SectionsSyncStatus,
   SendOpenaiMessageBody,
+  SetMajorTrackBody,
   SetRequirementCompletionBody,
   SimulateGpaBody,
   StudentProfile,
@@ -477,6 +478,93 @@ export const useDeleteProfile = <
   TContext
 > => {
   return useMutation(getDeleteProfileMutationOptions(options));
+};
+
+export const getSetMajorTrackUrl = () => {
+  return `/api/profile/major-track`;
+};
+
+/**
+ * Planning intent only: it selects which of the Bulletin's tracks the requirements sidebar resolves. It never declares anything with SCU.
+ * @summary Choose (or clear) the track, emphasis or concentration the student follows in a major
+ */
+export const setMajorTrack = async (
+  setMajorTrackBody: SetMajorTrackBody,
+  options?: RequestInit,
+): Promise<StudentProfile> => {
+  return customFetch<StudentProfile>(getSetMajorTrackUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setMajorTrackBody),
+  });
+};
+
+export const getSetMajorTrackMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setMajorTrack>>,
+    TError,
+    { data: BodyType<SetMajorTrackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setMajorTrack>>,
+  TError,
+  { data: BodyType<SetMajorTrackBody> },
+  TContext
+> => {
+  const mutationKey = ["setMajorTrack"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setMajorTrack>>,
+    { data: BodyType<SetMajorTrackBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setMajorTrack(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetMajorTrackMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setMajorTrack>>
+>;
+export type SetMajorTrackMutationBody = BodyType<SetMajorTrackBody>;
+export type SetMajorTrackMutationError = ErrorType<void>;
+
+/**
+ * @summary Choose (or clear) the track, emphasis or concentration the student follows in a major
+ */
+export const useSetMajorTrack = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setMajorTrack>>,
+    TError,
+    { data: BodyType<SetMajorTrackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setMajorTrack>>,
+  TError,
+  { data: BodyType<SetMajorTrackBody> },
+  TContext
+> => {
+  return useMutation(getSetMajorTrackMutationOptions(options));
 };
 
 export const getListCoursesUrl = (params?: ListCoursesParams) => {
