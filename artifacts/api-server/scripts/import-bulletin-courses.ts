@@ -173,11 +173,19 @@ const crossListed = (code: string, title: string) => {
   return listings.some((x) => x.num === num && ownerOf(x) === subject && titleKey(x.title) === titleKey(title));
 };
 
-const found: { code: string; listing: Listing; units: number; rule: string; replaces: string | null }[] = [];
+interface Hit {
+  code: string;
+  listing: Listing;
+  units: number;
+  rule: string;
+  /** The catalog code this listing re-codes (a stale subject), or null for a new course. */
+  replaces: string | null;
+}
+const found: Hit[] = [];
 const notFound: string[] = [];
 for (const code of targets) {
   const [subject, num] = code.split(" ") as [string, string];
-  const hits = listings.flatMap((l, i) => {
+  const hits = listings.flatMap((l, i): Hit[] => {
     if (l.num !== num) return [];
     const units = unitsOf(l);
     if (!units) return [];
