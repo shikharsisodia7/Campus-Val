@@ -61,7 +61,7 @@ async function get(url: string): Promise<string> {
 const decode = (s: string) =>
   s
     .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;| /g, " ")
+    .replace(/&nbsp;|\u00A0/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#39;|&rsquo;|&lsquo;/g, "'")

@@ -5,7 +5,7 @@
  * the upper-division Common Core and MGMT 162) is its own requirement group (degree-requirements.ts),
  * so a Leavey core course never fills a major elective here.
  */
-import { codes, each, list, listsOf, manual, oneOf, pick, range, section, withNotes, type MajorStructure } from "./model";
+import { codes, each, list, listsOf, oneOf, pick, range, section, withNotes, type MajorStructure } from "./model";
 import { bulletinSource } from "./source";
 
 /** Leavey core courses that are not major electives (FNCE 121, MGMT 160, MKTG 181, OMIS 108, MGMT 162...). */
