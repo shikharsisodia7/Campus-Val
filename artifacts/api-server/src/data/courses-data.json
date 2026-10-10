@@ -48150,5 +48150,23 @@
     "prereqGroups": [],
     "corequisites": [],
     "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/art-and-art-history.html); not in the 2025-26 catalog snapshot."
+  },
+  {
+    "code": "MGMT 196",
+    "title": "Principled Leadership Development Portfolio",
+    "department": "MGMT",
+    "departmentName": "Management",
+    "units": 1,
+    "description": "This course serves as a final integrative experience.. Students will reflect on feedback, values, and lived experiences during their time in the Leavey School to articulate their development as principled leaders prepared to lead beyond the University. Students will take this course in the winter or spring quarter of their junior year or in the fall or winter quarter of their senior year. Prerequisite: MGMT 71/72 or MGMT 174.",
+    "coreAreas": [],
+    "offeredTerms": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "prereqLogic": "MGMT 71/72 or MGMT 174",
+    "prereqGroups": [],
+    "corequisites": [],
+    "notes": "From the 2026-27 Undergraduate Bulletin course listing (https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/management.html); not in the 2025-26 catalog snapshot."
   }
 ]
