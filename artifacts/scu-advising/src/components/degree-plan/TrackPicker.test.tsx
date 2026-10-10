@@ -2,6 +2,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { RequirementGroupVariants } from "@workspace/api-client-react";
 
 const mutate = vi.fn();
 vi.mock("@workspace/api-client-react", async (importOriginal) => {
@@ -11,9 +12,9 @@ vi.mock("@workspace/api-client-react", async (importOriginal) => {
 
 const { TrackPicker } = await import("./TrackPicker");
 
-const variants = {
+const variants: NonNullable<RequirementGroupVariants> = {
   major: "BIOE",
-  kind: "track" as const,
+  kind: "track",
   required: true,
   options: [
     { key: "biomolecular", label: "Biomolecular track" },
@@ -53,7 +54,7 @@ describe("TrackPicker", () => {
   });
 
   it("offers an optional emphasis as optional, with the Bulletin's note", () => {
-    renderPicker({ ...variants, kind: "emphasis" as never, required: false, note: "Only one emphasis is allowed." });
+    renderPicker({ ...variants, kind: "emphasis", required: false, note: "Only one emphasis is allowed." });
     expect(screen.getByLabelText(/your emphasis \(optional\)/i)).toBeTruthy();
     expect(screen.getByRole("option", { name: "No emphasis" })).toBeTruthy();
     expect(screen.getByText("Only one emphasis is allowed.")).toBeTruthy();
