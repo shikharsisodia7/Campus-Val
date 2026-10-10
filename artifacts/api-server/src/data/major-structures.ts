@@ -156,34 +156,53 @@ function choiceLists(lists: StructuredCourseList[], max: Record<string, number> 
 }
 
 /**
- * Pick up to `count` courses from `candidates`, in order, honouring "at most N from this list" caps
- * (`charged` carries the counts between calls). With `distinct`, first take courses that cover lists
- * not yet covered, so "one from at least K areas" is met whenever the courses allow it.
+ * Pick up to `count` courses, completed before planned, honouring "at most N from this list" caps.
+ * With `minDistinct` ("from at least K of these lists") courses that cover a list not yet covered are
+ * taken first: completed ones, then planned ones while the spread is still short, then the rest. So a
+ * planned course that completes the spread is counted instead of a completed course from a list
+ * already covered. Each course covers one list.
  */
-function take(
-  candidates: string[],
+function select(
+  done: string[],
+  planned: string[],
   count: number,
+  minDistinct: number,
   listsOf: (c: string) => string[],
   caps: Record<string, number>,
-  charged: Map<string, number>,
-  covered: Set<string>,
-  distinct: boolean,
-): string[] {
-  const chosen: string[] = [];
+): { takenDone: string[]; takenPlanned: string[]; doneCovered: number; covered: number } {
+  const chosen: { code: string; list: string; done: boolean }[] = [];
+  const charged = new Map<string, number>();
+  const covered = new Set<string>();
   const room = (k: string) => caps[k] === undefined || (charged.get(k) ?? 0) < caps[k]!;
-  const accept = (c: string, freshOnly: boolean) => {
+  const accept = (c: string, done: boolean, freshOnly: boolean) => {
     const open = listsOf(c).filter(room);
     const pool = freshOnly ? open.filter((k) => !covered.has(k)) : open;
     if (pool.length === 0) return;
-    const k = pool.find((x) => caps[x] === undefined) ?? pool[0]!;
+    const k = pool.find((x) => caps[x] === undefined && !covered.has(x)) ?? pool.find((x) => caps[x] === undefined) ?? pool[0]!;
     // A capped list is charged only when the course belongs to no uncapped list of the rule.
     if (!listsOf(c).some((x) => caps[x] === undefined)) charged.set(k, (charged.get(k) ?? 0) + 1);
     covered.add(k);
-    chosen.push(c);
+    chosen.push({ code: c, list: k, done });
   };
-  if (distinct) for (const c of candidates) if (chosen.length < count && !chosen.includes(c)) accept(c, true);
-  for (const c of candidates) if (chosen.length < count && !chosen.includes(c)) accept(c, false);
-  return chosen;
+  const pass = (candidates: string[], done: boolean, freshOnly: boolean) => {
+    for (const c of candidates) {
+      if (chosen.length >= count || (freshOnly && covered.size >= minDistinct)) return;
+      if (!chosen.some((x) => x.code === c)) accept(c, done, freshOnly);
+    }
+  };
+  if (minDistinct > 0) {
+    pass(done, true, true);
+    pass(planned, false, true);
+  }
+  pass(done, true, false);
+  pass(planned, false, false);
+  const doneLists = new Set(chosen.filter((x) => x.done).map((x) => x.list));
+  return {
+    takenDone: chosen.filter((x) => x.done).map((x) => x.code),
+    takenPlanned: chosen.filter((x) => !x.done).map((x) => x.code),
+    doneCovered: doneLists.size,
+    covered: covered.size,
+  };
 }
 
 interface Pass {
@@ -295,25 +314,18 @@ function resolveRequirement(pass: Pass, section: StructuredSection, req: Structu
     ...[...set].filter((c) => !listedSet.has(c) && listsOf(c).length > 0).sort(),
   ];
   const usable = (c: string) => !!rule.overlay || (!reserved.has(norm(c)) && !consumed.has(norm(c)));
-  const caps = rule.maxPerList ?? {};
-  const charged = new Map<string, number>();
-  const covered = new Set<string>();
-  const distinct = !!rule.minDistinctLists;
-  const takenDone = take(theirs(completed).filter(usable), rule.count, listsOf, caps, charged, covered, distinct);
-  const doneCovered = covered.size;
-  const takenPlanned = take(
+  const { takenDone, takenPlanned, doneCovered, covered } = select(
+    theirs(completed).filter(usable),
     theirs(planned).filter((c) => usable(c) && !completed.has(norm(c))),
-    Math.max(0, rule.count - takenDone.length),
+    rule.count,
+    rule.minDistinctLists ?? 0,
     listsOf,
-    caps,
-    charged,
-    covered,
-    distinct,
+    rule.maxPerList ?? {},
   );
   if (!rule.overlay) for (const c of [...takenDone, ...takenPlanned]) consumed.add(norm(c));
   const spread = (n: number) => !rule.minDistinctLists || n >= rule.minDistinctLists;
   const complete = takenDone.length >= rule.count && spread(doneCovered);
-  const onTrack = takenDone.length + takenPlanned.length >= rule.count && spread(covered.size);
+  const onTrack = takenDone.length + takenPlanned.length >= rule.count && spread(covered);
   return [
     {
       ...base,
@@ -331,7 +343,7 @@ function resolveRequirement(pass: Pass, section: StructuredSection, req: Structu
         minDistinctLists: rule.minDistinctLists ?? null,
         completedCount: takenDone.length,
         plannedCount: takenPlanned.length,
-        lists: choiceLists(lists, caps),
+        lists: choiceLists(lists, rule.maxPerList ?? {}),
         alternatives: [],
       },
       manual: false,
