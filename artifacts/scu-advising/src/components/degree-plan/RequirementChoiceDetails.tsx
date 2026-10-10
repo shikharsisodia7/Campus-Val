@@ -22,7 +22,8 @@ export function choiceSummary(req: RequirementItem): string | null {
     return `Complete one: ${choice.alternatives.map((a) => a.label).join(" or ")}`;
   }
   if (choice.minimum == null) return null;
-  const parts = [`Choose ${choice.minimum}`, `${choice.completedCount} of ${choice.minimum} completed`];
+  const spread = choice.minDistinctLists ? ` from at least ${choice.minDistinctLists} of the lists` : "";
+  const parts = [`Choose ${choice.minimum}${spread}`, `${choice.completedCount} of ${choice.minimum} completed`];
   if (choice.plannedCount > 0) parts.push(`${choice.plannedCount} planned`);
   return parts.join(" · ");
 }
@@ -72,9 +73,10 @@ export function RequirementChoiceDetails({
         label: `Option ${i + 1}: ${a.label}${a.recommended && !/recommended/i.test(a.label) ? " (recommended)" : ""}`,
         note: null,
         courses: a.courses,
+        max: null,
       }));
     }
-    return [{ key: "eligible", label: "Eligible courses", note: null, courses: req.courses }];
+    return [{ key: "eligible", label: "Eligible courses", note: null, courses: req.courses, max: null }];
   }, [req.choice, req.courses]);
 
   const total = new Set(lists.flatMap((l) => l.courses)).size;
@@ -108,7 +110,10 @@ export function RequirementChoiceDetails({
         <div id={panelId} className="mt-1.5 space-y-2" data-testid={`course-list-${req.id}`}>
           {lists.map((list) => (
             <section key={list.key} aria-label={list.label} data-testid={`course-list-${req.id}-${list.key}`}>
-              <h4 className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{list.label}</h4>
+              <h4 className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {list.label}
+                {list.max != null && <span className="normal-case"> (at most {list.max})</span>}
+              </h4>
               {list.note && <p className="text-[10px] italic leading-snug text-muted-foreground">{list.note}</p>}
               <ul className="mt-0.5 divide-y divide-border/60 rounded-md border border-border/60">
                 {list.courses.map((code) => {

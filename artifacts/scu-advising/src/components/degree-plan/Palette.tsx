@@ -34,6 +34,7 @@ import {
 import { DepartmentMarks, DepartmentNotes, GroupDepartmentNotes } from "./DepartmentNotes";
 import { RequirementCourseDiscovery } from "./RequirementCourseDiscovery";
 import { RequirementChoiceDetails, choiceSummary, countedLine, hasCourseList } from "./RequirementChoiceDetails";
+import { TrackPicker } from "./TrackPicker";
 import {
   AddRequirementButton,
   CustomizationMarks,
@@ -515,6 +516,7 @@ export function Palette() {
                       </p>
                     ))}
                     <GroupDepartmentNotes group={group} />
+                    {group.variants && <TrackPicker variants={group.variants} />}
                     {group.items.length === 0 && (
                       <p className="py-1.5 text-[11px] text-muted-foreground">
                         No verified course requirements are available for this
@@ -581,6 +583,15 @@ export function Palette() {
                               <CircleDashed className="h-3.5 w-3.5 shrink-0 text-blue-600" />
                             )}
                           </div>
+
+                          {req.manual && (
+                            <div className="mt-1 space-y-0.5 text-[10px] leading-snug text-muted-foreground" data-testid={`req-manual-${req.id}`}>
+                              <p>{req.description}</p>
+                              <p className="font-medium text-foreground/80">
+                                You track this one: CampusVal can&apos;t count it from course codes. Confirm it with your advisor or in Workday.
+                              </p>
+                            </div>
+                          )}
 
                           {isCustom && (
                             <label className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">

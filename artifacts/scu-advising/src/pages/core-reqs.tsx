@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState } from "react";
+import { RequirementChoiceDetails } from "@/components/degree-plan/RequirementChoiceDetails";
+import { TrackPicker } from "@/components/degree-plan/TrackPicker";
 import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -265,6 +267,12 @@ export default function CoreReqs() {
                     </Card>
                   )}
 
+                  {group.variants && (
+                    <div className="max-w-sm">
+                      <TrackPicker variants={group.variants} />
+                    </div>
+                  )}
+
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {group.items.map((item) => {
                       const manualKey = `${group.id}:${item.id}`;
@@ -306,7 +314,13 @@ export default function CoreReqs() {
                           <p className="mt-1 text-xs text-muted-foreground">
                             {item.description}
                           </p>
-                          {item.courses.length > 0 && (
+                          {item.choice ? (
+                            // A choice ("choose 3 from these lists") lists its courses by list, behind a toggle;
+                            // opening it never checks the requirement off.
+                            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                              <RequirementChoiceDetails req={item} catalog={undefined} />
+                            </div>
+                          ) : item.courses.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1">
                               {item.courses.map((c) => (
                                 <Badge
