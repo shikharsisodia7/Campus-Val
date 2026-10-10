@@ -496,7 +496,6 @@
    "sourceProgram": "Anthropology",
    "notes": [
     "Anthropology majors have the option of completing a special emphasis program (applied anthropology, archaeology, or biological), noted on transcripts with the approval of the department chair.",
-    "5 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: ANTH 12A, PSYC 105, ANTH 113, ANTH 184, ANTH 187.",
     "This major has official concentrations/tracks: Applied Anthropology, Archaeology, Biological Emphasis. Requirement course lists aren't loaded for concentrations yet — see the official source for exact requirements."
    ],
    "items": [
@@ -672,7 +671,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Art History",
    "notes": [
-    "Optional emphasiss: Arts Management Emphasis. Choose one above the list to add its requirements.",
+    "Optional emphasiss: Arts Management Emphasis. Choose one to add its requirements.",
     "No more than three transfer credit courses or study abroad courses may be accepted for the art history major or minor. Only one upper-division transfer credit course or study abroad course may be accepted to fulfill the upper-division ARTH course requirement."
    ],
    "items": [
@@ -1471,9 +1470,8 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Bioengineering",
    "notes": [
-    "This major requires one track. Choose yours above the list to see its requirements.",
+    "This major requires one track. Choose yours to see its requirements.",
     "Bioengineering majors complete a minimum of 191 units and the requirements of one track, together with associated labs.",
-    "7 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: PHIL 27, TESP 157, BIOE 181, BIOL 114, PHYS 171, BIOE 140, BIOE 141.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
@@ -3040,9 +3038,7 @@
    "sourceVersion": "2026-27",
    "lastVerified": "2026-10-09",
    "sourceProgram": "Child Studies",
-   "notes": [
-    "1 course named by the Bulletin is not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: CHST 190."
-   ],
+   "notes": [],
    "items": [
     {
      "stableKey": "major:child-studies#chst-3",
@@ -3230,7 +3226,6 @@
    "sourceProgram": "Civil Engineering",
    "notes": [
     "Civil engineering majors complete a minimum of 191 units.",
-    "1 course named by the Bulletin is not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: ENVS 15.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
@@ -3739,7 +3734,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Classics",
    "notes": [
-    "This major requires one track. Choose yours above the list to see its requirements."
+    "This major requires one track. Choose yours to see its requirements."
    ],
    "items": [
     {
@@ -3850,8 +3845,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Communication",
    "notes": [
-    "Optional emphasiss: Global Media, Culture, and Technology; Organizational, Professional & Business Communication; Communication, Diversity, and Culture; Digital Filmmaking; Journalism; Strategic Communication. Choose one above the list to add its requirements.",
-    "9 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: COMM 199R, COMM 199I, COMM 181A, COMM 140B, COMM 140C, COMM 140W, COMM 140Q, COMM 130A, COMM 151A."
+    "Optional emphasiss: Global Media, Culture, and Technology; Organizational, Professional & Business Communication; Communication, Diversity, and Culture; Digital Filmmaking; Journalism; Strategic Communication. Choose one to add its requirements."
    ],
    "items": [
     {
@@ -4322,7 +4316,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Computer Science (B.S. Arts & Sciences)",
    "notes": [
-    "This major requires one emphasis. Choose yours above the list to see its requirements.",
+    "This major requires one emphasis. Choose yours to see its requirements.",
     "It is highly recommended that students (especially students in the Software emphasis) take additional upper-division courses beyond the minimum required for the degree, such as CSEN 178.",
     "At least four of the required upper-division courses in the major must be taken at Santa Clara. A single upper-division course in the Department of Mathematics and Computer Science can only be used to satisfy one major or one minor requirement in the department. (Exceptions may be approved by the Chair.)",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
@@ -4893,7 +4887,6 @@
    "sourceProgram": "Computer Science & Engineering",
    "notes": [
     "Computer science and engineering majors complete a minimum of 182 units, together with associated labs.",
-    "1 course named by the Bulletin is not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: CSEN 21.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
@@ -5321,7 +5314,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Economics (B.A. Arts & Sciences)",
    "notes": [
-    "Optional concentrations: Concentration in Data Analysis for Economics; Mathematical Economics Concentration. Choose one above the list to add its requirements."
+    "Optional concentrations: Concentration in Data Analysis for Economics; Mathematical Economics Concentration. Choose one to add its requirements."
    ],
    "items": [
     {
@@ -5607,7 +5600,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Economics (B.S. Commerce)",
    "notes": [
-    "Optional concentrations: Concentration in Data Analysis for Economics; Mathematical Economics Concentration. Choose one above the list to add its requirements.",
+    "Optional concentrations: Concentration in Data Analysis for Economics; Mathematical Economics Concentration. Choose one to add its requirements.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
@@ -6724,7 +6717,6 @@
    "notes": [
     "Engineering physics requires a minimum of 193 units (Bulletin Chapter 8).",
     "Physics and Engineering Physics is a College of Arts and Sciences department, not School of Engineering, despite the name.",
-    "2 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: MECH 10, CSEN 21.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
@@ -7372,9 +7364,7 @@
    "sourceVersion": "2026-27",
    "lastVerified": "2026-10-09",
    "sourceProgram": "Ethnic Studies",
-   "notes": [
-    "10 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: ANTH 86, ANTH 90, ENGL 35G, ENGL 69AM, ETHN 35, MUSC 20, THTR 14, ETHN 177, ETHN 154A, ETHN 101."
-   ],
+   "notes": [],
    "items": [
     {
      "stableKey": "major:ethnic-studies#ethn-5",
@@ -7772,7 +7762,6 @@
    "sourceProgram": "General Engineering",
    "notes": [
     "Engineering majors complete a minimum of 189 units and the specified requirements for their concentration.",
-    "5 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: ENGR 193, ENGR 197B, ENGR 197C, ENGR 197D, CENG 192C.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
@@ -8132,8 +8121,7 @@
    "sourceProgram": "History",
    "notes": [
     "An optional senior project (HIST 197), which makes one eligible for Honors in History, may be taken as one of the required upper-division courses.",
-    "Hybrid courses: lower-division hybrid courses are worth 4 units, upper-division hybrid courses 5 units.",
-    "3 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: HIST 115S, HIST 179A, HIST 114C."
+    "Hybrid courses: lower-division hybrid courses are worth 4 units, upper-division hybrid courses 5 units."
    ],
    "items": [
     {
@@ -8540,7 +8528,6 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Management (B.S. Commerce)",
    "notes": [
-    "1 course named by the Bulletin is not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: MGMT 168.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
@@ -8670,7 +8657,6 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Marketing (B.S. Commerce)",
    "notes": [
-    "1 course named by the Bulletin is not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: MKTG 194.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
@@ -8744,7 +8730,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Mathematics",
    "notes": [
-    "Optional emphasiss: Emphasis in Applied Mathematics; Emphasis in Data Science; Emphasis in Financial Mathematics; Emphasis in Mathematical Economics; Emphasis in Mathematics Education. Choose one above the list to add its requirements.",
+    "Optional emphasiss: Emphasis in Applied Mathematics; Emphasis in Data Science; Emphasis in Financial Mathematics; Emphasis in Mathematical Economics; Emphasis in Mathematics Education. Choose one to add its requirements.",
     "Students planning to undertake graduate studies in pure mathematics should take MATH 105, 111, 112, 113, 153, and 154. Students planning to undertake graduate studies in applied mathematics should complete the emphasis in applied mathematics and take MATH 105, 144, 153, 154, and 155.",
     "At least four of the required upper-division courses in the major must be taken at Santa Clara. A single upper-division course in the Department of Mathematics and Computer Science can only be used to satisfy one major or one minor requirement in the department. (Exceptions may be approved by the Chair.)",
     "Students planning to complete the Mathematics Education emphasis are strongly advised to complete the College's Urban Education minor.",
@@ -9943,7 +9929,6 @@
    "sourceProgram": "Neuroscience",
    "notes": [
     "PHIL 32 is recommended. Recommended courses for students intending to pursue graduate work in Neuroscience: PHYS 11, 12, 13 or PHYS 31, 32, 33.",
-    "2 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: BIOL 123A, COMM 176A.",
     "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence."
    ],
    "items": [
@@ -10214,8 +10199,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Philosophy",
    "notes": [
-    "Optional emphasiss: Pre-Law and Justice (P); Ethics and Values (E); Science and Analysis (S); History of Philosophy (H); International & Comparative Philosophy (IP). Choose one above the list to add its requirements.",
-    "2 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: PHIL 187B, PHIL 170."
+    "Optional emphasiss: Pre-Law and Justice (P); Ethics and Values (E); Science and Analysis (S); History of Philosophy (H); International & Comparative Philosophy (IP). Choose one to add its requirements."
    ],
    "items": [
     {
@@ -10824,9 +10808,8 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Political Science",
    "notes": [
-    "Optional emphasiss: Emphasis in Public Sector Studies; Emphasis in International Relations; Emphasis in Pre-Law. Choose one above the list to add its requirements.",
-    "Students in the Political Science Honors Program must complete the requirements noted under the Honors Program.",
-    "11 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: POLI 153, POLI 138, ELSJ 50, ENVS 12A, PHIL 30H, HIST 176, SOCI 172, ANTH 159, HIST 116, GNSX 126, ELSJ 51."
+    "Optional emphasiss: Emphasis in Public Sector Studies; Emphasis in International Relations; Emphasis in Pre-Law. Choose one to add its requirements.",
+    "Students in the Political Science Honors Program must complete the requirements noted under the Honors Program."
    ],
    "items": [
     {
@@ -11366,9 +11349,7 @@
    "sourceVersion": "2026-27",
    "lastVerified": "2026-10-09",
    "sourceProgram": "Psychology",
-   "notes": [
-    "1 course named by the Bulletin is not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: PSYC 199A."
-   ],
+   "notes": [],
    "items": [
     {
      "stableKey": "major:psychology#psyc-1",
@@ -11574,7 +11555,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Public Health Science",
    "notes": [
-    "This major requires one emphasis. Choose yours above the list to see its requirements."
+    "This major requires one emphasis. Choose yours to see its requirements."
    ],
    "items": [
     {
@@ -11982,9 +11963,7 @@
    "sourceVersion": "2026-27",
    "lastVerified": "2026-10-09",
    "sourceProgram": "Religious Studies",
-   "notes": [
-    "10 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: SCTR 111R, TESP 119R, TESP 124R, GNSX 149, TESP 131R, GNSX 149R, TESP 185, TESP 185R, TESP 196, TESP 196R."
-   ],
+   "notes": [],
    "items": [
     {
      "stableKey": "major:religious-studies#lower-division",
@@ -12505,7 +12484,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Studio Art",
    "notes": [
-    "Optional emphasiss: Graphic Design Emphasis; Animation and Illustration Emphasis. Choose one above the list to add its requirements.",
+    "Optional emphasiss: Graphic Design Emphasis; Animation and Illustration Emphasis. Choose one to add its requirements.",
     "No more than half of the requirements may be accepted as transfer credit or study abroad courses for the studio art major. Only one art history transfer credit course or study abroad course may be accepted for the studio art major."
    ],
    "items": [
@@ -12816,7 +12795,7 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Theatre",
    "notes": [
-    "This major requires one emphasis. Choose yours above the list to see its requirements."
+    "This major requires one emphasis. Choose yours to see its requirements."
    ],
    "items": [
     {
@@ -13435,7 +13414,6 @@
    "lastVerified": "2026-10-09",
    "sourceProgram": "Women's & Gender Studies",
    "notes": [
-    "6 courses named by the Bulletin are not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: GNSX 1A, GNSX 2A, GNSX 11A, GNSX 12A, GNSX 50, GNSX 112.",
     "This major has official concentrations/tracks: Cultural Politics of Representation, Power, Rights, and Society, Sexualities, Body Politics, and Social Structures. Requirement course lists aren't loaded for concentrations yet — see the official source for exact requirements."
    ],
    "items": [

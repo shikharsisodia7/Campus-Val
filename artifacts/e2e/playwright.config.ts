@@ -64,6 +64,13 @@ export default defineConfig({
       dependencies: ["setup"],
     },
     {
+      // Live QA of the Bulletin-structured majors: tracks, tracked-by-you requirements, area choices. See tests/major-structures.spec.ts.
+      name: "major-structures",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
+      testMatch: /major-structures\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
       name: "1440x900",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
       testMatch: /responsive\.spec\.ts/,

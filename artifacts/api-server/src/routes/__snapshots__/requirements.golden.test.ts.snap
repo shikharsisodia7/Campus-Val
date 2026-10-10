@@ -2257,7 +2257,6 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
       "manualCount": 1,
       "notes": [
         "Computer science and engineering majors complete a minimum of 182 units, together with associated labs.",
-        "1 course named by the Bulletin is not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: CSEN 21.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Computer Science and Engineering, Requirements for the Major",
@@ -4036,7 +4035,6 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
       "manualCount": 1,
       "notes": [
         "Computer science and engineering majors complete a minimum of 182 units, together with associated labs.",
-        "1 course named by the Bulletin is not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: CSEN 21.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Computer Science and Engineering, Requirements for the Major",
@@ -9520,7 +9518,6 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
       "manualCount": 1,
       "notes": [
         "Computer science and engineering majors complete a minimum of 182 units, together with associated labs.",
-        "1 course named by the Bulletin is not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: CSEN 21.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Computer Science and Engineering, Requirements for the Major",

@@ -257,6 +257,12 @@ export default function CoreReqs() {
                     {group.academicYear} · verified {group.lastVerified}
                   </div>
 
+                  {group.variants && (
+                    <div className="max-w-sm">
+                      <TrackPicker variants={group.variants} />
+                    </div>
+                  )}
+
                   {group.notes.length > 0 && (
                     <Card className="p-3 bg-muted/30">
                       <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
@@ -265,12 +271,6 @@ export default function CoreReqs() {
                         ))}
                       </ul>
                     </Card>
-                  )}
-
-                  {group.variants && (
-                    <div className="max-w-sm">
-                      <TrackPicker variants={group.variants} />
-                    </div>
                   )}
 
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">

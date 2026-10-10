@@ -507,6 +507,7 @@ export function Palette() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-2 px-1.5 pb-2 pt-0.5">
+                    {group.variants && <TrackPicker variants={group.variants} />}
                     {group.notes.map((note) => (
                       <p
                         key={note}
@@ -516,7 +517,6 @@ export function Palette() {
                       </p>
                     ))}
                     <GroupDepartmentNotes group={group} />
-                    {group.variants && <TrackPicker variants={group.variants} />}
                     {group.items.length === 0 && (
                       <p className="py-1.5 text-[11px] text-muted-foreground">
                         No verified course requirements are available for this

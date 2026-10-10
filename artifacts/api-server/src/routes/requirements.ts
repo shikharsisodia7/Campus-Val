@@ -339,10 +339,10 @@ export function buildRequirementsResponse(
       const trackNote = variants
         ? [
             chosenTrack
-              ? `Showing the ${variants.options.find((o) => o.key === chosenTrack)!.label} requirements. Change your ${variants.kind} above the list.`
+              ? `Showing the ${variants.options.find((o) => o.key === chosenTrack)!.label} requirements.`
               : variants.required
-                ? `This major requires one ${variants.kind}. Choose yours above the list to see its requirements.`
-                : `Optional ${variants.kind}s: ${variants.options.map((o) => o.label).join("; ")}. Choose one above the list to add its requirements.`,
+                ? `This major requires one ${variants.kind}. Choose yours to see its requirements.`
+                : `Optional ${variants.kind}s: ${variants.options.map((o) => o.label).join("; ")}. Choose one to add its requirements.`,
           ]
         : [];
       return {
@@ -354,7 +354,8 @@ export function buildRequirementsResponse(
         sourceLabel: structure.sourceLabel,
         academicYear: structure.catalogYear,
         lastVerified: structure.lastVerified,
-        notes: [...scenarioNote, ...trackNote, ...majorReqs.notes, ...concentrationNote],
+        // The reference listing's catalog-gap note covers every track's courses; here each item says it itself.
+        notes: [...scenarioNote, ...trackNote, ...majorReqs.notes.filter((n) => !/not in our current catalog snapshot/.test(n)), ...concentrationNote],
         items,
         variants,
         // Counted per sidebar item, like every other group (the department layer recounts the same way).
