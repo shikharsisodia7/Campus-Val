@@ -102,3 +102,20 @@
 - [x] New tests: AI layer, AI routes, auth interface, config, upload paths, GCS provider, error handling, account deletion
 - [x] Docker build + container smoke test
 - [ ] Authenticated end-to-end (Playwright) run against a staging deployment on GCP
+
+## Static scan, 2026-10-09 (Provost-demo pass, PR #80, and PreHealth PR #18)
+
+`semgrep scan --metrics=off --config p/typescript --config p/javascript --config p/security-audit --config p/secrets` (official
+`semgrep/semgrep` Docker image) over every non-generated, non-test TypeScript file the pass changed:
+
+- CampusVal, 43 files: **0 findings in application code.** 2 warnings (`unknown-value-with-script-tag`) are in
+  `artifacts/e2e/tests/degree-checksheets.spec.ts` test F, pre-existing and deliberate: hostile HTML written to disk to prove the
+  checksheet upload refuses it. 2 partial-parse notices (a literal `&` in JSX text in `admin-program-requirements.tsx` and
+  `courses.tsx`); the rest of those files was scanned.
+- PreHealth Advisor (Program Explorer trusted resources), 7 files: **0 findings.**
+
+New attack surface reviewed by hand: the Degree Completion Assessment routes are owner-scoped like every APR route (structural and
+behavioural tests); `POST /api/internal/availability/refresh` is off unless a 24+ character secret is set and compares it in
+constant time; `POST /api/section-availability/refresh` needs a session and is rate-limited per student and per term; Department
+Note course codes are validated against the catalog and rendered as text; the PreHealth trusted-resource importer accepts https
+URLs only and writes only to `EXPLORER_ALLOW_DATABASE`.
