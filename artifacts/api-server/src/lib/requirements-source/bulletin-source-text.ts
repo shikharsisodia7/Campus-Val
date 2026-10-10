@@ -5,7 +5,7 @@
 
 export const entities = (s: string) =>
   s
-    .replace(/&nbsp;| /g, " ")
+    .replace(/&nbsp;|\u00A0/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#39;|&rsquo;|&lsquo;/g, "'")
