@@ -20,6 +20,11 @@ export type RequirementChoice = {
    * @nullable
    */
   minimum: number | null;
+  /**
+   * "From at least K of these lists": the number of different lists the courses must cover.
+   * @nullable
+   */
+  minDistinctLists?: number | null;
   completedCount: number;
   plannedCount: number;
   /** The named course lists a choose rule draws on, in the Bulletin's order. */

@@ -19,7 +19,8 @@ import {
   usageEventsTable,
 } from "@workspace/db";
 import { getPrivateObjectStorage, isPrivateStorageConfigured } from "../lib/storage";
-import { UpsertProfileBody } from "@workspace/api-zod";
+import { SetMajorTrackBody, UpsertProfileBody } from "@workspace/api-zod";
+import { MAJOR_STRUCTURES } from "../data/major-structures";
 import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
@@ -46,6 +47,7 @@ function rowToDto(row: typeof studentProfilesTable.$inferSelect) {
       row.cumulativeGpa === null ? null : Number(row.cumulativeGpa),
     majorGpa: row.majorGpa === null ? null : Number(row.majorGpa),
     completedCourseCodes: row.completedCourseCodes ?? [],
+    majorTracks: row.majorTracks ?? {},
     priorityRegistration: row.priorityRegistration,
     currentTerm: row.currentTerm,
     currentYear: row.currentYear,
@@ -125,6 +127,37 @@ router.put("/profile", requireAuth, async (req, res) => {
         eq(studentProfilesTable.userId, req.userId!),
       ),
     )
+    .returning();
+  res.json(rowToDto(updated!));
+});
+
+/**
+ * Choose (or clear) the track / emphasis / concentration the student follows in a major. Planning
+ * intent only: it selects which of the Bulletin's tracks the requirements sidebar resolves. A track
+ * the major's Bulletin structure does not define is refused by name.
+ */
+router.put("/profile/major-track", requireAuth, async (req, res) => {
+  const parsed = SetMajorTrackBody.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Send { major, track } (track null to clear)." });
+  const major = parsed.data.major.trim().toUpperCase();
+  const structure = MAJOR_STRUCTURES[major];
+  if (!structure?.variants) return res.status(400).json({ error: `${major} has no tracks, emphases or concentrations in the Bulletin.` });
+  const track = parsed.data.track;
+  if (track !== null && !structure.variants.options.some((o) => o.key === track)) {
+    return res.status(400).json({
+      error: `"${track}" is not one of ${major}'s ${structure.variants.kind}s: ${structure.variants.options.map((o) => o.key).join(", ")}.`,
+    });
+  }
+  const rows = await db.select().from(studentProfilesTable).where(eq(studentProfilesTable.userId, req.userId!)).limit(1);
+  const row = rows[0];
+  if (!row) return res.status(404).json({ error: "No profile yet" });
+  const next = { ...(row.majorTracks ?? {}) };
+  if (track === null) delete next[major];
+  else next[major] = track;
+  const [updated] = await db
+    .update(studentProfilesTable)
+    .set({ majorTracks: next, updatedAt: new Date() })
+    .where(and(eq(studentProfilesTable.id, row.id), eq(studentProfilesTable.userId, req.userId!)))
     .returning();
   res.json(rowToDto(updated!));
 });

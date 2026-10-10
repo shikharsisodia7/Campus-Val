@@ -145,9 +145,14 @@ describe("where each group came from", () => {
     }
   });
 
-  it("says when a major's year is the University Core's and not its own", () => {
-    const { provenance } = buildRequirements(CASES[0]!);
-    expect(provenance.find((p) => p.groupKind === "university_core")!.academicYearBasis).toBe("stated_for_this_group");
-    expect(provenance.find((p) => p.groupKind === "major")!.academicYearBasis).toBe("inherited_from_university_core");
+  it("says a major's year is its own: every major is transcribed from the 2026-27 Bulletin", () => {
+    for (const r of CASES) {
+      const { provenance } = buildRequirements(r);
+      expect(provenance.find((p) => p.groupKind === "university_core")!.academicYearBasis).toBe("stated_for_this_group");
+      for (const major of provenance.filter((p) => p.groupKind === "major")) {
+        expect(major.academicYearBasis).toBe("stated_for_this_group");
+        expect(major.academicYear).toBe("2026-27");
+      }
+    }
   });
 });

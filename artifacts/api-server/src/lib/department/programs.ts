@@ -87,6 +87,8 @@ function build(): Map<string, Built> {
       professionalGoals: [],
       plannedCourses: [],
       primaryMajor: null,
+      // Every track / emphasis: a department can attach a note to any of them.
+      variants: "all",
     });
     const group = built.tree.find((g) => g.group.kind === "major");
     if (!group) continue;

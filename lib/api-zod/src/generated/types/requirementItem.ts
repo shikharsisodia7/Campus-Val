@@ -44,6 +44,13 @@ export interface RequirementItem {
    */
   section?: string | null;
   choice?: RequirementChoice | null;
+  /**
+   * The key of the track / emphasis / concentration this requirement belongs to, when only one does.
+   * @nullable
+   */
+  variant?: string | null;
+  /** True for a requirement CampusVal cannot count from course codes (a department's approved list the Bulletin does not print, units of ensemble, an internship). Shown in the Bulletin's words for the student to track. */
+  manual?: boolean;
   /** Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note). */
   departmentNotes?: DepartmentNote[];
   /** Present when a department changed this requirement's wording or added it. */

@@ -114,6 +114,12 @@ historical record of what this pass added by name.
 
 ## Concentrations added this pass (46 entries across 15 majors)
 
+**Update (2026-10-09):** every major is now transcribed from the 2026-27 Bulletin as a `MajorStructure`, and the tracks, emphases and
+concentrations whose requirements the Bulletin states are modeled as course-level `variants` a student can choose (see
+[BULLETIN_BASELINE.md](./BULLETIN_BASELINE.md#structured-majors-every-major-as-the-bulletin-writes-it) and
+[audits/all-majors-proofing-2026-10-09.md](./audits/all-majors-proofing-2026-10-09.md)). The recipes' lowerDiv/upperDiv lists below
+are history; they no longer define any requirement.
+
 `MajorRecipe` now has an optional `concentrations: MajorConcentration[]`
 field (`{ title, sourceUrl }`) — metadata only, deliberately no
 per-concentration course list (that would need the same page-by-page

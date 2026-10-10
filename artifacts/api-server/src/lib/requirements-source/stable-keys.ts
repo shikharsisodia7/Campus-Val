@@ -78,3 +78,29 @@ export function requirementFingerprint(
   ]);
   return createHash("sha256").update(payload).digest("hex").slice(0, 24);
 }
+
+interface TargetCandidate {
+  stableKey: string;
+  courses: readonly string[];
+  /** The major track the requirement belongs to, when only one does. */
+  variant?: string | null;
+}
+
+/**
+ * The requirement a key saved before its major was restructured now refers to. A key that still exists
+ * is returned unchanged. A key whose item part is a course ("major:chemistry-b-a#math-11", from when MATH
+ * 11 was its own item) resolves, inside the same group, to the requirement that now holds that course:
+ * a course of its own first, then a choice that lists it; shared requirements before a track's. Anything
+ * else is returned unchanged (and stays orphaned, for a person to look at).
+ */
+export function currentTargetKey(targetKey: string, candidates: readonly TargetCandidate[]): string {
+  if (candidates.some((c) => c.stableKey === targetKey)) return targetKey;
+  const [group, item] = targetKey.split("#");
+  const m = /^([a-z]{2,5})-(\d{1,3}[a-z]{0,3})$/.exec(item ?? "");
+  if (!group || !m) return targetKey;
+  const course = `${m[1]!.toUpperCase()} ${m[2]!.toUpperCase()}`;
+  const inGroup = candidates.filter((c) => c.stableKey.startsWith(`${group}#`) && c.courses.includes(course));
+  const rank = (c: TargetCandidate) => (c.variant ? 2 : 0) + (c.courses.length === 1 ? 0 : 1);
+  const best = [...inGroup].sort((a, b) => rank(a) - rank(b))[0];
+  return best?.stableKey ?? targetKey;
+}

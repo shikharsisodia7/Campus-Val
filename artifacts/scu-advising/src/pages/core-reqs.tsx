@@ -1,4 +1,6 @@
 import { useMemo, useRef, useState } from "react";
+import { RequirementChoiceDetails } from "@/components/degree-plan/RequirementChoiceDetails";
+import { TrackPicker } from "@/components/degree-plan/TrackPicker";
 import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -255,6 +257,12 @@ export default function CoreReqs() {
                     {group.academicYear} · verified {group.lastVerified}
                   </div>
 
+                  {group.variants && (
+                    <div className="max-w-sm">
+                      <TrackPicker variants={group.variants} />
+                    </div>
+                  )}
+
                   {group.notes.length > 0 && (
                     <Card className="p-3 bg-muted/30">
                       <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
@@ -306,7 +314,13 @@ export default function CoreReqs() {
                           <p className="mt-1 text-xs text-muted-foreground">
                             {item.description}
                           </p>
-                          {item.courses.length > 0 && (
+                          {item.choice ? (
+                            // A choice ("choose 3 from these lists") lists its courses by list, behind a toggle;
+                            // opening it never checks the requirement off.
+                            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                              <RequirementChoiceDetails req={item} catalog={undefined} />
+                            </div>
+                          ) : item.courses.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1">
                               {item.courses.map((c) => (
                                 <Badge

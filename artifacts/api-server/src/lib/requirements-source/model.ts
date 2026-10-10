@@ -41,6 +41,11 @@ export interface RequirementsRequest {
   plannedCourses: string[];
   primaryMajor: string | null;
   /**
+   * "all": resolve every track / emphasis of a major instead of the student's own choice (a
+   * department's program tree shows every requirement a note can attach to). Default: the student's.
+   */
+  variants?: "student" | "all";
+  /**
    * Context a source may one day select or version by. NO current provider
    * reads it, and none may be inferred from it (in particular the student's
    * entry year is NOT used to pick a Bulletin): it exists so a future

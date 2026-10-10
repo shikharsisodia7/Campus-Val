@@ -215,7 +215,9 @@ export function auditTree(
           // Legitimate if the major itself requires the course; reported so it can be proofread.
           flag("ctw_course_in_major", "academic_content", "info", "A Critical Thinking & Writing course is listed as a major requirement. It is Core for every student; confirm the major requires it for its own reason.");
         }
-        if (/\b(175|193) (quarter )?units\b|\bupper-division (quarter )?units\b|\bresidency\b|\b2\.0 GPA\b/i.test(`${item.label} ${item.description}`)) {
+        // The university's own unit rules (175 / 193 units; 60 upper-division units). A major's OWN unit
+        // requirement ("40 quarter upper-division units" of French) is the major's, not a leak.
+        if (/\b(175|193) (quarter )?units\b|\b60 (quarter )?(units of )?upper-division\b|\bresidency\b|\b2\.0 GPA\b/i.test(`${item.label} ${item.description}`)) {
           flag("university_rule_under_major", "data_integrity", "error", "A university-wide degree rule (units, residency, GPA) is listed as a major requirement.");
         }
       } else if (group.kind === "university_core") {
@@ -344,6 +346,8 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
       professionalGoals: [],
       plannedCourses: [],
       primaryMajor: null,
+      // Audit every track / emphasis, not only the requirements a student with none chosen sees.
+      variants: "all",
     });
     provider = built.provider;
     return built.tree;

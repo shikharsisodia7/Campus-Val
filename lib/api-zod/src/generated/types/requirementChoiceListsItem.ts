@@ -12,4 +12,9 @@ export type RequirementChoiceListsItem = {
   /** @nullable */
   note: string | null;
   courses: string[];
+  /**
+   * At most this many courses may come from the list.
+   * @nullable
+   */
+  max?: number | null;
 };

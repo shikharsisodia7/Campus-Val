@@ -40,6 +40,30 @@ const theme: RequirementItem = {
 };
 
 describe("RequirementChoiceDetails", () => {
+  it("says when the courses must come from several lists, and caps a list", () => {
+    const areas: RequirementItem = {
+      ...theme,
+      id: "major-primary-technical-electives-areas",
+      satisfiedBy: ["ECEN 116"],
+      choice: {
+        kind: "choose",
+        minimum: 4,
+        minDistinctLists: 4,
+        completedCount: 1,
+        plannedCount: 0,
+        lists: [
+          { key: "ic", label: "IC Design", note: null, courses: ["ECEN 116"], max: null },
+          { key: "sub", label: "Substitutes", note: null, courses: ["CSEN 79"], max: 1 },
+        ],
+        alternatives: [],
+      },
+    };
+    expect(choiceSummary(areas)).toBe("Choose 4 from at least 4 of the lists · 1 of 4 completed");
+    render(<RequirementChoiceDetails req={areas} catalog={catalog} />);
+    fireEvent.click(screen.getByTestId(`toggle-course-list-${areas.id}`));
+    expect(within(screen.getByTestId(`course-list-${areas.id}-sub`)).getByText(/at most 1/)).toBeTruthy();
+  });
+
   it("summarises a choice in words", () => {
     expect(choiceSummary(theme)).toBe("Choose 1 · 1 of 1 completed");
     expect(countedLine(theme)).toBe("Counted here: BIOL 174 (completed)");

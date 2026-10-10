@@ -66,6 +66,7 @@ export const currentBulletinProvider: RequirementsBenchmarkProvider<Requirements
       request.professionalGoals,
       request.plannedCourses,
       request.primaryMajor,
+      { allVariants: request.variants === "all" },
     );
     const core = response.groups.find((group) => group.kind === "university_core");
     const coreYear = text(core?.academicYear);

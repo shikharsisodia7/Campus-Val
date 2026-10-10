@@ -111,7 +111,7 @@ interface RequirementsData {
   notes: string[];
   totalListed: number;
   completedCount: number;
-  groups: { label: string; courses: RequirementCourse[] }[];
+  groups: { label: string; description?: string; courses: RequirementCourse[] }[];
 }
 
 const COLLEGE_LABEL: Record<MajorOption["college"], string> = {
@@ -531,6 +531,11 @@ export default function GraduationPaths() {
                       <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-2">
                         {g.label}
                       </div>
+                      {g.description && (
+                        <p className="text-xs text-muted-foreground mb-2" data-testid="req-group-description">
+                          {g.description}
+                        </p>
+                      )}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {g.courses.map((c) => {
                           const isCore = c.category === "university-core";

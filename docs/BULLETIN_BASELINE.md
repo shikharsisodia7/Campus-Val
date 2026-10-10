@@ -74,19 +74,65 @@ Only the 2026-27 edition has data today; no older edition is invented.
 `data/bulletin-snapshots/2026-27.json` freezes every program's normalized tree (groups, requirements, stable keys, provenance; no student data).
 A unit test fails if the file is not what the data produces: run `pnpm run snapshot:bulletin` after a Bulletin data change and commit the result.
 
-### Structured majors: themes, choices and alternatives
+### Structured majors: every major as the Bulletin writes it
 
-_2026-10-09._ A major whose Bulletin entry is built from choices ("one course from each theme", "four electives, at least two with
-laboratory", "PHYS 11-13 or PHYS 31-33") is written in `data/major-structures.ts` as a `MajorStructure`: sections of requirements,
-each one of three rules (**each** course required, **choose N** from named course lists, **alternatives**), with the Bulletin's
-paragraph kept verbatim beside it. Allocation is deterministic: requirements resolve in Bulletin order and a course counts toward
-one requirement only. The sidebar receives each item's `section` (sub-heading) and `choice` (named lists, counts, alternatives);
-every requirement with a long course list can be opened in full, for any program. Majors without a structure keep their recipe.
+_2026-10-09._ **Every major** (all 50) is written as a `MajorStructure` transcribed from the 2026-27 Bulletin's "Requirements for
+the Major" (`data/majors/*.ts`; the engine is `data/major-structures.ts`). The Bulletin's text is stored word for word beside each
+structure (`data/majors/bulletin-text-2026-27.json`, read on 2026-10-09). The old flat recipe lists (lower/upper division) are gone:
+they invented fixed course lists the Bulletin never stated. Proofing notes per major:
+[audits/all-majors-proofing-2026-10-09.md](./audits/all-majors-proofing-2026-10-09.md) (Biology:
+[audits/biology-proofing-2026-10-09.md](./audits/biology-proofing-2026-10-09.md)).
 
-Biology is the first structured major (Provost demo): see [audits/biology-proofing-2026-10-09.md](./audits/biology-proofing-2026-10-09.md).
-To add another: transcribe the Bulletin section into a `MajorStructure`, add it to `MAJOR_STRUCTURES`, write a semantic fixture
-test like `major-structures.test.ts`, run `pnpm run snapshot:bulletin`, and check `audit:requirements --db` for notes or student
-edits anchored to keys the change removes.
+Rules (`data/majors/model.ts`):
+
+- **each**: every listed course is required (one sidebar item per course);
+- **choose N** from named course lists, optionally **from at least K lists** ("one course from at least four of the five areas"),
+  with **at most N from a list** caps ("either CSEN 79 or CSCI 163 may be substituted for one"), or as an **overlay** that reads
+  courses other requirements counted ("at least one course must be an Electronic Music course");
+- **alternatives**: complete one of the listed course sets ("PHYS 11-13 or PHYS 31-33");
+- **manual**: a requirement CampusVal cannot count from course codes (a department's approved list the Bulletin does not print, units
+  of ensemble, an internship, a course attribute such as "before 1800"). Shown in the Bulletin's words, marked "you track this one";
+  never counted complete. It may carry course lists to browse.
+
+A list is explicit codes the Bulletin names and/or a **range** it states ("ANTH 140–149", "any upper-division chemistry course of 3
+units or more"), read against the catalog (with exclusions, excluded suffixes such as Psychology's "AT", and unit floors). A
+student's own course inside a stated range counts even when the catalog lacks it (except under a unit floor, which the catalog must
+vouch for). Lists derived from course-listing headings (Political Science subfields, History fields) keep the headings and numbers
+as `listingText`.
+
+**Tracks / emphases / concentrations** are `variants`: required (Bioengineering's tracks, Classics' tracks, Computer Science's
+emphases, Public Health's and Theatre's emphases) or optional (Mathematics, Communication, Political Science, Philosophy, Art
+History, Studio Art emphases; Economics concentrations). The student chooses one (`PUT /profile/major-track`,
+`student_profiles.major_tracks`, migration 0009); the sidebar shows only that track, or a "Choose your track" item when the
+Bulletin requires one. A track is resolved after the shared sections, starting again from the courses the shared sections REQUIRE,
+so an emphasis's "specifications" can be the same electives. Department program trees, the audit and the Bulletin snapshot resolve
+every track. Planning intent only: nothing is declared with SCU.
+
+Allocation is deterministic: requirements resolve in Bulletin order; a course counts toward one requirement only (overlays read
+without taking); a course an each-rule requires never fills a choice (an option may still name it); completed courses are taken
+before planned ones, and for a "from at least K lists" rule the spread is filled first (a planned course that completes the spread
+is counted instead of a completed course from a list already covered).
+
+Tests: `major-structures.all.test.ts` holds every structure to its text (every course it names is named there), to the catalog
+(or the recorded list of 77 codes the Bulletin names but its course listings do not attribute), and to well-formedness (lists used
+and non-empty, keys unique across tracks, tracks complete); `major-structures.engine.test.ts` covers the rules.
+`pnpm run diff:bulletin-source -- --out docs/audits` re-reads every page live and reports drift (all 50 unchanged on 2026-10-09).
+
+**Keys.** Item keys: a required course keeps its course slug (`major:biology#biol-1a`; a track's course is prefixed with its section
+key, `major:bioengineering#pre-med-science-chem-11`); a choice uses its requirement key (`#theme-cmb`). A department note or student
+edit saved on a pre-restructure course key (`major:chemistry-b-a#math-11`) **follows the course** to the requirement that now holds
+it (`#mathematics`): `currentTargetKey` in `stable-keys.ts`, used by the department layer and the customization overlay. Program
+keys come from the major's title, so titles are unchanged (e.g. "Women's & Gender Studies" keeps its key; the structure's source
+label carries the Bulletin's current name).
+
+**Catalog corrections.** `import:bulletin-courses` added the courses the structures name that the 2025-26 catalog snapshot lacked
+(attributed only where the Bulletin states the subject: neighbouring courses, a "(SCTR)" section heading, the page's own text naming
+the code, or a department heading), and re-coded 50 catalog entries the snapshot filed under a stale subject (SCTR/TESP filed as
+RSOC; GNSX filed as WGST). The old codes stay in `data/course-code-aliases.json`: `findCourse` and requirement resolution accept
+them, so a plan, profile or note that saved "RSOC 15" still means SCTR 15. Cross-listed courses (ETHN 55 / POLI 55) keep both codes.
+
+To change a major: edit its structure beside the Bulletin text, run the tests, `pnpm run snapshot:bulletin`, and check
+`audit:requirements --db` for notes or edits anchored to keys the change removes.
 
 ## Categories and the Core/Major classification
 
