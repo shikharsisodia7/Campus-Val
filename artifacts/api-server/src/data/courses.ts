@@ -1,4 +1,5 @@
 import rawCourses from "./courses-data.json";
+import codeAliases from "./course-code-aliases.json";
 import { deriveCoreAreas, type CoreAreaTagSource } from "./core-areas";
 
 export type Term = "fall" | "winter" | "spring" | "summer";
@@ -83,8 +84,21 @@ export const COURSES: CourseEntry[] = (rawCourses as CourseEntry[]).map((c) => {
 export const COURSE_CATALOG_NOTE =
   "Course catalog from SCU 2025-2026 undergraduate bulletin (scraped from scu.edu/bulletin). Per-quarter section offerings, professors, and seat counts require Workday Student / Camino access — not in this dataset. The 2026-2027 bulletin publishes June 2026.";
 
-export function findCourse(code: string): CourseEntry | undefined {
+/**
+ * Codes the 2025-26 catalog snapshot filed under a stale subject, mapped to the code the 2026-27
+ * Undergraduate Bulletin lists ("RSOC 15" -> "SCTR 15", "WGST 101" -> "GNSX 101"). Written by
+ * scripts/import-bulletin-courses.ts; a plan, profile or note that saved the old code still resolves.
+ */
+const CODE_ALIASES: Readonly<Record<string, string>> = codeAliases;
+
+/** The catalog's current code for a course code, following a stale-subject alias when there is one. */
+export function canonicalCourseCode(code: string): string {
   const norm = code.toUpperCase().replace(/\s+/g, " ").trim();
+  return CODE_ALIASES[norm] ?? norm;
+}
+
+export function findCourse(code: string): CourseEntry | undefined {
+  const norm = canonicalCourseCode(code);
   return COURSES.find(
     (c) => c.code.toUpperCase().replace(/\s+/g, " ") === norm,
   );

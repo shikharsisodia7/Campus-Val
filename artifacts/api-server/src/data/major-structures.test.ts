@@ -26,6 +26,7 @@ function semantic(structure: MajorStructure) {
       if (rule.kind === "alternatives") {
         return { key: req.key, kind: "alternatives", options: rule.options.map((o) => [...o.courses].sort()) };
       }
+      if (rule.kind === "manual") return { key: req.key, kind: "manual", lists: rule.lists ?? [] };
       return {
         key: req.key,
         kind: "choose",

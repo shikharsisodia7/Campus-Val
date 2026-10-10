@@ -1,5 +1,11 @@
 import type { Term } from "./courses";
-import { MAJOR_STRUCTURES, resolveMajorStructure, structureRequiredCount, type MajorStructure } from "./major-structures";
+import {
+  MAJOR_STRUCTURES,
+  exampleSelection,
+  resolveMajorStructure,
+  structureRequiredCount,
+  type MajorStructure,
+} from "./major-structures";
 
 export type PathType = "three_year" | "four_year";
 export type College = "SOE" | "LSB" | "CAS";
@@ -66,9 +72,11 @@ interface MajorRecipe {
   title: string;             // human-readable title
   college: College;
   mathTrack: "calc-stem" | "calc-business" | "calc-life" | "stats" | "any";
-  // Lower-division (years 1-2) major-specific courses, in suggested order
+  // Lower-division (years 1-2) and upper-division (years 3-4) courses that seed the illustrative
+  // four-year example, in suggested order. Every major's requirements are its Bulletin structure
+  // (data/majors/*.ts); these lists are ONE selection that satisfies it, derived from the structure
+  // (exampleSelection) unless a person chose it by hand (Biology).
   lowerDiv: string[];
-  // Upper-division (years 3-4) major-specific courses
   upperDiv: string[];
   capstone?: string;
   notes?: string[];
@@ -109,9 +117,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "SOE",
     mathTrack: "calc-stem",
     isEngineering: true,
-    lowerDiv: ["ECEN 19", "ECEN 20", "ECEN 21", "ECEN 50", "ECEN 100"],
-    upperDiv: ["ECEN 110", "ECEN 122", "ECEN 130", "ECEN 132", "ECEN 133", "ECEN 153"],
-    capstone: "ENGR 110",
+    lowerDiv: [],
+    upperDiv: [],
     notes: ["Engineering-only course gating applies (CSEN/ECEN/MECH/CENG/BIOE/ENGR/AMTH)."],
   },
   MECH: {
@@ -120,9 +127,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "SOE",
     mathTrack: "calc-stem",
     isEngineering: true,
-    lowerDiv: ["ENGR 10", "MECH 10", "MECH 11", "MECH 15", "MECH 121"],
-    upperDiv: ["MECH 122", "MECH 123", "MECH 124", "MECH 140", "MECH 141", "MECH 142"],
-    capstone: "ENGR 110",
+    lowerDiv: [],
+    upperDiv: [],
   },
   CENG: {
     major: "CENG",
@@ -130,9 +136,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "SOE",
     mathTrack: "calc-stem",
     isEngineering: true,
-    lowerDiv: ["CENG 5", "CENG 41", "CENG 43", "CENG 44"],
-    upperDiv: ["CENG 122", "CENG 123", "CENG 125", "CENG 132", "CENG 140", "CENG 141"],
-    capstone: "ENGR 110",
+    lowerDiv: [],
+    upperDiv: [],
   },
   BIOE: {
     major: "BIOE",
@@ -140,9 +145,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "SOE",
     mathTrack: "calc-stem",
     isEngineering: true,
-    lowerDiv: ["BIOE 10", "BIOE 21", "BIOE 22", "BIOL 1A", "CHEM 11"],
-    upperDiv: ["BIOE 110", "BIOE 120", "BIOE 130", "BIOE 154", "BIOE 156"],
-    capstone: "ENGR 110",
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Biomolecular track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/bioengineering.html" },
       { title: "Medical-device track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/bioengineering.html" },
@@ -156,9 +160,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "SOE",
     mathTrack: "calc-stem",
     isEngineering: true,
-    lowerDiv: ["CSEN 10", "CSEN 11", "CSEN 12", "CSEN 19", "CSEN 20", "CSEN 21"],
-    upperDiv: ["CSEN 79", "CSEN 122", "CSEN 140", "CSEN 146", "CSEN 161", "CSEN 174"],
-    capstone: "ENGR 110",
+    lowerDiv: [],
+    upperDiv: [],
   },
 
   // -------- Leavey School of Business --------
@@ -167,8 +170,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Accounting (B.S. Commerce)",
     college: "LSB",
     mathTrack: "calc-business",
-    lowerDiv: ["BUSN 70", "OMIS 15", "ECON 1", "ECON 2", "ECON 3", "ACTG 11", "ACTG 12", "OMIS 40", "OMIS 41", "MGMT 71", "MGMT 72", "BUSN 85"],
-    upperDiv: ["ACTG 130", "ACTG 131", "ACTG 132", "ACTG 134", "ACTG 135", "ACTG 138", "FNCE 121", "MGMT 160", "MKTG 181", "OMIS 108"],
+    lowerDiv: [],
+    upperDiv: [],
     capstone: "MGMT 162",
   },
   FNCE: {
@@ -177,7 +180,7 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "LSB",
     mathTrack: "calc-business",
     lowerDiv: [],
-    upperDiv: ["FNCE 121", "FNCE 124", "FNCE 134", "FNCE 137", "FNCE 138", "FNCE 142", "MGMT 160", "MKTG 181", "OMIS 108"],
+    upperDiv: [],
     capstone: "MGMT 162",
   },
   MGMT: {
@@ -186,7 +189,7 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "LSB",
     mathTrack: "calc-business",
     lowerDiv: [],
-    upperDiv: ["MGMT 160", "MGMT 161", "MGMT 164", "MGMT 168", "FNCE 121", "MKTG 181", "OMIS 108"],
+    upperDiv: [],
     capstone: "MGMT 162",
   },
   MKTG: {
@@ -195,7 +198,7 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "LSB",
     mathTrack: "calc-business",
     lowerDiv: [],
-    upperDiv: ["MKTG 181", "MKTG 182", "MKTG 184", "MKTG 187", "FNCE 121", "MGMT 160", "OMIS 108"],
+    upperDiv: [],
     capstone: "MGMT 162",
   },
   OMIS: {
@@ -203,8 +206,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Management Information Systems (B.S. Commerce)",
     college: "LSB",
     mathTrack: "calc-business",
-    lowerDiv: ["OMIS 30", "OMIS 31"],
-    upperDiv: ["OMIS 105", "OMIS 108", "OMIS 109", "OMIS 111", "OMIS 113", "OMIS 114", "FNCE 121", "MGMT 160", "MKTG 181"],
+    lowerDiv: [],
+    upperDiv: [],
     capstone: "MGMT 162",
   },
   AIS: {
@@ -212,8 +215,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Accounting Information Systems (B.S. Commerce)",
     college: "LSB",
     mathTrack: "calc-business",
-    lowerDiv: ["ACTG 11", "ACTG 12", "OMIS 30", "OMIS 31"],
-    upperDiv: ["ACTG 130", "ACTG 131", "ACTG 132", "ACTG 134", "ACTG 138", "OMIS 105", "OMIS 108", "OMIS 111", "FNCE 121", "MGMT 160", "MKTG 181"],
+    lowerDiv: [],
+    upperDiv: [],
     capstone: "MGMT 162",
     notes: ["Joint Accounting + MIS major — combines ACTG financial/managerial sequence with OMIS systems & analytics core."],
   },
@@ -223,7 +226,7 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "LSB",
     mathTrack: "calc-business",
     lowerDiv: [],
-    upperDiv: ["OMIS 105", "OMIS 106", "OMIS 107", "OMIS 108", "OMIS 109", "FNCE 121", "MGMT 160", "MKTG 181"],
+    upperDiv: [],
     capstone: "MGMT 162",
   },
   ECON: {
@@ -231,8 +234,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Economics (B.S. Commerce)",
     college: "LSB",
     mathTrack: "calc-business",
-    lowerDiv: ["ECON 41", "ECON 42"],
-    upperDiv: ["ECON 113", "ECON 115", "ECON 117", "ECON 118", "FNCE 121", "MGMT 160", "MKTG 181", "OMIS 108"],
+    lowerDiv: [],
+    upperDiv: [],
     capstone: "MGMT 162",
     concentrations: [
       { title: "Concentration in Data Analysis for Economics", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/economics.html" },
@@ -260,28 +263,24 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Chemistry",
     college: "CAS",
     mathTrack: "calc-stem",
-    lowerDiv: ["CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33", "CHEM 50", "PHYS 31", "PHYS 32"],
-    // Was CHEM 111/112/113/124/132 — CHEM 113 and CHEM 124 do not exist in
-    // the current SCU Bulletin (confirmed against the live Chemistry and
-    // Biochemistry bulletin page); replaced with the B.S. Chemistry core
-    // ("CHEM 102, 111, 141, 151, 152, 154" plus electives).
-    upperDiv: ["CHEM 102", "CHEM 111", "CHEM 141", "CHEM 151", "CHEM 152", "CHEM 154"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   PHYS: {
     major: "PHYS",
     title: "Physics",
     college: "CAS",
     mathTrack: "calc-stem",
-    lowerDiv: ["PHYS 31", "PHYS 32", "PHYS 33", "PHYS 70", "MATH 22"],
-    upperDiv: ["PHYS 111", "PHYS 112", "PHYS 113", "PHYS 121", "PHYS 122", "PHYS 131"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   MATH: {
     major: "MATH",
     title: "Mathematics",
     college: "CAS",
     mathTrack: "calc-stem",
-    lowerDiv: ["MATH 11", "MATH 12", "MATH 13", "MATH 14", "MATH 22", "MATH 53"],
-    upperDiv: ["MATH 100", "MATH 101", "MATH 111", "MATH 122", "MATH 153"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Applied Mathematics Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
       { title: "Data Science Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
@@ -303,8 +302,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Computer Science (B.S. Arts & Sciences)",
     college: "CAS",
     mathTrack: "calc-stem",
-    lowerDiv: ["CSCI 10", "CSCI 60", "CSCI 61", "CSCI 62", "MATH 11", "MATH 12", "MATH 13"],
-    upperDiv: ["CSCI 161", "CSCI 163", "CSCI 169", "CSCI 183"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Algorithms and Complexity Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
       { title: "Data Science Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/mathematics-and-computer-science.html" },
@@ -317,24 +316,24 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Psychology",
     college: "CAS",
     mathTrack: "stats",
-    lowerDiv: ["PSYC 1", "PSYC 51", "PSYC 51L"],
-    upperDiv: ["PSYC 100", "PSYC 110", "PSYC 120", "PSYC 132", "PSYC 145", "PSYC 178"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   NEUR: {
     major: "NEUR",
     title: "Neuroscience",
     college: "CAS",
     mathTrack: "calc-life",
-    lowerDiv: ["BIOL 1A", "BIOL 1B", "BIOL 1C", "CHEM 11", "CHEM 12", "PSYC 1", "PSYC 51"],
-    upperDiv: ["NEUR 100", "BIOL 174", "PSYC 145", "PSYC 178"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   PHSC: {
     major: "PHSC",
     title: "Public Health Science",
     college: "CAS",
     mathTrack: "stats",
-    lowerDiv: ["PHSC 1", "BIOL 1A", "BIOL 1B", "CHEM 11", "CHEM 12", "PSYC 1"],
-    upperDiv: ["PHSC 101", "PHSC 102", "PHSC 110", "PHSC 120", "PHSC 130"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Health Science Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/public-health-sciences.html" },
       { title: "Health and Society Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/public-health-sciences.html" },
@@ -345,8 +344,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Environmental Studies",
     college: "CAS",
     mathTrack: "stats",
-    lowerDiv: ["ENVS 21", "ENVS 22", "ENVS 23", "BIOL 1A", "CHEM 11"],
-    upperDiv: ["ENVS 110", "ENVS 121", "ENVS 137", "ENVS 145", "ENVS 156"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   // Added 2026-09-04: bulletin-confirmed majors not previously in the
   // catalog (see docs/SCU_PROGRAM_CATALOG.md for the full audit). No
@@ -358,16 +357,16 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Biochemistry",
     college: "CAS",
     mathTrack: "calc-stem",
-    lowerDiv: ["CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33", "BIOL 1A", "BIOL 1B", "PHYS 31", "PHYS 32"],
-    upperDiv: ["CHEM 111", "CHEM 112", "CHEM 133", "CHEM 132", "CHEM 150", "CHEM 152"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   BCHM_ACS: {
     major: "BCHM_ACS",
     title: "Biochemistry, ACS Certified",
     college: "CAS",
     mathTrack: "calc-stem",
-    lowerDiv: ["CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33", "BIOL 1A", "BIOL 1B", "PHYS 31", "PHYS 32"],
-    upperDiv: ["CHEM 111", "CHEM 112", "CHEM 133", "CHEM 132", "CHEM 150", "CHEM 152", "CHEM 154", "CHEM 155"],
+    lowerDiv: [],
+    upperDiv: [],
     notes: ["ACS-certified variant of Biochemistry — additional lab/elective depth beyond the standard BS."],
   },
   CHEM_BA: {
@@ -375,8 +374,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Chemistry (B.A.)",
     college: "CAS",
     mathTrack: "calc-stem",
-    lowerDiv: ["CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33"],
-    upperDiv: ["CHEM 111", "CHEM 112", "CHEM 130"],
+    lowerDiv: [],
+    upperDiv: [],
     notes: ["B.A. track — lighter lab/elective load than the Chemistry B.S. (CHEM major code)."],
   },
   ENSC: {
@@ -384,8 +383,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Environmental Science",
     college: "CAS",
     mathTrack: "calc-life",
-    lowerDiv: ["ENVS 21", "ENVS 22", "ENVS 23", "BIOL 1A", "BIOL 1B", "CHEM 11", "CHEM 12"],
-    upperDiv: ["ENVS 116", "ENVS 117", "ENVS 120", "ENVS 141", "ENVS 143"],
+    lowerDiv: [],
+    upperDiv: [],
     notes: ["Distinct science-track major from Environmental Studies (ENVS) — more lab science, less policy/social science."],
   },
   WDE: {
@@ -394,9 +393,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "SOE",
     mathTrack: "calc-stem",
     isEngineering: true,
-    lowerDiv: ["CSEN 10", "CSEN 11", "CSEN 12", "CSEN 20"],
-    upperDiv: ["CSEN 122", "CSEN 140", "CSEN 146", "CSEN 161", "CSEN 174"],
-    capstone: "ENGR 110",
+    lowerDiv: [],
+    upperDiv: [],
   },
   EE: {
     major: "EE",
@@ -404,9 +402,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "SOE",
     mathTrack: "calc-stem",
     isEngineering: true,
-    lowerDiv: ["ECEN 20", "ECEN 21", "ECEN 50", "ECEN 100"],
-    upperDiv: ["ECEN 116", "ECEN 117", "ECEN 130", "ECEN 131", "ECEN 141", "ECEN 151"],
-    capstone: "ENGR 110",
+    lowerDiv: [],
+    upperDiv: [],
     notes: ["Distinct major from Electrical & Computer Engineering (ECEN) — power/analog/RF-focused, less computer-systems coursework."],
   },
   GENR: {
@@ -415,17 +412,16 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     college: "SOE",
     mathTrack: "calc-stem",
     isEngineering: true,
-    lowerDiv: ["ENGR 1", "ENGR 2", "ENGR 19", "ENGR 35", "ENGR 40"],
-    upperDiv: ["ENGR 161", "ENGR 163", "ENGR 170", "ENGR 180"],
-    capstone: "ENGR 110",
+    lowerDiv: [],
+    upperDiv: [],
   },
   ENGPHYS: {
     major: "ENGPHYS",
     title: "Engineering Physics",
     college: "CAS",
     mathTrack: "calc-stem",
-    lowerDiv: ["PHYS 31", "PHYS 32", "PHYS 33", "PHYS 70", "MATH 53"],
-    upperDiv: ["PHYS 111", "PHYS 112", "PHYS 113", "PHYS 121", "PHYS 141"],
+    lowerDiv: [],
+    upperDiv: [],
     notes: ["Physics and Engineering Physics is a College of Arts and Sciences department, not School of Engineering, despite the name."],
   },
 
@@ -435,8 +431,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Communication",
     college: "CAS",
     mathTrack: "stats",
-    lowerDiv: ["COMM 12", "COMM 20", "COMM 30"],
-    upperDiv: ["COMM 100", "COMM 105", "COMM 110", "COMM 130", "COMM 132", "COMM 140"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Global Media, Culture, and Technology", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html" },
       { title: "Organizational, Professional & Business Communication", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/communication.html" },
@@ -451,24 +447,24 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "English",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["ENGL 70", "ENGL 71"],
-    upperDiv: ["ENGL 101", "ENGL 113", "ENGL 119", "ENGL 137", "ENGL 174", "ENGL 191"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   HIST: {
     major: "HIST",
     title: "History",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["HIST 11A", "HIST 11B", "HIST 12A", "HIST 51", "HIST 60"],
-    upperDiv: ["HIST 100W", "HIST 117", "HIST 119", "HIST 122", "HIST 127", "HIST 199"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   POLI: {
     major: "POLI",
     title: "Political Science",
     college: "CAS",
     mathTrack: "stats",
-    lowerDiv: ["POLI 1", "POLI 2", "POLI 3", "POLI 51"],
-    upperDiv: ["POLI 110", "POLI 120", "POLI 138", "POLI 150", "POLI 199"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Pre-Law Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/political-science.html" },
       { title: "Public Sector Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/political-science.html" },
@@ -480,8 +476,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Economics (B.A. Arts & Sciences)",
     college: "CAS",
     mathTrack: "calc-business",
-    lowerDiv: ["ECON 1", "ECON 2", "ECON 3", "ECON 41", "ECON 42"],
-    upperDiv: ["ECON 113", "ECON 115", "ECON 117", "ECON 118", "ECON 137"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Concentration in Data Analysis for Economics", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/economics.html" },
       { title: "Mathematical Economics Concentration", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/economics.html" },
@@ -492,16 +488,16 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Sociology",
     college: "CAS",
     mathTrack: "stats",
-    lowerDiv: ["SOCI 1", "SOCI 33", "SOCI 49", "SOCI 50"],
-    upperDiv: ["SOCI 110", "SOCI 138", "SOCI 154", "SOCI 174", "SOCI 199"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   ANTH: {
     major: "ANTH",
     title: "Anthropology",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["ANTH 3", "ANTH 6", "ANTH 49", "ANTH 50"],
-    upperDiv: ["ANTH 110", "ANTH 137", "ANTH 145", "ANTH 161", "ANTH 199"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Applied Anthropology", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/anthropology.html" },
       { title: "Archaeology", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/anthropology.html" },
@@ -513,8 +509,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Philosophy",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["PHIL 14", "PHIL 15", "PHIL 16", "PHIL 17", "PHIL 19"],
-    upperDiv: ["PHIL 109", "PHIL 119", "PHIL 137", "PHIL 145", "PHIL 199"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Pre-Law and Justice", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/philosophy.html" },
       { title: "Ethics and Values", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/philosophy.html" },
@@ -528,24 +524,24 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Religious Studies",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["RSOC 4", "RSOC 7", "RSOC 9", "RSOC 14", "RSOC 19"],
-    upperDiv: ["RSOC 110", "RSOC 130", "RSOC 145", "RSOC 161", "RSOC 199"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   ETHN: {
     major: "ETHN",
     title: "Ethnic Studies",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["ETHN 1", "ETHN 2", "ETHN 50"],
-    upperDiv: ["ETHN 110", "ETHN 137", "ETHN 145", "ETHN 175", "ETHN 199"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   WGST: {
     major: "WGST",
     title: "Women's & Gender Studies",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["WGST 50", "WGST 51", "WGST 60"],
-    upperDiv: ["WGST 110", "WGST 137", "WGST 145", "WGST 175", "WGST 199"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Cultural Politics of Representation", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/gender-and-sexuality-studies.html" },
       { title: "Power, Rights, and Society", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/gender-and-sexuality-studies.html" },
@@ -557,16 +553,16 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Child Studies",
     college: "CAS",
     mathTrack: "stats",
-    lowerDiv: ["CHST 50", "CHST 51", "CHST 60", "PSYC 1", "PSYC 51"],
-    upperDiv: ["CHST 110", "CHST 137", "CHST 145", "CHST 199"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   CLAS: {
     major: "CLAS",
     title: "Classics",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["CLAS 1", "CLAS 2", "CLAS 3", "CLAS 11", "CLAS 12"],
-    upperDiv: ["CLAS 110", "CLAS 137", "CLAS 145", "CLAS 175", "CLAS 199"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Classical Languages and Literatures Track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/classics-and-ancient-studies.html" },
       { title: "Classical Studies Track", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/classics-and-ancient-studies.html" },
@@ -580,8 +576,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Art History",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["ARTH 11", "ARTH 12", "ARTH 21", "ARTH 22"],
-    upperDiv: ["ARTH 110", "ARTH 137", "ARTH 145", "ARTH 175", "ARTH 199"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Arts Management Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/art-and-art-history.html" },
     ],
@@ -591,8 +587,8 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Studio Art",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["ARTS 30", "ARTS 31", "ARTS 50", "ARTS 75"],
-    upperDiv: ["ARTS 110", "ARTS 137", "ARTS 145", "ARTS 175", "ARTS 196"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Graphic Design Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/art-and-art-history.html" },
       { title: "Animation and Illustration Emphasis", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/art-and-art-history.html" },
@@ -603,16 +599,16 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Music",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["MUSC 11", "MUSC 12", "MUSC 13", "MUSC 50"],
-    upperDiv: ["MUSC 110", "MUSC 137", "MUSC 145", "MUSC 175", "MUSC 199"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   THTR: {
     major: "THTR",
     title: "Theatre",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["THTR 8", "THTR 30", "THTR 50", "THTR 60"],
-    upperDiv: ["THTR 110", "THTR 137", "THTR 145", "THTR 175", "THTR 199"],
+    lowerDiv: [],
+    upperDiv: [],
     concentrations: [
       { title: "Emphasis in Theatre", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/theatre-and-dance.html" },
       { title: "Emphasis in Dance", sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/theatre-and-dance.html" },
@@ -629,30 +625,49 @@ const MAJOR_RECIPES: Record<string, MajorRecipe> = {
     title: "Spanish Studies",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["SPAN 1", "SPAN 2", "SPAN 3", "SPAN 21A", "SPAN 21B"],
-    upperDiv: ["SPAN 102", "SPAN 103", "SPAN 110", "SPAN 137", "SPAN 199"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   FREN: {
     major: "FREN",
     title: "French & Francophone Studies",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["FREN 1", "FREN 2", "FREN 3", "FREN 21A", "FREN 21B"],
-    upperDiv: ["FREN 110", "FREN 137", "FREN 145", "FREN 175", "FREN 199"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   ITAL: {
     major: "ITAL",
     title: "Italian Studies",
     college: "CAS",
     mathTrack: "any",
-    lowerDiv: ["ITAL 1", "ITAL 2", "ITAL 3", "ITAL 21A", "ITAL 21B"],
-    upperDiv: ["ITAL 110", "ITAL 137", "ITAL 175", "ITAL 199"],
+    lowerDiv: [],
+    upperDiv: [],
   },
   // Chinese Studies and Japanese Studies are not standalone SCU
   // undergraduate majors — the bulletin currently offers these only as
   // minors ("Chinese and Sinophone Studies" = CHIN-MIN, "Japanese Studies"
   // = JAPN-MIN), both represented in the minor catalog below.
 };
+
+/** The Leavey upper-division Common Core of Knowledge and the senior capstone (2026-27 Bulletin). */
+export const LSB_CORE_UPPER: readonly string[] = ["FNCE 121", "MGMT 160", "MGMT 196", "MKTG 181", "OMIS 108", "MGMT 162"];
+
+// Every major carries its Bulletin structure. A recipe without a hand-chosen example selection gets
+// one derived from the structure, so the four-year example never names a course the Bulletin does
+// not require or offer for the major. Leavey majors also take the upper-division Common Core.
+for (const recipe of Object.values(MAJOR_RECIPES)) {
+  const structure = MAJOR_STRUCTURES[recipe.major];
+  if (!structure) continue;
+  recipe.structure = structure;
+  if (recipe.lowerDiv.length > 0 || recipe.upperDiv.length > 0) continue;
+  const example = exampleSelection(structure);
+  recipe.lowerDiv = example.lowerDiv;
+  recipe.upperDiv =
+    recipe.college === "LSB"
+      ? [...new Set([...LSB_CORE_UPPER.filter((c) => c !== recipe.capstone), ...example.upperDiv])]
+      : example.upperDiv;
+}
 
 // ---------------------------------------------------------------------------
 // CORE CURRICULUM SLOTS
@@ -821,7 +836,7 @@ function generateFourYear(recipe: MajorRecipe): GraduationPathEntry {
     quarters.push(makeQuarter(3, "fall",   [nu(), nu(), CORE_ADVWR, overflow()].filter(Boolean) as string[], "Internship search quarter."));
     quarters.push(makeQuarter(3, "winter", [nu(), nu(), CORE_RTC3, CORE_ELSJ, overflow()].filter(Boolean) as string[]));
     quarters.push(makeQuarter(3, "spring", [nu(), nu(), CORE_PATH, CORE_CIV, overflow()].filter(Boolean) as string[]));
-    quarters.push(makeQuarter(4, "fall",   [capstone || "ENGR 110", nu(), CORE_PATH].filter(Boolean) as string[]));
+    quarters.push(makeQuarter(4, "fall",   [capstone, nu(), nu(), CORE_PATH].filter(Boolean) as string[]));
     quarters.push(makeQuarter(4, "winter", [nu(), CORE_PATH].filter(Boolean) as string[], "Senior design continuation + technical electives."));
     quarters.push(makeQuarter(4, "spring", [nu(), CORE_PATH].filter(Boolean) as string[], "Senior design continuation + technical electives."));
   } else if (college === "LSB") {
@@ -887,7 +902,7 @@ function generateFourYear(recipe: MajorRecipe): GraduationPathEntry {
 
   const collegeNote =
     college === "SOE"
-      ? "Engineering majors carry a heavy math + physics core in years 1-2 and a senior design (ENGR 110) capstone."
+      ? "Engineering majors carry a heavy math + physics core in years 1-2 and a senior design sequence in year 4."
       : college === "LSB"
         ? "Business majors share the LSB Common Curriculum (BUSN 70, ECON 1-3, MGMT 71/72, ACTG 11/12, OMIS 40/41, BUSN 85) before specializing."
         : "Arts & Sciences majors take a 3-quarter foreign language sequence and choose specific Core options each quarter.";
@@ -1511,7 +1526,9 @@ export const BUSINESS_CORE_CODES: readonly string[] = [
   "OMIS 40", "OMIS 41",
   "MGMT 71", "MGMT 72",
   "BUSN 85",
+  "OMIS 34",
 ];
+
 
 // SCU University Core Curriculum requirement areas. These are not specific
 // course codes — students pick any approved course from the area's list in
@@ -1575,6 +1592,8 @@ export interface MajorRequirements {
   completedCount: number;
   groups: {
     label: string;
+    /** The Bulletin's words for a requirement CampusVal cannot count from courses (the student tracks it). */
+    description?: string;
     courses: MajorRequirementCourse[];
   }[];
   /** Official SCU concentrations/tracks/emphases within this major, if any (Part 9.4). */
@@ -1684,10 +1703,12 @@ export function getMajorRequirements(
 }
 
 /**
- * getMajorRequirements for a major with a Bulletin structure: one group per
- * requirement, labelled with its rule ("— choose 2"), so a page that lists
- * courses never presents a list of options as a list of required courses.
- * Totals count required courses, not options.
+ * getMajorRequirements for a major (every major has a Bulletin structure): one group per requirement,
+ * labelled with its rule ("— choose 2"), so a page that lists courses never presents a list of
+ * options as a list of required courses. It is a reference listing, so every track / emphasis is
+ * shown, each labelled with its name. A requirement CampusVal cannot count from courses keeps the
+ * Bulletin's words. Leavey majors also list the Leavey School of Business core. Totals count the
+ * shared requirements' courses, not options.
  */
 function structuredMajorRequirements(
   recipe: MajorRecipe,
@@ -1695,10 +1716,10 @@ function structuredMajorRequirements(
   completedCourseCodes: string[],
   catalogLookup: (code: string) => { code: string; title: string; units: number; description: string } | undefined,
 ): MajorRequirements {
-  const resolved = resolveMajorStructure(structure, completedCourseCodes);
+  const resolved = resolveMajorStructure(structure, completedCourseCodes, [], { allVariants: true });
   const completed = new Set(completedCourseCodes.map((c) => c.trim().toUpperCase().replace(/\s+/g, " ")));
   const missing = new Set<string>();
-  const entry = (code: string): MajorRequirementCourse | null => {
+  const entry = (code: string, category?: MajorRequirementCourse["category"]): MajorRequirementCourse | null => {
     const found = catalogLookup(code);
     if (!found) {
       missing.add(code);
@@ -1711,39 +1732,62 @@ function structuredMajorRequirements(
       units: found.units,
       description: found.description,
       completed: completed.has(code.toUpperCase()),
-      category: number >= 100 ? "upper-division" : "lower-division",
+      category: category ?? (number >= 100 ? "upper-division" : "lower-division"),
     };
   };
+  const variantLabel = new Map((structure.variants?.options ?? []).map((o) => [o.key, o.label]));
+  const named = (item: { label: string; variant: string | null }) =>
+    item.variant ? `${variantLabel.get(item.variant) ?? item.variant}: ${item.label}` : item.label;
   const groups: MajorRequirements["groups"] = [];
+  if (recipe.college === "LSB") {
+    groups.push({
+      label: "Leavey School of Business core",
+      courses: [...BUSINESS_CORE_CODES, ...LSB_CORE_UPPER].map((c) => entry(c, "business-core")).filter((c): c is MajorRequirementCourse => c !== null),
+    });
+  }
   let completedCount = 0;
   const eachGroups = new Map<string, MajorRequirements["groups"][number]>();
   for (const item of resolved) {
-    if (item.choice === null) {
+    if (item.course) {
       // Courses of one "each" rule share a group named after their section.
-      const label = item.section;
-      let group = eachGroups.get(label);
+      let group = eachGroups.get(item.section);
       if (!group) {
-        group = { label, courses: [] };
-        eachGroups.set(label, group);
+        group = { label: item.section, courses: [] };
+        eachGroups.set(item.section, group);
         groups.push(group);
       }
-      const e = entry(item.course!);
+      const e = entry(item.course);
       if (e) group.courses.push(e);
-      if (item.status === "completed") completedCount += 1;
+      if (item.status === "completed" && !item.variant) completedCount += 1;
       continue;
     }
+    if (item.manual) {
+      groups.push({
+        label: `${named(item)} — tracked by you`,
+        description: [item.description, ...item.notes].join(" "),
+        courses: item.courses.map((c) => entry(c)).filter((c): c is MajorRequirementCourse => c !== null),
+      });
+      continue;
+    }
+    const choice = item.choice!;
     const rule =
-      item.choice.kind === "choose"
-        ? ` — choose ${item.choice.minimum}`
-        : ` — ${item.choice.alternatives.map((a) => a.label).join(" or ")}`;
+      choice.kind === "choose"
+        ? ` — choose ${choice.minimum}${choice.minDistinctLists ? ` from at least ${choice.minDistinctLists} of the lists` : ""}`
+        : "";
     groups.push({
-      label: item.choice.kind === "choose" ? `${item.label}${rule}` : item.label,
-      courses: item.courses.map(entry).filter((c): c is MajorRequirementCourse => c !== null),
+      label: `${named(item)}${rule}`,
+      courses: item.courses.map((c) => entry(c)).filter((c): c is MajorRequirementCourse => c !== null),
     });
-    if (item.choice.kind === "choose") completedCount += Math.min(item.choice.completedCount, item.choice.minimum ?? 0);
+    if (item.variant) continue;
+    if (choice.kind === "choose") completedCount += Math.min(choice.completedCount, choice.minimum ?? 0);
     else if (item.status === "completed") completedCount += item.satisfiedBy.length;
   }
   const notes = [...structure.notes, ...(recipe.notes ?? [])];
+  if (structure.variants) {
+    notes.push(
+      `${structure.variants.required ? "Students follow one" : "Students may add one"} ${structure.variants.kind}: ${structure.variants.options.map((o) => o.label).join("; ")}. Its requirements are labelled with its name.`,
+    );
+  }
   if (missing.size > 0) {
     notes.push(
       `${missing.size} course${missing.size === 1 ? "" : "s"} named by the Bulletin ${missing.size === 1 ? "is" : "are"} not in our current catalog snapshot — verify in the current SCU Undergraduate Bulletin: ${[...missing].join(", ")}.`,

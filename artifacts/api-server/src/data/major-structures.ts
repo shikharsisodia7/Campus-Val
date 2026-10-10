@@ -1,281 +1,95 @@
 /**
- * Structured major requirements: a major written in the Bulletin's own shape
- * instead of the recipe's two flat lists (lowerDiv / upperDiv).
+ * Structured major requirements: every major written in the Bulletin's own
+ * shape instead of the recipe's two flat lists (lowerDiv / upperDiv).
  *
- * The recipe system (graduation-paths.ts) describes most majors as "these
+ * The recipe system (graduation-paths.ts) described every major as "these
  * lower-division courses, these upper-division courses". That is wrong for a
- * major whose Bulletin entry is built from choices — "one course from each of
+ * major whose Bulletin entry is built from choices ("one course from each of
  * these themes", "four electives, at least two with laboratory", "PHYS 11-13 or
- * PHYS 31-33". Flattening such a major invents a fixed course list the Bulletin
- * never states (Biology listed BIOL 184 and 188, which no Biology requirement
- * names). A major that carries a `MajorStructure` is shown exactly as the
- * Bulletin structures it; every other major keeps its recipe, unchanged.
- *
- * Three rules cover what the Bulletin writes:
- *   - each:         every listed course is required (one requirement per course);
- *   - choose:       N courses from one or more named course lists;
- *   - alternatives: complete ONE of the listed course sets.
- *
- * Course lists are named once and shared, so "Theme courses" read the same
- * wherever a requirement draws on them. Nothing here is a student's data.
+ * PHYS 31-33"): flattening it invents a fixed course list the Bulletin never
+ * states. A major with a `MajorStructure` here is shown exactly as the 2026-27
+ * Bulletin structures it. The rules and builders are in data/majors/model.ts;
+ * the transcriptions are in data/majors/*.ts, each with the Bulletin's text.
  */
+import { COURSES, canonicalCourseCode } from "./courses";
+import type { CoursePattern, MajorStructure, StructuredCourseList, StructuredRequirement, StructuredSection } from "./majors/model";
+import { BIOLOGY_STRUCTURE } from "./majors/biology";
+import { SOE_STRUCTURES } from "./majors/soe";
+import { LSB_STRUCTURES } from "./majors/lsb";
+import { CAS_SCIENCE_STRUCTURES } from "./majors/cas-sciences";
+import { CAS_ARTS_STRUCTURES } from "./majors/cas-arts";
 
-export interface StructuredCourseList {
-  key: string;
-  /** The Bulletin's own name for the list, e.g. "Cell and Molecular Biology (CMB)". */
-  label: string;
-  courses: string[];
-  /** Verbatim qualifications the Bulletin attaches to the list ("*Requires faculty mentor"). */
-  note?: string;
-}
-
-export type StructuredRule =
-  | { kind: "each"; courses: string[] }
-  | { kind: "choose"; count: number; lists: string[] }
-  | {
-      kind: "alternatives";
-      options: { label: string; courses: string[]; recommended?: boolean }[];
-    };
-
-export interface StructuredRequirement {
-  /** Stable within the major ("theme-cmb"). "each" rules key their items by course code instead. */
-  key: string;
-  label: string;
-  /** Static text describing the rule. Never status-dependent: it is part of the requirement's fingerprint. */
-  description: string;
-  rule: StructuredRule;
-  notes?: string[];
-}
-
-export interface StructuredSection {
-  key: string;
-  label: string;
-  requirements: StructuredRequirement[];
-}
-
-export interface MajorStructure {
-  sourceUrl: string;
-  sourceLabel: string;
-  /** The Bulletin edition the structure was transcribed from. */
-  catalogYear: string;
-  /** When a person last compared this structure against the source (ISO date). */
-  lastVerified: string;
-  verificationNote: string;
-  /** The Bulletin's requirement paragraph, word for word, for proofreading. */
-  sourceText: string[];
-  lists: Record<string, StructuredCourseList>;
-  sections: StructuredSection[];
-  notes: string[];
-}
-
-// ---------------------------------------------------------------------------
-// Biology, B.S. — SCU 2026-27 Undergraduate Bulletin, Department of Biology
-// ---------------------------------------------------------------------------
-
-const BIOLOGY_THEME_CMB = ["BIOL 110", "BIOL 112", "BIOL 113", "BIOL 115", "BIOL 122", "BIOL 174", "BIOL 175"];
-const BIOLOGY_THEME_EEB = [
-  "BIOL 120",
-  "BIOL 134",
-  "BIOL 151",
-  "BIOL 156",
-  "BIOL 158",
-  "BIOL 165",
-  "BIOL 173",
-  "BIOL 180",
-  "BIOL 181",
-];
-const BIOLOGY_THEME_MOD = ["BIOL 117", "BIOL 160", "BIOL 170", "BIOL 172", "BIOL 178"];
-
-export const BIOLOGY_STRUCTURE: MajorStructure = {
-  sourceUrl: "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html",
-  sourceLabel: "SCU 2026-27 Undergraduate Bulletin — Department of Biology, Requirements for the Major",
-  catalogYear: "2026-27",
-  lastVerified: "2026-10-09",
-  verificationNote:
-    "Transcribed from the Bulletin's 'Requirements for the Major' section and checked course by course against its course listings. " +
-    "Every theme course (CMB, EEB, MOD) is listed there as a lecture-and-laboratory (L&L) course; BIOL 102 is the only JES course with a laboratory.",
-  sourceText: [
-    "In addition to fulfilling the undergraduate Core Curriculum requirements for the bachelor of science degree, students majoring in biology must complete the following departmental requirements:",
-    "BIOL 1A, 1B, and 1C",
-    "CHEM 11, 12, 31, 32, and 33",
-    "PHYS 11, 12, 13 or PHYS 31, 32, 33",
-    "MATH 35 and 36 (recommended) or MATH 11 and 12",
-    "BIOL 101",
-    "Seven approved upper-division biology courses, including five with a laboratory component",
-    "For these seven courses, students will take one course each from Upper Division Themes (CMB, EEB, MOD), all with laboratory, plus at least 4 elective courses, at least two with laboratory. Electives may be selected from Theme or Specialty courses. For one of their 4 electives, students are strongly recommended to take a course in Justice and Equity in Science (JES) theme.",
-    "Cell and Molecular Biology (CMB): 110, 112, 113, 115, 122, 174, 175",
-    "Ecology, Evolution and Biodiversity (EEB): 120, 134, 151, 156, 158, 165, 173, 180, 181",
-    "Biological Modeling (MOD): 117, 160, 170, 172, 178",
-    "Justice and Equity in Science (JES): 102, 169, 171",
-    "Specialty Courses with lab: 104, 114AW, 116, 123, 124, 142AW, 144, 176, 177, 191, 198*",
-    "Specialty Courses (lecture only): 105, 106, 111, 119, 145, 153, 164, 179, 189, CHEM 141, 142",
-    "*Requires faculty mentor",
-  ],
-  lists: {
-    cmb: {
-      key: "cmb",
-      label: "Theme: Cell and Molecular Biology (CMB)",
-      courses: BIOLOGY_THEME_CMB,
-      note: "The 2026-27 Bulletin titles BIOL 115 “Animal Development L&L”; CampusVal's course catalog still shows its earlier title.",
-    },
-    eeb: { key: "eeb", label: "Theme: Ecology, Evolution and Biodiversity (EEB)", courses: BIOLOGY_THEME_EEB },
-    mod: { key: "mod", label: "Theme: Biological Modeling (MOD)", courses: BIOLOGY_THEME_MOD },
-    "jes-lab": {
-      key: "jes-lab",
-      label: "Theme: Justice and Equity in Science (JES), with laboratory",
-      courses: ["BIOL 102"],
-      note: "The Bulletin strongly recommends a JES course for one of the four electives.",
-    },
-    "jes-lecture": {
-      key: "jes-lecture",
-      label: "Theme: Justice and Equity in Science (JES), lecture only",
-      courses: ["BIOL 169", "BIOL 171"],
-      note: "The Bulletin strongly recommends a JES course for one of the four electives.",
-    },
-    "specialty-lab": {
-      key: "specialty-lab",
-      label: "Specialty courses with lab",
-      courses: [
-        "BIOL 104",
-        "BIOL 114AW",
-        "BIOL 116",
-        "BIOL 123",
-        "BIOL 124",
-        "BIOL 142AW",
-        "BIOL 144",
-        "BIOL 176",
-        "BIOL 177",
-        "BIOL 191",
-        "BIOL 198",
-      ],
-      note: "BIOL 198 requires a faculty mentor.",
-    },
-    "specialty-lecture": {
-      key: "specialty-lecture",
-      label: "Specialty courses (lecture only)",
-      courses: [
-        "BIOL 105",
-        "BIOL 106",
-        "BIOL 111",
-        "BIOL 119",
-        "BIOL 145",
-        "BIOL 153",
-        "BIOL 164",
-        "BIOL 179",
-        "BIOL 189",
-        "CHEM 141",
-        "CHEM 142",
-      ],
-      note:
-        "The Bulletin's list names BIOL 189; its course listings describe BIOL 189A and 189B (2 units each). Confirm with the Biology department which counts.",
-    },
-  },
-  sections: [
-    {
-      key: "foundation",
-      label: "Biology, chemistry, physics and mathematics",
-      requirements: [
-        {
-          key: "biol-intro",
-          label: "Introductory biology",
-          description: "BIOL 1A, 1B, and 1C",
-          rule: { kind: "each", courses: ["BIOL 1A", "BIOL 1B", "BIOL 1C"] },
-        },
-        {
-          key: "chemistry",
-          label: "Chemistry",
-          description: "CHEM 11, 12, 31, 32, and 33",
-          rule: { kind: "each", courses: ["CHEM 11", "CHEM 12", "CHEM 31", "CHEM 32", "CHEM 33"] },
-        },
-        {
-          key: "physics",
-          label: "Physics: PHYS 11, 12, 13 or PHYS 31, 32, 33",
-          description: "Complete one of the two physics sequences.",
-          rule: {
-            kind: "alternatives",
-            options: [
-              { label: "PHYS 11, 12, 13", courses: ["PHYS 11", "PHYS 12", "PHYS 13"] },
-              { label: "PHYS 31, 32, 33", courses: ["PHYS 31", "PHYS 32", "PHYS 33"] },
-            ],
-          },
-        },
-        {
-          key: "mathematics",
-          label: "Mathematics: MATH 35 and 36 (recommended) or MATH 11 and 12",
-          description: "Complete one of the two calculus sequences; the Bulletin recommends MATH 35 and 36.",
-          rule: {
-            kind: "alternatives",
-            options: [
-              { label: "MATH 35 and 36 (recommended)", courses: ["MATH 35", "MATH 36"], recommended: true },
-              { label: "MATH 11 and 12", courses: ["MATH 11", "MATH 12"] },
-            ],
-          },
-        },
-        {
-          key: "biol-101",
-          label: "Biology Research Seminar",
-          description: "BIOL 101",
-          rule: { kind: "each", courses: ["BIOL 101"] },
-        },
-      ],
-    },
-    {
-      key: "themes",
-      label: "Upper-division themes — one course from each, all with laboratory",
-      requirements: [
-        {
-          key: "theme-cmb",
-          label: "Cell and Molecular Biology (CMB) theme",
-          description: "One CMB theme course, with laboratory.",
-          rule: { kind: "choose", count: 1, lists: ["cmb"] },
-        },
-        {
-          key: "theme-eeb",
-          label: "Ecology, Evolution and Biodiversity (EEB) theme",
-          description: "One EEB theme course, with laboratory.",
-          rule: { kind: "choose", count: 1, lists: ["eeb"] },
-        },
-        {
-          key: "theme-mod",
-          label: "Biological Modeling (MOD) theme",
-          description: "One MOD theme course, with laboratory.",
-          rule: { kind: "choose", count: 1, lists: ["mod"] },
-        },
-      ],
-    },
-    {
-      key: "electives",
-      label: "Upper-division electives — four, at least two with laboratory",
-      requirements: [
-        {
-          key: "electives-lab",
-          label: "Electives with a laboratory component",
-          description: "Two elective courses with laboratory, from the Theme or Specialty courses.",
-          rule: { kind: "choose", count: 2, lists: ["cmb", "eeb", "mod", "jes-lab", "specialty-lab"] },
-        },
-        {
-          key: "electives-any",
-          label: "Electives, with or without laboratory",
-          description: "Two more elective courses from the Theme or Specialty courses. A JES course is strongly recommended for one elective.",
-          rule: {
-            kind: "choose",
-            count: 2,
-            lists: ["jes-lecture", "jes-lab", "cmb", "eeb", "mod", "specialty-lab", "specialty-lecture"],
-          },
-          notes: ["For one of the four electives the Bulletin strongly recommends a Justice and Equity in Science (JES) course: BIOL 102, 169 or 171."],
-        },
-      ],
-    },
-  ],
-  notes: [
-    "Seven approved upper-division biology courses, including five with a laboratory component: one course from each of the CMB, EEB and MOD themes (all with laboratory) plus four electives, at least two with laboratory.",
-  ],
-};
+export type {
+  CoursePattern,
+  MajorStructure,
+  StructuredCourseList,
+  StructuredRequirement,
+  StructuredRule,
+  StructuredSection,
+  StructureVariants,
+} from "./majors/model";
+export { BIOLOGY_STRUCTURE };
 
 /** Majors whose Bulletin structure is transcribed. Keyed by the recipe's department code. */
 export const MAJOR_STRUCTURES: Readonly<Record<string, MajorStructure>> = {
   BIOL: BIOLOGY_STRUCTURE,
+  ...SOE_STRUCTURES,
+  ...LSB_STRUCTURES,
+  ...CAS_SCIENCE_STRUCTURES,
+  ...CAS_ARTS_STRUCTURES,
 };
+
+// ---------------------------------------------------------------------------
+// Course lists: the codes the Bulletin names, plus a range it states
+// ---------------------------------------------------------------------------
+
+const norm = (code: string) => code.trim().toUpperCase().replace(/\s+/g, " ");
+const numberOf = (code: string) => Number.parseInt(code.split(" ")[1] ?? "", 10);
+export const courseSlug = (code: string) => code.replace(/\s+/g, "-").toLowerCase();
+
+const unitsOf = new Map(COURSES.map((c) => [norm(c.code), c.units]));
+
+/** Whether a code falls in a list's stated range (with its exclusions and unit floor). */
+function inPattern(pattern: CoursePattern, code: string): boolean {
+  const c = norm(code);
+  const [subject] = c.split(" ");
+  const n = numberOf(c);
+  if (!pattern.subjects.includes(subject!) || !(n >= pattern.from && n <= pattern.to)) return false;
+  if ((pattern.exclude ?? []).some((x) => norm(x) === c)) return false;
+  const suffix = (c.split(" ")[1] ?? "").replace(/^\d+/, "");
+  if (suffix && (pattern.excludeSuffixes ?? []).includes(suffix)) return false;
+  if (pattern.minUnits !== undefined) {
+    // A course the catalog does not know cannot be shown to meet a unit floor, so it does not count.
+    const units = unitsOf.get(c);
+    if (units === undefined || units < pattern.minUnits) return false;
+  }
+  return true;
+}
+
+const listCache = new WeakMap<StructuredCourseList, string[]>();
+
+/** Every course a list holds: the codes the Bulletin names, then the catalog courses of its stated range. */
+export function coursesOfList(list: StructuredCourseList): string[] {
+  const hit = listCache.get(list);
+  if (hit) return hit;
+  const out = [...list.courses];
+  if (list.pattern) {
+    const p = list.pattern;
+    const fromCatalog = COURSES.map((c) => c.code)
+      .filter((code) => inPattern(p, code))
+      .sort((a, b) => numberOf(a) - numberOf(b) || a.localeCompare(b));
+    out.push(...fromCatalog);
+  }
+  const result = [...new Set(out)];
+  listCache.set(list, result);
+  return result;
+}
+
+/** Whether a course belongs to a list: named by it, or (in the catalog or not) inside its stated range. */
+function listHas(list: StructuredCourseList, code: string): boolean {
+  const c = norm(code);
+  return list.courses.some((x) => norm(x) === c) || (!!list.pattern && inPattern(list.pattern, c));
+}
 
 // ---------------------------------------------------------------------------
 // Resolution: which requirement each completed / planned course counts toward
@@ -285,191 +99,380 @@ export type StructuredStatus = "completed" | "planned" | "open";
 
 export interface StructuredChoice {
   kind: "choose" | "alternatives";
-  /** choose: how many courses the rule needs. Null for alternatives. */
+  /** choose: how many courses the rule needs. Null for alternatives and for a manual requirement's browse lists. */
   minimum: number | null;
+  /** "from at least K of these lists", when the Bulletin says so. */
+  minDistinctLists: number | null;
   /** Courses CampusVal counted toward this requirement (each course counts once in the whole major). */
   completedCount: number;
   plannedCount: number;
-  lists: { key: string; label: string; note: string | null; courses: string[] }[];
+  lists: { key: string; label: string; note: string | null; courses: string[]; max: number | null }[];
   alternatives: { label: string; courses: string[]; recommended: boolean }[];
 }
 
 export interface ResolvedStructuredItem {
-  /** "biol-1a" for a course of an "each" rule; the requirement key otherwise. */
+  /** The course slug ("biol-1a") for an "each" item; the requirement key otherwise. */
   key: string;
   sectionKey: string;
   section: string;
+  /** The track / emphasis / concentration the item belongs to, when only one does. */
+  variant: string | null;
   /** The course code for an "each" item, else null. */
   course: string | null;
   label: string;
   description: string;
-  /** Every course that can satisfy the item. */
+  /** Every course that can satisfy the item (or, for a manual one, the courses it lets the student browse). */
   courses: string[];
   satisfiedBy: string[];
   plannedBy: string[];
   status: StructuredStatus;
   choice: StructuredChoice | null;
+  /** True for a requirement CampusVal cannot count from courses: the student tracks it. */
+  manual: boolean;
   notes: string[];
 }
 
-const norm = (code: string) => code.trim().toUpperCase().replace(/\s+/g, " ");
-export const courseSlug = (code: string) => code.replace(/\s+/g, "-").toLowerCase();
+export interface ResolveOptions {
+  /** The student's track / emphasis / concentration of this major, when they chose one. */
+  variant?: string | null;
+  /** Resolve every track (a reference listing, not one student's progress). */
+  allVariants?: boolean;
+}
 
 function unique(codes: string[]): string[] {
   return [...new Set(codes)];
 }
 
+function namedLists(structure: MajorStructure, keys: string[], requirement: string): StructuredCourseList[] {
+  return keys.map((k) => {
+    const l = structure.lists[k];
+    if (!l) throw new Error(`Structured requirement "${requirement}" names an unknown course list "${k}".`);
+    return l;
+  });
+}
+
+function choiceLists(lists: StructuredCourseList[], max: Record<string, number> = {}) {
+  return lists.map((l) => ({ key: l.key, label: l.label, note: l.note ?? null, courses: coursesOfList(l), max: max[l.key] ?? null }));
+}
+
+/**
+ * Pick up to `count` courses from `candidates`, in order, honouring "at most N from this list" caps
+ * (`charged` carries the counts between calls). With `distinct`, first take courses that cover lists
+ * not yet covered, so "one from at least K areas" is met whenever the courses allow it.
+ */
+function take(
+  candidates: string[],
+  count: number,
+  listsOf: (c: string) => string[],
+  caps: Record<string, number>,
+  charged: Map<string, number>,
+  covered: Set<string>,
+  distinct: boolean,
+): string[] {
+  const chosen: string[] = [];
+  const room = (k: string) => caps[k] === undefined || (charged.get(k) ?? 0) < caps[k]!;
+  const accept = (c: string, freshOnly: boolean) => {
+    const open = listsOf(c).filter(room);
+    const pool = freshOnly ? open.filter((k) => !covered.has(k)) : open;
+    if (pool.length === 0) return;
+    const k = pool.find((x) => caps[x] === undefined) ?? pool[0]!;
+    // A capped list is charged only when the course belongs to no uncapped list of the rule.
+    if (!listsOf(c).some((x) => caps[x] === undefined)) charged.set(k, (charged.get(k) ?? 0) + 1);
+    covered.add(k);
+    chosen.push(c);
+  };
+  if (distinct) for (const c of candidates) if (chosen.length < count && !chosen.includes(c)) accept(c, true);
+  for (const c of candidates) if (chosen.length < count && !chosen.includes(c)) accept(c, false);
+  return chosen;
+}
+
+interface Pass {
+  structure: MajorStructure;
+  completed: ReadonlySet<string>;
+  planned: ReadonlySet<string>;
+  /** Courses an "each" rule requires: never taken by a choice ("additional electives" are additional). */
+  reserved: ReadonlySet<string>;
+  /** Courses a choice or an option already counted in this pass. */
+  consumed: Set<string>;
+  usedKeys: Map<string, number>;
+}
+
+function resolveRequirement(pass: Pass, section: StructuredSection, req: StructuredRequirement): ResolvedStructuredItem[] {
+  const { structure, completed, planned, reserved, consumed, usedKeys } = pass;
+  const base = { sectionKey: section.key, section: section.label, variant: section.variant ?? null, notes: req.notes ?? [] };
+  const rule = req.rule;
+  if (rule.kind === "each") {
+    return rule.courses.map((course) => {
+      const c = norm(course);
+      const done = completed.has(c);
+      const isPlanned = !done && planned.has(c);
+      // A track's course keeps the track's prefix; a course required twice keeps one key per occurrence.
+      const slug = section.variant ? `${section.key}-${courseSlug(course)}` : courseSlug(course);
+      const n = (usedKeys.get(slug) ?? 0) + 1;
+      usedKeys.set(slug, n);
+      return {
+        ...base,
+        key: n === 1 ? slug : `${slug}-${n}`,
+        course,
+        label: course,
+        description: req.description,
+        courses: [course],
+        satisfiedBy: done ? [course] : [],
+        plannedBy: isPlanned ? [course] : [],
+        status: done ? "completed" : isPlanned ? "planned" : "open",
+        choice: null,
+        manual: false,
+      };
+    });
+  }
+
+  if (rule.kind === "manual") {
+    const lists = namedLists(structure, rule.lists ?? [], req.key);
+    return [
+      {
+        ...base,
+        key: req.key,
+        course: null,
+        label: req.label,
+        description: req.description,
+        courses: unique(lists.flatMap(coursesOfList)),
+        satisfiedBy: [],
+        plannedBy: [],
+        status: "open",
+        choice: lists.length
+          ? { kind: "choose", minimum: null, minDistinctLists: null, completedCount: 0, plannedCount: 0, lists: choiceLists(lists), alternatives: [] }
+          : null,
+        manual: true,
+      },
+    ];
+  }
+
+  if (rule.kind === "alternatives") {
+    const all = unique(rule.options.flatMap((o) => o.courses));
+    // An option may name a course another rule requires (the Bulletin states both); it may not take one a choice counted.
+    const free = (c: string) => !consumed.has(norm(c));
+    const finished = rule.options.find((o) => o.courses.every((c) => completed.has(norm(c)) && free(c)));
+    const onTrack = finished ?? rule.options.find((o) => o.courses.every((c) => (completed.has(norm(c)) || planned.has(norm(c))) && free(c)));
+    // Count only the chosen option's courses when one is complete or on track; otherwise show what the
+    // student has toward any option, without taking it from another requirement.
+    if (onTrack) for (const c of onTrack.courses) consumed.add(norm(c));
+    const shown = onTrack ? onTrack.courses : all.filter(free);
+    const satisfiedBy = shown.filter((c) => completed.has(norm(c)));
+    const plannedBy = shown.filter((c) => !completed.has(norm(c)) && planned.has(norm(c)));
+    return [
+      {
+        ...base,
+        key: req.key,
+        course: null,
+        label: req.label,
+        description: req.description,
+        courses: all,
+        satisfiedBy,
+        plannedBy,
+        status: finished ? "completed" : onTrack ? "planned" : "open",
+        choice: {
+          kind: "alternatives",
+          minimum: null,
+          minDistinctLists: null,
+          completedCount: satisfiedBy.length,
+          plannedCount: plannedBy.length,
+          lists: [],
+          alternatives: rule.options.map((o) => ({ label: o.label, courses: o.courses, recommended: !!o.recommended })),
+        },
+        manual: false,
+      },
+    ];
+  }
+
+  // choose N from the named lists
+  const lists = namedLists(structure, rule.lists, req.key);
+  const eligibleListed = unique(lists.flatMap(coursesOfList));
+  const listedSet = new Set(eligibleListed.map(norm));
+  const listsOf = (c: string) => lists.filter((l) => listHas(l, c)).map((l) => l.key);
+  // The student's own courses inside a stated range count even when the catalog lacks them.
+  const theirs = (set: ReadonlySet<string>) => [
+    ...eligibleListed.filter((c) => set.has(norm(c))),
+    ...[...set].filter((c) => !listedSet.has(c) && listsOf(c).length > 0).sort(),
+  ];
+  const usable = (c: string) => !!rule.overlay || (!reserved.has(norm(c)) && !consumed.has(norm(c)));
+  const caps = rule.maxPerList ?? {};
+  const charged = new Map<string, number>();
+  const covered = new Set<string>();
+  const distinct = !!rule.minDistinctLists;
+  const takenDone = take(theirs(completed).filter(usable), rule.count, listsOf, caps, charged, covered, distinct);
+  const doneCovered = covered.size;
+  const takenPlanned = take(
+    theirs(planned).filter((c) => usable(c) && !completed.has(norm(c))),
+    Math.max(0, rule.count - takenDone.length),
+    listsOf,
+    caps,
+    charged,
+    covered,
+    distinct,
+  );
+  if (!rule.overlay) for (const c of [...takenDone, ...takenPlanned]) consumed.add(norm(c));
+  const spread = (n: number) => !rule.minDistinctLists || n >= rule.minDistinctLists;
+  const complete = takenDone.length >= rule.count && spread(doneCovered);
+  const onTrack = takenDone.length + takenPlanned.length >= rule.count && spread(covered.size);
+  return [
+    {
+      ...base,
+      key: req.key,
+      course: null,
+      label: req.label,
+      description: req.description,
+      courses: eligibleListed,
+      satisfiedBy: takenDone,
+      plannedBy: takenPlanned,
+      status: complete ? "completed" : onTrack ? "planned" : "open",
+      choice: {
+        kind: "choose",
+        minimum: rule.count,
+        minDistinctLists: rule.minDistinctLists ?? null,
+        completedCount: takenDone.length,
+        plannedCount: takenPlanned.length,
+        lists: choiceLists(lists, caps),
+        alternatives: [],
+      },
+      manual: false,
+    },
+  ];
+}
+
+function eachCourses(sections: StructuredSection[]): string[] {
+  return sections.flatMap((s) => s.requirements.flatMap((r) => (r.rule.kind === "each" ? r.rule.courses.map(norm) : [])));
+}
+
+/** The variant a student chose, when it is one of the structure's. */
+export function validVariant(structure: MajorStructure, variant: string | null | undefined): string | null {
+  return variant && structure.variants?.options.some((o) => o.key === variant) ? variant : null;
+}
+
 /**
  * Resolve a structure against a student's completed and planned courses.
  *
- * Requirements are resolved in Bulletin order and a course counts toward ONE
- * requirement only: the first that can use it. So a second CMB course becomes
- * an elective, and an elective list never re-counts the theme course. Within a
- * choose rule completed courses are taken before planned ones, in list order.
- * A planned course is never reported as completed.
+ * Requirements are resolved in Bulletin order and a course counts toward ONE requirement only: the
+ * first that can use it (a second CMB course becomes an elective; an elective list never re-counts the
+ * theme course). A course an "each" rule requires is never taken by a choice ("three additional
+ * electives" are additional). Completed courses are taken before planned ones, in list order. An
+ * overlay requirement ("at least one must be an Electronic Music course") reads courses without taking
+ * them. The student's track / emphasis is resolved after the shared sections, starting again from the
+ * courses the shared sections REQUIRE (an emphasis's "specifications" can be the same electives). A
+ * planned course is never reported as completed.
  */
 export function resolveMajorStructure(
   structure: MajorStructure,
   completedCodes: Iterable<string>,
   plannedCodes: Iterable<string> = [],
+  options: ResolveOptions = {},
 ): ResolvedStructuredItem[] {
-  const completed = new Set([...completedCodes].map(norm));
-  const planned = new Set([...plannedCodes].map(norm).filter((c) => !completed.has(c)));
-  const used = new Set<string>();
-  const out: ResolvedStructuredItem[] = [];
+  // A code saved under a stale subject ("RSOC 15") counts as the Bulletin's code ("SCTR 15").
+  const completed = new Set([...completedCodes].map(canonicalCourseCode));
+  const planned = new Set([...plannedCodes].map(canonicalCourseCode).filter((c) => !completed.has(c)));
+  const shared = structure.sections.filter((s) => !s.variant);
+  const usedKeys = new Map<string, number>();
+  const sharedEach = eachCourses(shared);
+  const sharedPass: Pass = { structure, completed, planned, reserved: new Set(sharedEach), consumed: new Set(), usedKeys };
+  const out = shared.flatMap((s) => s.requirements.flatMap((r) => resolveRequirement(sharedPass, s, r)));
 
-  for (const section of structure.sections) {
-    for (const req of section.requirements) {
-      const rule = req.rule;
-      if (rule.kind === "each") {
-        for (const course of rule.courses) {
-          const c = norm(course);
-          used.add(c);
-          const done = completed.has(c);
-          const isPlanned = !done && planned.has(c);
-          out.push({
-            key: courseSlug(course),
-            sectionKey: section.key,
-            section: section.label,
-            course,
-            label: course,
-            description: req.description,
-            courses: [course],
-            satisfiedBy: done ? [course] : [],
-            plannedBy: isPlanned ? [course] : [],
-            status: done ? "completed" : isPlanned ? "planned" : "open",
-            choice: null,
-            notes: req.notes ?? [],
-          });
-        }
-        continue;
-      }
-
-      if (rule.kind === "alternatives") {
-        const all = unique(rule.options.flatMap((o) => o.courses));
-        const free = all.filter((c) => !used.has(norm(c)));
-        const done = (o: { courses: string[] }) => o.courses.every((c) => completed.has(norm(c)) && !used.has(norm(c)));
-        const reachable = (o: { courses: string[] }) =>
-          o.courses.every((c) => (completed.has(norm(c)) || planned.has(norm(c))) && !used.has(norm(c)));
-        const finished = rule.options.find(done);
-        const onTrack = finished ?? rule.options.find(reachable);
-        // Count only the chosen option's courses when one is complete or on track;
-        // otherwise show what the student has toward any option, without consuming it.
-        const counted = onTrack ? onTrack.courses : [];
-        for (const c of counted) used.add(norm(c));
-        const satisfiedBy = (onTrack ? onTrack.courses : free).filter((c) => completed.has(norm(c)));
-        const plannedBy = (onTrack ? onTrack.courses : free).filter((c) => planned.has(norm(c)));
-        out.push({
-          key: req.key,
-          sectionKey: section.key,
-          section: section.label,
-          course: null,
-          label: req.label,
-          description: req.description,
-          courses: all,
-          satisfiedBy,
-          plannedBy,
-          status: finished ? "completed" : onTrack ? "planned" : "open",
-          choice: {
-            kind: "alternatives",
-            minimum: null,
-            completedCount: satisfiedBy.length,
-            plannedCount: plannedBy.length,
-            lists: [],
-            alternatives: rule.options.map((o) => ({ label: o.label, courses: o.courses, recommended: !!o.recommended })),
-          },
-          notes: req.notes ?? [],
-        });
-        continue;
-      }
-
-      // choose N from the named lists
-      const lists = rule.lists.map((k) => {
-        const list = structure.lists[k];
-        if (!list) throw new Error(`Structured requirement "${req.key}" names an unknown course list "${k}".`);
-        return list;
-      });
-      const eligible = unique(lists.flatMap((l) => l.courses));
-      const takenDone = eligible.filter((c) => completed.has(norm(c)) && !used.has(norm(c))).slice(0, rule.count);
-      const takenPlanned = eligible
-        .filter((c) => planned.has(norm(c)) && !used.has(norm(c)))
-        .slice(0, Math.max(0, rule.count - takenDone.length));
-      for (const c of [...takenDone, ...takenPlanned]) used.add(norm(c));
-      out.push({
-        key: req.key,
-        sectionKey: section.key,
-        section: section.label,
-        course: null,
-        label: req.label,
-        description: req.description,
-        courses: eligible,
-        satisfiedBy: takenDone,
-        plannedBy: takenPlanned,
-        status:
-          takenDone.length >= rule.count
-            ? "completed"
-            : takenDone.length + takenPlanned.length >= rule.count
-              ? "planned"
-              : "open",
-        choice: {
-          kind: "choose",
-          minimum: rule.count,
-          completedCount: takenDone.length,
-          plannedCount: takenPlanned.length,
-          lists: lists.map((l) => ({ key: l.key, label: l.label, note: l.note ?? null, courses: l.courses })),
-          alternatives: [],
-        },
-        notes: req.notes ?? [],
-      });
-    }
+  const variants = structure.variants;
+  if (!variants) return out;
+  const chosen = validVariant(structure, options.variant);
+  const keys = options.allVariants ? variants.options.map((o) => o.key) : chosen ? [chosen] : [];
+  if (keys.length === 0 && variants.required) {
+    const names = variants.options.map((o) => o.label);
+    out.push({
+      key: `choose-${variants.kind}`,
+      sectionKey: `choose-${variants.kind}`,
+      section: `Your ${variants.kind}`,
+      variant: null,
+      course: null,
+      label: `Choose your ${variants.kind}`,
+      description: `The Bulletin requires one ${variants.kind}: ${names.slice(0, -1).join(", ")}${names.length > 1 ? " or " : ""}${names.at(-1)}. Choose yours to see its requirements.`,
+      courses: [],
+      satisfiedBy: [],
+      plannedBy: [],
+      status: "open",
+      choice: null,
+      manual: true,
+      notes: variants.note ? [variants.note] : [],
+    });
+  }
+  for (const key of keys) {
+    const sections = structure.sections.filter((s) => s.variant === key);
+    const pass: Pass = { structure, completed, planned, reserved: new Set([...sharedEach, ...eachCourses(sections)]), consumed: new Set(), usedKeys };
+    out.push(...sections.flatMap((s) => s.requirements.flatMap((r) => resolveRequirement(pass, s, r))));
   }
   return out;
 }
 
-/** Every course code the structure names, in order (for catalog checks and audits). */
+/** Every course code the structure NAMES (explicit codes; ranges are not expanded), in order. */
 export function structureCourses(structure: MajorStructure): string[] {
-  const codes: string[] = [];
+  const named: string[] = [];
   for (const section of structure.sections) {
     for (const req of section.requirements) {
       const rule = req.rule;
-      if (rule.kind === "each") codes.push(...rule.courses);
-      else if (rule.kind === "alternatives") codes.push(...rule.options.flatMap((o) => o.courses));
-      else codes.push(...rule.lists.flatMap((k) => structure.lists[k]?.courses ?? []));
+      if (rule.kind === "each") named.push(...rule.courses);
+      else if (rule.kind === "alternatives") named.push(...rule.options.flatMap((o) => o.courses));
+      else named.push(...(rule.lists ?? []).flatMap((k) => structure.lists[k]?.courses ?? []));
     }
   }
-  return unique(codes);
+  return unique(named);
 }
 
-/** How many courses the structure requires in total (each course + each choice count + the longest-free option). */
+/** How many courses the shared sections require (each, choose counts, the shortest option; overlays and manual items add none). */
 export function structureRequiredCount(structure: MajorStructure): number {
   let n = 0;
   for (const section of structure.sections) {
+    if (section.variant) continue;
     for (const req of section.requirements) {
       const rule = req.rule;
       if (rule.kind === "each") n += rule.courses.length;
-      else if (rule.kind === "choose") n += rule.count;
-      else n += Math.min(...rule.options.map((o) => o.courses.length));
+      else if (rule.kind === "choose" && !rule.overlay) n += rule.count;
+      else if (rule.kind === "alternatives") n += Math.min(...rule.options.map((o) => o.courses.length));
     }
   }
   return n;
+}
+
+/**
+ * One way to satisfy the requirements, for the illustrative four-year example: every required course,
+ * the recommended (else first) option, and the first catalog courses of each choice, spread across its
+ * lists. Only courses the catalog has, and never one the Bulletin does not name or range.
+ */
+export function exampleSelection(structure: MajorStructure, variant?: string | null): { lowerDiv: string[]; upperDiv: string[] } {
+  const known = new Set(COURSES.map((c) => norm(c.code)));
+  const chosenVariant = validVariant(structure, variant) ?? (structure.variants?.required ? structure.variants.options[0]!.key : null);
+  const sections = structure.sections.filter((s) => !s.variant || s.variant === chosenVariant);
+  const reserved = new Set(eachCourses(sections));
+  const picked: string[] = [];
+  for (const section of sections) {
+    for (const req of section.requirements) {
+      const rule = req.rule;
+      if (rule.kind === "each") picked.push(...rule.courses.filter((c) => known.has(norm(c))));
+      else if (rule.kind === "alternatives") {
+        const option = rule.options.find((o) => o.recommended) ?? rule.options[0]!;
+        picked.push(...option.courses.filter((c) => known.has(norm(c))));
+      } else if (rule.kind === "choose" && !rule.overlay) {
+        const pools = namedLists(structure, rule.lists, req.key).map((l) =>
+          coursesOfList(l).filter((c) => known.has(norm(c)) && !reserved.has(norm(c)) && !picked.includes(c)),
+        );
+        // Round-robin over the lists so a "from at least K areas" rule is met by the example.
+        const chosen: string[] = [];
+        for (let progress = true; chosen.length < rule.count && progress; ) {
+          progress = false;
+          for (const pool of pools) {
+            const c = pool.find((x) => !chosen.includes(x));
+            if (c && chosen.length < rule.count) {
+              chosen.push(c);
+              progress = true;
+            }
+          }
+        }
+        picked.push(...chosen);
+      }
+    }
+  }
+  const all = unique(picked);
+  return { lowerDiv: all.filter((c) => numberOf(c) < 100), upperDiv: all.filter((c) => numberOf(c) >= 100) };
 }
