@@ -537,7 +537,7 @@ export const WEB_DESIGN_ENGINEERING_STRUCTURE: MajorStructure = {
     section("math-science", "Mathematics and natural science", [
       MATH_11_14,
       each("amth-108", "AMTH 108", ["AMTH 108"]),
-      manual("natural-science", "Natural science", "Any natural science course from the list approved by the University Core."),
+      manual("natural-science", "Natural science course", "Natural Science - any natural science course from the list approved by the University Core."),
     ]),
     section("engineering", "Engineering", [
       each("engr-1", "ENGR 1", ["ENGR 1"]),

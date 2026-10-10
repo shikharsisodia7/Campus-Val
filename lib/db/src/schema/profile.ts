@@ -55,6 +55,12 @@ export const studentProfilesTable = pgTable(
       .$type<string[]>()
       .notNull()
       .default([]),
+    // The track / emphasis / concentration the student follows in a major, by major code
+    // ({ BIOE: "pre-med" }): planning intent, never an SCU declaration.
+    majorTracks: jsonb("major_tracks")
+      .$type<Record<string, string>>()
+      .notNull()
+      .default({}),
     priorityRegistration: boolean("priority_registration")
       .notNull()
       .default(false),

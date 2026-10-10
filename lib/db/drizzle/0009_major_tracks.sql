@@ -1,0 +1,1 @@
+ALTER TABLE "student_profiles" ADD COLUMN "major_tracks" jsonb DEFAULT '{}'::jsonb NOT NULL;
