@@ -177,9 +177,16 @@ export function findItem(assessment: WorkbookAssessment, key: string): Assessmen
 
 // ─── configuration ───────────────────────────────────────────────────────────
 
-/** On unless switched off: DEGREE_COMPLETION_ASSESSMENT_ENABLED=false hides it everywhere (the engine stays tested). */
+/**
+ * Explicit opt-in for the private Degree Completion Assessment R&D surface.
+ *
+ * The engine stays exercised in tests, but no production/pilot user should be
+ * able to reach its derived academic claims unless an operator deliberately
+ * enables the internal feature.  This intentionally does not reuse the old
+ * "on unless false" switch: a missing deployment variable must fail closed.
+ */
 export function assessmentEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env["DEGREE_COMPLETION_ASSESSMENT_ENABLED"]?.trim().toLowerCase() !== "false";
+  return env["ENABLE_DEGREE_COMPLETION_RND"]?.trim().toLowerCase() === "true";
 }
 
 /** The Registrar-dependent subrule, off unless DEGREE_COMPLETION_IN_PROGRESS_REMAINING_IS_ADDITIONAL=true. */

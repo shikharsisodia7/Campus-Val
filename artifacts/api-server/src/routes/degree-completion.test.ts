@@ -17,6 +17,7 @@ vi.mock("../middlewares/requireAuth", () => ({
     const userId = req.header("x-test-user");
     if (!userId) return res.status(401).json({ error: "Sign in required" });
     req.userId = userId;
+    req.userEmail = req.header("x-test-email") ?? "dca-rnd-admin@scu.edu";
     next();
   },
 }));
@@ -28,6 +29,7 @@ import progressReportsRouter from "./progress-reports";
 
 const RUN = Date.now();
 const STUDENT = `dca-student-${RUN}`;
+const RND_ADMIN = "dca-rnd-admin@scu.edu";
 const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const savedEnv = { ...process.env };
 let dir: string;
@@ -93,7 +95,8 @@ beforeAll(async () => {
   process.env["PRIVATE_STORAGE_PROVIDER"] = "local";
   process.env["PRIVATE_STORAGE_DIR"] = dir;
   process.env["STORAGE_SIGNING_SECRET"] = "t".repeat(48);
-  delete process.env["DEGREE_COMPLETION_ASSESSMENT_ENABLED"];
+  process.env["ENABLE_DEGREE_COMPLETION_RND"] = "true";
+  process.env["ADMIN_EMAILS"] = RND_ADMIN;
   delete process.env["DEGREE_COMPLETION_IN_PROGRESS_REMAINING_IS_ADDITIONAL"];
   resetPrivateObjectStorageForTests();
   bioId = await addApr(await aprXlsx("Biology Major Requirements", BIOLOGY_V1), "Biology", "primary_major");
@@ -112,6 +115,14 @@ afterAll(async () => {
 });
 
 describe("the automatic Degree Completion Assessment", () => {
+  it("is not reachable by a normal pilot user even while internal R&D is enabled", async () => {
+    await request(app)
+      .get("/api/progress-reports/assessment")
+      .set("x-test-user", STUDENT)
+      .set("x-test-email", "pilot-student@scu.edu")
+      .expect(404);
+  });
+
   it("is generated per APR, says it is a planning aid, and names Workday as the definitive reference", async () => {
     const body = await assessment();
     expect(body.enabled).toBe(true);
@@ -236,15 +247,14 @@ describe("when the APR is replaced by a newer export", () => {
 });
 
 describe("feature switch", () => {
-  it("DEGREE_COMPLETION_ASSESSMENT_ENABLED=false hides it without touching anything", async () => {
-    process.env["DEGREE_COMPLETION_ASSESSMENT_ENABLED"] = "false";
+  it("ENABLE_DEGREE_COMPLETION_RND=false closes the R&D endpoints without touching assessment data", async () => {
+    process.env["ENABLE_DEGREE_COMPLETION_RND"] = "false";
     try {
-      const body = await assessment();
-      expect(body).toMatchObject({ enabled: false, documents: [] });
+      await request(app).get("/api/progress-reports/assessment").set("x-test-user", STUDENT).expect(404);
       const key = "0123456789abcdef";
       await correct(bioId, key, { status: "complete" }).expect(404);
     } finally {
-      delete process.env["DEGREE_COMPLETION_ASSESSMENT_ENABLED"];
+      process.env["ENABLE_DEGREE_COMPLETION_RND"] = "true";
     }
   });
 });

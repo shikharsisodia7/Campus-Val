@@ -28,9 +28,9 @@ const browse = {
     {
       code: "CAS",
       name: "College of Arts and Sciences",
-      programs: [{ program: "Biology", plans: [{ id: 5, slug: "cas-bio-1", version: "2026-27", school: "CAS", schoolName: "College of Arts and Sciences", program: "Biology", title: "First-year plan — Option One", description: null, planLength: "first_year", academicYear: null, sourceLabel: "CAS first-year course plan: Biology", sourceUrl: "https://example.test/plan", sourceReference: "Biology.docx, Option One" }] }],
+      programs: [{ program: "Biology", plans: [{ id: 5, slug: "cas-bio-1", version: "2026-27", school: "CAS", schoolName: "College of Arts and Sciences", program: "Biology", title: "First-year plan — Option One", description: null, planLength: "first_year", sourceType: "official_department" as const, academicYear: null, sourceLabel: "CAS first-year course plan: Biology", sourceUrl: "https://example.test/plan", sourceReference: "Biology.docx, Option One" }] }],
     },
-    { code: "SOE", name: "School of Engineering", programs: [{ program: "Civil Engineering", plans: [{ id: 6, slug: "soe-civil", version: "2026-27", school: "SOE", schoolName: "School of Engineering", program: "Civil Engineering", title: "Four-year plan", description: null, planLength: "four_year", academicYear: "2026-27", sourceLabel: "SOE four-year plan", sourceUrl: null, sourceReference: null }] }] },
+    { code: "SOE", name: "School of Engineering", programs: [{ program: "Civil Engineering", plans: [{ id: 6, slug: "soe-civil", version: "2026-27", school: "SOE", schoolName: "School of Engineering", program: "Civil Engineering", title: "Four-year plan", description: null, planLength: "four_year", sourceType: "official_department" as const, academicYear: "2026-27", sourceLabel: "SOE four-year plan", sourceUrl: null, sourceReference: null }] }] },
   ],
 };
 const preview = {
@@ -84,13 +84,13 @@ async function reachPreview() {
   return screen.findByTestId("sample-plan-preview");
 }
 
-describe("example (generated) plans", () => {
+describe("generated plans cannot appear in the public picker", () => {
   beforeEach(() => {
     Element.prototype.hasPointerCapture = Element.prototype.hasPointerCapture ?? (() => false);
     Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
   });
 
-  it("are badged and carry a warning that SCU publishes no plan for the major", async () => {
+  it("filters a generated entry even if a stale API response contains one", async () => {
     mount();
     const generated = { ...browse.schools[0]!.programs[0]!.plans[0]!, id: 5, sourceType: "campusval_generated" as const };
     customFetch.mockImplementation(async (url: string) => {
@@ -98,9 +98,10 @@ describe("example (generated) plans", () => {
       if (url === "/api/sample-plans/5") return { ...preview, ...generated };
       throw new Error(`unexpected ${String(url)}`);
     });
-    const box = await reachPreview();
-    expect(screen.getByTestId("sample-plan-example-5").textContent).toBe("Example, not an SCU plan");
-    expect(within(box).getByTestId("sample-plan-example-warning").textContent).toMatch(/SCU does not publish a four-year plan/);
+    fireEvent.click(screen.getByTestId("button-load-sample-plan"));
+    await screen.findByTestId("sample-plan-empty");
+    expect(screen.queryByTestId("sample-plan-choice-5")).toBeNull();
+    expect(screen.queryByText(/Example, not an SCU plan/i)).toBeNull();
   });
 });
 

@@ -31,6 +31,7 @@ const PILOT_HIDDEN_PATHS = [
   "/sync-workday",
   "/feedback",
 ];
+const DEGREE_COMPLETION_RND_PATH = "/experimental/apr-assessment";
 
 describe("pilot-features registry", () => {
   it("tracks exactly the professor's three key workflows plus Dashboard as CORE", () => {
@@ -57,10 +58,16 @@ describe("pilot-features registry", () => {
     }
   });
 
-  it("always lets an admin reach every tracked path, hidden or not", () => {
-    for (const f of PILOT_FEATURES) {
+  it("lets an admin reach every ordinarily tracked path, hidden or not", () => {
+    for (const f of PILOT_FEATURES.filter((f) => !f.requiresDegreeCompletionRND)) {
       expect(isPathPilotAllowed(f.path, true)).toBe(true);
     }
+  });
+
+  it("requires the server-derived R&D capability for Degree Completion Assessment", () => {
+    expect(isPathPilotAllowed(DEGREE_COMPLETION_RND_PATH, false, { canUseDegreeCompletionRND: true })).toBe(false);
+    expect(isPathPilotAllowed(DEGREE_COMPLETION_RND_PATH, true)).toBe(false);
+    expect(isPathPilotAllowed(DEGREE_COMPLETION_RND_PATH, true, { canUseDegreeCompletionRND: true })).toBe(true);
   });
 
   it("lets everyone reach CORE and PILOT_VISIBLE paths", () => {
@@ -92,6 +99,7 @@ describe("pilot-features registry", () => {
     for (const path of [...PILOT_VISIBLE_PATHS, ...PILOT_HIDDEN_PATHS]) {
       expect(shownPaths).toContain(path);
     }
+    expect(shownPaths).not.toContain(DEGREE_COMPLETION_RND_PATH);
     expect(groups.some((g) => g.id === "hidden-during-pilot")).toBe(true);
   });
 

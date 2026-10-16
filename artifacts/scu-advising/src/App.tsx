@@ -48,6 +48,7 @@ const AdvicePage = lazy(() => import("@/pages/advice"));
 const ResourcesPage = lazy(() => import("@/pages/resources"));
 const FeedbackPage = lazy(() => import("@/pages/feedback"));
 const ProgressReportPage = lazy(() => import("@/pages/progress-report"));
+const ExperimentalAprAssessmentPage = lazy(() => import("@/pages/experimental-apr-assessment"));
 const DegreeChecksheetsPage = lazy(() => import("@/pages/degree-checksheets"));
 const AdminUsagePage = lazy(() => import("@/pages/admin-usage"));
 const AdminFeedbackPage = lazy(() => import("@/pages/admin-feedback"));
@@ -167,11 +168,11 @@ function Protected({ children }: { children: React.ReactNode }) {
  * underlying API routes still enforce their own server-side authorization.
  */
 function PilotGate({ path, children }: { path: string; children: React.ReactNode }) {
-  const { isAdmin, isLoading } = useAdminStatus();
+  const { isAdmin, isLoading, canUseDegreeCompletionRND } = useAdminStatus();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const notifiedRef = useRef(false);
-  const allowed = isPathPilotAllowed(path, isAdmin);
+  const allowed = isPathPilotAllowed(path, isAdmin, { canUseDegreeCompletionRND });
 
   useEffect(() => {
     if (isLoading || allowed || notifiedRef.current) return;
@@ -339,6 +340,13 @@ function AppRoutes() {
         <Route path="/progress-report">
           <Protected>
             <ProgressReportPage />
+          </Protected>
+        </Route>
+        <Route path="/experimental/apr-assessment">
+          <Protected>
+            <PilotGate path="/experimental/apr-assessment">
+              <ExperimentalAprAssessmentPage />
+            </PilotGate>
           </Protected>
         </Route>
         <Route path="/degree-checksheets">

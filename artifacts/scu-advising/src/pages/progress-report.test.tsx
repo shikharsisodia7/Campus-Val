@@ -12,6 +12,7 @@ import { financeWorkbook, testReport } from "@/components/progress-report/apr-te
 let listQuery: { data?: ProgressReportList; isLoading: boolean; isError: boolean; refetch: () => void };
 const deleteMutate = vi.fn();
 const workbookRequests: number[] = [];
+const assessmentRender = vi.fn(() => <div data-testid="degree-completion-assessment" />);
 
 vi.mock("@workspace/api-client-react", async () => {
   const actual = await vi.importActual<any>("@workspace/api-client-react");
@@ -41,6 +42,9 @@ vi.mock("@/hooks/use-track-usage", () => ({ useTrackUsage: () => {} }));
 vi.mock("@/components/degree-plan/PlanningComparisonWorkspace", () => ({
   PlanningComparisonWorkspace: ({ main }: { main: React.ReactNode }) => <>{main}</>,
 }));
+vi.mock("@/components/progress-report/DegreeCompletionAssessment", () => ({
+  DegreeCompletionAssessment: () => assessmentRender(),
+}));
 
 import ProgressReportPage from "./progress-report";
 
@@ -68,6 +72,7 @@ beforeEach(() => {
   listQuery = { data: three, isLoading: false, isError: false, refetch: vi.fn() };
   workbookRequests.length = 0;
   deleteMutate.mockClear();
+  assessmentRender.mockClear();
 });
 afterEach(cleanup);
 
@@ -75,6 +80,12 @@ const card = (id: number) => screen.getByTestId(`apr-document-${id}`);
 const toggle = (id: number) => screen.getByTestId(`apr-document-toggle-${id}`);
 
 describe("APR page with several documents", () => {
+  it("keeps the normal APR source-focused and never renders the experimental assessment", () => {
+    renderPage();
+    expect(screen.queryByTestId("degree-completion-assessment")).toBeNull();
+    expect(assessmentRender).not.toHaveBeenCalled();
+  });
+
   it("lists every APR with its own header and upload date", () => {
     renderPage();
     expect(screen.getByTestId("apr-document-count").textContent).toMatch(/^3 APRs uploaded/);

@@ -25,6 +25,20 @@ vi.mock("../lib/admin", () => ({
   isAdminUser: (email: string) => email === "admin@scu.edu",
 }));
 
+vi.mock("../lib/department/authz", () => ({
+  loadAdminScopes: async (email: string) => ({
+    email,
+    superAdmin: email === "admin@scu.edu",
+    programKeys: new Set<string>(),
+  }),
+  hasAnyAdminScope: (scopes: { superAdmin: boolean; programKeys: ReadonlySet<string> }) =>
+    scopes.superAdmin || scopes.programKeys.size > 0,
+}));
+
+vi.mock("../lib/degree-completion/service", () => ({
+  assessmentEnabled: () => true,
+}));
+
 const roleRouter = (await import("./role")).default;
 const app = express();
 app.use("/api", roleRouter);
@@ -39,7 +53,7 @@ describe("GET /api/me/role", () => {
       .get("/api/me/role")
       .set("x-test-email", "student@scu.edu")
       .expect(200);
-    expect(res.body).toEqual({ isAdmin: false, isDepartmentAdmin: false });
+    expect(res.body).toEqual({ isAdmin: false, isDepartmentAdmin: false, canUseDegreeCompletionRND: false });
   });
 
   it("true for an allowlisted admin", async () => {
@@ -47,6 +61,6 @@ describe("GET /api/me/role", () => {
       .get("/api/me/role")
       .set("x-test-email", "admin@scu.edu")
       .expect(200);
-    expect(res.body).toEqual({ isAdmin: true, isDepartmentAdmin: true });
+    expect(res.body).toEqual({ isAdmin: true, isDepartmentAdmin: true, canUseDegreeCompletionRND: true });
   });
 });

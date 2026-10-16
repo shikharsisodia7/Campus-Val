@@ -53,7 +53,7 @@ const LANDING_PRERENDER = `
       Academic planning for <span style="color:#8C1515">Santa Clara</span>
     </h1>
     <p style="margin-top:1.25rem;font-size:1.125rem;color:#6b6b6b;max-width:32rem;margin-left:auto;margin-right:auto">
-      Plan your quarters, track Core requirements, and get answers grounded in real SCU policy.
+      Build an academic plan, map each quarter, and explore options before discussing decisions with your advisor.
     </p>
     <div style="margin-top:2rem;display:flex;align-items:center;justify-content:center;gap:0.75rem">
       <a href="/sign-up" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 1.5rem;background:#8C1515;color:#fff;border-radius:0.5rem;text-decoration:none;font-size:1rem;font-weight:500">
@@ -71,43 +71,22 @@ const LANDING_PRERENDER = `
         <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(140,21,21,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C1515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         </div>
-        <div style="font-weight:600">Core tracker</div>
-        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Check off SCU Core requirements as you complete them.</div>
+        <div style="font-weight:600">Degree Planning</div>
+        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Build and organize a long-term academic plan from published requirements.</div>
       </div>
       <div style="border-radius:0.75rem;border:1px solid #e5e7eb;padding:1.25rem">
         <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(140,21,21,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C1515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </div>
-        <div style="font-weight:600">Quarter planner</div>
-        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Unit caps and prereq checks before you register.</div>
+        <div style="font-weight:600">Quarter Planning</div>
+        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Arrange a quarter schedule and review it before registering in Workday.</div>
       </div>
       <div style="border-radius:0.75rem;border:1px solid #e5e7eb;padding:1.25rem">
         <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(140,21,21,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C1515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
-        <div style="font-weight:600">Graduation paths</div>
-        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">3- and 4-year plans for every undergrad major.</div>
-      </div>
-      <div style="border-radius:0.75rem;border:1px solid #e5e7eb;padding:1.25rem">
-        <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(140,21,21,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C1515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        </div>
-        <div style="font-weight:600">Course catalog</div>
-        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Search every department, with live section data.</div>
-      </div>
-      <div style="border-radius:0.75rem;border:1px solid #e5e7eb;padding:1.25rem">
-        <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(140,21,21,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C1515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div style="font-weight:600">AI planning support</div>
-        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Answers grounded in SCU's bulletin and policies.</div>
-      </div>
-      <div style="border-radius:0.75rem;border:1px solid #e5e7eb;padding:1.25rem">
-        <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(140,21,21,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C1515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-        </div>
-        <div style="font-weight:600">Transfer credit</div>
-        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">ASSIST.org articulation for California colleges.</div>
+        <div style="font-weight:600">Explore Options with Tentative Degree Planning</div>
+        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Explore different majors, minors, and academic pathways without changing your declared SCU program.</div>
       </div>
     </div>
   </section>

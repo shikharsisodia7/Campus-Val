@@ -69,12 +69,31 @@ export function samplePlanSummary(r: SamplePlanRow) {
   };
 }
 
-/** Published plans, newest version first within a program. */
+/**
+ * Whether a template can be presented to a normal pilot student.  Generated
+ * examples stay in the controlled admin/R&D inventory, but publication alone
+ * never turns them into an SCU-approved recommendation.
+ */
+export function isPublicSamplePlan(row: Pick<SamplePlanRow, "status" | "sourceType">): boolean {
+  return (
+    row.status === "published" &&
+    (row.sourceType === "official_department" || row.sourceType === "admin_entry")
+  );
+}
+
+/**
+ * A generated sequence is R&D material, never a pilot recommendation. This
+ * deliberately defaults false: production has to opt in explicitly before a
+ * privileged developer can inspect the private inventory.
+ */
+export function generatedPlanRNDEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env["ENABLE_GENERATED_PLAN_RND"]?.trim().toLowerCase() === "true";
+}
+
+/** Source-backed published plans, newest version first within a program. */
 export async function listPublished() {
   const rows = await db.select().from(samplePlansTable).where(eq(samplePlansTable.status, "published")).orderBy(asc(samplePlansTable.program), asc(samplePlansTable.title));
-  // Official plans first, then examples CampusVal generated; newest version first within each.
-  const rank = (r: SamplePlanRow) => (r.sourceType === "campusval_generated" ? 1 : 0);
-  return rows.sort((a, b) => rank(a) - rank(b) || b.version.localeCompare(a.version));
+  return rows.filter(isPublicSamplePlan).sort((a, b) => b.version.localeCompare(a.version));
 }
 
 export async function getSamplePlan(id: number) {
@@ -342,5 +361,10 @@ export async function setSamplePlanStatus(
 export async function listForAdmin(programKeys: readonly string[] | null) {
   const rows = await db.select().from(samplePlansTable).orderBy(asc(samplePlansTable.program), asc(samplePlansTable.title));
   return programKeys === null ? rows : rows.filter((r) => r.programKey && programKeys.includes(r.programKey));
+}
+
+/** Private inventory for the R&D endpoint only; it never feeds the public picker. */
+export async function listGeneratedForRND() {
+  return (await db.select().from(samplePlansTable).where(eq(samplePlansTable.sourceType, "campusval_generated")).orderBy(asc(samplePlansTable.program), asc(samplePlansTable.title)));
 }
 

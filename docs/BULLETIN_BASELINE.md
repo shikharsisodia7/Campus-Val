@@ -12,7 +12,7 @@ BULLETIN                 the structural baseline: the latest Undergraduate Bulle
   = what the sidebar shows
 
 APR (Workday)            separate: the comparison point and the definitive reference for degree completion
-DEGREE CHECKSHEETS       separate: reference documents a student uploads (private), plus a source of Department Notes
+DEGREE CHECKSHEETS       separate: private reference documents a student uploads; never a source of global Department Notes
 ```
 
 These stay conceptually and physically separate. Nothing collapses them into one record:
@@ -172,7 +172,7 @@ the requirement data names courses of the 2026-27 Bulletin. 30 of the original 1
 
 ## Department Notes
 
-A Department Note is advising guidance a department stands behind, shown beside a requirement (or a whole program), for every student whose plan includes that program.
+A Department Note is advising guidance a department stands behind, shown beside a requirement (or a whole program), for every student whose plan includes that program. It is created only by a scoped department administrator or imported from a canonical department resource through the review/publish workflow; it is never promoted from a student's private upload.
 
 - Table `department_requirement_notes`: program key, target stable key (a requirement, a group, or null = the program), Bulletin edition, text, kind
   (requirement / sequence / core_overlap / advising), `status` (**draft**, **published**, **archived**, **unmapped**), origin (imported / admin), source label, source URL,
@@ -184,7 +184,7 @@ A Department Note is advising guidance a department stands behind, shown beside 
 
 ### Import from department checklists
 
-Source: the Requirements Checklists the College of Arts and Sciences publishes (spreadsheets, 40 of them). `scripts/import-department-notes.ts`:
+Source: the published Requirements Checklists the College of Arts and Sciences publishes (spreadsheets, 40 of them), supplied to the import workflow as a canonical department-resource set — never from the student upload store. `scripts/import-department-notes.ts`:
 
 ```
 pnpm --filter @workspace/api-server run import:department-notes -- --dir <folder of .xlsx> [--apply] [--out report.json]
@@ -278,7 +278,7 @@ pnpm --filter @workspace/api-server run import:sample-plans -- --engineering --c
 ```
 
 `--engineering`: the eight School of Engineering four-year plans CampusVal carries as **prescribed** (reconciled against SCU's published plans; the source link travels with each; General Engineering and Mechanical were transcribed from their official quarter grids on 2026-10-06).
-`--generated`: for every major with **no** official four-year plan (the 42 Arts and Sciences and Leavey majors), the example sequence CampusVal builds from the major's own requirements, stored as `campusval_generated`, listed after official plans, badged **"Example, not an SCU plan"** in the picker and warned in the preview. With it, **all 50 majors have a four-year plan to load**; only 8 are official.
+`--generated`: a **private R&D-only** deterministic sequence generator. It requires `ENABLE_GENERATED_PLAN_RND=true`, stores records as `campusval_generated`, and never feeds public `Load Sample Plan`, its preview/load endpoints, or the normal department-admin inventory. Authorized R&D administrators may inspect the inventory only through `GET /api/admin/rnd/generated-sample-plans` while the flag is enabled. It is not an SCU plan and must not be used as course-timing advice for pilot students.
 `--cas-dir`: the College of Arts and Sciences first-year course plans (Fall / Winter / Spring grids; every "Option" is its own plan). The Leavey School of Business publishes no sample plan, so none is
 loaded. "Recommended" and "example" sequences are never sample plans. Result in the QA database: **157 plans** (6 four-year, 151 first-year), 2 items with a course not in the catalog (PHYS 20).
 Publish and unpublish with the admin page, or `--publish` at import.
@@ -297,6 +297,5 @@ Environment: `REQUIREMENTS_BULLETIN_EDITION` (optional), `ADMIN_EMAILS` (existin
 
 - **Registrar / APR notes.** If Workday's APR can carry notes, they are a *new source* mapped to the same note model; today nothing is faked and the Department Note architecture does
   not depend on it.
-- **Checksheets.** They stay as uploaded reference documents and as a *source of notes*. Important advising guidance should increasingly live as Department Notes; a checksheet
-  is never the structural authority for requirements, and a private upload never defines anyone else's requirements.
+- **Checksheets.** They stay as uploaded private reference documents. Important advising guidance should increasingly live as Department Notes sourced from canonical department resources or deliberate administrator entry; a private upload is never a Department Note source, structural authority, or definition of anyone else's requirements.
 - **Cohort-year selection** needs the older editions' data and a policy; the architecture (editions, snapshots, diff, edition on every override) is ready.

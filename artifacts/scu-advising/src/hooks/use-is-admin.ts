@@ -3,13 +3,20 @@ import { getApiUrl } from "@/lib/api";
 
 const ADMIN_ROLE_QUERY_KEY = ["/api/me/role"];
 
+type AdminRole = {
+  isAdmin: boolean;
+  isDepartmentAdmin?: boolean;
+  /** Server-derived capability for the private APR assessment R&D route. */
+  canUseDegreeCompletionRND?: boolean;
+};
+
 function useAdminRoleQuery() {
   return useQuery({
     queryKey: ADMIN_ROLE_QUERY_KEY,
     queryFn: async () => {
       const res = await fetch(getApiUrl("/me/role"));
-      if (!res.ok) return { isAdmin: false, isDepartmentAdmin: false };
-      return res.json() as Promise<{ isAdmin: boolean; isDepartmentAdmin?: boolean }>;
+      if (!res.ok) return { isAdmin: false, isDepartmentAdmin: false, canUseDegreeCompletionRND: false };
+      return res.json() as Promise<AdminRole>;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -43,7 +50,12 @@ export function useIsDepartmentAdmin(): boolean {
  * doesn't redirect a real admin away from a PILOT_HIDDEN route just because
  * the /me/role fetch hasn't resolved yet.
  */
-export function useAdminStatus(): { isAdmin: boolean; isLoading: boolean } {
+export function useAdminStatus(): { isAdmin: boolean; isLoading: boolean; canUseDegreeCompletionRND: boolean } {
   const { data, isLoading } = useAdminRoleQuery();
-  return { isAdmin: data?.isAdmin ?? false, isLoading };
+  return {
+    isAdmin: data?.isAdmin ?? false,
+    isLoading,
+    // Fail closed if this newer capability field is absent from an older API.
+    canUseDegreeCompletionRND: data?.canUseDegreeCompletionRND ?? false,
+  };
 }

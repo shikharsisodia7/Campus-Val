@@ -76,6 +76,30 @@ const TERM_ORDER = ["fall", "winter", "spring", "summer"];
 
 const errorText = (e: unknown): string => (e instanceof ApiError ? ((e.data as { error?: string } | null)?.error ?? e.message) : "Something went wrong. Try again.");
 
+/**
+ * The server is the authority and filters generated templates too.  This
+ * client-side guard is deliberate defense in depth: a stale cache or a
+ * misconfigured intermediary must not make a CampusVal-generated sequence
+ * look like an approved departmental sample plan.
+ */
+function sourceBackedBrowse(data: Browse): Browse {
+  return {
+    schools: data.schools
+      .map((school) => ({
+        ...school,
+        programs: school.programs
+          .map((program) => ({
+            ...program,
+            plans: program.plans.filter(
+              (plan) => plan.sourceType === "official_department" || plan.sourceType === "admin_entry",
+            ),
+          }))
+          .filter((program) => program.plans.length > 0),
+      }))
+      .filter((school) => school.programs.length > 0),
+  };
+}
+
 export function SamplePlanLoader() {
   const { activePlan, setActivePlanId, profile } = useDegreePlanContext();
   const queryClient = useQueryClient();
@@ -91,7 +115,7 @@ export function SamplePlanLoader() {
 
   const browse = useQuery({
     queryKey: ["/api/sample-plans"],
-    queryFn: () => customFetch<Browse>("/api/sample-plans"),
+    queryFn: async () => sourceBackedBrowse(await customFetch<Browse>("/api/sample-plans")),
     enabled: open,
     staleTime: 5 * 60 * 1000,
   });
@@ -271,9 +295,6 @@ export function SamplePlanLoader() {
                         <span className="ml-1.5 inline-flex flex-wrap gap-1 align-middle">
                           <Badge variant="secondary" className="text-[10px]">{LENGTH_LABEL[p.planLength]}</Badge>
                           <Badge variant="outline" className="text-[10px]">{p.academicYear ?? p.version}</Badge>
-                          {p.sourceType === "campusval_generated" && (
-                            <Badge className="border-amber-300 bg-amber-100 text-[10px] text-amber-900" data-testid={`sample-plan-example-${p.id}`}>Example, not an SCU plan</Badge>
-                          )}
                         </span>
                         {p.sourceReference && <span className="block text-muted-foreground">{p.sourceReference}</span>}
                       </span>
@@ -293,11 +314,6 @@ export function SamplePlanLoader() {
                       </a>
                     )}
                   </div>
-                  {preview.data.sourceType === "campusval_generated" && (
-                    <p role="note" className="rounded border border-amber-300 bg-amber-50 p-1.5 text-[11px] text-amber-900" data-testid="sample-plan-example-warning">
-                      This is an example CampusVal arranged from the major&apos;s requirements. SCU does not publish a four-year plan for this major. Check it with your advisor before relying on it.
-                    </p>
-                  )}
                   <p className="text-[11px] text-muted-foreground">
                     Source: {preview.data.sourceLabel ?? "not stated"} · version {preview.data.version}. A planning template, not an official guarantee of completion.
                   </p>

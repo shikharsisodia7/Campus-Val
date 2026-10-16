@@ -70,6 +70,8 @@ export interface PilotFeatureDef {
   rationale: string;
   /** What would need to be true to move this out of PILOT_HIDDEN. */
   reEnableCriteria?: string;
+  /** Server-derived experimental capability required in addition to admin status. */
+  requiresDegreeCompletionRND?: boolean;
 }
 
 export const PILOT_FEATURES: PilotFeatureDef[] = [
@@ -295,6 +297,18 @@ export const PILOT_FEATURES: PilotFeatureDef[] = [
       "Superseded by the header 'Report Error / Suggest Changes' control (PR #44) as the one obvious feedback mechanism for pilot testers. Route and data preserved internally, not deleted.",
     reEnableCriteria: "None planned — Report Error / Suggest Changes is the permanent replacement.",
   },
+  {
+    id: "apr-degree-completion-rnd",
+    path: "/experimental/apr-assessment",
+    label: "APR + Degree Completion Assessment (Experimental)",
+    icon: ClipboardCheck,
+    status: "PILOT_HIDDEN",
+    rationale:
+      "The assessment derives a non-authoritative interpretation of APR rows. It remains available only for authorized R&D review while Registrar terminology is unresolved.",
+    reEnableCriteria:
+      "Registrar-confirmed semantics, a reviewed academic-policy decision, and explicit approval to expose it to pilot students.",
+    requiresDegreeCompletionRND: true,
+  },
 ];
 
 export function getFeature(path: string): PilotFeatureDef | undefined {
@@ -330,9 +344,14 @@ export function getAdditionalFeatureGroups(
 }
 
 /** Whether `path` should render for this viewer — the same rule desktop nav, mobile nav, and route gating all share. */
-export function isPathPilotAllowed(path: string, isAdmin: boolean): boolean {
+export function isPathPilotAllowed(
+  path: string,
+  isAdmin: boolean,
+  capabilities: { canUseDegreeCompletionRND?: boolean } = {},
+): boolean {
   const feature = getFeature(path);
   if (!feature) return true; // not a tracked feature (auth pages, onboarding, admin/*, etc.) — not gated here
-  if (feature.status === "PILOT_HIDDEN") return isAdmin;
+  if (feature.status === "PILOT_HIDDEN" && !isAdmin) return false;
+  if (feature.requiresDegreeCompletionRND && !capabilities.canUseDegreeCompletionRND) return false;
   return true;
 }

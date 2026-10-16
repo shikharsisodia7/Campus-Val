@@ -21,7 +21,8 @@ import { DegreeCompletionAssessment } from "@/components/progress-report/DegreeC
  * each in its own collapsible container showing the workbook as Workday
  * exported it. The compact, grade-free version lives in the planning sidebar.
  */
-function FullAprWorkspace() {
+/** Reused by the private R&D page; normal APR always leaves assessment off. */
+export function FullAprWorkspace({ showExperimentalAssessment = false }: { showExperimentalAssessment?: boolean }) {
   const { data, isLoading, isError, refetch } = useAprDocuments();
   const [adding, setAdding] = useState(false);
 
@@ -138,8 +139,7 @@ function FullAprWorkspace() {
         </section>
       )}
 
-      {/* Secondary to the APR, never instead of it: CampusVal's editable planning reading of it. */}
-      {available === true && reports.length > 0 && <DegreeCompletionAssessment />}
+      {showExperimentalAssessment && available === true && reports.length > 0 && <DegreeCompletionAssessment />}
     </div>
   );
 }

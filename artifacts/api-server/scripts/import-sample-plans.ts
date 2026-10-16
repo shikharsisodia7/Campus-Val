@@ -28,7 +28,7 @@ import { readChecksheetDocx } from "../src/lib/checksheets/docx-reader.ts";
 import { listPrograms } from "../src/lib/department/programs.ts";
 import { slug } from "../src/lib/requirements-source/stable-keys.ts";
 import { parseCasCoursePlan } from "../src/lib/sample-plans/cas-course-plan.ts";
-import { importSamplePlan, type SamplePlanImport } from "../src/lib/sample-plans/service.ts";
+import { generatedPlanRNDEnabled, importSamplePlan, type SamplePlanImport } from "../src/lib/sample-plans/service.ts";
 import { validateSampleItems, type SampleItemInput } from "../src/lib/sample-plans/validate.ts";
 
 const args = process.argv.slice(2);
@@ -72,6 +72,10 @@ if (args.includes("--engineering")) {
       items,
     });
   }
+}
+
+if (args.includes("--generated") && !generatedPlanRNDEnabled()) {
+  throw new Error("--generated is private R&D work. Set ENABLE_GENERATED_PLAN_RND=true before running it.");
 }
 
 if (args.includes("--generated")) {

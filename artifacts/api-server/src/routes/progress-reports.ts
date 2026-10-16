@@ -12,7 +12,7 @@
  * id, and nothing here logs file content, cell text, file names or paths.
  */
 import { createHash } from "node:crypto";
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { and, asc, eq, sql } from "drizzle-orm";
 import {
   db,
@@ -27,6 +27,7 @@ import {
   UpdateProgressReportDocumentBody,
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
+import { isAdminUser } from "../lib/admin";
 import {
   getPrivateObjectStorage,
   isPrivateStorageConfigured,
@@ -589,13 +590,23 @@ router.get("/progress-reports/sidebar", requireAuth, async (req, res): Promise<v
 // accepted for a document that user owns. Nothing here is reachable through a
 // plan share. It never writes to progress_reports.
 
+/**
+ * Degree Completion Assessment is private R&D, not a normal APR capability.
+ * Keep this server-side check next to every endpoint so hiding a page or nav
+ * item can never expose a derived academic claim to a pilot student.
+ */
+function requireAssessmentRndAccess(req: Request, res: Response): boolean {
+  if (assessmentEnabled() && req.userEmail && isAdminUser(req.userEmail)) return true;
+  noStore(res);
+  // Do not advertise an internal route to a signed-in non-admin user.
+  res.status(404).json({ error: "Not found." });
+  return false;
+}
+
 router.get("/progress-reports/assessment", requireAuth, async (req, res): Promise<void> => {
   noStore(res);
+  if (!requireAssessmentRndAccess(req, res)) return;
   const base = { enabled: assessmentEnabled(), disclaimer: ASSESSMENT_DISCLAIMER, ruleVersion: ASSESSMENT_RULE_VERSION };
-  if (!base.enabled) {
-    res.json({ ...base, available: false, documents: [] });
-    return;
-  }
   if (!isPrivateStorageConfigured()) {
     res.json({ ...base, available: false, documents: [] });
     return;
@@ -658,10 +669,7 @@ const ITEM_KEY_RE = /^[0-9a-f]{16}$/;
 
 router.put("/progress-reports/:id/assessment/items/:itemKey", requireAuth, async (req, res): Promise<void> => {
   noStore(res);
-  if (!assessmentEnabled()) {
-    res.status(404).json({ error: "The Degree Completion Assessment is not available." });
-    return;
-  }
+  if (!requireAssessmentRndAccess(req, res)) return;
   const id = parseId(req);
   const itemKey = String(req.params["itemKey"] ?? "");
   const parsed = CorrectionBody.safeParse(req.body);
@@ -697,6 +705,7 @@ router.put("/progress-reports/:id/assessment/items/:itemKey", requireAuth, async
 
 router.delete("/progress-reports/:id/assessment/items/:itemKey", requireAuth, async (req, res): Promise<void> => {
   noStore(res);
+  if (!requireAssessmentRndAccess(req, res)) return;
   const id = parseId(req);
   const itemKey = String(req.params["itemKey"] ?? "");
   if (id === null || !ITEM_KEY_RE.test(itemKey)) {

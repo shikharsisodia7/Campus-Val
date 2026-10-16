@@ -25,7 +25,7 @@ vi.mock("../middlewares/requireAuth", () => ({
     const userId = req.header("x-test-user");
     if (!userId) return res.status(401).json({ error: "Sign in required" });
     req.userId = userId;
-    req.userEmail = req.header("x-test-email");
+    req.userEmail = req.header("x-test-email") ?? `${userId}@scu.edu`;
     next();
   },
 }));
@@ -165,6 +165,8 @@ const STUDENT = `apr-ac-student-${RUN}`;
 const OTHER = `apr-ac-other-${RUN}`;
 const ADVISOR = `apr-ac-advisor-${RUN}`;
 const ADVISOR_EMAIL = `advisor-${RUN}@scu.edu`;
+const STUDENT_EMAIL = `${STUDENT}@scu.edu`;
+const OTHER_EMAIL = `${OTHER}@scu.edu`;
 const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const SECRETS = /Finance Major|FNCE 121|Core: LSB|Not Satisfied|secret-finance|Fall 2026 Quarter/;
 
@@ -201,6 +203,10 @@ beforeAll(async () => {
   process.env["PRIVATE_STORAGE_PROVIDER"] = "local";
   process.env["PRIVATE_STORAGE_DIR"] = dir;
   process.env["STORAGE_SIGNING_SECRET"] = "s".repeat(48);
+  // This suite exercises the private R&D surface's per-owner isolation. The
+  // normal-pilot denial is covered separately in degree-completion.test.ts.
+  process.env["ENABLE_DEGREE_COMPLETION_RND"] = "true";
+  process.env["ADMIN_EMAILS"] = [STUDENT_EMAIL, OTHER_EMAIL, ADVISOR_EMAIL].join(",");
   resetPrivateObjectStorageForTests();
 
   const bytes = await buildAprFixture("finance-major");

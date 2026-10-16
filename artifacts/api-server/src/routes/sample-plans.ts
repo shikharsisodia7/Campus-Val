@@ -13,12 +13,16 @@ import { z } from "zod/v4";
 import { db, samplePlansTable, studentProfilesTable } from "@workspace/db";
 import { requireAuth } from "../middlewares/requireAuth";
 import { logger } from "../lib/logger";
+import { isAdminUser } from "../lib/admin";
 import { canManageProgram, normalizeEmail, requireDepartmentAccess } from "../lib/department/authz";
 import { DepartmentError, isMissingDepartmentTable } from "../lib/department/service";
 import {
   SCHOOL_NAME,
   SCHOOL_ORDER,
   getSamplePlan,
+  generatedPlanRNDEnabled,
+  isPublicSamplePlan,
+  listGeneratedForRND,
   listForAdmin,
   listPublished,
   loadSamplePlan,
@@ -37,6 +41,13 @@ function fail(res: Response, error: unknown) {
     return res.status(503).json({ error: "Sample plans aren't available yet." });
   }
   throw error;
+}
+
+/** Fail closed and avoid advertising an internal R&D surface to pilot users. */
+function requireGeneratedPlanRND(req: Request, res: Response): boolean {
+  if (generatedPlanRNDEnabled() && req.userEmail && isAdminUser(req.userEmail)) return true;
+  res.status(404).json({ error: "Sample plan not found." });
+  return false;
 }
 
 router.get("/sample-plans", requireAuth, async (_req, res) => {
@@ -60,7 +71,7 @@ router.get("/sample-plans", requireAuth, async (_req, res) => {
 
 async function publishedPlan(req: Request, res: Response) {
   const found = await getSamplePlan(Number(req.params.id));
-  if (!found || found.plan.status !== "published") {
+  if (!found || !isPublicSamplePlan(found.plan)) {
     res.status(404).json({ error: "Sample plan not found." });
     return null;
   }
@@ -115,10 +126,29 @@ router.post("/sample-plans/:id/load", requireAuth, async (req, res) => {
 
 // --- administration -------------------------------------------------------
 
+/**
+ * Private, feature-flagged inventory for deterministic CampusVal-generated
+ * sequence research. There is intentionally no student-facing route or UI
+ * action that can load one of these templates.
+ */
+router.get("/admin/rnd/generated-sample-plans", requireAuth, async (req, res) => {
+  if (!requireGeneratedPlanRND(req, res)) return;
+  try {
+    const rows = await listGeneratedForRND();
+    res.json({ plans: rows.map(samplePlanSummary) });
+  } catch (error) {
+    return fail(res, error);
+  }
+});
+
 router.get("/admin/department/sample-plans", requireAuth, requireDepartmentAccess, async (req, res) => {
   const scopes = req.adminScopes!;
   try {
-    const rows = await listForAdmin(scopes.superAdmin ? null : [...scopes.programKeys]);
+    // The normal department-admin inventory remains source-backed. Generated
+    // records are inspectable only from the explicit R&D endpoint above.
+    const rows = (await listForAdmin(scopes.superAdmin ? null : [...scopes.programKeys])).filter(
+      (row) => row.sourceType === "official_department" || row.sourceType === "admin_entry",
+    );
     res.json({ plans: rows.map((r) => ({ ...samplePlanSummary(r), importWarnings: r.importWarnings })) });
   } catch (error) {
     return fail(res, error);
@@ -137,6 +167,7 @@ router.patch("/admin/department/sample-plans/:id", requireAuth, requireDepartmen
   try {
     const [plan] = await db.select().from(samplePlansTable).where(eq(samplePlansTable.id, Number(req.params.id))).limit(1);
     if (!plan) return res.status(404).json({ error: "Sample plan not found." });
+    if (plan.sourceType === "campusval_generated" && !requireGeneratedPlanRND(req, res)) return;
     const scopes = req.adminScopes!;
     // A template with no program of its own is a school-wide resource: super admins only.
     const allowed = plan.programKey ? canManageProgram(scopes, plan.programKey) : scopes.superAdmin;

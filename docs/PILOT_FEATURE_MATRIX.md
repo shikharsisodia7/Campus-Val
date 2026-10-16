@@ -20,6 +20,8 @@ present for admins and future re-enablement," never "removed."
 | `PILOT_VISIBLE` | Everyone signed in | "Additional Features" dropdown/menu |
 | `PILOT_HIDDEN` | Admins only (`ADMIN_EMAILS` allowlist) | "Additional Features" (admin-only group) + direct URL; a non-admin hitting the URL is redirected to Dashboard with a toast |
 
+An internal capability can be stricter than `PILOT_HIDDEN`: it can require both an allowlisted administrator and an explicit server-side R&D flag. Such a route appears in no navigation group.
+
 ## CORE — the professor's three key workflows + Dashboard
 
 | Feature | Path | Rationale |
@@ -56,6 +58,13 @@ present for admins and future re-enablement," never "removed."
 | AI Evaluation | `/evaluation` | Internal AI-evaluation framework — not part of the professor's pilot review scope. | Product decision to expose evaluation tooling to reviewers. |
 | Sync Workday Sections | `/sync-workday` | A separate live-seat-availability paste tool — **not** the same feature as the Workday APR / Progress Report. Hidden to reduce menu clutter; its backend data still powers the "Live sections" panel inside course drawers, so Quarter Plan/Fall-Winter-Spring scheduling is unaffected. | Product decision to surface live-seat sync as a pilot-facing tool. |
 | Feedback (legacy) | `/feedback` | Superseded by the header "Report Error / Suggest Changes" control (PR #44) as the one obvious feedback mechanism for pilot testers. Route and data preserved internally. | None planned — Report Error / Suggest Changes is the permanent replacement. |
+
+## Internal R&D surfaces — never in pilot navigation
+
+| Surface | Route / access | Guard | Purpose |
+|---|---|---|---|
+| APR + Degree Completion Assessment — Experimental | `/experimental/apr-assessment` | `ADMIN_EMAILS` plus `ENABLE_DEGREE_COMPLETION_RND=true`; the API independently returns 404 otherwise | Preserve conservative APR-derived assessment development while Registrar terminology is unresolved. It is absent from Degree Plan, Tentative Degree Plan, Quarter Plan, and normal APR. |
+| Generated sample-plan inventory | `GET /api/admin/rnd/generated-sample-plans` | `ADMIN_EMAILS` plus `ENABLE_GENERATED_PLAN_RND=true` | Inspect deterministic CampusVal-generated sequence records. Public list/preview/load APIs and normal department-admin inventory exclude them. |
 
 ## Admin-only pages outside the pilot registry (unchanged, out of scope)
 

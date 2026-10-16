@@ -23,7 +23,6 @@ import {
   Plus,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { DegreeCompletionAssessment } from "@/components/progress-report/DegreeCompletionAssessment";
 
 export function DegreePlanWorkspace({
   mode = "degree",
@@ -185,13 +184,6 @@ export function DegreePlanWorkspace({
         >
           <ContextPanel />
         </div>
-      </div>
-      {/* Below the board, collapsed: the same assessment the APR page shows, from the student's own APRs. */}
-      <div className="mt-3" data-testid="degree-plan-assessment">
-        <DegreeCompletionAssessment
-          variant="compact"
-          planContext={{ planType: mode === "tentative" || activePlan?.planType === "tentative" ? "tentative" : "degree", planName: activePlan?.name }}
-        />
       </div>
     </DegreePlanProvider>
   );

@@ -62,8 +62,9 @@ Built from the variables the code actually reads (`process.env` / `import.meta.e
 | `WORKDAY_AVAILABILITY_MIN_REFRESH_SECONDS` | CV | No | No | Shortest gap a "Refresh availability" may force per term (default 30) |
 | `AVAILABILITY_INGEST_SECRET` | CV | No | **Yes** | Enables the scheduled-ingestion hook `POST /api/internal/availability/refresh` (24+ characters) |
 | `AVAILABILITY_INGEST_TERMS` | CV | With the secret | No | Terms the hook refreshes, `fall-2026,winter-2027` |
-| `DEGREE_COMPLETION_ASSESSMENT_ENABLED` | CV | No | No | Set `false` to hide the Degree Completion Assessment (default on). See [DEGREE_COMPLETION_ASSESSMENT.md](DEGREE_COMPLETION_ASSESSMENT.md) |
+| `ENABLE_DEGREE_COMPLETION_RND` | CV | No | No | Private R&D only; default `false`. Requires an `ADMIN_EMAILS` user and protects the experimental assessment route/API. See [DEGREE_COMPLETION_ASSESSMENT.md](DEGREE_COMPLETION_ASSESSMENT.md) |
 | `DEGREE_COMPLETION_IN_PROGRESS_REMAINING_IS_ADDITIONAL` | CV | No | No | Registrar-dependent assessment subrule, default `false` |
+| `ENABLE_GENERATED_PLAN_RND` | CV | No | No | Private deterministic generated-plan R&D inventory/import; default `false`. Public Sample Plans never include generated sequences. |
 | `REQUIREMENTS_BENCHMARK_PROVIDER` | CV | No | No | Requirements source selector (default current Bulletin) |
 | `REQUIREMENTS_BULLETIN_EDITION` | CV | No | No | Which loaded Bulletin edition builds the sidebar (default: the latest). See [BULLETIN_BASELINE.md](BULLETIN_BASELINE.md) |
 | `MIGRATIONS_DIR` | CV | No | No | Override migration folder |

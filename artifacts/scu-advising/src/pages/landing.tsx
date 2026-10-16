@@ -2,12 +2,9 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  GraduationCap,
+  Map,
   CalendarRange,
-  MessageSquareText,
-  CheckSquare,
-  Route,
-  BookOpen,
+  FlaskConical,
   ArrowRight,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
@@ -87,8 +84,8 @@ function Hero() {
         transition={{ duration: 0.6, delay: 0.15 }}
         className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto"
       >
-        Plan your quarters, track Core requirements, and get answers grounded
-        in real SCU policy.
+        Build an academic plan, map each quarter, and explore options before
+        discussing decisions with your advisor.
       </motion.p>
 
       <motion.div
@@ -127,34 +124,19 @@ function Hero() {
 function Features() {
   const features = [
     {
-      icon: CheckSquare,
-      title: "Core tracker",
-      desc: "Check off SCU Core requirements as you complete them.",
+      icon: Map,
+      title: "Degree Planning",
+      desc: "Build and organize a long-term academic plan from published requirements.",
     },
     {
       icon: CalendarRange,
-      title: "Quarter planner",
-      desc: "Unit caps and prereq checks before you register.",
+      title: "Quarter Planning",
+      desc: "Arrange a quarter schedule and review it before registering in Workday.",
     },
     {
-      icon: Route,
-      title: "Graduation paths",
-      desc: "3- and 4-year plans for every undergrad major.",
-    },
-    {
-      icon: BookOpen,
-      title: "Course catalog",
-      desc: "Search every department, with live section data.",
-    },
-    {
-      icon: MessageSquareText,
-      title: "AI planning support",
-      desc: "Answers grounded in SCU's bulletin and policies.",
-    },
-    {
-      icon: GraduationCap,
-      title: "Transfer credit",
-      desc: "ASSIST.org articulation for California colleges.",
+      icon: FlaskConical,
+      title: "Explore Options with Tentative Degree Planning",
+      desc: "Explore different majors, minors, and academic pathways without changing your declared SCU program.",
     },
   ];
 

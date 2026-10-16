@@ -106,6 +106,19 @@ describe("requirement categories", () => {
     }
   });
 
+  it("keeps Finance's Leavey Business Core separate from Finance-major requirements", () => {
+    const { tree } = treeFor(majors.find((major) => major.code === "FNCE")!);
+    const school = tree.find((g) => g.category === "SCHOOL")!;
+    const major = tree.find((g) => g.category === "MAJOR")!;
+
+    expect(school.group.title).toBe("Leavey School of Business Requirements");
+    expect(school.items.some((item) => item.item.courses.includes("FNCE 121"))).toBe(true);
+    expect(major.group.title).toMatch(/^Major Requirements — Finance/);
+    expect(major.items.some((item) => item.item.courses.includes("FNCE 124"))).toBe(true);
+    // FNCE 121 is a Leavey Common Core course, not a Finance-major elective.
+    expect(major.items.flatMap((item) => item.item.courses)).not.toContain("FNCE 121");
+  });
+
   it("recognizes Core area wording but not a real course title", () => {
     for (const label of ["Critical Thinking & Writing 1", "CTW 2", "ENGL 1A — Critical Thinking and Writing 1", "Cultures & Ideas 3", "RTC 2", "Pathway 1", "Natural Science"]) {
       expect(looksLikeCoreAreaLabel(label), label).toBe(true);

@@ -11,7 +11,11 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 
 const setLocationMock = vi.fn();
 const toastMock = vi.fn();
-let adminStatus = { isAdmin: false, isLoading: false };
+let adminStatus: { isAdmin: boolean; isLoading: boolean; canUseDegreeCompletionRND: boolean } = {
+  isAdmin: false,
+  isLoading: false,
+  canUseDegreeCompletionRND: false,
+};
 
 vi.mock("wouter", () => ({
   useLocation: () => ["/advice", setLocationMock],
@@ -34,7 +38,7 @@ describe("PilotGate", () => {
   });
 
   it("renders nothing and redirects a non-admin away from a PILOT_HIDDEN route, with a pilot-scoped toast", async () => {
-    adminStatus = { isAdmin: false, isLoading: false };
+    adminStatus = { isAdmin: false, isLoading: false, canUseDegreeCompletionRND: false };
     render(
       <PilotGate path="/advice">
         <div data-testid="hidden-feature">Advice Board content</div>
@@ -49,7 +53,7 @@ describe("PilotGate", () => {
   });
 
   it("renders the real feature unchanged for an admin, never redirecting", async () => {
-    adminStatus = { isAdmin: true, isLoading: false };
+    adminStatus = { isAdmin: true, isLoading: false, canUseDegreeCompletionRND: false };
     render(
       <PilotGate path="/advice">
         <div data-testid="hidden-feature">Advice Board content</div>
@@ -62,7 +66,7 @@ describe("PilotGate", () => {
   });
 
   it("renders nothing yet while the admin check is still loading -- never flashes the feature or redirects early", () => {
-    adminStatus = { isAdmin: false, isLoading: true };
+    adminStatus = { isAdmin: false, isLoading: true, canUseDegreeCompletionRND: false };
     render(
       <PilotGate path="/advice">
         <div data-testid="hidden-feature">Advice Board content</div>
@@ -74,7 +78,7 @@ describe("PilotGate", () => {
   });
 
   it("renders a PILOT_VISIBLE/CORE path's children unchanged for a non-admin (no gating)", () => {
-    adminStatus = { isAdmin: false, isLoading: false };
+    adminStatus = { isAdmin: false, isLoading: false, canUseDegreeCompletionRND: false };
     render(
       <PilotGate path="/courses">
         <div data-testid="visible-feature">Course Catalog content</div>
@@ -82,6 +86,30 @@ describe("PilotGate", () => {
     );
 
     expect(screen.getByTestId("visible-feature")).toBeTruthy();
+    expect(setLocationMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the assessment R&D route hidden from an admin until the server capability is enabled", async () => {
+    adminStatus = { isAdmin: true, isLoading: false, canUseDegreeCompletionRND: false };
+    render(
+      <PilotGate path="/experimental/apr-assessment">
+        <div data-testid="rnd-feature">Experimental assessment</div>
+      </PilotGate>,
+    );
+
+    expect(screen.queryByTestId("rnd-feature")).toBeNull();
+    await waitFor(() => expect(setLocationMock).toHaveBeenCalledWith("/"));
+  });
+
+  it("renders the assessment R&D route only for an authorized enabled admin", () => {
+    adminStatus = { isAdmin: true, isLoading: false, canUseDegreeCompletionRND: true };
+    render(
+      <PilotGate path="/experimental/apr-assessment">
+        <div data-testid="rnd-feature">Experimental assessment</div>
+      </PilotGate>,
+    );
+
+    expect(screen.getByTestId("rnd-feature")).toBeTruthy();
     expect(setLocationMock).not.toHaveBeenCalled();
   });
 });
