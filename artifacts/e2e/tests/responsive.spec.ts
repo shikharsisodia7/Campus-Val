@@ -104,6 +104,7 @@ test.describe("authenticated responsive QA", () => {
  * and neither reappears on mobile.
  */
 const PILOT_HIDDEN_ROUTES = [
+  "/experimental/apr-assessment",
   "/professors",
   "/compare",
   "/graduation-paths",
@@ -117,6 +118,7 @@ const PILOT_HIDDEN_ROUTES = [
 ];
 
 const PILOT_HIDDEN_LABELS = [
+  "APR + Degree Completion Assessment (Experimental)",
   "Advice Board",
   "Planning Support",
   "Voice Planning Support",
