@@ -12,6 +12,7 @@ describe("public landing page", () => {
   it("presents the three reliable pilot workflows and no experimental marketing", () => {
     render(<Landing />);
 
+    expect(screen.getByRole("main")).toBeTruthy();
     expect(screen.getByText("Degree Planning")).toBeTruthy();
     expect(screen.getByText("Quarter Planning")).toBeTruthy();
     expect(screen.getByText("Explore Options with Tentative Degree Planning")).toBeTruthy();

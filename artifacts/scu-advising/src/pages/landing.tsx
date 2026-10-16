@@ -22,8 +22,10 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <Hero />
-      <Features />
+      <main>
+        <Hero />
+        <Features />
+      </main>
       <Footer />
     </div>
   );
