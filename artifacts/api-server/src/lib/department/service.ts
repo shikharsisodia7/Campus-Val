@@ -13,9 +13,11 @@ import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   db,
+  departmentCanonicalResourcesTable,
   departmentAuditLogTable,
   departmentRequirementNotesTable,
   departmentRequirementOverridesTable,
+  type DepartmentCanonicalResourceRow,
   type DepartmentRequirementNoteRow,
   type DepartmentRequirementOverrideRow,
 } from "@workspace/db";
@@ -25,6 +27,12 @@ import { cleanCourseCodes, cleanText } from "../requirement-customizations";
 import { resolveBulletinEdition } from "../requirements-source/editions";
 import type { NormalizedGroup } from "../requirements-source/normalize";
 import { applyDepartmentLayer, type LayerContext, type LayerResult, type NoteRecord, type OverrideRecord } from "./layer";
+import {
+  CANONICAL_RESOURCE_PROVENANCE_STATUSES,
+  CANONICAL_RESOURCE_PUBLICATION_STATUSES,
+  CANONICAL_RESOURCE_REVIEW_STATUSES,
+  isCanonicalResourceReady,
+} from "./canonical-resources";
 import { findProgram, groupKeyOf, listPrograms, programTree, targetBelongsToProgram } from "./programs";
 
 export const NOTE_STATUSES = ["draft", "published", "archived", "unmapped"] as const;
@@ -38,6 +46,9 @@ export const MAX_NOTE_COURSES = 60;
 export const MAX_OVERRIDE_TITLE = 160;
 export const MAX_OVERRIDE_DESCRIPTION = 600;
 export const MAX_ADDED_COURSES = 12;
+export const MAX_RESOURCE_DOCUMENT_TITLE = 240;
+export const MAX_RESOURCE_FILE_NAME = 240;
+export const MAX_RESOURCE_VERSION = 80;
 
 /** A refusal with the HTTP status the route should send. */
 export class DepartmentError extends Error {
@@ -70,7 +81,7 @@ export interface Actor {
 
 export interface AuditEntry {
   programKey: string;
-  entity: "note" | "override" | "sample_plan" | "scope";
+  entity: "note" | "override" | "sample_plan" | "scope" | "canonical_resource";
   entityId?: string | number | null;
   action: string;
   targetKey?: string | null;
@@ -104,6 +115,183 @@ export async function listAudit(programKey: string, limit = 100) {
     .where(eq(departmentAuditLogTable.programKey, programKey))
     .orderBy(desc(departmentAuditLogTable.at), desc(departmentAuditLogTable.id))
     .limit(Math.min(Math.max(limit, 1), 500));
+}
+
+// ---------------------------------------------------------------------------
+// Canonical department resources
+// ---------------------------------------------------------------------------
+
+/**
+ * The importer accepts only a registry row that has passed provenance, review,
+ * and publication.  Student upload storage is deliberately not represented in
+ * this model or accepted by these functions.
+ */
+export interface NewCanonicalResource {
+  programKey: string;
+  documentTitle: string;
+  sourceFileName: string;
+  sourceUrl: string;
+  academicYear?: string | null;
+  documentVersion?: string | null;
+}
+
+export interface CanonicalResourcePatch {
+  documentTitle?: string;
+  sourceFileName?: string;
+  sourceUrl?: string;
+  academicYear?: string | null;
+  documentVersion?: string | null;
+  provenanceStatus?: string;
+  reviewStatus?: string;
+  publicationStatus?: string;
+}
+
+function requiredResourceText(value: unknown, field: string, maxLength: number): string {
+  if (typeof value !== "string") throw new DepartmentError(400, `${field} is required.`);
+  const clean = cleanText(value, maxLength, false);
+  if (!clean) throw new DepartmentError(400, `${field} is required.`);
+  return clean;
+}
+
+function optionalResourceText(value: unknown, field: string, maxLength: number): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") throw new DepartmentError(400, `${field} must be text.`);
+  return cleanText(value, maxLength, false);
+}
+
+function cleanCanonicalSourceFileName(value: unknown): string {
+  const name = requiredResourceText(value, "Source file name", MAX_RESOURCE_FILE_NAME);
+  if (/[\\/]/.test(name) || !/\.xlsx$/i.test(name)) {
+    throw new DepartmentError(400, "Source file name must be the exact .xlsx file name, without a path.");
+  }
+  return name;
+}
+
+function cleanCanonicalSourceUrl(value: unknown): string {
+  const raw = requiredResourceText(value, "Source URL", 2_000);
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new DepartmentError(400, "Source URL must be a valid public HTTPS URL.");
+  }
+  if (url.protocol !== "https:" || !url.hostname) {
+    throw new DepartmentError(400, "Source URL must be a valid public HTTPS URL.");
+  }
+  return url.toString();
+}
+
+function canonicalStatus(
+  value: unknown,
+  allowed: readonly string[],
+  field: "Provenance status" | "Review status" | "Publication status",
+): string {
+  if (typeof value !== "string" || !allowed.includes(value)) {
+    throw new DepartmentError(400, `${field} is not valid.`);
+  }
+  return value;
+}
+
+function canonicalResourceAudit(row: DepartmentCanonicalResourceRow) {
+  return {
+    programKey: row.programKey,
+    school: row.school,
+    documentTitle: row.documentTitle,
+    sourceFileName: row.sourceFileName,
+    sourceUrl: row.sourceUrl,
+    academicYear: row.academicYear,
+    documentVersion: row.documentVersion,
+    provenanceStatus: row.provenanceStatus,
+    reviewStatus: row.reviewStatus,
+    publicationStatus: row.publicationStatus,
+  };
+}
+
+export async function createCanonicalResource(actor: Actor, input: NewCanonicalResource): Promise<DepartmentCanonicalResourceRow> {
+  const program = findProgram(input.programKey);
+  if (!program) throw new DepartmentError(404, "That program is not in CampusVal.");
+  const [row] = await db
+    .insert(departmentCanonicalResourcesTable)
+    .values({
+      programKey: program.programKey,
+      programType: program.type,
+      school: program.college,
+      documentTitle: requiredResourceText(input.documentTitle, "Document title", MAX_RESOURCE_DOCUMENT_TITLE),
+      sourceFileName: cleanCanonicalSourceFileName(input.sourceFileName),
+      sourceUrl: cleanCanonicalSourceUrl(input.sourceUrl),
+      academicYear: optionalResourceText(input.academicYear, "Academic year", MAX_RESOURCE_VERSION),
+      documentVersion: optionalResourceText(input.documentVersion, "Document version", MAX_RESOURCE_VERSION),
+      // A source starts inert. A super admin must record each decision before
+      // the offline importer is allowed to read it.
+      provenanceStatus: "documented",
+      reviewStatus: "pending",
+      publicationStatus: "draft",
+      createdBy: actor.email,
+      updatedBy: actor.email,
+    })
+    .returning();
+  await recordAudit(actor, {
+    programKey: program.programKey,
+    entity: "canonical_resource",
+    entityId: row!.id,
+    action: "create",
+    after: canonicalResourceAudit(row!),
+  });
+  return row!;
+}
+
+export async function getCanonicalResource(id: number): Promise<DepartmentCanonicalResourceRow | null> {
+  const [row] = await db.select().from(departmentCanonicalResourcesTable).where(eq(departmentCanonicalResourcesTable.id, id)).limit(1);
+  return row ?? null;
+}
+
+export async function listCanonicalResources(programKey?: string) {
+  const query = db.select().from(departmentCanonicalResourcesTable);
+  return programKey
+    ? query.where(eq(departmentCanonicalResourcesTable.programKey, programKey)).orderBy(asc(departmentCanonicalResourcesTable.id))
+    : query.orderBy(asc(departmentCanonicalResourcesTable.programKey), asc(departmentCanonicalResourcesTable.id));
+}
+
+export async function updateCanonicalResource(
+  actor: Actor,
+  existing: DepartmentCanonicalResourceRow,
+  patch: CanonicalResourcePatch,
+): Promise<DepartmentCanonicalResourceRow> {
+  const next: Partial<typeof departmentCanonicalResourcesTable.$inferInsert> = { updatedBy: actor.email };
+  if (patch.documentTitle !== undefined) next.documentTitle = requiredResourceText(patch.documentTitle, "Document title", MAX_RESOURCE_DOCUMENT_TITLE);
+  if (patch.sourceFileName !== undefined) next.sourceFileName = cleanCanonicalSourceFileName(patch.sourceFileName);
+  if (patch.sourceUrl !== undefined) next.sourceUrl = cleanCanonicalSourceUrl(patch.sourceUrl);
+  if (patch.academicYear !== undefined) next.academicYear = optionalResourceText(patch.academicYear, "Academic year", MAX_RESOURCE_VERSION);
+  if (patch.documentVersion !== undefined) next.documentVersion = optionalResourceText(patch.documentVersion, "Document version", MAX_RESOURCE_VERSION);
+  if (patch.provenanceStatus !== undefined) {
+    next.provenanceStatus = canonicalStatus(patch.provenanceStatus, CANONICAL_RESOURCE_PROVENANCE_STATUSES, "Provenance status");
+  }
+  if (patch.reviewStatus !== undefined) {
+    next.reviewStatus = canonicalStatus(patch.reviewStatus, CANONICAL_RESOURCE_REVIEW_STATUSES, "Review status");
+    next.reviewedBy = actor.email;
+    next.reviewedAt = new Date();
+  }
+  if (patch.publicationStatus !== undefined) {
+    next.publicationStatus = canonicalStatus(patch.publicationStatus, CANONICAL_RESOURCE_PUBLICATION_STATUSES, "Publication status");
+    if (next.publicationStatus === "published") {
+      next.publishedBy = actor.email;
+      next.publishedAt = new Date();
+    }
+  }
+  const [row] = await db
+    .update(departmentCanonicalResourcesTable)
+    .set(next)
+    .where(eq(departmentCanonicalResourcesTable.id, existing.id))
+    .returning();
+  await recordAudit(actor, {
+    programKey: existing.programKey,
+    entity: "canonical_resource",
+    entityId: existing.id,
+    action: "update",
+    before: canonicalResourceAudit(existing),
+    after: canonicalResourceAudit(row!),
+  });
+  return row!;
 }
 
 // ---------------------------------------------------------------------------
@@ -163,10 +351,14 @@ export async function applyDepartmentLayerToTree(
   if (!edition) return { tree, applied: { notes: 0, overridden: 0, hidden: 0, added: 0 } };
   const present = tree.map((g) => g.stableKey);
   try {
-    const [notes, overrides] = await Promise.all([
+    const [noteRows, overrides] = await Promise.all([
       db
-        .select()
+        .select({ note: departmentRequirementNotesTable, resource: departmentCanonicalResourcesTable })
         .from(departmentRequirementNotesTable)
+        .leftJoin(
+          departmentCanonicalResourcesTable,
+          eq(departmentRequirementNotesTable.canonicalResourceId, departmentCanonicalResourcesTable.id),
+        )
         .where(
           and(
             eq(departmentRequirementNotesTable.bulletinEdition, edition),
@@ -184,6 +376,12 @@ export async function applyDepartmentLayerToTree(
           ),
         ),
     ]);
+    // Legacy/admin notes keep their established behavior. A resource-backed
+    // import becomes invisible the moment the source is superseded, rejected,
+    // unreviewed, or unpublished; no student upload can satisfy this join.
+    const notes = noteRows
+      .filter(({ note, resource }) => note.canonicalResourceId === null || (resource !== null && isCanonicalResourceReady(resource)))
+      .map(({ note }) => note);
     const ctx: LayerContext = { edition, programTitles: programTitles(), completed: state.completed, planned: state.planned };
     return applyDepartmentLayer(tree, notes.map(asNoteRecord), overrides.map(asOverrideRecord), ctx);
   } catch (error) {
@@ -288,6 +486,10 @@ export async function createNote(actor: Actor, input: NewNote): Promise<Departme
       origin: "admin",
       sourceType: "admin_entry",
       sourceLabel: `${program.title} department`,
+      // This is a real Department Admin source, not a legacy/imported record
+      // whose provenance still needs review.  The explicit value keeps the
+      // admin provenance inspector honest after migration 0010.
+      provenanceStatus: "department_admin",
       reviewedBy: status === "published" ? actor.email : null,
       reviewedAt: status === "published" ? new Date() : null,
       createdBy: actor.email,

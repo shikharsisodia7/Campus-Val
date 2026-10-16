@@ -139,7 +139,7 @@ then 7 of 7), with `drizzle-kit generate` reporting no schema drift.
 
 After the migration, in this order, against the production database and only after reading each **dry run**:
 
-1. **Department Notes** from the department checklists: `pnpm --filter @workspace/api-server run import:department-notes -- --dir <folder>` (then `--apply`).
+1. **Department Notes** from an offline canonical-resource package: in Program Requirements Admin, register each source with its program, school, HTTPS source URL, exact `.xlsx` file name, academic year and document version; then record verified provenance, approved review and published status. Run `pnpm --filter @workspace/api-server run import:department-notes -- --dir <folder>` (then `--apply`). The importer skips unregistered, non-ready, duplicate, or archived resources and never reads student checksheet uploads.
 2. **Sample plans**: `pnpm --filter @workspace/api-server run import:sample-plans -- --engineering --cas-dir <folder>` (then `--apply`; add `--publish` to make them visible).
 3. **Department administrators**: `pnpm --filter @workspace/api-server run admin:scope -- grant --email <address> --program <program key>`
    (`-- programs` lists the keys). Never put an address in code or a migration.

@@ -12,7 +12,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { auditFindingsToCsv, auditRequirements, auditRowsToCsv } from "../src/lib/requirements-source/audit.ts";
+import { auditFindingsToCsv, auditReportToMarkdown, auditRequirements, auditRowsToCsv } from "../src/lib/requirements-source/audit.ts";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -32,6 +32,9 @@ console.log(`  concentrations       ${counts.concentrations} (in ${counts.majors
 console.log(`  classification errors ${counts.classificationErrors}  (Core under Major, Major under Core, university rule under Major)`);
 console.log(`  groups               ${counts.groups}`);
 console.log(`  requirements         ${counts.requirements}`);
+console.log(`  choices              ${counts.choiceRequirements} requirements; ${counts.choiceListsWithCourses}/${counts.choiceLists} lists or options populated`);
+console.log(`  structured sources   ${counts.structuredMajorSources}; representation mismatches ${counts.sourceRepresentationMismatches}`);
+console.log(`  majors without upper-division course evidence ${counts.majorsWithoutUpperDivisionCourseEvidence}`);
 console.log(`  findings             ${counts.findings}  (errors ${counts.bySeverity.error}, warnings ${counts.bySeverity.warning}, info ${counts.bySeverity.info})`);
 console.log(`    data_integrity     ${counts.byCategory.data_integrity}`);
 console.log(`    missing_provenance ${counts.byCategory.missing_provenance}`);
@@ -55,7 +58,8 @@ if (outDir) {
   writeFileSync(path.join(outDir, "requirements-audit.json"), JSON.stringify({ ...report, rows: undefined }, null, 2));
   writeFileSync(path.join(outDir, "requirements-audit-findings.csv"), auditFindingsToCsv(report.findings));
   writeFileSync(path.join(outDir, "requirements-audit-requirements.csv"), auditRowsToCsv(report.rows));
-  console.log(`\nWrote requirements-audit.json, requirements-audit-findings.csv and requirements-audit-requirements.csv to ${outDir}`);
+  writeFileSync(path.join(outDir, "requirements-audit.md"), auditReportToMarkdown(report));
+  console.log(`\nWrote requirements-audit.md, requirements-audit.json, requirements-audit-findings.csv and requirements-audit-requirements.csv to ${outDir}`);
 }
 
 let layerErrors = 0;

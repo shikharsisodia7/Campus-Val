@@ -12,6 +12,56 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
+ * A vetted, institution-controlled source that may feed global Department
+ * Notes.  This registry is intentionally separate from degree_checksheet_
+ * documents: those are private student uploads and can never be authoritative
+ * for another student's requirements.
+ *
+ * A resource is importable only after it is `verified`, `approved`, and
+ * `published`; the API enforces those values when it applies imported notes to
+ * a student's requirements tree.
+ */
+export const departmentCanonicalResourcesTable = pgTable(
+  "department_canonical_resources",
+  {
+    id: serial("id").primaryKey(),
+    /** Program whose department owns this source, e.g. major:biology. */
+    programKey: text("program_key").notNull(),
+    programType: text("program_type").notNull(), // major | minor
+    /** CAS | LSB | SOE; checked against the program on write. */
+    school: text("school").notNull(),
+    /** Human-readable document name, never a student's uploaded file name. */
+    documentTitle: text("document_title").notNull(),
+    /** Exact canonical package file name the offline importer may read. */
+    sourceFileName: text("source_file_name").notNull(),
+    /** Vetted public HTTPS source for the department or school document. */
+    sourceUrl: text("source_url").notNull(),
+    /** Academic year the source governs, e.g. 2026-27. */
+    academicYear: text("academic_year"),
+    /** Publisher/document revision, separate from the Bulletin edition. */
+    documentVersion: text("document_version"),
+    provenanceStatus: text("provenance_status").notNull().default("documented"), // documented | verified | superseded | rejected
+    reviewStatus: text("review_status").notNull().default("pending"), // pending | approved | rejected
+    publicationStatus: text("publication_status").notNull().default("draft"), // draft | published | archived
+    reviewedBy: text("reviewed_by"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    publishedBy: text("published_by"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdBy: text("created_by").notNull(),
+    updatedBy: text("updated_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index("department_canonical_resources_program_idx").on(t.programKey, t.publicationStatus),
+    uniqueIndex("department_canonical_resources_program_file_version_unique").on(t.programKey, t.sourceFileName, t.documentVersion),
+  ],
+);
+
+/**
  * Department layer of the requirements sidebar.
  *
  *   BULLETIN (compiled source, never written)
@@ -86,8 +136,15 @@ export const departmentRequirementNotesTable = pgTable(
     status: text("status").notNull().default("draft"),
     origin: text("origin").notNull(),
     sourceType: text("source_type").notNull(), // checklist | admin_entry
+    /** Null for historical/admin notes; set only from department_canonical_resources. */
+    canonicalResourceId: integer("canonical_resource_id").references(() => departmentCanonicalResourcesTable.id, { onDelete: "restrict" }),
     sourceLabel: text("source_label"),
     sourceUrl: text("source_url"),
+    /** Source academic year and document revision, not inferred from the current Bulletin. */
+    sourceAcademicYear: text("source_academic_year"),
+    sourceDocumentVersion: text("source_document_version"),
+    /** legacy | department_admin | documented | verified; copied from the source at import time. */
+    provenanceStatus: text("provenance_status").notNull().default("legacy"),
     /** Where in the source: "Biology!D31". Never a student's private file. */
     sourceReference: text("source_reference"),
     /** What the importer read in the row's label cell, for the unmapped queue. */
@@ -248,6 +305,8 @@ export const samplePlanItemsTable = pgTable(
 );
 
 export type ProgramAdminScopeRow = typeof programAdminScopesTable.$inferSelect;
+export type DepartmentCanonicalResourceRow = typeof departmentCanonicalResourcesTable.$inferSelect;
+export type InsertDepartmentCanonicalResource = typeof departmentCanonicalResourcesTable.$inferInsert;
 export type DepartmentRequirementNoteRow = typeof departmentRequirementNotesTable.$inferSelect;
 export type InsertDepartmentRequirementNote = typeof departmentRequirementNotesTable.$inferInsert;
 export type DepartmentRequirementOverrideRow = typeof departmentRequirementOverridesTable.$inferSelect;

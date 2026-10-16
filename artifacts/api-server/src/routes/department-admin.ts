@@ -37,11 +37,14 @@ import { findProgram, listPrograms, programTree } from "../lib/department/progra
 import {
   DepartmentError,
   addRequirement,
+  createCanonicalResource,
   createNote,
+  getCanonicalResource,
   getNote,
   getOverride,
   isMissingDepartmentTable,
   listAudit,
+  listCanonicalResources,
   listNotesForProgram,
   listOverridesForProgram,
   overrideProgramKey,
@@ -49,6 +52,7 @@ import {
   resetOverride,
   saveOverride,
   updateNote,
+  updateCanonicalResource,
   type Actor,
 } from "../lib/department/service";
 import { resolveBulletinEdition } from "../lib/requirements-source/editions";
@@ -103,6 +107,102 @@ router.get("/admin/department/programs", requireAuth, requireDepartmentAccess, (
   const scopes = scopesOf(req);
   // Only programs within the person's scope: another department's program is not even listed.
   res.json({ programs: listPrograms().filter((p) => canManageProgram(scopes, p.programKey)) });
+});
+
+// ---------------------------------------------------------------------------
+// Canonical department resources
+// ---------------------------------------------------------------------------
+
+const CanonicalResourceCreate = z.object({
+  programKey: z.string().min(1).max(160),
+  documentTitle: z.string().min(1).max(400),
+  sourceFileName: z.string().min(1).max(400),
+  sourceUrl: z.string().min(1).max(2_500),
+  academicYear: z.string().max(160).nullable().optional(),
+  documentVersion: z.string().max(160).nullable().optional(),
+});
+const CanonicalResourcePatch = z
+  .object({
+    documentTitle: z.string().min(1).max(400).optional(),
+    sourceFileName: z.string().min(1).max(400).optional(),
+    sourceUrl: z.string().min(1).max(2_500).optional(),
+    academicYear: z.string().max(160).nullable().optional(),
+    documentVersion: z.string().max(160).nullable().optional(),
+    provenanceStatus: z.enum(["documented", "verified", "superseded", "rejected"]).optional(),
+    reviewStatus: z.enum(["pending", "approved", "rejected"]).optional(),
+    publicationStatus: z.enum(["draft", "published", "archived"]).optional(),
+  })
+  .refine((body) => Object.keys(body).length > 0, "Enter a resource change.");
+
+const canonicalResourceDto = (row: NonNullable<Awaited<ReturnType<typeof getCanonicalResource>>>) => ({
+  id: row.id,
+  programKey: row.programKey,
+  programType: row.programType,
+  school: row.school,
+  documentTitle: row.documentTitle,
+  sourceFileName: row.sourceFileName,
+  sourceUrl: row.sourceUrl,
+  academicYear: row.academicYear,
+  documentVersion: row.documentVersion,
+  provenanceStatus: row.provenanceStatus,
+  reviewStatus: row.reviewStatus,
+  publicationStatus: row.publicationStatus,
+  reviewedBy: row.reviewedBy,
+  reviewedAt: row.reviewedAt?.toISOString() ?? null,
+  publishedBy: row.publishedBy,
+  publishedAt: row.publishedAt?.toISOString() ?? null,
+  updatedBy: row.updatedBy,
+  updatedAt: row.updatedAt.toISOString(),
+});
+
+/**
+ * Department admins can inspect provenance for their own programs. Only a
+ * super admin can register, verify, approve, publish, or archive a canonical
+ * source, preventing a scoped user from turning an arbitrary upload into a
+ * global source.
+ */
+router.get("/admin/department/canonical-resources", requireAuth, requireDepartmentAccess, async (req, res) => {
+  const requestedProgram = typeof req.query.programKey === "string" ? req.query.programKey : undefined;
+  if (requestedProgram && !canManageProgram(scopesOf(req), requestedProgram)) {
+    return res.status(403).json({ error: "You are not an administrator of that program." });
+  }
+  try {
+    const rows = await listCanonicalResources(requestedProgram);
+    const scopes = scopesOf(req);
+    res.json({
+      resources: rows
+        .filter((row) => scopes.superAdmin || scopes.programKeys.has(row.programKey))
+        .map(canonicalResourceDto),
+    });
+  } catch (error) {
+    return fail(res, error);
+  }
+});
+
+router.post("/admin/department/canonical-resources", requireAuth, requireSuperAdmin, async (req, res) => {
+  const parsed = CanonicalResourceCreate.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Enter the program and canonical document details." });
+  try {
+    const row = await createCanonicalResource(actorOf(req), parsed.data);
+    res.status(201).json(canonicalResourceDto(row));
+  } catch (error) {
+    return fail(res, error);
+  }
+});
+
+router.patch("/admin/department/canonical-resources/:id", requireAuth, requireSuperAdmin, async (req, res) => {
+  const parsed = CanonicalResourcePatch.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid canonical resource change." });
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id <= 0) return res.status(404).json({ error: "Canonical resource not found." });
+  try {
+    const existing = await getCanonicalResource(id);
+    if (!existing) return res.status(404).json({ error: "Canonical resource not found." });
+    const row = await updateCanonicalResource(actorOf(req), existing, parsed.data);
+    res.json(canonicalResourceDto(row));
+  } catch (error) {
+    return fail(res, error);
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -193,8 +293,13 @@ router.get("/admin/department/programs/:programKey", requireAuth, requireDepartm
         kind: n.noteKind,
         status: n.status,
         origin: n.origin,
+        sourceType: n.sourceType,
+        canonicalResourceId: n.canonicalResourceId,
         sourceLabel: n.sourceLabel,
         sourceUrl: n.sourceUrl,
+        sourceAcademicYear: n.sourceAcademicYear,
+        sourceDocumentVersion: n.sourceDocumentVersion,
+        provenanceStatus: n.provenanceStatus,
         sourceReference: n.sourceReference,
         sourceAnchorText: n.sourceAnchorText,
         reviewedBy: n.reviewedBy,
@@ -258,7 +363,20 @@ router.get("/admin/department/programs/:programKey/provenance", requireAuth, req
           : null,
         notes: notes
           .filter((n) => n.targetKey === targetKey)
-          .map((n) => ({ id: n.id, status: n.status, origin: n.origin, sourceReference: n.sourceReference, reviewedBy: n.reviewedBy, updatedAt: n.updatedAt.toISOString() })),
+          .map((n) => ({
+            id: n.id,
+            status: n.status,
+            origin: n.origin,
+            canonicalResourceId: n.canonicalResourceId,
+            sourceLabel: n.sourceLabel,
+            sourceUrl: n.sourceUrl,
+            sourceAcademicYear: n.sourceAcademicYear,
+            sourceDocumentVersion: n.sourceDocumentVersion,
+            provenanceStatus: n.provenanceStatus,
+            sourceReference: n.sourceReference,
+            reviewedBy: n.reviewedBy,
+            updatedAt: n.updatedAt.toISOString(),
+          })),
       },
       student: "Students' own edits (My Note, hide, own requirements) are private to each plan and are not visible here. They sit on top of the layers above and never change them.",
     });
@@ -321,6 +439,13 @@ const publicNote = (n: NonNullable<Awaited<ReturnType<typeof getNote>>>) => ({
   kind: n.noteKind,
   status: n.status,
   origin: n.origin,
+  sourceType: n.sourceType,
+  canonicalResourceId: n.canonicalResourceId,
+  sourceLabel: n.sourceLabel,
+  sourceUrl: n.sourceUrl,
+  sourceAcademicYear: n.sourceAcademicYear,
+  sourceDocumentVersion: n.sourceDocumentVersion,
+  provenanceStatus: n.provenanceStatus,
   updatedAt: n.updatedAt.toISOString(),
 });
 

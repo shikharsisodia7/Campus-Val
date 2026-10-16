@@ -43,6 +43,7 @@ const {
   planItemsTable,
   studentProfilesTable,
   requirementCustomizationsTable,
+  departmentCanonicalResourcesTable,
   departmentRequirementNotesTable,
   departmentRequirementOverridesTable,
   departmentAuditLogTable,
@@ -54,7 +55,7 @@ const customizationsRouter = (await import("./requirement-customizations")).defa
 const departmentRouter = (await import("./department-admin")).default;
 const samplePlansRouter = (await import("./sample-plans")).default;
 const { listPrograms, programTree } = await import("../lib/department/programs");
-const { importSamplePlan } = await import("../lib/sample-plans/service");
+const { importSamplePlan, isPublicSamplePlan } = await import("../lib/sample-plans/service");
 const { cleanNoteBody } = await import("../lib/department/service");
 
 const app = express();
@@ -111,6 +112,7 @@ async function cleanup() {
   await db.delete(studentProfilesTable).where(inArray(studentProfilesTable.userId, [STUDENT, OTHER_STUDENT, CAS_STUDENT]));
   await db.delete(departmentRequirementNotesTable).where(like(departmentRequirementNotesTable.createdBy, `%-${RUN}@scu.edu`));
   await db.delete(departmentRequirementNotesTable).where(like(departmentRequirementNotesTable.createdBy, `super-${RUN}%`));
+  await db.delete(departmentCanonicalResourcesTable).where(like(departmentCanonicalResourcesTable.createdBy, `super-${RUN}%`));
   await db.delete(departmentRequirementOverridesTable).where(like(departmentRequirementOverridesTable.createdBy, `%-${RUN}@scu.edu`));
   await db.delete(departmentAuditLogTable).where(like(departmentAuditLogTable.actorEmail, `%-${RUN}@scu.edu`));
   await db.delete(programAdminScopesTable).where(like(programAdminScopesTable.email, `%-${RUN}@scu.edu`));
@@ -188,6 +190,7 @@ describe("program scoping", () => {
     const mine = await asBio(request(app).post("/api/admin/department/notes"))
       .send({ programKey: biology.programKey, targetKey: bioItem.stableKey, body: `${marker} biology note`, status: "published" });
     expect(mine.status).toBe(201);
+    expect(mine.body).toMatchObject({ sourceType: "admin_entry", provenanceStatus: "department_admin" });
     const finTree = programTree(finance.programKey)!;
     const finItem = finTree.tree.find((g) => g.stableKey === finance.programKey)!.items[0]!;
     await asBio(request(app).post("/api/admin/department/notes")).send({ programKey: finance.programKey, targetKey: finItem.stableKey, body: "x" }).expect(403);
@@ -219,6 +222,83 @@ describe("program scoping", () => {
       .send({ programKey: biology.programKey, targetKey: coreItem.stableKey, body: `${marker} core note`, status: "published" });
     expect(note.status).toBe(201);
     await asSuper(request(app).delete(`/api/admin/department/overrides/99999999`)).expect(404);
+  });
+});
+
+describe("canonical department resources", () => {
+  it("requires super-admin-controlled source provenance and withdraws linked global notes when archived", async () => {
+    const resourceBody = {
+      programKey: biology.programKey,
+      documentTitle: `${marker} Biology requirements checklist`,
+      sourceFileName: `${marker}-biology.xlsx`,
+      sourceUrl: "https://www.scu.edu/biology/checklists/biology.xlsx",
+      academicYear: "2026-27",
+      documentVersion: "2026.1",
+    };
+    await asBio(request(app).post("/api/admin/department/canonical-resources")).send(resourceBody).expect(403);
+    await asSuper(request(app).post("/api/admin/department/canonical-resources"))
+      .send({ ...resourceBody, sourceUrl: "file:///student-private.xlsx" })
+      .expect(400);
+
+    const created = await asSuper(request(app).post("/api/admin/department/canonical-resources")).send(resourceBody).expect(201);
+    expect(created.body).toMatchObject({
+      programKey: biology.programKey,
+      programType: "major",
+      school: "CAS",
+      provenanceStatus: "documented",
+      reviewStatus: "pending",
+      publicationStatus: "draft",
+    });
+    // The registry derives the owning school from CampusVal's program data;
+    // it is not a CAS-only importer assumption.
+    const engineering = listPrograms().find((program) => program.type === "major" && program.college === "SOE")!;
+    for (const [program, school] of [[finance, "LSB"], [engineering, "SOE"]] as const) {
+      const row = await asSuper(request(app).post("/api/admin/department/canonical-resources"))
+        .send({
+          programKey: program.programKey,
+          documentTitle: `${marker} ${school} canonical checklist`,
+          sourceFileName: `${marker}-${school.toLowerCase()}.xlsx`,
+          sourceUrl: `https://www.scu.edu/${school.toLowerCase()}/checklist.xlsx`,
+          academicYear: "2026-27",
+          documentVersion: "2026.1",
+        })
+        .expect(201);
+      expect(row.body).toMatchObject({ programKey: program.programKey, school });
+    }
+    await asFin(request(app).get(`/api/admin/department/canonical-resources?programKey=${encodeURIComponent(biology.programKey)}`)).expect(403);
+    const visibleToBio = await asBio(request(app).get(`/api/admin/department/canonical-resources?programKey=${encodeURIComponent(biology.programKey)}`)).expect(200);
+    expect(visibleToBio.body.resources.map((row: any) => row.id)).toContain(created.body.id);
+
+    await asSuper(request(app).patch(`/api/admin/department/canonical-resources/${created.body.id}`)).send({ provenanceStatus: "verified" }).expect(200);
+    await asSuper(request(app).patch(`/api/admin/department/canonical-resources/${created.body.id}`)).send({ reviewStatus: "approved" }).expect(200);
+    const published = await asSuper(request(app).patch(`/api/admin/department/canonical-resources/${created.body.id}`)).send({ publicationStatus: "published" }).expect(200);
+    expect(published.body).toMatchObject({ provenanceStatus: "verified", reviewStatus: "approved", publicationStatus: "published" });
+
+    const body = `${marker} canonical global note`;
+    await db.insert(departmentRequirementNotesTable).values({
+      programKey: biology.programKey,
+      programType: "major",
+      targetKey: bioItem.stableKey,
+      bulletinEdition: "2026-27",
+      body,
+      status: "published",
+      origin: "imported",
+      sourceType: "canonical_resource",
+      canonicalResourceId: created.body.id,
+      sourceLabel: resourceBody.documentTitle,
+      sourceUrl: resourceBody.sourceUrl,
+      sourceAcademicYear: resourceBody.academicYear,
+      sourceDocumentVersion: resourceBody.documentVersion,
+      provenanceStatus: "verified",
+      sourceReference: "Biology!D40",
+      importKey: `test-canonical:${RUN}`,
+      createdBy: SUPER,
+      updatedBy: SUPER,
+    });
+    expect(find(await view(STUDENT, studentPlan), bioItem.stableKey).departmentNotes.map((note: any) => note.body)).toContain(body);
+
+    await asSuper(request(app).patch(`/api/admin/department/canonical-resources/${created.body.id}`)).send({ publicationStatus: "archived" }).expect(200);
+    expect((find(await view(STUDENT, studentPlan), bioItem.stableKey).departmentNotes ?? []).map((note: any) => note.body)).not.toContain(body);
   });
 });
 
@@ -436,9 +516,11 @@ describe("sample plans", () => {
     programKey: biology.programKey,
     title: "First-year plan — Option One",
     planLength: "first_year" as const,
+    academicYear: "2026-27",
     sourceType: "official_department" as const,
     sourceLabel: "Test source",
     sourceUrl: "https://example.test/plan",
+    sourceReference: "Biology first-year plan, Option One",
     items: [
       { year: 1, term: "fall", itemType: "course" as const, courseCode: "BIOL 1A" },
       { year: 1, term: "fall", itemType: "placeholder" as const, label: "CTW 1" },
@@ -447,6 +529,32 @@ describe("sample plans", () => {
       { year: 2, term: "spring", itemType: "course" as const, courseCode: "BIOL 1B", sourceTitle: "A different name" },
     ],
   };
+
+  it("requires each canonical provenance field before treating a row as public", () => {
+    const canonical = {
+      status: "published",
+      school: "CAS",
+      program: "Biology",
+      version: "2026-27",
+      academicYear: "2026-27",
+      sourceType: "official_department",
+      sourceLabel: "SCU Biology first-year plan",
+      sourceUrl: null,
+      sourceReference: "Biology first-year plan, Option One",
+      createdAt: new Date("2026-01-15T12:00:00.000Z"),
+    } as const;
+    expect(isPublicSamplePlan(canonical)).toBe(true);
+    expect(isPublicSamplePlan({ ...canonical, academicYear: null })).toBe(true);
+    expect(isPublicSamplePlan({ ...canonical, sourceUrl: "https://www.scu.edu/biology/plan.pdf", sourceReference: null })).toBe(true);
+    expect(isPublicSamplePlan({ ...canonical, program: " " })).toBe(false);
+    expect(isPublicSamplePlan({ ...canonical, version: " " })).toBe(false);
+    expect(isPublicSamplePlan({ ...canonical, academicYear: " " })).toBe(false);
+    expect(isPublicSamplePlan({ ...canonical, sourceLabel: " " })).toBe(false);
+    expect(isPublicSamplePlan({ ...canonical, sourceReference: " " })).toBe(false);
+    expect(isPublicSamplePlan({ ...canonical, sourceUrl: "not-a-url", sourceReference: "Biology first-year plan" })).toBe(false);
+    expect(isPublicSamplePlan({ ...canonical, sourceType: "admin_entry" })).toBe(false);
+    expect(isPublicSamplePlan({ ...canonical, createdAt: new Date("invalid") })).toBe(false);
+  });
 
   it("lists only published plans, grouped by school and program, and validates against the catalog", async () => {
     const created = await importSamplePlan(actor, base, { publish: false });
@@ -459,7 +567,46 @@ describe("sample plans", () => {
     const list = (await asStudent(request(app).get("/api/sample-plans")).expect(200)).body;
     const cas = list.schools.find((s: any) => s.code === "CAS");
     expect(cas.name).toBe("College of Arts and Sciences");
-    expect(cas.programs.find((p: any) => p.program === "Biology").plans.some((p: any) => p.slug === slug)).toBe(true);
+    const publicPlan = cas.programs.find((p: any) => p.program === "Biology").plans.find((p: any) => p.slug === slug);
+    expect(publicPlan).toMatchObject({ sourceType: "official_department", sourceReference: "Biology first-year plan, Option One", academicYear: "2026-27" });
+    expect(publicPlan.importedAt).toEqual(expect.any(String));
+  });
+
+  it("fails closed for published rows without canonical provenance or a trusted source type", async () => {
+    const incompleteSlug = `${slug}-incomplete`;
+    await expect(
+      importSamplePlan(
+        actor,
+        { ...base, slug: incompleteSlug, version: "2026-27-incomplete", sourceUrl: null, sourceReference: null },
+        { publish: true },
+      ),
+    ).rejects.toThrow(/official source, program, version, and source URL or document reference/);
+
+    const incomplete = await importSamplePlan(
+      actor,
+      { ...base, slug: incompleteSlug, version: "2026-27-incomplete", sourceUrl: null, sourceReference: null },
+      { publish: false },
+    );
+    // Department publishing gives a useful error rather than creating a row
+    // that looks public but cannot clear the student-facing provenance gate.
+    await asBio(request(app).patch(`/api/admin/department/sample-plans/${incomplete.id}`)).send({ status: "published" }).expect(400);
+    // A legacy/manual database change cannot bypass that gate either.
+    await db.update(samplePlansTable).set({ status: "published" }).where(eq(samplePlansTable.id, incomplete.id));
+
+    const adminEntry = await importSamplePlan(
+      actor,
+      { ...base, slug: `${slug}-admin-entry`, version: "2026-27-admin", sourceType: "admin_entry" },
+      { publish: false },
+    );
+    await db.update(samplePlansTable).set({ status: "published" }).where(eq(samplePlansTable.id, adminEntry.id));
+
+    const publicList = (await asStudent(request(app).get("/api/sample-plans")).expect(200)).body;
+    expect(JSON.stringify(publicList)).not.toContain(incompleteSlug);
+    expect(JSON.stringify(publicList)).not.toContain(`${slug}-admin-entry`);
+    await asStudent(request(app).get(`/api/sample-plans/${incomplete.id}`)).expect(404);
+    await asStudent(request(app).post(`/api/sample-plans/${incomplete.id}/load`)).send({}).expect(404);
+    await asStudent(request(app).get(`/api/sample-plans/${adminEntry.id}`)).expect(404);
+    await asStudent(request(app).post(`/api/sample-plans/${adminEntry.id}/load`)).send({}).expect(404);
   });
 
   it("keeps CampusVal-generated sequences out of every normal public or department-admin sample-plan route", async () => {
@@ -513,7 +660,17 @@ describe("sample plans", () => {
     const degreeBefore = (await asStudent(request(app).get(`/api/plans/${studentPlan}`)).expect(200)).body;
     const res = await asStudent(request(app).post(`/api/sample-plans/${planId}/load`)).send({}).expect(201);
     expect(res.body.plan.planType).toBe("tentative");
-    expect(res.body.plan.metadata.sampleSource).toMatchObject({ samplePlanId: planId, slug, version: "2026-27", sourceLabel: "Test source" });
+    expect(res.body.plan.metadata.sampleSource).toMatchObject({
+      samplePlanId: planId,
+      slug,
+      version: "2026-27",
+      program: "Biology",
+      sourceType: "official_department",
+      sourceLabel: "Test source",
+      sourceReference: "Biology first-year plan, Option One",
+      academicYear: "2026-27",
+    });
+    expect(res.body.plan.metadata.sampleSource.importedAt).toEqual(expect.any(String));
     expect(res.body.skippedDuplicates).toEqual(["BIOL 1A"]);
     expect(res.body.loadedAsPlaceholders).toEqual(["ZZZZ 999"]);
     expect(res.body.warnings.length).toBe(3);
@@ -602,6 +759,9 @@ describe("only department administration writes Department Notes", () => {
     walk(path.join(root, "src"));
     walk(path.join(root, "scripts"));
     expect(writers.sort()).toEqual(["scripts/import-department-notes.ts", "src/lib/department/service.ts"]);
+    const importer = fs.readFileSync(path.join(root, "scripts", "import-department-notes.ts"), "utf8");
+    expect(importer).toContain("departmentCanonicalResourcesTable");
+    expect(importer).not.toContain("degreeChecksheetDocumentsTable");
     // The service is reached only through routes that check department access on the server.
     const routes = fs.readFileSync(path.join(root, "src", "routes", "department-admin.ts"), "utf8");
     const writeRoutes = routes.split("\n").filter((line) => /router\.(post|patch|put|delete)\(/.test(line));

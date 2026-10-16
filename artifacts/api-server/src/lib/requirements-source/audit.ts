@@ -20,7 +20,9 @@
 import type { StudentProfileRow } from "@workspace/db";
 import { getAvailableMajors, getAvailableMinors, getMajorRequirements, getMinorRequirements, type College } from "../../data/graduation-paths";
 import { findCourse } from "../../data/courses";
+import { MAJOR_STRUCTURES, resolveMajorStructure, structureCourses, type MajorStructure } from "../../data/major-structures";
 import { buildNormalizedRequirements } from "./index";
+import { codesNamedIn } from "./bulletin-source-text";
 import { isCtwCourseCode, looksLikeCoreAreaLabel } from "./category";
 import type { NormalizedGroup } from "./normalize";
 import { findOrphanedCustomizations, type StoredCustomization } from "./overlay";
@@ -56,7 +58,28 @@ export interface AuditRow {
   sourceVersion: string;
   lastVerified: string;
   provenanceStatus: string;
+  /** Structured-major section, when the active source provides one. */
+  section?: string;
+  /** Structured-major track/emphasis/concentration, when the active source provides one. */
+  variant?: string;
+  /** fixed_course, choose, alternatives, or manual. */
+  requirementRule?: string;
+  /** Minimum courses for a choice; blank for alternatives, units, and fixed courses. */
+  choiceMinimum?: string;
+  /** Number of named eligible lists/options attached to this choice. */
+  choiceListCount?: number;
+  /** Number of those lists/options that actually contain courses. */
+  nonEmptyChoiceListCount?: number;
+  /** Distinct eligible courses exposed by this normalized requirement. */
+  choiceEligibleCourseCount?: number;
   warnings: string;
+}
+
+export interface ChoiceCoverage {
+  requirements: number;
+  lists: number;
+  nonEmptyLists: number;
+  emptyLists: number;
 }
 
 export interface AuditReport {
@@ -73,6 +96,18 @@ export interface AuditReport {
     classificationErrors: number;
     groups: number;
     requirements: number;
+    /** Choice/alternative requirements represented in the normalized output. */
+    choiceRequirements: number;
+    /** Named choice lists and alternative options exposed in that output. */
+    choiceLists: number;
+    choiceListsWithCourses: number;
+    emptyChoiceLists: number;
+    /** Major structures with stored Bulletin source metadata. */
+    structuredMajorSources: number;
+    /** Source/normalized representation parity findings. */
+    sourceRepresentationMismatches: number;
+    /** Majors with no enumerated upper-division course evidence. */
+    majorsWithoutUpperDivisionCourseEvidence: number;
     findings: number;
     byCategory: Record<AuditCategory, number>;
     bySeverity: Record<AuditSeverity, number>;
@@ -81,6 +116,31 @@ export interface AuditReport {
   findings: AuditFinding[];
   rows: AuditRow[];
 }
+
+/** The choice shape the requirements response sends for structured majors/minors. */
+interface AuditChoice {
+  kind: "choose" | "alternatives";
+  minimum: number | null;
+  minDistinctLists: number | null;
+  lists: { key: string; label: string; courses: string[] }[];
+  alternatives: { label: string; courses: string[] }[];
+}
+
+type AuditableItem = {
+  choice?: AuditChoice | null;
+  manual?: boolean;
+  section?: string | null;
+  variant?: string | null;
+};
+
+const emptyChoiceCoverage = (): ChoiceCoverage => ({ requirements: 0, lists: 0, nonEmptyLists: 0, emptyLists: 0 });
+
+const mergeChoiceCoverage = (into: ChoiceCoverage, from: ChoiceCoverage) => {
+  into.requirements += from.requirements;
+  into.lists += from.lists;
+  into.nonEmptyLists += from.nonEmptyLists;
+  into.emptyLists += from.emptyLists;
+};
 
 const COLLEGE_NAME: Record<College, string> = {
   CAS: "College of Arts and Sciences",
@@ -131,9 +191,10 @@ export function auditTree(
   programType: AuditFinding["programType"],
   program: string,
   options: { universityCoreItemCourses?: Set<string>[] } = {},
-): { findings: AuditFinding[]; rows: AuditRow[] } {
+): { findings: AuditFinding[]; rows: AuditRow[]; choiceCoverage: ChoiceCoverage } {
   const findings: AuditFinding[] = [];
   const rows: AuditRow[] = [];
+  const choiceCoverage = emptyChoiceCoverage();
   const seenKeys = new Map<string, string>();
 
   for (const node of tree) {
@@ -174,6 +235,9 @@ export function auditTree(
     const ids = new Set<string>();
     const groupCourses = new Map<string, string>();
     for (const { item, stableKey } of node.items) {
+      const auditItem = item as typeof item & AuditableItem;
+      const choice = auditItem.choice ?? null;
+      const manual = auditItem.manual === true;
       const ref = { label: item.label, stableKey };
       const itemWarnings: string[] = [];
       const flag = (code: string, category: AuditCategory, severity: AuditSeverity, message: string) => {
@@ -189,6 +253,61 @@ export function auditTree(
 
       if (!item.label.trim()) flag("empty_label", "data_integrity", "error", "The requirement has no label.");
       if (!item.description.trim()) flag("empty_description", "data_integrity", "warning", "The requirement has no description.");
+
+      // Choice details are part of the source representation, not merely display
+      // decoration. Keep their coverage in the spreadsheet and fail a rule that
+      // asks a student to choose from an empty list. A manual rule with no
+      // enumerated list is allowed: CampusVal must preserve the Bulletin's words
+      // instead of inventing an approved-course list.
+      const choiceLists = choice
+        ? choice.kind === "alternatives"
+          ? choice.alternatives.map((alternative, index) => ({ key: `alternative-${index + 1}`, label: alternative.label, courses: alternative.courses }))
+          : choice.lists
+        : [];
+      if (choice) {
+        choiceCoverage.requirements += 1;
+        choiceCoverage.lists += choiceLists.length;
+        choiceCoverage.nonEmptyLists += choiceLists.filter((list) => list.courses.length > 0).length;
+        choiceCoverage.emptyLists += choiceLists.filter((list) => list.courses.length === 0).length;
+
+        if (choiceLists.length === 0) {
+          flag(
+            choice.kind === "alternatives" ? "alternative_requirement_has_no_options" : "choice_requirement_has_no_lists",
+            "data_integrity",
+            "error",
+            choice.kind === "alternatives"
+              ? "An alternatives requirement has no course-set options."
+              : "A choice requirement has no named eligible-course lists.",
+          );
+        }
+        for (const list of choiceLists) {
+          if (list.courses.length === 0) {
+            flag(
+              choice.kind === "alternatives" ? "alternative_option_has_no_courses" : "choice_list_has_no_courses",
+              "data_integrity",
+              "error",
+              `The ${choice.kind === "alternatives" ? "alternative option" : "choice list"} "${list.label || list.key}" has no eligible courses.`,
+            );
+          }
+        }
+        if (!manual && item.courses.length === 0) {
+          flag("choice_requirement_has_no_eligible_courses", "data_integrity", "error", "A course-counted choice requirement exposes no eligible courses.");
+        }
+        if (choice.kind === "choose" && typeof choice.minimum === "number") {
+          const distinctCourses = new Set(item.courses.map(normalizeCode)).size;
+          if (choice.minimum < 1) {
+            flag("choice_minimum_invalid", "data_integrity", "error", `The choice minimum is ${choice.minimum}.`);
+          // A single named workshop with a higher count can be a deliberate
+          // repeatable-course rule. The minor-recipe audit reports that case
+          // for human proofing without incorrectly declaring it impossible.
+          } else if (!manual && distinctCourses < choice.minimum && distinctCourses !== 1) {
+            flag("choice_minimum_exceeds_eligible_courses", "data_integrity", "error", `The choice needs ${choice.minimum} distinct course(s) but exposes only ${distinctCourses}.`);
+          }
+          if (typeof choice.minDistinctLists === "number" && choice.minDistinctLists > choiceLists.length) {
+            flag("choice_minimum_distinct_lists_invalid", "data_integrity", "error", `The choice needs courses from ${choice.minDistinctLists} lists but exposes only ${choiceLists.length}.`);
+          }
+        }
+      }
 
       const inItem = new Set<string>();
       for (const raw of item.courses) {
@@ -261,6 +380,13 @@ export function auditTree(
         sourceVersion: provenance.sourceVersion ?? "",
         lastVerified: provenance.lastVerified ?? "",
         provenanceStatus: provenance.provenanceStatus,
+        section: auditItem.section ?? "",
+        variant: auditItem.variant ?? "",
+        requirementRule: choice?.kind ?? (manual ? "manual" : "fixed_course"),
+        choiceMinimum: choice?.minimum == null ? "" : String(choice.minimum),
+        choiceListCount: choiceLists.length,
+        nonEmptyChoiceListCount: choiceLists.filter((list) => list.courses.length > 0).length,
+        choiceEligibleCourseCount: choice ? new Set(item.courses.map(normalizeCode)).size : 0,
         warnings: itemWarnings.join("; "),
       });
     }
@@ -280,11 +406,220 @@ export function auditTree(
         sourceVersion: provenance.sourceVersion ?? "",
         lastVerified: provenance.lastVerified ?? "",
         provenanceStatus: provenance.provenanceStatus,
+        section: "",
+        variant: "",
+        requirementRule: "empty_group",
+        choiceMinimum: "",
+        choiceListCount: 0,
+        nonEmptyChoiceListCount: 0,
+        choiceEligibleCourseCount: 0,
         warnings: "group_has_no_requirements",
       });
     }
   }
-  return { findings, rows };
+  return { findings, rows, choiceCoverage };
+}
+
+/** Findings that mean the normalized response no longer matches its structured Bulletin source. */
+export const SOURCE_REPRESENTATION_MISMATCH_CODES = new Set([
+  "source_course_not_named",
+  "normalized_requirement_key_duplicate",
+  "normalized_requirement_missing_from_structured_source",
+  "normalized_requirement_not_in_structured_source",
+  "normalized_requirement_course_mismatch",
+  "normalized_requirement_choice_mismatch",
+  "normalized_requirement_manual_mismatch",
+  "normalized_provenance_source_mismatch",
+]);
+
+const localRequirementKey = (groupId: string, itemId: string): string => {
+  const prefix = `${groupId}-`;
+  return itemId.startsWith(prefix) ? itemId.slice(prefix.length) : itemId;
+};
+
+const courseSet = (courses: readonly string[]): string[] => [...new Set(courses.map(normalizeCode))].sort();
+
+const sameCourses = (left: readonly string[], right: readonly string[]) => {
+  const a = courseSet(left);
+  const b = courseSet(right);
+  return a.length === b.length && a.every((course, index) => course === b[index]);
+};
+
+const choiceSignature = (choice: AuditChoice | null | undefined): string => {
+  if (!choice) return "";
+  const lists = choice.lists.map((list) => ({ key: list.key, courses: courseSet(list.courses) }));
+  const alternatives = choice.alternatives.map((alternative) => ({ label: alternative.label, courses: courseSet(alternative.courses) }));
+  return JSON.stringify({
+    kind: choice.kind,
+    minimum: choice.minimum ?? null,
+    minDistinctLists: choice.minDistinctLists ?? null,
+    lists,
+    alternatives,
+  });
+};
+
+const isUpperDivisionCourse = (course: string): boolean => {
+  const match = /^[A-Z]{2,5}\s+(\d{1,3})/i.exec(normalizeCode(course));
+  return match !== null && Number(match[1]) >= 100;
+};
+
+/**
+ * Compare a major's normalized response with the structured source used to
+ * create it. The stored source text gives this check a reviewable boundary:
+ * it does not scrape or infer academic policy, and it never turns a source
+ * discrepancy into a data rewrite.
+ */
+export function auditStructuredMajorSource(
+  program: string,
+  structure: MajorStructure,
+  normalized: NormalizedGroup,
+): AuditFinding[] {
+  const findings: AuditFinding[] = [];
+  const at = (
+    code: string,
+    category: AuditCategory,
+    severity: AuditSeverity,
+    message: string,
+    item?: { label: string; stableKey: string },
+  ) => findings.push({
+    code,
+    category,
+    severity,
+    programType: "major",
+    program,
+    group: normalized.group.title,
+    groupKey: normalized.stableKey,
+    requirement: item?.label ?? null,
+    requirementKey: item?.stableKey ?? null,
+    message,
+  });
+
+  const missingMetadata = [
+    !structure.sourceUrl && "source address",
+    !structure.catalogYear && "edition",
+    !structure.lastVerified && "verification date",
+    structure.sourceText.length === 0 && "source requirement text",
+  ].filter(Boolean);
+  if (missingMetadata.length > 0) {
+    at("structured_source_metadata_incomplete", "missing_provenance", "warning", `The structured source does not state: ${missingMetadata.join(", ")}.`);
+  }
+
+  const provenanceMismatches = [
+    normalized.provenance.sourceIdentifier !== structure.sourceUrl && "source address",
+    normalized.provenance.sourceVersion !== structure.catalogYear && "edition",
+    normalized.provenance.lastVerified !== structure.lastVerified && "verification date",
+  ].filter(Boolean);
+  if (provenanceMismatches.length > 0) {
+    at(
+      "normalized_provenance_source_mismatch",
+      "data_integrity",
+      "error",
+      `The normalized group disagrees with its structured source about: ${provenanceMismatches.join(", ")}.`,
+    );
+  }
+
+  if (structure.sourceText.length > 0) {
+    const named = new Set([...codesNamedIn([...structure.sourceText, ...(structure.listingText ?? [])], structure.defaultSubject)].map(normalizeCode));
+    const corrections = new Set(Object.keys(structure.sourceCorrections ?? {}).map(normalizeCode));
+    for (const course of structureCourses(structure)) {
+      if (!named.has(normalizeCode(course)) && !corrections.has(normalizeCode(course))) {
+        at(
+          "source_course_not_named",
+          "data_integrity",
+          "error",
+          `${course} appears in the structured representation but not in the stored Bulletin text or source corrections.`,
+        );
+      }
+    }
+  }
+
+  const expected = new Map(resolveMajorStructure(structure, [], [], { allVariants: true }).map((item) => [item.key, item]));
+  const actual = new Map<string, (typeof normalized.items)[number]>();
+  for (const item of normalized.items) {
+    const key = localRequirementKey(normalized.group.id, item.item.id);
+    if (actual.has(key)) {
+      at(
+        "normalized_requirement_key_duplicate",
+        "data_integrity",
+        "error",
+        `The normalized response contains the structured requirement key "${key}" more than once.`,
+        { label: item.item.label, stableKey: item.stableKey },
+      );
+    }
+    actual.set(key, item);
+  }
+
+  for (const [key, sourceItem] of expected) {
+    const responseItem = actual.get(key);
+    if (!responseItem) {
+      at(
+        "normalized_requirement_missing_from_structured_source",
+        "data_integrity",
+        "error",
+        `The structured source defines "${sourceItem.label}" (${key}), but the normalized response does not expose it.`,
+      );
+      continue;
+    }
+    const response = responseItem.item as typeof responseItem.item & AuditableItem;
+    if (!sameCourses(sourceItem.courses, response.courses)) {
+      at(
+        "normalized_requirement_course_mismatch",
+        "data_integrity",
+        "error",
+        `The normalized requirement's eligible courses differ from structured source "${key}".`,
+        { label: response.label, stableKey: responseItem.stableKey },
+      );
+    }
+    if (choiceSignature(sourceItem.choice) !== choiceSignature(response.choice)) {
+      at(
+        "normalized_requirement_choice_mismatch",
+        "data_integrity",
+        "error",
+        `The normalized choice rule differs from structured source "${key}".`,
+        { label: response.label, stableKey: responseItem.stableKey },
+      );
+    }
+    if (sourceItem.manual !== (response.manual === true)) {
+      at(
+        "normalized_requirement_manual_mismatch",
+        "data_integrity",
+        "error",
+        `The normalized manual-tracking setting differs from structured source "${key}".`,
+        { label: response.label, stableKey: responseItem.stableKey },
+      );
+    }
+  }
+  for (const [key, responseItem] of actual) {
+    if (!expected.has(key)) {
+      at(
+        "normalized_requirement_not_in_structured_source",
+        "data_integrity",
+        "error",
+        `The normalized response exposes "${responseItem.item.label}" (${key}), which the structured source does not define.`,
+        { label: responseItem.item.label, stableKey: responseItem.stableKey },
+      );
+    }
+  }
+
+  const expectedCourses = [...expected.values()].flatMap((item) => item.courses);
+  if (!expectedCourses.some(isUpperDivisionCourse)) {
+    const sourceMentionsUpperDivision = /\bupper[-\s]?division\b/i.test([
+      ...structure.sourceText,
+      ...(structure.listingText ?? []),
+      ...structure.notes,
+      ...structure.sections.flatMap((section) => [section.label, ...section.requirements.flatMap((requirement) => [requirement.label, requirement.description])]),
+    ].join("\n"));
+    at(
+      "major_without_upper_division_course_evidence",
+      "academic_content",
+      "warning",
+      sourceMentionsUpperDivision
+        ? "The source describes upper-division work but the structured requirements expose no upper-division course options. Confirm the source mapping."
+        : "The structured major exposes no upper-division course options or upper-division source language. Confirm that a requirement was not omitted.",
+    );
+  }
+
+  return findings;
 }
 
 /** Rules that live in a minor's recipe, checked against the recipe itself. */
@@ -332,6 +667,7 @@ function auditMinorRecipe(code: string, title: string): AuditFinding[] {
 export function auditRequirements(now: Date = new Date()): AuditReport {
   const findings: AuditFinding[] = [];
   const rows: AuditRow[] = [];
+  const choiceCoverage = emptyChoiceCoverage();
   const majors = getAvailableMajors();
   const minors = getAvailableMinors();
   let provider = "";
@@ -372,6 +708,7 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
     const result = auditTree(shared, "college", COLLEGE_NAME[college]);
     findings.push(...result.findings);
     rows.push(...result.rows);
+    mergeChoiceCoverage(choiceCoverage, result.choiceCoverage);
   }
 
   const schoolCourses = new Map<College, Set<string>>();
@@ -382,6 +719,7 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
 
   for (const m of majors) {
     const tree = build(m.college, m.code, null).filter((g) => g.group.kind === "major");
+    const label = `${m.title} (${m.code})`;
     const overlap = new Set<string>();
     for (const node of tree) for (const i of node.items) for (const c of i.item.courses) if (schoolCourses.get(m.college)?.has(normalizeCode(c))) overlap.add(normalizeCode(c));
     if (overlap.size > 0 && tree[0]) {
@@ -390,7 +728,7 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
         category: "academic_content",
         severity: "info",
         programType: "major",
-        program: `${m.title} (${m.code})`,
+        program: label,
         group: tree[0].group.title,
         groupKey: tree[0].stableKey,
         requirement: null,
@@ -403,9 +741,42 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
     concentrations += named;
     groups += tree.length;
     missingProvenanceGroups += tree.filter((g) => ["unknown", "partial"].includes(g.provenance.provenanceStatus)).length;
-    const result = auditTree(tree, "major", `${m.title} (${m.code})`, { universityCoreItemCourses: coreCoursesByCollege.get(m.college) });
+    if (tree.length === 0) {
+      findings.push({
+        code: "major_program_not_built",
+        category: "data_integrity",
+        severity: "error",
+        programType: "major",
+        program: label,
+        group: "",
+        groupKey: "",
+        requirement: null,
+        requirementKey: null,
+        message: "The major is offered but produced no requirement group.",
+      });
+    } else {
+      const structure = MAJOR_STRUCTURES[m.code];
+      if (!structure) {
+        findings.push({
+          code: "major_structured_source_missing",
+          category: "missing_provenance",
+          severity: "warning",
+          programType: "major",
+          program: label,
+          group: tree[0]!.group.title,
+          groupKey: tree[0]!.stableKey,
+          requirement: null,
+          requirementKey: null,
+          message: "This major has no structured Bulletin source to compare against the normalized response.",
+        });
+      } else {
+        findings.push(...auditStructuredMajorSource(label, structure, tree[0]!));
+      }
+    }
+    const result = auditTree(tree, "major", label, { universityCoreItemCourses: coreCoursesByCollege.get(m.college) });
     findings.push(...result.findings);
     rows.push(...result.rows);
+    mergeChoiceCoverage(choiceCoverage, result.choiceCoverage);
   }
 
   for (const minor of minors) {
@@ -431,6 +802,7 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
     const result = auditTree(tree, "minor", label);
     findings.push(...result.findings, ...auditMinorRecipe(minor.code, label));
     rows.push(...result.rows);
+    mergeChoiceCoverage(choiceCoverage, result.choiceCoverage);
   }
 
   // A key must identify one requirement across the whole catalog of a kind.
@@ -474,6 +846,13 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
       classificationErrors: findings.filter((f) => CLASSIFICATION_CODES.has(f.code)).length,
       groups,
       requirements: rows.filter((r) => r.requirementKey).length,
+      choiceRequirements: choiceCoverage.requirements,
+      choiceLists: choiceCoverage.lists,
+      choiceListsWithCourses: choiceCoverage.nonEmptyLists,
+      emptyChoiceLists: choiceCoverage.emptyLists,
+      structuredMajorSources: majors.filter((major) => MAJOR_STRUCTURES[major.code]).length,
+      sourceRepresentationMismatches: findings.filter((f) => SOURCE_REPRESENTATION_MISMATCH_CODES.has(f.code)).length,
+      majorsWithoutUpperDivisionCourseEvidence: findings.filter((f) => f.code === "major_without_upper_division_course_evidence").length,
       findings: findings.length,
       byCategory,
       bySeverity,
@@ -514,12 +893,66 @@ const csvCell = (value: string): string => (/[",\n\r]/.test(value) ? `"${value.r
 export function auditRowsToCsv(rows: AuditRow[]): string {
   const columns: (keyof AuditRow)[] = [
     "programType", "program", "group", "groupKey", "requirement", "requirementKey", "courses",
-    "provider", "source", "sourceUrl", "sourceVersion", "lastVerified", "provenanceStatus", "warnings",
+    "provider", "source", "sourceUrl", "sourceVersion", "lastVerified", "provenanceStatus",
+    "section", "variant", "requirementRule", "choiceMinimum", "choiceListCount", "nonEmptyChoiceListCount", "choiceEligibleCourseCount",
+    "warnings",
   ];
-  return [columns.join(","), ...rows.map((r) => columns.map((c) => csvCell(r[c])).join(","))].join("\n") + "\n";
+  return [columns.join(","), ...rows.map((r) => columns.map((c) => csvCell(String(r[c] ?? ""))).join(","))].join("\n") + "\n";
 }
 
 export function auditFindingsToCsv(findings: AuditFinding[]): string {
   const columns: (keyof AuditFinding)[] = ["category", "severity", "code", "programType", "program", "group", "requirement", "requirementKey", "message"];
   return [columns.join(","), ...findings.map((f) => columns.map((c) => csvCell(String(f[c] ?? ""))).join(","))].join("\n") + "\n";
+}
+
+const markdownCell = (value: string | number) => String(value).replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+
+/** A concise, review-friendly companion to the JSON and spreadsheet exports. */
+export function auditReportToMarkdown(report: AuditReport): string {
+  const { counts } = report;
+  const byKind = new Map<string, number>();
+  for (const finding of report.findings) {
+    const key = `${finding.category}/${finding.severity}/${finding.code}`;
+    byKind.set(key, (byKind.get(key) ?? 0) + 1);
+  }
+  const kindRows = [...byKind.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([kind, count]) => `| ${markdownCell(kind)} | ${count} |`);
+  return [
+    "# CampusVal requirements audit",
+    "",
+    `Generated: ${report.generatedAt}`,
+    "",
+    "This is a structural and source-representation audit. It never modifies academic data, does not read student records, and does not claim department/professor academic approval.",
+    "",
+    "| Measure | Count |",
+    "| --- | ---: |",
+    `| Active source | ${markdownCell(report.provider)} |`,
+    `| Majors | ${counts.majors} |`,
+    `| Minors | ${counts.minors} |`,
+    `| Named concentrations/tracks | ${counts.concentrations} in ${counts.majorsWithConcentrations} majors |`,
+    `| Requirement groups | ${counts.groups} |`,
+    `| Requirements | ${counts.requirements} |`,
+    `| Choice/alternative requirements | ${counts.choiceRequirements} |`,
+    `| Named choice lists/options | ${counts.choiceLists} |`,
+    `| Choice lists/options with courses | ${counts.choiceListsWithCourses} |`,
+    `| Empty choice lists/options | ${counts.emptyChoiceLists} |`,
+    `| Structured Bulletin sources compared | ${counts.structuredMajorSources} |`,
+    `| Normalized/source representation mismatches | ${counts.sourceRepresentationMismatches} |`,
+    `| Majors without upper-division course evidence | ${counts.majorsWithoutUpperDivisionCourseEvidence} |`,
+    `| Classification errors | ${counts.classificationErrors} |`,
+    `| Missing-provenance groups | ${counts.missingProvenanceGroups} |`,
+    `| Findings — errors | ${counts.bySeverity.error} |`,
+    `| Findings — warnings | ${counts.bySeverity.warning} |`,
+    `| Findings — info | ${counts.bySeverity.info} |`,
+    "",
+    "## Findings by kind",
+    "",
+    "| Finding | Count |",
+    "| --- | ---: |",
+    ...(kindRows.length > 0 ? kindRows : ["| None | 0 |"]),
+    "",
+    "The companion CSV files contain every requirement and finding. Choice coverage columns show the rule type, minimum, list count, non-empty list count, and eligible-course count for spreadsheet proofing. Run with `--db` against an approved database to add the separate, read-only Department Notes and Sample Plans audit.",
+    "",
+  ].join("\n");
 }

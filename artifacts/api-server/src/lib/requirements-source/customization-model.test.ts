@@ -22,8 +22,9 @@ import {
   type StoredCustomization,
 } from "./overlay";
 import { groupStableKey, itemStableKey, programNameOf, requirementFingerprint } from "./stable-keys";
-import { auditPlanCustomizations, auditRequirements, auditRowsToCsv, auditTree } from "./audit";
+import { auditPlanCustomizations, auditReportToMarkdown, auditRequirements, auditRowsToCsv, auditStructuredMajorSource, auditTree } from "./audit";
 import type { RequirementProvenance } from "./model";
+import type { MajorStructure } from "../../data/majors/model";
 
 const provenance = (groupId: string, kind: string, over: Partial<RequirementProvenance> = {}): RequirementProvenance => ({
   groupId,
@@ -288,6 +289,16 @@ describe("the audit", () => {
     expect(report.counts.requirements).toBeGreaterThan(900);
     expect(report.findings.filter((f) => f.severity === "error")).toEqual([]);
     expect(report.counts.missingProvenanceGroups).toBe(0);
+    expect(report.counts.structuredMajorSources).toBe(report.counts.majors);
+    expect(report.counts.sourceRepresentationMismatches).toBe(0);
+    // English deliberately preserves the Bulletin's unenumerated upper-division
+    // concentration rules as manual requirements. The audit must surface that
+    // proofing gap rather than invent an approved-course list.
+    expect(report.findings.filter((f) => f.code === "major_without_upper_division_course_evidence").map((f) => f.program)).toEqual(["English (ENGL)"]);
+    expect(report.counts.choiceRequirements).toBeGreaterThan(0);
+    expect(report.counts.choiceLists).toBe(report.counts.choiceListsWithCourses);
+    expect(report.counts.emptyChoiceLists).toBe(0);
+    expect(auditReportToMarkdown(report)).toContain("| Empty choice lists/options | 0 |");
     // Reports; never rewrites. A second run finds exactly the same things.
     const strip = (r: typeof report) => r.findings.map((f) => `${f.code}|${f.program}|${f.requirementKey}`);
     expect(strip(auditRequirements())).toEqual(strip(report));
@@ -321,6 +332,97 @@ describe("the audit", () => {
     expect(auditTree(t, "major", "Fixture Science").findings.some((f) => f.code === "possible_category_leakage")).toBe(true);
   });
 
+  it("reports empty choice lists and writes their coverage into a spreadsheet row", () => {
+    const response = {
+      collegeCode: "CAS",
+      groups: [{
+        id: "major-primary",
+        title: "Major Requirements — Fixture Science",
+        kind: "major",
+        notes: [],
+        items: [{
+          ...item("major-primary-electives", "Electives", [], "Choose one approved elective."),
+          choice: {
+            kind: "choose" as const,
+            minimum: 1,
+            minDistinctLists: null,
+            lists: [{ key: "approved", label: "Approved electives", courses: [] as string[] }],
+            alternatives: [],
+          },
+        }],
+      }],
+    } as unknown as SourceResponse;
+    const t = normalizeRequirements(response, [provenance("major-primary", "major")], "current_bulletin");
+    const result = auditTree(t, "major", "Fixture Science");
+    expect(result.findings.map((f) => f.code)).toEqual(expect.arrayContaining([
+      "choice_list_has_no_courses",
+      "choice_requirement_has_no_eligible_courses",
+    ]));
+    expect(result.choiceCoverage).toEqual({ requirements: 1, lists: 1, nonEmptyLists: 0, emptyLists: 1 });
+    expect(result.rows[0]).toMatchObject({ requirementRule: "choose", choiceListCount: 1, nonEmptyChoiceListCount: 0, choiceEligibleCourseCount: 0 });
+  });
+
+  it("compares the normalized major response with the structured source and flags a lost eligible course", () => {
+    const structure: MajorStructure = {
+      sourceUrl: "https://example.test/bulletin",
+      sourceLabel: "Fixture Bulletin",
+      catalogYear: "2099-00 Fixture Bulletin",
+      lastVerified: "2099-01-01",
+      verificationNote: "fixture",
+      sourceText: ["CENG 100"],
+      lists: {},
+      sections: [{
+        key: "foundation",
+        label: "Foundation",
+        requirements: [{ key: "required", label: "CENG 100", description: "Required course.", rule: { kind: "each", courses: ["CENG 100"] } }],
+      }],
+      notes: [],
+    };
+    const response = {
+      collegeCode: "CAS",
+      groups: [{
+        id: "major-primary",
+        title: "Major Requirements — Fixture Science",
+        kind: "major",
+        notes: [],
+        items: [item("major-primary-ceng-100", "CENG 100", ["CENG 101"], "Required course.")],
+      }],
+    } as unknown as SourceResponse;
+    const t = normalizeRequirements(response, [provenance("major-primary", "major")], "current_bulletin");
+    const findings = auditStructuredMajorSource("Fixture Science (FX)", structure, t[0]!);
+    expect(findings.map((f) => f.code)).toContain("normalized_requirement_course_mismatch");
+  });
+
+  it("flags a source-backed major without enumerated upper-division course evidence for review", () => {
+    const structure: MajorStructure = {
+      sourceUrl: "https://example.test/bulletin",
+      sourceLabel: "Fixture Bulletin",
+      catalogYear: "2099-00 Fixture Bulletin",
+      lastVerified: "2099-01-01",
+      verificationNote: "fixture",
+      sourceText: ["CENG 10"],
+      lists: {},
+      sections: [{
+        key: "foundation",
+        label: "Foundation",
+        requirements: [{ key: "required", label: "CENG 10", description: "Required course.", rule: { kind: "each", courses: ["CENG 10"] } }],
+      }],
+      notes: [],
+    };
+    const response = {
+      collegeCode: "CAS",
+      groups: [{
+        id: "major-primary",
+        title: "Major Requirements — Fixture Science",
+        kind: "major",
+        notes: [],
+        items: [item("major-primary-ceng-10", "CENG 10", ["CENG 10"], "Required course.")],
+      }],
+    } as unknown as SourceResponse;
+    const t = normalizeRequirements(response, [provenance("major-primary", "major")], "current_bulletin");
+    expect(auditStructuredMajorSource("Fixture Science (FX)", structure, t[0]!).map((f) => f.code)).toContain("major_without_upper_division_course_evidence");
+  });
+
   it("reports customizations that point at a missing or changed source requirement, per plan", () => {
     const t = tree();
     const target = t[0]!.items[0]!;
@@ -337,5 +439,6 @@ describe("the audit", () => {
     ]);
     expect(csv).toContain('"A, ""B"""');
     expect(csv).toContain('"line\nbreak"');
+    expect(csv.split("\n")[0]).toContain("choiceListCount");
   });
 });

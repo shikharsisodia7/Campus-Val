@@ -176,30 +176,42 @@ A Department Note is advising guidance a department stands behind, shown beside 
 
 - Table `department_requirement_notes`: program key, target stable key (a requirement, a group, or null = the program), Bulletin edition, text, kind
   (requirement / sequence / core_overlap / advising), `status` (**draft**, **published**, **archived**, **unmapped**), origin (imported / admin), source label, source URL,
-  source reference ("Biology!D40"), reviewer, creator, updater, timestamps. A note on a **Core** requirement belongs to the program that wrote it (a Biology note about RTC 3)
+  source academic year/document version, provenance status, source reference ("Biology!D40"), reviewer, creator, updater, timestamps. Imported rows link to a
+  `department_canonical_resources` row; legacy/admin rows deliberately do not. A note on a **Core** requirement belongs to the program that wrote it (a Biology note about RTC 3)
   and shows only on plans that include Biology.
+- Table `department_canonical_resources`: the controlled source registry. It records a program and school, public HTTPS source URL, exact offline package file name,
+  academic year and document version plus separate **provenance** (`documented` / `verified` / `superseded` / `rejected`), **review** (`pending` / `approved` /
+  `rejected`) and **publication** (`draft` / `published` / `archived`) states. Only an administrator can change those states; a resource is importable only when it is
+  `verified`, `approved`, and `published`. Archiving or superseding a resource hides every linked imported note from students immediately, without deleting its audit trail.
 - Students cannot edit one; the sidebar renders it as plain text (never markup), collapses very long text without losing it, and says where it came from and, for an
   imported note, that the department has not reviewed it yet.
 - **Not the same as My Note.** Different label, colour, icon and markup, tested.
+- Program Requirements Admin makes provenance explicit: **Department Admin** for staff-authored guidance, **Canonical resource** for a registered source, and
+  **Legacy / needs review** for older rows whose canonical origin has not been verified. Legacy rows are not silently re-attributed.
 
 ### Import from department checklists
 
-Source: the published Requirements Checklists the College of Arts and Sciences publishes (spreadsheets, 40 of them), supplied to the import workflow as a canonical department-resource set — never from the student upload store. `scripts/import-department-notes.ts`:
+Source: a **registered canonical department resource**, supplied as an offline package to the import workflow — never from the student upload store. A super admin first
+registers the program, school, public HTTPS URL, exact `.xlsx` file name, academic year, and document revision in Program Requirements Admin; they then verify provenance,
+approve review, and publish the source. This supports any CampusVal program in CAS, Leavey, or Engineering rather than assuming a CAS-only file-name alias list.
+`scripts/import-department-notes.ts` reads only files with one active, import-ready registry record:
 
 ```
 pnpm --filter @workspace/api-server run import:department-notes -- --dir <folder of .xlsx> [--apply] [--out report.json]
 ```
 
-A table with a header cell "Notes" is read; the row label and the Notes cell are taken **verbatim**. The anchor is decided only by exact rules
+A table with a header cell "Notes" is read; the row label and the Notes cell are taken **verbatim**. The resource's reviewed program association permits official document
+titles that differ from the CampusVal display title; the anchor is still decided only by exact rules
 (`lib/department/checklist-notes.ts`): a University Core row whose label is a known Core label (the note keeps its row label: "RTC 3: Can overlap...") and whose
 Core requirement exists in the program's tree; or a program row whose course codes **all** belong to exactly one requirement of the program. Anything else goes to the
 **unmapped** queue with the label it sat beside; a note that is only course codes ("CHEM 14") is anchored but stays a **draft**. Nothing is paraphrased, summarized or
-guessed. A file is matched to a program by the exact title of its "<Program> Major Requirements" table; a file that matches no program exactly ("Studio Arts" is not "Studio Art"; "Gender and Sexuality Studies" is not "Women's & Gender Studies": that is the department's to confirm, not a guess) or is a checklist for an earlier
+guessed. An unregistered file, duplicate active registration, resource with any non-ready lifecycle state, school/program mismatch, or checklist for an earlier
 curriculum ("Prior to ...") is reported and skipped. Re-running is idempotent; a note a person has edited, reviewed or archived is never overwritten.
 A student's private upload is never a source of global notes.
 
-Result on the 40 real CAS checklists (QA database): 30 programs matched, 10 files skipped (each with its reason in the report), **225 published**, **2 draft**, **179 unmapped**.
-Imported notes are published *unreviewed* and labelled so; the department's own administrators review them in Program Requirements Admin.
+The earlier CAS proofing result (QA database) was **225 published**, **2 draft**, **179 unmapped** from the files then available. It is historical validation, not an
+assertion that those files are still current. Imported notes retain their source-specific provenance and may be reviewed independently; the canonical source must remain
+import-ready for its linked notes to be shown.
 
 ### Titles and course lists
 
@@ -261,6 +273,9 @@ Published planning templates a student loads into a **new Tentative Degree Plan*
 
 - Flow: school > program > plan > **preview** > Create Tentative Degree Plan. The preview shows every term, course (with its catalog title), placeholders, the source, the version,
   validation warnings, and says it is a planning template, not a guarantee.
+- **Source gate.** A normal student can list, preview, or load only a **published** `official_department` template with its school, program, source version (and academic year when
+  stated), source label, a valid HTTPS URL or canonical document reference, and its recorded import timestamp. Drafts, staff-authored entries, generated plans, and legacy/incomplete
+  rows fail closed in both the API and client picker.
 - **Safe by default.** The default creates a new plan and changes nothing existing. "Add to this plan" skips courses already present, removes nothing, and adding to the
   **Degree Plan** needs an explicit confirmation (server-enforced: 409 without it). The new plan's major is set to the sample's program (planning only; the profile and the APR are untouched).
 - **Independent copy.** A loaded plan records only provenance (`metadata.sampleSource`: template, version, source). Editing, re-publishing or archiving the template never touches it,

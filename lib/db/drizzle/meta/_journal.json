@@ -71,6 +71,13 @@
       "when": 1791602859250,
       "tag": "0009_major_tracks",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792174408739,
+      "tag": "0010_canonical_department_resources",
+      "breakpoints": true
     }
   ]
 }

@@ -37,6 +37,62 @@ export const SCHOOL_NAME: Record<string, string> = {
 };
 export const SCHOOL_ORDER = ["CAS", "LSB", "SOE"];
 
+/**
+ * A source type that represents an actual university or department resource,
+ * rather than a staff-authored draft or a CampusVal-generated sequence.  Keep
+ * this deliberately small: a public planning template needs a traceable
+ * institutional source, not merely an administrator who marked it published.
+ */
+const TRUSTED_PUBLIC_SOURCE_TYPES = new Set(["official_department"]);
+
+const nonEmptyText = (value: string | null | undefined): boolean => typeof value === "string" && value.trim().length > 0;
+
+/** A source can be a web page/PDF URL, or an imported canonical document. */
+const hasCanonicalSourceLocation = (sourceUrl: string | null | undefined, sourceReference: string | null | undefined): boolean => {
+  const sourceUrlText = sourceUrl?.trim();
+  if (sourceUrlText) {
+    try {
+      const parsed = new URL(sourceUrlText);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") return true;
+    } catch {
+      return false;
+    }
+    return false;
+  }
+  return nonEmptyText(sourceReference);
+};
+
+type CanonicalSamplePlanProvenance = {
+  school: string;
+  program: string;
+  version: string;
+  academicYear?: string | null;
+  sourceType: string;
+  sourceLabel?: string | null;
+  sourceUrl?: string | null;
+  sourceReference?: string | null;
+};
+
+/**
+ * The immutable source facts required before an official template may become
+ * student-facing. `academicYear` is optional because some canonical resources
+ * do not state one; `version` still identifies the imported edition.
+ */
+export function hasCanonicalSamplePlanProvenance(row: CanonicalSamplePlanProvenance): boolean {
+  return (
+    TRUSTED_PUBLIC_SOURCE_TYPES.has(row.sourceType) &&
+    SCHOOL_ORDER.includes(row.school) &&
+    nonEmptyText(row.program) &&
+    nonEmptyText(row.version) &&
+    (row.academicYear === undefined || row.academicYear === null || nonEmptyText(row.academicYear)) &&
+    nonEmptyText(row.sourceLabel) &&
+    hasCanonicalSourceLocation(row.sourceUrl, row.sourceReference)
+  );
+}
+
+/** `createdAt` is the row's immutable import timestamp. */
+const hasRecordedImportDate = (createdAt: Date): boolean => !Number.isNaN(createdAt.getTime());
+
 const toInput = (r: SamplePlanItemRow): SampleItemInput => ({
   year: r.year,
   term: r.term,
@@ -59,12 +115,14 @@ export function samplePlanSummary(r: SamplePlanRow) {
     title: r.title,
     description: r.description,
     planLength: r.planLength,
-    /** official_department | admin_entry | campusval_generated (an example CampusVal built from the major's requirements, not an SCU plan). */
+    /** official_department (public only with complete provenance) | admin_entry (admin-only) | campusval_generated (R&D-only). */
     sourceType: r.sourceType,
     academicYear: r.academicYear,
     sourceLabel: r.sourceLabel,
     sourceUrl: r.sourceUrl,
     sourceReference: r.sourceReference,
+    /** Immutable import timestamp retained with the template's provenance. */
+    importedAt: r.createdAt.toISOString(),
     status: r.status,
   };
 }
@@ -74,11 +132,13 @@ export function samplePlanSummary(r: SamplePlanRow) {
  * examples stay in the controlled admin/R&D inventory, but publication alone
  * never turns them into an SCU-approved recommendation.
  */
-export function isPublicSamplePlan(row: Pick<SamplePlanRow, "status" | "sourceType">): boolean {
-  return (
-    row.status === "published" &&
-    (row.sourceType === "official_department" || row.sourceType === "admin_entry")
-  );
+export function isPublicSamplePlan(
+  row: Pick<
+    SamplePlanRow,
+    "status" | "school" | "program" | "version" | "academicYear" | "sourceType" | "sourceLabel" | "sourceUrl" | "sourceReference" | "createdAt"
+  >,
+): boolean {
+  return row.status === "published" && hasCanonicalSamplePlanProvenance(row) && hasRecordedImportDate(row.createdAt);
 }
 
 /**
@@ -159,9 +219,15 @@ export async function loadSamplePlan(plan: SamplePlanRow, items: SamplePlanItemR
     samplePlanId: plan.id,
     slug: plan.slug,
     version: plan.version,
+    program: plan.program,
+    programKey: plan.programKey,
     title: plan.title,
+    sourceType: plan.sourceType,
     sourceLabel: plan.sourceLabel,
     sourceUrl: plan.sourceUrl,
+    sourceReference: plan.sourceReference,
+    academicYear: plan.academicYear,
+    importedAt: plan.createdAt.toISOString(),
     loadedAt: new Date().toISOString(),
   };
 
@@ -263,6 +329,12 @@ export interface SamplePlanImport {
  */
 export async function importSamplePlan(actor: Actor, input: SamplePlanImport, opts: { publish: boolean }) {
   if (!(SAMPLE_PLAN_LENGTHS as readonly string[]).includes(input.planLength)) throw new DepartmentError(400, "Unknown plan length.");
+  // R&D records remain private regardless of status. Every non-R&D plan that
+  // an importer asks to publish must have enough canonical provenance to pass
+  // the student-facing gate as soon as its import timestamp is recorded.
+  if (opts.publish && input.sourceType !== "campusval_generated" && !hasCanonicalSamplePlanProvenance(input)) {
+    throw new DepartmentError(400, "A public sample plan needs an official source, program, version, and source URL or document reference.");
+  }
   const warnings = validateSampleItems(input.items);
   const [existing] = await db
     .select()
@@ -338,6 +410,9 @@ export async function setSamplePlanStatus(
   plan: SamplePlanRow,
   patch: { status?: "draft" | "published" | "archived"; title?: string; description?: string | null },
 ) {
+  if (patch.status === "published" && plan.sourceType !== "campusval_generated" && !hasCanonicalSamplePlanProvenance(plan)) {
+    throw new DepartmentError(400, "A public sample plan needs an official source, program, version, and source URL or document reference.");
+  }
   const next: Partial<typeof samplePlansTable.$inferInsert> = { updatedBy: actor.email };
   if (patch.status) next.status = patch.status;
   if (patch.title !== undefined) {

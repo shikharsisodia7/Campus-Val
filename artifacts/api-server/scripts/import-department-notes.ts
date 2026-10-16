@@ -4,10 +4,11 @@
  *   pnpm --filter @workspace/api-server run import:department-notes -- --dir <folder of .xlsx>
  *        [--apply] [--actor <email>] [--out <report.json>]
  *
- * Dry run unless --apply. Reads only the files in --dir (published department
- * checklists, never a student's upload). Each file is matched to a CampusVal
- * program by the exact title in its "<Program> Major Requirements" table; a
- * file that does not match exactly one program is reported and skipped.
+ * Dry run unless --apply. Reads only an offline package of canonical files;
+ * every file must already have one active row in department_canonical_resources
+ * with its program, school, public source URL, document version, provenance,
+ * review and publication status recorded. It never reads degree-checksheet
+ * uploads or their object store.
  *
  * Deterministic anchors become published notes (flagged "imported, not yet
  * reviewed" to students); anchored notes that say nothing in words become
@@ -17,11 +18,12 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { eq } from "drizzle-orm";
-import { db, departmentRequirementNotesTable, pool } from "@workspace/db";
+import { db, departmentCanonicalResourcesTable, departmentRequirementNotesTable, pool } from "@workspace/db";
 // The checksheet reader also copes with a department named "History" (a sheet name Excel reserves).
 import { readModernWorkbook } from "../src/lib/checksheets/render.ts";
+import { canonicalResourceBlocker, selectCanonicalResourceForFile } from "../src/lib/department/canonical-resources.ts";
 import { extractChecklistNotes, type NoteCandidate } from "../src/lib/department/checklist-notes.ts";
-import { listPrograms, programTree } from "../src/lib/department/programs.ts";
+import { findProgram, programTree } from "../src/lib/department/programs.ts";
 import { latestBulletinEdition } from "../src/lib/requirements-source/editions.ts";
 
 const args = process.argv.slice(2);
@@ -34,23 +36,18 @@ if (!dir) {
 const apply = args.includes("--apply");
 const actor = (arg("--actor") ?? "importer@campusval.local").toLowerCase();
 const edition = latestBulletinEdition().id;
-const norm = (s: string) => s.toLowerCase().replace(/\(.*?\)/g, "").replace(/\b(b\.?[as]\.?|bachelor of (arts|science))\b/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+// The registry is the trust boundary: a directory is merely an offline copy of
+// those specific documents.  Keep archived versions in the audit trail, but do
+// not let them compete with the current package file.
+const resourceRows = await db.select().from(departmentCanonicalResourcesTable);
 
-// Files whose own title does not equal a CampusVal program title, matched by name with the evidence for each.
-// A name is only listed when it is the same program: the department renamed it, or only the punctuation differs.
-const FILE_ALIASES: { file: RegExp; programKey: string; why: string }[] = [
-  { file: /^Studio Art Checklist/i, programKey: "major:studio-art", why: 'the checklist says "Studio Arts"; the program is Studio Art' },
-  { file: /^French and Francophone Studies Checklist/i, programKey: "major:french-francophone-studies", why: '"and" and "&" only' },
-  { file: /^Gender and Sexuality Studies Checklist/i, programKey: "major:women-s-gender-studies", why: "SCU Bulletin 2026-27: Gender and Sexuality Studies, formerly Women's and Gender Studies" },
-  { file: /^BA in Chemistry Checklist/i, programKey: "major:chemistry-b-a", why: "BA in Chemistry is the Chemistry (B.A.) major" },
-  { file: /^Public Health - Health Science Checklist/i, programKey: "major:public-health-science", why: "the Health Science emphasis of the Public Health Science major" },
-];
-
-const majors = listPrograms().filter((p) => p.type === "major" && p.college === "CAS");
-const report = { edition, files: [] as unknown[], totals: { published: 0, draft: 0, unmapped: 0, skippedFiles: 0, written: 0 } };
+const report = {
+  edition,
+  files: [] as unknown[],
+  totals: { published: 0, draft: 0, unmapped: 0, skippedFiles: 0, blockedResources: 0, written: 0 },
+};
 
 for (const file of readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".xlsx")).sort()) {
-  const label = file.replace(/\.xlsx$/i, "");
   // An older curriculum's checklist is not the current Bulletin's: never imported onto the current program.
   if (/\bprior to\b/i.test(file)) {
     report.files.push({ file, skipped: "checklist for an earlier curriculum (\"Prior to ...\")" });
@@ -66,41 +63,73 @@ for (const file of readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".xls
     continue;
   }
   const sheet = workbook.sheets.find((s) => s.visibility === "visible" && s.rows.length > 0);
-  // The program is named by the table that holds the major's courses: "<Program> Major Requirements".
-  const titleCell = sheet?.rows.flatMap((r) => r.cells.filter((c) => c.c === 0)).map((c) => c.text.trim()).find((t) => /\bMajor Requirements$/i.test(t));
-  const named = titleCell?.replace(/\s*Major Requirements$/i, "");
-  const alias = FILE_ALIASES.find((a) => a.file.test(file));
-  const match = alias ? listPrograms().filter((m) => m.programKey === alias.programKey) : named ? majors.filter((m) => norm(m.title) === norm(named)) : [];
-  if (!sheet || match.length !== 1) {
-    report.files.push({ file, skipped: named ? `"${named}" matches ${match.length} CampusVal majors` : "no \"<Program> Major Requirements\" table" });
+  const selection = selectCanonicalResourceForFile(resourceRows, file);
+  if (!sheet || !selection.resource) {
+    report.files.push({
+      file,
+      skipped: !sheet ? "no visible worksheet" : selection.error!,
+    });
     report.totals.skippedFiles += 1;
     continue;
   }
-  const program = match[0]!;
+  const resource = selection.resource;
+  const program = findProgram(resource.programKey);
+  if (!program || program.type !== resource.programType || program.college !== resource.school) {
+    report.files.push({ file, skipped: "canonical resource program or school no longer matches CampusVal" });
+    report.totals.skippedFiles += 1;
+    continue;
+  }
+  const blocked = canonicalResourceBlocker(resource);
+  if (blocked) {
+    report.files.push({ file, program: resource.programKey, resourceId: resource.id, skipped: `canonical resource blocked: ${blocked}` });
+    report.totals.skippedFiles += 1;
+    report.totals.blockedResources += 1;
+    continue;
+  }
   const tree = programTree(program.programKey)!;
   const programGroup = tree.tree.find((g) => g.stableKey === program.programKey)!;
-  const candidates: NoteCandidate[] = extractChecklistNotes(sheet, program.title, programGroup, tree.tree, { everyTableIsProgram: !!alias });
+  // The registry's program association was reviewed by an administrator. This
+  // permits published names that differ from CampusVal's display title and
+  // works for CAS, LSB, SOE, majors, and minors without a hard-coded alias
+  // list. The extractor still anchors only exact course/core matches.
+  const candidates: NoteCandidate[] = extractChecklistNotes(sheet, program.title, programGroup, tree.tree, { everyTableIsProgram: true });
   const counts = { published: 0, draft: 0, unmapped: 0 };
   for (const c of candidates) counts[c.status] += 1;
   report.totals.published += counts.published;
   report.totals.draft += counts.draft;
   report.totals.unmapped += counts.unmapped;
-  report.files.push({ file, program: program.programKey, ...counts, candidates: candidates.map((c) => ({ at: c.sourceReference, status: c.status, target: c.targetKey, body: c.body, why: c.reason })), unmappedRows: candidates.filter((c) => c.status === "unmapped").map((c) => ({ at: c.sourceReference, label: c.rowLabel, why: c.reason })) });
+  report.files.push({
+    file,
+    program: program.programKey,
+    school: resource.school,
+    resourceId: resource.id,
+    sourceUrl: resource.sourceUrl,
+    academicYear: resource.academicYear,
+    documentVersion: resource.documentVersion,
+    ...counts,
+    candidates: candidates.map((c) => ({ at: c.sourceReference, status: c.status, target: c.targetKey, body: c.body, why: c.reason })),
+    unmappedRows: candidates.filter((c) => c.status === "unmapped").map((c) => ({ at: c.sourceReference, label: c.rowLabel, why: c.reason })),
+  });
 
   if (!apply) continue;
   for (const c of candidates) {
-    const importKey = `${label}|${c.sourceReference}`;
+    const importKey = `canonical:${resource.id}:${c.sourceReference}`;
     const values = {
       programKey: program.programKey,
-      programType: "major",
+      programType: resource.programType,
       targetKey: c.targetKey,
       bulletinEdition: edition,
       body: c.body,
       noteKind: c.kind,
       status: c.status,
       origin: "imported",
-      sourceType: "checklist",
-      sourceLabel: `${program.title} Requirements Checklist (College of Arts and Sciences)`,
+      sourceType: "canonical_resource",
+      canonicalResourceId: resource.id,
+      sourceLabel: resource.documentTitle,
+      sourceUrl: resource.sourceUrl,
+      sourceAcademicYear: resource.academicYear,
+      sourceDocumentVersion: resource.documentVersion,
+      provenanceStatus: resource.provenanceStatus,
       sourceReference: c.sourceReference,
       sourceAnchorText: c.rowLabel,
       importKey,

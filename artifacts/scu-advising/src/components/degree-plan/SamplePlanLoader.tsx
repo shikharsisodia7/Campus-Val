@@ -41,6 +41,9 @@ interface SamplePlanSummary {
   sourceLabel: string | null;
   sourceUrl: string | null;
   sourceReference: string | null;
+  /** Immutable timestamp recorded when the canonical template was imported. */
+  importedAt?: string;
+  status?: "draft" | "published" | "archived";
 }
 interface Browse {
   schools: { code: string; name: string; programs: { program: string; plans: SamplePlanSummary[] }[] }[];
@@ -77,11 +80,48 @@ const TERM_ORDER = ["fall", "winter", "spring", "summer"];
 const errorText = (e: unknown): string => (e instanceof ApiError ? ((e.data as { error?: string } | null)?.error ?? e.message) : "Something went wrong. Try again.");
 
 /**
- * The server is the authority and filters generated templates too.  This
+ * The server is the authority and filters non-public templates. This
  * client-side guard is deliberate defense in depth: a stale cache or a
- * misconfigured intermediary must not make a CampusVal-generated sequence
- * look like an approved departmental sample plan.
+ * misconfigured intermediary must not make a generated, staff-authored, or
+ * provenance-incomplete sequence look like an approved departmental plan.
  */
+const nonEmpty = (value: string | null | undefined): boolean => typeof value === "string" && value.trim().length > 0;
+
+function hasCanonicalLocation(plan: SamplePlanSummary): boolean {
+  const sourceUrl = plan.sourceUrl?.trim();
+  if (sourceUrl) {
+    try {
+      const url = new URL(sourceUrl);
+      if (url.protocol === "https:" || url.protocol === "http:") return true;
+    } catch {
+      return false;
+    }
+    return false;
+  }
+  return nonEmpty(plan.sourceReference);
+}
+
+const hasRecordedImportDate = (value: string | undefined): boolean => typeof value === "string" && value.trim().length > 0 && !Number.isNaN(Date.parse(value));
+
+function formatImportedAt(value: string | undefined): string {
+  if (!hasRecordedImportDate(value)) return "not recorded";
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(value ?? ""));
+}
+
+function isApprovedPublicPlan(plan: SamplePlanSummary): boolean {
+  return (
+    plan.status === "published" &&
+    plan.sourceType === "official_department" &&
+    nonEmpty(plan.school) &&
+    nonEmpty(plan.program) &&
+    nonEmpty(plan.version) &&
+    (plan.academicYear === null || nonEmpty(plan.academicYear)) &&
+    nonEmpty(plan.sourceLabel) &&
+    hasCanonicalLocation(plan) &&
+    hasRecordedImportDate(plan.importedAt)
+  );
+}
+
 function sourceBackedBrowse(data: Browse): Browse {
   return {
     schools: data.schools
@@ -90,9 +130,7 @@ function sourceBackedBrowse(data: Browse): Browse {
         programs: school.programs
           .map((program) => ({
             ...program,
-            plans: program.plans.filter(
-              (plan) => plan.sourceType === "official_department" || plan.sourceType === "admin_entry",
-            ),
+            plans: program.plans.filter(isApprovedPublicPlan),
           }))
           .filter((program) => program.plans.length > 0),
       }))
@@ -315,7 +353,7 @@ export function SamplePlanLoader() {
                     )}
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Source: {preview.data.sourceLabel ?? "not stated"} · version {preview.data.version}. A planning template, not an official guarantee of completion.
+                    Source: {preview.data.sourceLabel ?? "not stated"} · version {preview.data.version} · imported {formatImportedAt(preview.data.importedAt)}. A planning template, not an official guarantee of completion.
                   </p>
                   <div className="space-y-2">
                     {byYear.map(([year, terms]) => (

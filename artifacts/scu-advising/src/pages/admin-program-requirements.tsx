@@ -25,10 +25,11 @@ import { AlertTriangle } from "lucide-react";
  */
 
 interface Me { superAdmin: boolean; programKeys: string[] | null; edition: string }
-interface Program { programKey: string; type: "major" | "minor"; code: string; title: string; collegeName: string }
+interface Program { programKey: string; type: "major" | "minor"; code: string; title: string; college: "CAS" | "LSB" | "SOE"; collegeName: string }
 interface AdminNote {
   id: number; targetKey: string | null; title: string | null; body: string; courseCodes: string[]; kind: string | null; status: string; origin: string;
-  sourceLabel: string | null; sourceReference: string | null; sourceAnchorText: string | null; reviewedBy: string | null; updatedBy: string; updatedAt: string;
+  sourceType: string; canonicalResourceId: number | null; sourceLabel: string | null; sourceUrl: string | null; sourceAcademicYear: string | null; sourceDocumentVersion: string | null; provenanceStatus: string;
+  sourceReference: string | null; sourceAnchorText: string | null; reviewedBy: string | null; updatedBy: string; updatedAt: string;
 }
 interface AdminItem {
   stableKey: string; label: string; description: string; courses: string[];
@@ -43,6 +44,11 @@ interface AdminGroup {
 interface Detail { edition: { id: string; label: string }; program: Program; groups: AdminGroup[]; notes: AdminNote[] }
 interface AuditEntry { id: number; at: string; actor: string; entity: string; action: string; targetKey: string | null; before: unknown; after: unknown }
 interface SamplePlanRow { id: number; slug: string; version: string; program: string; programKey: string | null; title: string; planLength: string; status: string; importWarnings: string[]; schoolName: string }
+interface CanonicalResource {
+  id: number; programKey: string; programType: string; school: string; documentTitle: string; sourceFileName: string; sourceUrl: string;
+  academicYear: string | null; documentVersion: string | null; provenanceStatus: string; reviewStatus: string; publicationStatus: string;
+  reviewedBy: string | null; reviewedAt: string | null; publishedBy: string | null; publishedAt: string | null; updatedBy: string; updatedAt: string;
+}
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   published: "default", draft: "secondary", archived: "outline", unmapped: "destructive",
@@ -67,6 +73,7 @@ export default function AdminProgramRequirementsPage() {
     enabled: !!programKey,
   });
   const samples = useQuery({ queryKey: ["/api/admin/department/sample-plans"], queryFn: () => customFetch<{ plans: SamplePlanRow[] }>("/api/admin/department/sample-plans"), enabled: me.isSuccess });
+  const resources = useQuery({ queryKey: ["/api/admin/department/canonical-resources"], queryFn: () => customFetch<{ resources: CanonicalResource[] }>("/api/admin/department/canonical-resources"), enabled: me.isSuccess });
 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -131,6 +138,7 @@ export default function AdminProgramRequirementsPage() {
               <TabsList>
                 <TabsTrigger value="requirements">Requirements & notes</TabsTrigger>
                 <TabsTrigger value="unmapped" data-testid="tab-unmapped">Needs review{unmapped.length ? ` (${unmapped.length})` : ""}</TabsTrigger>
+                <TabsTrigger value="resources" data-testid="tab-canonical-resources">Canonical resources</TabsTrigger>
                 <TabsTrigger value="samples">Sample Plans</TabsTrigger>
                 <TabsTrigger value="history">Change history</TabsTrigger>
                 {me.data.superAdmin && <TabsTrigger value="admins">Administrators</TabsTrigger>}
@@ -149,6 +157,17 @@ export default function AdminProgramRequirementsPage() {
                 {unmapped.map((n) => (
                   <UnmappedNote key={n.id} note={n} group={detail.data!.groups.find((g) => !g.shared)!} busy={busy} act={act} />
                 ))}
+              </TabsContent>
+
+              <TabsContent value="resources" className="space-y-2">
+                <CanonicalResources
+                  resources={resources.data?.resources ?? []}
+                  programs={programs.data?.programs ?? []}
+                  programKey={programKey}
+                  superAdmin={me.data.superAdmin}
+                  act={act}
+                  busy={busy}
+                />
               </TabsContent>
 
               <TabsContent value="samples" className="space-y-2">
@@ -248,6 +267,24 @@ function NoteRow({ note, act, busy }: { note: AdminNote; act: Act; busy: boolean
         <Badge variant={STATUS_VARIANT[note.status] ?? "outline"}>{note.status}</Badge>
         <span className="text-[10px] text-muted-foreground">{note.origin === "imported" ? `imported · ${note.sourceReference ?? ""}${note.reviewedBy ? "" : " · not reviewed"}` : `by ${note.updatedBy}`}</span>
       </div>
+      <p className="mt-0.5 text-[10px] text-muted-foreground" data-testid={`note-provenance-${note.id}`}>
+        {note.canonicalResourceId !== null
+          ? "Canonical resource"
+          : note.sourceType === "admin_entry" || note.origin === "admin"
+            ? "Department Admin"
+            : note.provenanceStatus === "legacy"
+              ? "Legacy / needs review"
+              : `Imported source · provenance ${note.provenanceStatus}`}
+      </p>
+      {note.canonicalResourceId !== null && (
+        <p className="mt-0.5 text-[10px] text-muted-foreground" data-testid={`canonical-source-note-${note.id}`}>
+          Canonical source: {note.sourceLabel ?? "Untitled resource"}
+          {note.sourceAcademicYear ? ` · ${note.sourceAcademicYear}` : ""}
+          {note.sourceDocumentVersion ? ` · v${note.sourceDocumentVersion}` : ""}
+          {` · provenance ${note.provenanceStatus}`}
+          {note.sourceUrl && <> · <a href={note.sourceUrl} target="_blank" rel="noreferrer" className="underline">source</a></>}
+        </p>
+      )}
       {editing ? (
         <div className="mt-1 space-y-1">
           <NoteStructureFields title={title} setTitle={setTitle} courses={courses} setCourses={setCourses} idPrefix={`edit-note-${note.id}`} />
@@ -444,6 +481,113 @@ function UnmappedNote({ note, group, busy, act }: { note: AdminNote; group: Admi
         <Button size="sm" variant="ghost" className="h-7" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/notes/${note.id}`, json("PATCH", { status: "archived" })))}>Discard</Button>
       </div>
     </Card>
+  );
+}
+
+/**
+ * Canonical sources are a separate, explicit control plane. They are never a
+ * student's uploaded checksheet: a source must be documented, verified,
+ * reviewed and published before the offline importer will read it.
+ */
+function CanonicalResources({
+  resources,
+  programs,
+  programKey,
+  superAdmin,
+  busy,
+  act,
+}: {
+  resources: CanonicalResource[];
+  programs: Program[];
+  programKey: string;
+  superAdmin: boolean;
+  busy: boolean;
+  act: Act;
+}) {
+  const [open, setOpen] = useState(false);
+  const [documentTitle, setDocumentTitle] = useState("");
+  const [sourceFileName, setSourceFileName] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [academicYear, setAcademicYear] = useState("");
+  const [documentVersion, setDocumentVersion] = useState("");
+  const program = programs.find((item) => item.programKey === programKey);
+  const shown = resources.filter((resource) => !programKey || resource.programKey === programKey);
+  const ready = (resource: CanonicalResource) =>
+    resource.provenanceStatus === "verified" && resource.reviewStatus === "approved" && resource.publicationStatus === "published";
+  const clear = () => {
+    setDocumentTitle("");
+    setSourceFileName("");
+    setSourceUrl("");
+    setAcademicYear("");
+    setDocumentVersion("");
+    setOpen(false);
+  };
+
+  return (
+    <div className="space-y-2" data-testid="canonical-resources-panel">
+      <p className="text-xs text-muted-foreground">
+        These are institution-controlled documents, not student uploads. Only a verified, approved and published resource can feed global Department Notes.
+      </p>
+      {!programKey && <p className="text-sm text-muted-foreground">Choose a program to inspect its canonical resources.</p>}
+      {shown.map((resource) => (
+        <Card key={resource.id} className="space-y-1 p-2 text-xs" data-testid={`canonical-resource-${resource.id}`}>
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <span className="font-medium">{resource.documentTitle}</span>
+            <span className="flex flex-wrap gap-1">
+              <Badge variant={ready(resource) ? "default" : "secondary"}>{ready(resource) ? "import-ready" : "not import-ready"}</Badge>
+              <Badge variant={STATUS_VARIANT[resource.publicationStatus] ?? "outline"}>{resource.publicationStatus}</Badge>
+            </span>
+          </div>
+          <p className="break-all text-muted-foreground">{resource.school} · {resource.sourceFileName}{resource.academicYear ? ` · ${resource.academicYear}` : ""}{resource.documentVersion ? ` · v${resource.documentVersion}` : ""}</p>
+          <p className="text-muted-foreground">
+            provenance: {resource.provenanceStatus} · review: {resource.reviewStatus}
+            {resource.sourceUrl && <> · <a href={resource.sourceUrl} target="_blank" rel="noreferrer" className="underline">source URL</a></>}
+          </p>
+          {superAdmin && (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {resource.provenanceStatus !== "verified" && <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/canonical-resources/${resource.id}`, json("PATCH", { provenanceStatus: "verified" })))}>Verify provenance</Button>}
+              {resource.reviewStatus !== "approved" && <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/canonical-resources/${resource.id}`, json("PATCH", { reviewStatus: "approved" })))}>Approve review</Button>}
+              {resource.publicationStatus !== "published" && <Button size="sm" className="h-6 px-2 text-[11px]" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/canonical-resources/${resource.id}`, json("PATCH", { publicationStatus: "published" })))}>Publish source</Button>}
+              {resource.publicationStatus !== "archived" && <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/canonical-resources/${resource.id}`, json("PATCH", { publicationStatus: "archived" })))}>Archive source</Button>}
+            </div>
+          )}
+        </Card>
+      ))}
+      {programKey && shown.length === 0 && <p className="text-sm text-muted-foreground">No canonical resources registered for this program.</p>}
+      {superAdmin && program && (
+        open ? (
+          <Card className="space-y-2 p-3 text-xs">
+            <p className="font-medium">Register a canonical resource for {program.title}</p>
+            <Input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} maxLength={240} placeholder="Published document title" aria-label="Canonical document title" />
+            <Input value={sourceFileName} onChange={(event) => setSourceFileName(event.target.value)} maxLength={240} placeholder="Exact offline .xlsx file name" aria-label="Canonical source file name" />
+            <Input value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} maxLength={2000} placeholder="Official https:// source URL" aria-label="Canonical source URL" />
+            <div className="grid gap-1 sm:grid-cols-2">
+              <Input value={academicYear} onChange={(event) => setAcademicYear(event.target.value)} maxLength={80} placeholder="Academic year (optional)" aria-label="Canonical source academic year" />
+              <Input value={documentVersion} onChange={(event) => setDocumentVersion(event.target.value)} maxLength={80} placeholder="Document version (optional)" aria-label="Canonical source document version" />
+            </div>
+            <div className="flex gap-1">
+              <Button size="sm" className="h-7" disabled={busy || !documentTitle.trim() || !sourceFileName.trim() || !sourceUrl.trim()}
+                onClick={async () => {
+                  await act(() => customFetch("/api/admin/department/canonical-resources", json("POST", {
+                    programKey,
+                    documentTitle,
+                    sourceFileName,
+                    sourceUrl,
+                    academicYear: academicYear.trim() || null,
+                    documentVersion: documentVersion.trim() || null,
+                  })));
+                  clear();
+                }}>
+                Register source
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7" onClick={clear}>Cancel</Button>
+            </div>
+          </Card>
+        ) : (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setOpen(true)} data-testid="register-canonical-resource">Register canonical resource</Button>
+        )
+      )}
+    </div>
   );
 }
 

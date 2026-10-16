@@ -28,9 +28,9 @@ const browse = {
     {
       code: "CAS",
       name: "College of Arts and Sciences",
-      programs: [{ program: "Biology", plans: [{ id: 5, slug: "cas-bio-1", version: "2026-27", school: "CAS", schoolName: "College of Arts and Sciences", program: "Biology", title: "First-year plan — Option One", description: null, planLength: "first_year", sourceType: "official_department" as const, academicYear: null, sourceLabel: "CAS first-year course plan: Biology", sourceUrl: "https://example.test/plan", sourceReference: "Biology.docx, Option One" }] }],
+      programs: [{ program: "Biology", plans: [{ id: 5, slug: "cas-bio-1", version: "2026-27", school: "CAS", schoolName: "College of Arts and Sciences", program: "Biology", title: "First-year plan — Option One", description: null, planLength: "first_year", sourceType: "official_department" as const, academicYear: null, sourceLabel: "CAS first-year course plan: Biology", sourceUrl: "https://example.test/plan", sourceReference: "Biology.docx, Option One", importedAt: "2026-01-15T12:00:00.000Z", status: "published" as const }] }],
     },
-    { code: "SOE", name: "School of Engineering", programs: [{ program: "Civil Engineering", plans: [{ id: 6, slug: "soe-civil", version: "2026-27", school: "SOE", schoolName: "School of Engineering", program: "Civil Engineering", title: "Four-year plan", description: null, planLength: "four_year", sourceType: "official_department" as const, academicYear: "2026-27", sourceLabel: "SOE four-year plan", sourceUrl: null, sourceReference: null }] }] },
+    { code: "SOE", name: "School of Engineering", programs: [{ program: "Civil Engineering", plans: [{ id: 6, slug: "soe-civil", version: "2026-27", school: "SOE", schoolName: "School of Engineering", program: "Civil Engineering", title: "Four-year plan", description: null, planLength: "four_year", sourceType: "official_department" as const, academicYear: "2026-27", sourceLabel: "SOE four-year plan", sourceUrl: "https://example.test/engineering", sourceReference: "Civil Engineering four-year plan", importedAt: "2026-01-15T12:00:00.000Z", status: "published" as const }] }] },
   ],
 };
 const preview = {
@@ -103,6 +103,25 @@ describe("generated plans cannot appear in the public picker", () => {
     expect(screen.queryByTestId("sample-plan-choice-5")).toBeNull();
     expect(screen.queryByText(/Example, not an SCU plan/i)).toBeNull();
   });
+
+  it("filters staff-authored and provenance-incomplete entries even if a stale API response contains them", async () => {
+    mount();
+    const basePlan = browse.schools[0]!.programs[0]!.plans[0]!;
+    const adminEntry = { ...basePlan, id: 7, sourceType: "admin_entry" as const };
+    const noSource = { ...basePlan, id: 8, sourceUrl: null, sourceReference: null };
+    const noImportDate = { ...basePlan, id: 9, importedAt: "" };
+    const badSourceUrl = { ...basePlan, id: 10, sourceUrl: "not-a-url" };
+    customFetch.mockImplementation(async (url: string) => {
+      if (url === "/api/sample-plans") return { schools: [{ ...browse.schools[0]!, programs: [{ program: "Biology", plans: [adminEntry, noSource, noImportDate, badSourceUrl] }] }] };
+      throw new Error(`unexpected ${String(url)}`);
+    });
+    fireEvent.click(screen.getByTestId("button-load-sample-plan"));
+    await screen.findByTestId("sample-plan-empty");
+    expect(screen.queryByTestId("sample-plan-choice-7")).toBeNull();
+    expect(screen.queryByTestId("sample-plan-choice-8")).toBeNull();
+    expect(screen.queryByTestId("sample-plan-choice-9")).toBeNull();
+    expect(screen.queryByTestId("sample-plan-choice-10")).toBeNull();
+  });
 });
 
 describe("Load Sample Plan", () => {
@@ -127,6 +146,7 @@ describe("Load Sample Plan", () => {
     expect(within(box).getByText("CTW 1")).toBeTruthy();
     expect(box.textContent).toContain("CAS first-year course plan: Biology");
     expect(box.textContent).toContain("version 2026-27");
+    expect(box.textContent).toContain("imported Jan 15, 2026");
     expect(box.textContent).toMatch(/not an official guarantee/);
     expect(screen.getByTestId("sample-plan-warnings").textContent).toContain("ZZZZ 999");
     expect(customFetch.mock.calls.some(([u]) => String(u).endsWith("/load"))).toBe(false);
