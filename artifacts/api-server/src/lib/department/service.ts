@@ -10,7 +10,7 @@
  * note, restores what the Bulletin says.
  */
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   db,
   departmentCanonicalResourcesTable,
@@ -601,6 +601,42 @@ export async function updateNote(actor: Actor, existing: DepartmentRequirementNo
     },
   });
   return row!;
+}
+
+/**
+ * Applies a reconcile decision (legacy-reconcile.ts) to a legacy imported note.
+ * The row stays the importer's: `updatedBy` is its creator and no reviewer is
+ * recorded. The update matches only while no person has touched the row, so a
+ * concurrent edit wins; returns false when that happened.
+ */
+export async function reconcileLegacyImportedNote(
+  actor: Actor,
+  row: DepartmentRequirementNoteRow,
+  next: { status: string; targetKey: string | null; noteKind: string | null },
+): Promise<boolean> {
+  const updated = await db
+    .update(departmentRequirementNotesTable)
+    .set({ status: next.status, targetKey: next.targetKey, noteKind: next.noteKind, updatedBy: row.createdBy })
+    .where(
+      and(
+        eq(departmentRequirementNotesTable.id, row.id),
+        isNull(departmentRequirementNotesTable.canonicalResourceId),
+        eq(departmentRequirementNotesTable.updatedBy, row.createdBy),
+        isNull(departmentRequirementNotesTable.reviewedBy),
+      ),
+    )
+    .returning({ id: departmentRequirementNotesTable.id });
+  if (updated.length === 0) return false;
+  await recordAudit(actor, {
+    programKey: row.programKey,
+    entity: "note",
+    entityId: row.id,
+    action: "reconcile",
+    targetKey: next.targetKey,
+    before: { status: row.status, targetKey: row.targetKey, kind: row.noteKind },
+    after: { status: next.status, targetKey: next.targetKey, kind: next.noteKind },
+  });
+  return true;
 }
 
 export async function listNotesForProgram(programKey: string, edition: string) {

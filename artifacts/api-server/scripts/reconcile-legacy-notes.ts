@@ -21,7 +21,7 @@ import { readModernWorkbook } from "../src/lib/checksheets/render.ts";
 import { extractChecklistNotes } from "../src/lib/department/checklist-notes.ts";
 import { reconcileLegacyNote } from "../src/lib/department/legacy-reconcile.ts";
 import { findProgram, programTree } from "../src/lib/department/programs.ts";
-import { recordAudit } from "../src/lib/department/service.ts";
+import { reconcileLegacyImportedNote } from "../src/lib/department/service.ts";
 
 const args = process.argv.slice(2);
 const arg = (name: string) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
@@ -76,18 +76,10 @@ for (const c of candidates) {
   const after = { status: decision.next.status, targetKey: decision.next.targetKey, kind: decision.next.noteKind };
   report.changes.push({ id: row.id, at: c.sourceReference, label: c.rowLabel, body: c.body, before, after, why: c.reason });
   if (!apply) continue;
-  // updatedBy stays the importer: the note is still the import's, not a person's.
-  const updated = await db
-    .update(departmentRequirementNotesTable)
-    .set({ status: after.status, targetKey: after.targetKey, noteKind: after.kind, updatedBy: row.createdBy })
-    .where(and(eq(departmentRequirementNotesTable.id, row.id), eq(departmentRequirementNotesTable.updatedBy, row.createdBy), isNull(departmentRequirementNotesTable.reviewedBy)))
-    .returning({ id: departmentRequirementNotesTable.id });
   // Someone changed it since it was read: theirs now, left alone.
-  if (updated.length === 0) {
+  if (!(await reconcileLegacyImportedNote(actor, row, decision.next))) {
     report.skipped.push({ id: row.id, at: c.sourceReference, why: "changed by a person while this ran" });
-    continue;
   }
-  await recordAudit(actor, { programKey: row.programKey, entity: "note", entityId: row.id, action: "reconcile", targetKey: after.targetKey, before, after });
 }
 
 console.log(`${report.program}: ${report.changes.length} to change, ${report.unchanged} unchanged, ${report.skipped.length} skipped, ${report.notImported} cells with no legacy note`, apply ? "(applied)" : "(dry run — pass --apply to write)");
