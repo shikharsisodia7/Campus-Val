@@ -278,6 +278,27 @@ export async function updateCanonicalResource(
       next.publishedAt = new Date();
     }
   }
+
+  // A reviewed source is identified by its exact file, URL, academic year, and
+  // document revision. Changing any of those facts invalidates the previous
+  // provenance/review/publication decisions. Reset the gates even if a caller
+  // tries to combine a source edit with `publicationStatus: published`; the
+  // new source must be re-verified and re-approved in separate actions before
+  // linked Department Notes can become visible again.
+  const sourceIdentityChanged =
+    (next.sourceFileName !== undefined && next.sourceFileName !== existing.sourceFileName) ||
+    (next.sourceUrl !== undefined && next.sourceUrl !== existing.sourceUrl) ||
+    (next.academicYear !== undefined && next.academicYear !== existing.academicYear) ||
+    (next.documentVersion !== undefined && next.documentVersion !== existing.documentVersion);
+  if (sourceIdentityChanged) {
+    next.provenanceStatus = "documented";
+    next.reviewStatus = "pending";
+    next.publicationStatus = "draft";
+    next.reviewedBy = null;
+    next.reviewedAt = null;
+    next.publishedBy = null;
+    next.publishedAt = null;
+  }
   const [row] = await db
     .update(departmentCanonicalResourcesTable)
     .set(next)

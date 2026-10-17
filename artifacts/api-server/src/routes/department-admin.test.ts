@@ -297,6 +297,20 @@ describe("canonical department resources", () => {
     });
     expect(find(await view(STUDENT, studentPlan), bioItem.stableKey).departmentNotes.map((note: any) => note.body)).toContain(body);
 
+    const changedSource = await asSuper(request(app).patch(`/api/admin/department/canonical-resources/${created.body.id}`))
+      .send({ sourceUrl: "https://www.scu.edu/biology/checklists/biology-2026-2.xlsx", documentVersion: "2026.2", publicationStatus: "published" })
+      .expect(200);
+    expect(changedSource.body).toMatchObject({
+      sourceUrl: "https://www.scu.edu/biology/checklists/biology-2026-2.xlsx",
+      documentVersion: "2026.2",
+      provenanceStatus: "documented",
+      reviewStatus: "pending",
+      publicationStatus: "draft",
+      reviewedBy: null,
+      publishedBy: null,
+    });
+    expect((find(await view(STUDENT, studentPlan), bioItem.stableKey).departmentNotes ?? []).map((note: any) => note.body)).not.toContain(body);
+
     await asSuper(request(app).patch(`/api/admin/department/canonical-resources/${created.body.id}`)).send({ publicationStatus: "archived" }).expect(200);
     expect((find(await view(STUDENT, studentPlan), bioItem.stableKey).departmentNotes ?? []).map((note: any) => note.body)).not.toContain(body);
   });

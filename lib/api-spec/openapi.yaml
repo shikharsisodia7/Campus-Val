@@ -1840,6 +1840,9 @@ paths:
       tags: [progress-report]
       summary: CampusVal's Degree Completion Assessment of the caller's own APRs
       description: |
+        INTERNAL R&D ONLY: this route is available only when the degree-completion
+        research flag is enabled and the caller is an allowlisted admin. Normal pilot
+        callers receive a non-disclosing not-found response.
         A PLANNING AID derived on every request from the caller's own uploaded APRs:
         what appears to remain. Not Workday, not an official degree audit; Workday is
         the definitive reference for degree completion. Only Workday's explicit
@@ -1853,6 +1856,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DegreeCompletionAssessment"
+        "404":
+          description: Route unavailable outside the internal R&D allowlist
   /progress-reports/{id}/assessment/items/{itemKey}:
     parameters:
       - name: id
@@ -1867,6 +1872,7 @@ paths:
       operationId: correctDegreeCompletionItem
       tags: [progress-report]
       summary: Save the student's correction of one assessment item (never changes the APR)
+      description: Internal R&D-only correction endpoint; unavailable to normal pilot callers.
       requestBody:
         required: true
         content:
@@ -1890,6 +1896,7 @@ paths:
       operationId: resetDegreeCompletionItem
       tags: [progress-report]
       summary: Reset one item to the APR-based assessment
+      description: Internal R&D-only correction endpoint; unavailable to normal pilot callers.
       responses:
         "204": { description: "Reset" }
         "404": { description: "Not the caller's APR" }
