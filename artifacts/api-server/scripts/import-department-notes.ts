@@ -13,11 +13,13 @@
  * Deterministic anchors become published notes (flagged "imported, not yet
  * reviewed" to students); anchored notes that say nothing in words become
  * drafts; everything else lands in the unmapped queue. Re-running is safe: a
- * note is keyed by its file and cell and is never duplicated.
+ * note is keyed by its file and cell and is never duplicated. A file whose
+ * cells a legacy import (before this registry) already turned into notes is not
+ * applied until those notes are archived, so students never see a note twice.
  */
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { db, departmentCanonicalResourcesTable, departmentRequirementNotesTable, pool } from "@workspace/db";
 // The checksheet reader also copes with a department named "History" (a sheet name Excel reserves).
 import { readModernWorkbook } from "../src/lib/checksheets/render.ts";
@@ -40,6 +42,11 @@ const edition = latestBulletinEdition().id;
 // those specific documents.  Keep archived versions in the audit trail, but do
 // not let them compete with the current package file.
 const resourceRows = await db.select().from(departmentCanonicalResourcesTable);
+// Notes from before the registry, still live or waiting for review: the same cells must not be imported again.
+const legacyNotes = await db
+  .select({ id: departmentRequirementNotesTable.id, programKey: departmentRequirementNotesTable.programKey, sourceReference: departmentRequirementNotesTable.sourceReference })
+  .from(departmentRequirementNotesTable)
+  .where(and(isNull(departmentRequirementNotesTable.canonicalResourceId), ne(departmentRequirementNotesTable.status, "archived")));
 
 const report = {
   edition,
@@ -93,6 +100,8 @@ for (const file of readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".xls
   // works for CAS, LSB, SOE, majors, and minors without a hard-coded alias
   // list. The extractor still anchors only exact course/core matches.
   const candidates: NoteCandidate[] = extractChecklistNotes(sheet, program.title, programGroup, tree.tree, { everyTableIsProgram: true });
+  const refs = new Set(candidates.map((c) => c.sourceReference));
+  const legacyDuplicates = legacyNotes.filter((n) => n.programKey === program.programKey && n.sourceReference && refs.has(n.sourceReference)).map((n) => n.id);
   const counts = { published: 0, draft: 0, unmapped: 0 };
   for (const c of candidates) counts[c.status] += 1;
   report.totals.published += counts.published;
@@ -107,11 +116,18 @@ for (const file of readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".xls
     academicYear: resource.academicYear,
     documentVersion: resource.documentVersion,
     ...counts,
+    legacyDuplicates,
     candidates: candidates.map((c) => ({ at: c.sourceReference, status: c.status, target: c.targetKey, body: c.body, why: c.reason })),
     unmappedRows: candidates.filter((c) => c.status === "unmapped").map((c) => ({ at: c.sourceReference, label: c.rowLabel, why: c.reason })),
   });
 
   if (!apply) continue;
+  if (legacyDuplicates.length > 0) {
+    (report.files.at(-1) as Record<string, unknown>).skipped =
+      `${legacyDuplicates.length} of its cells are already legacy notes (ids ${legacyDuplicates.join(", ")}); archive those first so students never see a note twice`;
+    report.totals.skippedFiles += 1;
+    continue;
+  }
   for (const c of candidates) {
     const importKey = `canonical:${resource.id}:${c.sourceReference}`;
     const values = {

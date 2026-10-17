@@ -13,7 +13,10 @@
  *     the target Core requirement must exist in the program's tree;
  *   - the program's own table (its "<Program> Major Requirements" section): every
  *     course code in the row's label must belong to exactly ONE requirement item
- *     of the program.
+ *     of the program; or, for a label that names no course ("UD BIOL CMB THEME
+ *     w/ Lab 1"), the course list the row prints in a column without a heading
+ *     must be EXACTLY the courses of one requirement item (the same set, not a
+ *     subset: a theme's list is also part of the electives' list).
  * Anything else is "unmapped": the text and the label it sat beside are kept for
  * a person to place; it is never attached to a guess.
  *
@@ -21,6 +24,7 @@
  * something in words. A note that is only course codes ("CHEM 14") is anchored
  * but needs a person to say what it means, so it is a draft.
  */
+import { COURSES } from "../../data/courses";
 import type { AprSheet } from "../apr/workbook-model";
 import type { NormalizedGroup } from "../requirements-source/normalize";
 
@@ -78,22 +82,57 @@ const CORE_ALIASES: Record<string, string> = {
 
 const CORE_SECTIONS = new Set(["foundations", "explorations", "integrations"]);
 const COURSE_CODE = /\b([A-Z]{2,5})\s?(\d{1,3}[A-Z]{0,2})\b/g;
+const CATALOG_SUBJECTS = new Set(COURSES.map((c) => c.department.toUpperCase()));
 
 const clean = (s: string): string => s.replace(/\s+/g, " ").trim();
 const colLetter = (c: number): string => String.fromCharCode(65 + c);
 
-/** "PHYS 11/31" -> ["PHYS 11","PHYS 31"]; "CHEM 11" -> ["CHEM 11"]. */
+/**
+ * A catalog subject in any case ("Chem"), or a word written in capitals the way
+ * checklists write subjects. "Lab" in "w/ Lab 1" or "Year" in "Year 2" is
+ * neither, so it is not read as a course; an unknown capitalized subject still
+ * is, and then simply matches no requirement.
+ */
+const isCourseSubject = (written: string): boolean => CATALOG_SUBJECTS.has(written.toUpperCase()) || written === written.toUpperCase();
+
+/** "PHYS 11/31" -> ["PHYS 11","PHYS 31"]; "CHEM 11" -> ["CHEM 11"]; "w/ Lab 1" -> []. */
 export function courseCodesIn(label: string): string[] {
   const out: string[] = [];
-  const text = label.toUpperCase();
-  const slash = text.match(/\b([A-Z]{2,5})\s?(\d{1,3}[A-Z]{0,2}(?:\/\d{1,3}[A-Z]{0,2})+)\b/);
-  if (slash) for (const n of slash[2]!.split("/")) out.push(`${slash[1]} ${n}`);
-  for (const m of text.matchAll(COURSE_CODE)) {
-    const code = `${m[1]} ${m[2]}`;
+  const slash = label.match(/\b([A-Za-z]{2,5})\s?(\d{1,3}[A-Za-z]{0,2}(?:\/\d{1,3}[A-Za-z]{0,2})+)\b/);
+  if (slash && isCourseSubject(slash[1]!)) for (const n of slash[2]!.split("/")) out.push(`${slash[1]!.toUpperCase()} ${n.toUpperCase()}`);
+  for (const m of label.matchAll(/\b([A-Za-z]{2,5})\s?(\d{1,3}[A-Za-z]{0,2})\b/g)) {
+    if (!isCourseSubject(m[1]!)) continue;
+    const code = `${m[1]!.toUpperCase()} ${m[2]!.toUpperCase()}`;
     if (!out.includes(code)) out.push(code);
   }
   return out;
 }
+
+/**
+ * "BIOL 110, 112, 113" -> ["BIOL 110","BIOL 112","BIOL 113"]: a subject carries
+ * to the bare numbers after it. Null unless EVERY word is a subject, a course
+ * number, "and" or "or", so a sentence is never read as a list.
+ */
+export function courseListIn(text: string): string[] | null {
+  const out: string[] = [];
+  let subject: string | null = null;
+  for (const token of text.split(/[\s,;.&]+/).filter(Boolean)) {
+    if (/^(?:and|or)$/i.test(token)) continue;
+    if (/^[A-Za-z]{2,5}$/.test(token) && isCourseSubject(token)) subject = token.toUpperCase();
+    else if (subject && /^\d{1,3}[A-Za-z]{0,2}$/.test(token)) {
+      const code = `${subject} ${token.toUpperCase()}`;
+      if (!out.includes(code)) out.push(code);
+    } else return null;
+  }
+  return out.length > 0 ? out : null;
+}
+
+const normCode = (code: string): string => code.toUpperCase().replace(/\s+/g, " ");
+const sameCourses = (a: readonly string[], b: readonly string[]): boolean => {
+  const left = new Set(a.map(normCode));
+  const right = new Set(b.map(normCode));
+  return left.size === right.size && [...left].every((code) => right.has(code));
+};
 
 /** True when the text is only course codes and joining punctuation: it needs a person to say what it means. */
 export function isCodesOnly(text: string): boolean {
@@ -125,6 +164,8 @@ export function extractChecklistNotes(
   const coreKeys = new Set(core?.items.map((i) => i.stableKey) ?? []);
 
   let notesCol = -1;
+  /** Columns the table's header row names ("Quarter", "Prerequisites", "Notes"); a course list sits in one it does not. */
+  let headedCols = new Set<number>();
   let section: { name: string; kind: "core" | "program" | "other" } | null = null;
 
   for (const row of sheet.rows) {
@@ -132,6 +173,7 @@ export function extractChecklistNotes(
     const headerNotes = row.cells.find((cell) => /^notes$/i.test(clean(cell.text)));
     if (headerNotes) {
       notesCol = headerNotes.c;
+      headedCols = new Set(row.cells.filter((cell) => clean(cell.text)).map((cell) => cell.c));
       const name = text(0);
       const lower = name.toLowerCase();
       section = {
@@ -177,28 +219,42 @@ export function extractChecklistNotes(
 
     if (section.kind === "program") {
       const codes = courseCodesIn(label);
+      // A label without a course may sit beside the list of courses it means, in a column the
+      // header does not name. Only a complete list is read, and it must equal one requirement.
+      const listed =
+        codes.length > 0
+          ? null
+          : (row.cells
+              .filter((cell) => cell.c !== 0 && !headedCols.has(cell.c))
+              .map((cell) => courseListIn(clean(cell.text)))
+              .find((list) => list !== null) ?? null);
       // EVERY code in the label must be one of the requirement's own courses. A row that lists
       // alternatives the requirement does not (PHYS 11/31 against an item for PHYS 31) is not
       // matched: the note may be about the alternative.
       const matches =
-        codes.length === 0
-          ? []
-          : programGroup.items.filter((i) => {
-              const own = i.item.courses.map((c) => c.toUpperCase().replace(/\s+/g, " "));
+        codes.length > 0
+          ? programGroup.items.filter((i) => {
+              const own = i.item.courses.map(normCode);
               return codes.every((code) => own.includes(code));
-            });
+            })
+          : listed
+            ? programGroup.items.filter((i) => sameCourses(i.item.courses, listed))
+            : [];
       if (matches.length !== 1) {
+        const named = codes.length > 0 ? codes.join(" / ") : (listed ?? []).join(", ");
         candidates.push({
           ...base,
           targetKey: null,
           kind: null,
           status: "unmapped",
           reason:
-            codes.length === 0
-              ? "The row names no course, so it cannot be matched to a requirement."
+            codes.length === 0 && !listed
+              ? "The row names no course and lists none, so it cannot be matched to a requirement."
               : matches.length === 0
-                ? `No requirement of this program lists ${codes.join(" / ")}.`
-                : `${codes.join(" / ")} matches ${matches.length} requirements.`,
+                ? listed
+                  ? `No requirement of this program has exactly the courses the row lists (${named}).`
+                  : `No requirement of this program lists ${named}.`
+                : `${named} matches ${matches.length} requirements.`,
         });
         continue;
       }

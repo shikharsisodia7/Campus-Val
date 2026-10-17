@@ -10,6 +10,7 @@
 import { db, departmentRequirementNotesTable, departmentRequirementOverridesTable, requirementCustomizationsTable, samplePlanItemsTable, samplePlansTable } from "@workspace/db";
 import { findCourse } from "../../data/courses";
 import { findBulletinEdition } from "../requirements-source/editions";
+import { currentTargetKey } from "../requirements-source/stable-keys";
 import { findProgram, groupKeyOf, listPrograms, programTree } from "./programs";
 
 export interface LayerFinding {
@@ -30,6 +31,20 @@ export interface LayerAudit {
     findings: number;
   };
   findings: LayerFinding[];
+}
+
+/**
+ * Where the department layer shows a note whose key is from before its major was
+ * restructured (see currentTargetKey): the requirement of the program's tree that
+ * now holds the course, or null when the note reaches no student.
+ */
+export function followedNoteTarget(programKey: string, targetKey: string): string | null {
+  const tree = programTree(programKey)?.tree ?? [];
+  const candidates = tree.flatMap((g) =>
+    g.items.map((e) => ({ stableKey: e.stableKey, courses: e.item.courses, variant: (e.item as { variant?: string | null }).variant ?? null })),
+  );
+  const to = currentTargetKey(targetKey, candidates);
+  return to !== targetKey && candidates.some((c) => c.stableKey === to) ? to : null;
 }
 
 export async function auditDepartmentLayer(): Promise<LayerAudit> {
@@ -60,8 +75,13 @@ export async function auditDepartmentLayer(): Promise<LayerAudit> {
       add({ code: "note_unmapped", severity: "info", entity: "note", id, message: `Waiting to be placed on a requirement of ${n.programKey}.` });
       continue;
     }
-    if (n.targetKey && !itemKeys.has(n.targetKey) && !groupKeys.has(n.targetKey)) {
+    const known = !n.targetKey || itemKeys.has(n.targetKey) || groupKeys.has(n.targetKey);
+    const followed = known ? null : followedNoteTarget(n.programKey, n.targetKey!);
+    if (!known && !followed) {
       add({ code: "note_target_missing", severity: "error", entity: "note", id, message: `Mapped to ${n.targetKey}, which is not in the Bulletin data.` });
+    } else if (followed) {
+      // Students DO see it: the layer follows the course to the requirement that now lists it.
+      add({ code: "note_target_followed", severity: "warning", entity: "note", id, message: `Mapped to ${n.targetKey}, which the Bulletin data no longer has; students see it on ${followed}. Re-anchor it there, or archive it.` });
     } else if (n.targetKey && !programTree(n.programKey)!.tree.some((g) => g.stableKey === groupKeyOf(n.targetKey!))) {
       add({ code: "note_target_outside_program", severity: "error", entity: "note", id, message: `Mapped to ${n.targetKey}, which this program's students do not see.` });
     }

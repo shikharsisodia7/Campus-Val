@@ -4,8 +4,9 @@
  */
 import { describe, it, expect } from "vitest";
 import type { AprSheet } from "../apr/workbook-model";
+import { followedNoteTarget } from "./audit";
 import { applyDepartmentLayer, type LayerContext, type NoteRecord, type OverrideRecord } from "./layer";
-import { courseCodesIn, extractChecklistNotes, isCodesOnly } from "./checklist-notes";
+import { courseCodesIn, courseListIn, extractChecklistNotes, isCodesOnly } from "./checklist-notes";
 import { listPrograms, programTree } from "./programs";
 import { composeRequirementOverlay } from "../requirements-source/overlay";
 
@@ -176,6 +177,11 @@ describe("checklist note extraction", () => {
       [43, [0, "UD BIOL CMB THEME w/ Lab 1"], [3, "Theme"]],
       [44, [0, "PHYS 11/31"], [3, "Take with the lab"]],
       [45, [0, "Elective"], [3, "Any upper-division"]],
+      // The checklist prints each theme's courses in a column the header does not name.
+      [47, [0, "UD BIOL CMB THEME w/ Lab 1"], [3, "Theme"], [4, "BIOL 110, 112, 113, 115, 122, 174, 175"]],
+      [48, [0, "UD BIOL EEB THEME w/ Lab 2"], [3, "Theme"], [4, "BIOL 120, 134, 151, 156, 158, 165, 173, 180. 181"]],
+      [49, [0, "UD BIOL THEME w/ Lab"], [3, "Theme"], [4, "BIOL 110, 112"]],
+      [50, [0, "UD BIOL THEME"], [2, "BIOL 117, 160, 170, 172, 178"], [3, "Theme"]],
     ]),
     "Biology",
     group,
@@ -207,12 +213,38 @@ describe("checklist note extraction", () => {
     expect(candidates.every((c) => c.status === "unmapped" || c.targetKey !== null)).toBe(true);
   });
 
+  it("anchors a row that names no course by the course list beside it, only when it is exactly one requirement's courses", () => {
+    expect(at("Biology!D48")).toMatchObject({ targetKey: "major:biology#theme-cmb", status: "published", body: "Theme" });
+    // "180. 181" is a typing slip in the source; the list still equals the EEB theme exactly.
+    expect(at("Biology!D49")).toMatchObject({ targetKey: "major:biology#theme-eeb", status: "published" });
+    // Part of a theme (and of the electives) is not exactly any requirement.
+    expect(at("Biology!D50")).toMatchObject({ targetKey: null, status: "unmapped" });
+    expect(at("Biology!D50").reason).toMatch(/exactly the courses/);
+    // A list in a headed column (Prerequisites) is not the row's own course list.
+    expect(at("Biology!D51")).toMatchObject({ targetKey: null, status: "unmapped" });
+  });
+
   it("parses course codes, slash alternatives and code-only text", () => {
     expect(courseCodesIn("PHYS 11/31")).toEqual(["PHYS 11", "PHYS 31"]);
     expect(courseCodesIn("CHEM 12")).toEqual(["CHEM 12"]);
     expect(courseCodesIn("UD BIOL Elective")).toEqual([]);
+    // "Lab" is not a subject: the label names no course.
+    expect(courseCodesIn("UD BIOL CMB THEME w/ Lab 1")).toEqual([]);
+    expect(courseCodesIn("Chem 12")).toEqual(["CHEM 12"]);
+    expect(courseListIn("BIOL 117, 160, 170 and CHEM 141")).toEqual(["BIOL 117", "BIOL 160", "BIOL 170", "CHEM 141"]);
+    expect(courseListIn("Check Individual Courses")).toBeNull();
+    expect(courseListIn("Theme")).toBeNull();
     expect(isCodesOnly("CHEM 14")).toBe(true);
     expect(isCodesOnly("CHEM 11 or 14")).toBe(true);
     expect(isCodesOnly("Take CHEM 14")).toBe(false);
+  });
+});
+
+describe("department layer audit: notes on keys from before a restructure", () => {
+  it("reports where students now see a note the layer follows to its course, and null when it reaches no one", () => {
+    // Chemistry (B.A.) now lists MATH 11 inside "MATH 11, 12, 13 or MATH 35, 36, 13".
+    expect(followedNoteTarget("major:chemistry-b-a", "major:chemistry-b-a#math-11")).toBe("major:chemistry-b-a#mathematics");
+    expect(followedNoteTarget("major:biology", "major:biology#zzzz-999")).toBeNull();
+    expect(followedNoteTarget("major:biology", "major:biology#not-a-course-key")).toBeNull();
   });
 });
