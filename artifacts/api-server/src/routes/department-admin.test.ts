@@ -755,7 +755,7 @@ describe("provenance inspector", () => {
 });
 
 describe("only department administration writes Department Notes", () => {
-  it("has exactly two writers: the admin service behind the department routes, and the checklist import script", () => {
+  it("has only the admin service and controlled checklist import/reconciliation scripts as writers", () => {
     // A student's checksheet upload, its tracking and "Add to planning" can therefore never create or change
     // a Department Note: none of their code writes the table.
     const root = path.resolve(import.meta.dirname, "..", "..");
@@ -772,7 +772,11 @@ describe("only department administration writes Department Notes", () => {
     };
     walk(path.join(root, "src"));
     walk(path.join(root, "scripts"));
-    expect(writers.sort()).toEqual(["scripts/import-department-notes.ts", "src/lib/department/service.ts"]);
+    expect(writers.sort()).toEqual([
+      "scripts/import-department-notes.ts",
+      "scripts/reconcile-legacy-notes.ts",
+      "src/lib/department/service.ts",
+    ]);
     const importer = fs.readFileSync(path.join(root, "scripts", "import-department-notes.ts"), "utf8");
     expect(importer).toContain("departmentCanonicalResourcesTable");
     expect(importer).not.toContain("degreeChecksheetDocumentsTable");
