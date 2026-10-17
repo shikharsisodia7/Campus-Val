@@ -101,6 +101,7 @@ overrides:
   qs@<6.16.0: ^6.16.0
   undici@>=6.0.0 <6.28.1: ^6.28.1
   uuid@<11.1.1: ^11.1.1
+  mammoth>argparse: '-'
   '@esbuild-kit/esm-loader': npm:tsx@^4.21.0
   '@expo/ngrok-bin>@expo/ngrok-bin-darwin-arm64': '-'
   '@expo/ngrok-bin>@expo/ngrok-bin-darwin-x64': '-'
@@ -14673,7 +14674,6 @@ snapshots:
   mammoth@1.13.0:
     dependencies:
       '@xmldom/xmldom': 0.8.15
-      argparse: 1.0.10
       base64-js: 1.5.1
       dingbat-to-unicode: 1.0.2
       jszip: 3.10.1

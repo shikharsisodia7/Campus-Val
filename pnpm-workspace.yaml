@@ -104,6 +104,9 @@ overrides:
   'qs@<6.16.0': ^6.16.0
   'undici@>=6.0.0 <6.28.1': ^6.28.1
   'uuid@<11.1.1': ^11.1.1
+  # mammoth's command-line tool (bin/mammoth) is its only user of argparse, which brings sprintf-js
+  # (GHSA-hp3w-g68c-fv3c, no fixed release); CampusVal imports the library, which never loads it.
+  'mammoth>argparse': '-'
   '@esbuild-kit/esm-loader': npm:tsx@^4.21.0
   '@expo/ngrok-bin>@expo/ngrok-bin-darwin-arm64': '-'
   '@expo/ngrok-bin>@expo/ngrok-bin-darwin-x64': '-'
