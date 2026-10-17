@@ -107,6 +107,11 @@ function kindOf(text: string): NoteCandidate["kind"] {
   return null;
 }
 
+/** Historical qualifiers are useful context, but must be reviewed before publication. */
+function hasHistoricalQualifier(text: string): boolean {
+  return /\bas of\s+\d{1,2}\/\d{2}(?:\/\d{2,4})?\b/i.test(text);
+}
+
 export function extractChecklistNotes(
   sheet: AprSheet,
   programTitle: string,
@@ -156,13 +161,16 @@ export function extractChecklistNotes(
       }
       // The Core item is shared by every program, so the note keeps the row label that gives it meaning.
       const text2 = `${label}: ${body}`;
+      const historical = hasHistoricalQualifier(body);
       candidates.push({
         ...base,
         body: text2,
         targetKey,
         kind: kindOf(body) ?? "requirement",
-        status: "published",
-        reason: null,
+        status: historical ? "draft" : "published",
+        reason: historical
+          ? "The note contains a dated historical qualifier; review it against the current Bulletin before publishing."
+          : null,
       });
       continue;
     }

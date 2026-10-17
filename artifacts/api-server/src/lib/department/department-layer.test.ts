@@ -167,6 +167,7 @@ describe("checklist note extraction", () => {
     sheet([
       [2, [0, "Foundations"], [1, "Quarter"], [2, "Notes"]],
       [3, [0, "RTC 3"], [2, "Can overlap with another Core or a Major requirement"]],
+      [6, [0, "Pathway 1"], [2, "Can overlap with another Core or a Major requirement (as of 10/23)"]],
       [4, [0, "Natural Science"], [2, "CHEM 11"]],
       [5, [0, "Something Else"], [2, "A note on a row that is not a Core area"]],
       [28, [0, "Biology Major Requirements"], [1, "Quarter"], [2, "Prerequisites"], [3, "Notes"]],
@@ -184,6 +185,8 @@ describe("checklist note extraction", () => {
 
   it("anchors Core rows to the matching Core requirement, keeping the row label as context", () => {
     expect(at("Biology!C4")).toMatchObject({ targetKey: "university-core:cas#rtc3", status: "published", kind: "core_overlap", body: "RTC 3: Can overlap with another Core or a Major requirement" });
+    expect(at("Biology!C7")).toMatchObject({ targetKey: "university-core:cas#pathway", status: "draft" });
+    expect(at("Biology!C7").reason).toMatch(/historical qualifier/);
     expect(at("Biology!C5")).toMatchObject({ targetKey: "university-core:cas#natsci", body: "Natural Science: CHEM 11" });
     expect(at("Biology!C6")).toMatchObject({ targetKey: null, status: "unmapped" });
   });
