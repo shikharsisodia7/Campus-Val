@@ -3,6 +3,14 @@ import { EVALUATION_SCENARIOS } from "../data/evaluation-bench";
 import { getAIProvider, AIUnavailableError, AI_UNAVAILABLE_PUBLIC_MESSAGE } from "../lib/ai";
 import { buildSystemPrompt } from "../data/advisor-prompt";
 import { requireAuth } from "../middlewares/requireAuth";
+import { requireRole } from "../lib/auth";
+
+/**
+ * AI features are PILOT_HIDDEN (artifacts/scu-advising/src/lib/pilot-features.ts):
+ * administrators/developers only, enforced here as well as in the web app, so a
+ * pilot user cannot reach them by calling the API directly.
+ */
+const requireAIAccess = requireRole("admin");
 
 const router: IRouter = Router();
 
@@ -10,7 +18,7 @@ router.get("/evaluation/scenarios", (_req, res) => {
   res.json(EVALUATION_SCENARIOS);
 });
 
-router.post("/evaluation/run", requireAuth, async (req, res) => {
+router.post("/evaluation/run", requireAuth, requireAIAccess, async (req, res) => {
   const body = (req.body ?? {}) as { scenarioIds?: string[] };
   const scenarios =
     body.scenarioIds && body.scenarioIds.length > 0

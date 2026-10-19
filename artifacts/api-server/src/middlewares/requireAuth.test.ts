@@ -57,19 +57,19 @@ describe("requireAuth — SCU and guest access", () => {
     expect(res.body).toEqual({ userId: "user_scu", userEmail: "student@scu.edu" });
   });
 
-  it("allows an allowlisted external reviewer (e.g. thines@pdx.edu)", async () => {
-    process.env.GUEST_REVIEWER_EMAILS = "thines@pdx.edu, jake@example.com";
+  it("allows an allowlisted external reviewer (e.g. invited-reviewer@pdx.edu)", async () => {
+    process.env.GUEST_REVIEWER_EMAILS = "invited-reviewer@pdx.edu, jake@example.com";
     mockAuth = {
       userId: "user_thom",
-      sessionClaims: { email: "thines@pdx.edu" },
+      sessionClaims: { email: "invited-reviewer@pdx.edu" },
     };
     const res = await request(buildApp()).get("/protected");
     expect(res.status).toBe(200);
-    expect(res.body.userEmail).toBe("thines@pdx.edu");
+    expect(res.body.userEmail).toBe("invited-reviewer@pdx.edu");
   });
 
   it("denies a random non-SCU, non-allowlisted email with 403", async () => {
-    process.env.GUEST_REVIEWER_EMAILS = "thines@pdx.edu";
+    process.env.GUEST_REVIEWER_EMAILS = "invited-reviewer@pdx.edu";
     mockAuth = {
       userId: "user_random",
       sessionClaims: { email: "random@gmail.com" },
@@ -79,7 +79,7 @@ describe("requireAuth — SCU and guest access", () => {
   });
 
   it("denies an unapproved @pdx.edu email that isn't on the allowlist", async () => {
-    process.env.GUEST_REVIEWER_EMAILS = "thines@pdx.edu";
+    process.env.GUEST_REVIEWER_EMAILS = "invited-reviewer@pdx.edu";
     mockAuth = {
       userId: "user_other_pdx",
       sessionClaims: { email: "someoneelse@pdx.edu" },
@@ -89,14 +89,14 @@ describe("requireAuth — SCU and guest access", () => {
   });
 
   it("normalizes email case for both req.userEmail and the allowlist check", async () => {
-    process.env.GUEST_REVIEWER_EMAILS = "thines@pdx.edu";
+    process.env.GUEST_REVIEWER_EMAILS = "invited-reviewer@pdx.edu";
     mockAuth = {
       userId: "user_thom_upper",
-      sessionClaims: { email: "THINES@PDX.EDU" },
+      sessionClaims: { email: "INVITED-REVIEWER@PDX.EDU" },
     };
     const res = await request(buildApp()).get("/protected");
     expect(res.status).toBe(200);
-    expect(res.body.userEmail).toBe("thines@pdx.edu");
+    expect(res.body.userEmail).toBe("invited-reviewer@pdx.edu");
   });
 
   it("falls back to a Clerk API lookup when claims lack an email", async () => {
@@ -136,13 +136,13 @@ describe("isApprovedCampusValUser", () => {
   });
 
   it("approves an allowlisted reviewer email, case-insensitively", () => {
-    process.env.GUEST_REVIEWER_EMAILS = "thines@pdx.edu";
-    expect(isApprovedCampusValUser("thines@pdx.edu")).toBe(true);
-    expect(isApprovedCampusValUser("THINES@PDX.EDU")).toBe(true);
+    process.env.GUEST_REVIEWER_EMAILS = "invited-reviewer@pdx.edu";
+    expect(isApprovedCampusValUser("invited-reviewer@pdx.edu")).toBe(true);
+    expect(isApprovedCampusValUser("INVITED-REVIEWER@PDX.EDU")).toBe(true);
   });
 
   it("denies a random non-allowlisted email", () => {
-    process.env.GUEST_REVIEWER_EMAILS = "thines@pdx.edu";
+    process.env.GUEST_REVIEWER_EMAILS = "invited-reviewer@pdx.edu";
     expect(isApprovedCampusValUser("anyone@example.com")).toBe(false);
   });
 

@@ -4,6 +4,14 @@ import { db, studentProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { buildSystemPrompt } from "../data/advisor-prompt";
 import { requireAuth } from "../middlewares/requireAuth";
+import { requireRole } from "../lib/auth";
+
+/**
+ * AI features are PILOT_HIDDEN (artifacts/scu-advising/src/lib/pilot-features.ts):
+ * administrators/developers only, enforced here as well as in the web app, so a
+ * pilot user cannot reach them by calling the API directly.
+ */
+const requireAIAccess = requireRole("admin");
 import {
   AIUnavailableError,
   getAIProvider,
@@ -113,7 +121,7 @@ function sendVoiceError(req: express.Request, res: express.Response, err: unknow
 }
 
 // POST /voice/transcribe — raw audio in body, returns { text }
-router.post("/voice/transcribe", requireAuth, RAW_AUDIO, async (req, res) => {
+router.post("/voice/transcribe", requireAuth, requireAIAccess, RAW_AUDIO, async (req, res) => {
   try {
     const buf = req.body as Buffer;
     if (!Buffer.isBuffer(buf) || buf.length === 0) {
@@ -127,7 +135,7 @@ router.post("/voice/transcribe", requireAuth, RAW_AUDIO, async (req, res) => {
 });
 
 // POST /voice/speak — { text } in JSON, returns audio bytes
-router.post("/voice/speak", requireAuth, express.json({ limit: "1mb" }), async (req, res) => {
+router.post("/voice/speak", requireAuth, requireAIAccess, express.json({ limit: "1mb" }), async (req, res) => {
   try {
     const text = String((req.body ?? {}).text ?? "").trim();
     if (!text) return res.status(400).json({ error: "text required" });
@@ -146,7 +154,7 @@ router.post("/voice/speak", requireAuth, express.json({ limit: "1mb" }), async (
 
 // POST /voice/ask — raw audio → { transcript, answer, audioBase64, audioMime }
 // One-shot: transcribe → ask advisor → synthesize answer.
-router.post("/voice/ask", requireAuth, RAW_AUDIO, async (req, res) => {
+router.post("/voice/ask", requireAuth, requireAIAccess, RAW_AUDIO, async (req, res) => {
   try {
     const buf = req.body as Buffer;
     if (!Buffer.isBuffer(buf) || buf.length === 0) {
