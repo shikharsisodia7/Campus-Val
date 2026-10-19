@@ -430,7 +430,7 @@ export function QuickAddSearch({
                           <div
                             role="group"
                             aria-labelledby="availability-view-label"
-                            className="inline-flex rounded-md border border-border p-0.5 text-[11px]"
+                            className="inline-flex rounded-md border border-border bg-muted p-0.5 text-[11px]"
                             data-testid="availability-view"
                           >
                             {(
@@ -449,7 +449,7 @@ export function QuickAddSearch({
                                   onClick={() => setAvailabilityView(value)}
                                   data-testid={`availability-view-${value}`}
                                   className={`rounded px-2.5 py-1 font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 ${
-                                    availabilityView === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                                    availabilityView === value ? "bg-card text-foreground shadow-xs ring-1 ring-border" : "text-muted-foreground hover:text-foreground"
                                   }`}
                                 >
                                   {label}
