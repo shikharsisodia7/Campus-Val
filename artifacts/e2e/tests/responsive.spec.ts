@@ -26,7 +26,7 @@ test.describe("authenticated responsive QA", () => {
 
   test("Degree Plan, Plan Controls, and program pickers are usable", async ({ page }) => {
     await page.goto("/degree-plan");
-    await expect(page.getByText("Degree Plan").first()).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Degree Plan" })).toBeVisible();
     await assertNoHorizontalOverflow(page, "Degree Plan");
 
     const planControls = page.getByRole("button", { name: /plan controls/i });
@@ -157,7 +157,8 @@ test.describe("pilot feature visibility (non-admin)", () => {
     await expect(page.getByText("Course Catalog")).toBeVisible();
     await expect(page.getByText("GPA Calculator")).toBeVisible();
     await expect(page.getByText("Transfer Credit")).toBeVisible();
-    await expect(page.getByText(/Workday APR/)).toBeVisible();
+    // The menu entry, not the Dashboard's own "View Workday APR" link.
+    await expect(page.getByText("Workday APR (Progress Report)", { exact: true })).toBeVisible();
     await expect(page.getByText("Degree Checksheets", { exact: true })).toBeVisible();
     await expect(page.getByText("SCU Resources")).toBeVisible();
 

@@ -2,7 +2,8 @@
 
 Last updated 2026-10-19. This page says what CampusVal is today, who can use it, and what is still
 waiting on people and decisions outside this repository. Keep it current; it is the page to send to
-anyone who asks "is CampusVal live?".
+anyone who asks "is CampusVal live?". The pass that set this up is recorded in
+[PILOT_REPORT_2026-10-19.md](./PILOT_REPORT_2026-10-19.md).
 
 ## Current status: pre-pilot engineering deployment
 
