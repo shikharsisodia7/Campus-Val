@@ -20,6 +20,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminStatus } from "@/hooks/use-is-admin";
 import { isPathPilotAllowed } from "@/lib/pilot-features";
+import { AccessGate } from "@/components/AccessGate";
 
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
@@ -137,9 +138,11 @@ function HomeRedirect() {
   return (
     <>
       <Show when="signed-in">
-        <Suspense fallback={null}>
-          <Dashboard />
-        </Suspense>
+        <AccessGate>
+          <Suspense fallback={null}>
+            <Dashboard />
+          </Suspense>
+        </AccessGate>
       </Show>
       <Show when="signed-out">
         <Landing />
@@ -148,10 +151,16 @@ function HomeRedirect() {
   );
 }
 
+/**
+ * Signed in AND admitted by the server's access policy (AccessGate). The
+ * server enforces both on every data route; this is the matching UI.
+ */
 function Protected({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Show when="signed-in">{children}</Show>
+      <Show when="signed-in">
+        <AccessGate>{children}</AccessGate>
+      </Show>
       <Show when="signed-out">
         <Redirect to="/" />
       </Show>

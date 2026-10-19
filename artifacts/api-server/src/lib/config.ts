@@ -14,6 +14,7 @@
 import path from "node:path";
 import { missingAIConfig, resolveAIProviderName } from "./ai";
 import { OIDC_NOT_READY_MESSAGE, resolveAuthProviderName } from "./auth";
+import { resolveAccessMode } from "./auth/policy";
 
 export interface ConfigProblem {
   variable: string;
@@ -129,6 +130,25 @@ export function collectConfigProblems(env: Env = process.env): ConfigProblem[] {
     if (!present(env, "CLERK_PUBLISHABLE_KEY")) {
       err("CLERK_PUBLISHABLE_KEY", "is required in production (Clerk publishable key).");
     }
+  }
+
+  // --- Who may use CampusVal (lib/auth/policy.ts, docs/PILOT_STATUS.md) ------
+  const accessMode = resolveAccessMode(env);
+  if (accessMode === null) {
+    err(
+      "CAMPUSVAL_ACCESS_MODE",
+      'must be "pilot" (default: invited participants only) or "institution" (every @scu.edu account). Unset means pilot.',
+    );
+  } else if (accessMode === "institution") {
+    warn(
+      "CAMPUSVAL_ACCESS_MODE",
+      "is institution: every @scu.edu account may use CampusVal. Set this only after SCU has approved a broader rollout.",
+    );
+  } else if (!present(env, "PILOT_TESTER_EMAILS") && !present(env, "GUEST_REVIEWER_EMAILS")) {
+    warn(
+      "PILOT_TESTER_EMAILS",
+      "is empty: in pilot mode only ADMIN_EMAILS and department administrators can use CampusVal until testers are invited.",
+    );
   }
 
   // --- Public origin / TLS -------------------------------------------------

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { Redirect, Tabs } from 'expo-router';
 import { useAuth } from '@clerk/expo';
@@ -10,6 +10,7 @@ import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AccessGate } from '@/components/AccessGate';
 
 function NativeTabLayout() {
   return (
@@ -127,16 +128,18 @@ function ClassicTabLayout() {
 export default function HomeLayout() {
   const { isSignedIn, getToken } = useAuth();
 
-  useEffect(() => {
-    setAuthTokenGetter(() => getToken());
-  }, [getToken]);
+  // Set during render, not in an effect: child effects (the access check and
+  // each tab's first query) run before a parent's effect, and would otherwise
+  // go out without a token.
+  setAuthTokenGetter(() => getToken());
 
   if (!isSignedIn) {
     return <Redirect href="/(auth)/sign-in" />;
   }
 
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
+  return (
+    <AccessGate>
+      {isLiquidGlassAvailable() ? <NativeTabLayout /> : <ClassicTabLayout />}
+    </AccessGate>
+  );
 }
