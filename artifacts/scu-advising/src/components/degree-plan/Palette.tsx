@@ -288,12 +288,12 @@ export function Palette() {
   return (
     <Card
       ref={rootRef}
-      className="flex h-full flex-col overflow-hidden border-border/60 bg-card shadow-sm"
+      className="flex h-full flex-col overflow-hidden bg-card"
       data-testid="requirements-palette"
     >
-      <div className="border-b border-border/60 px-3 py-2">
+      <div className="border-b border-border px-3 py-2">
         <div className="flex items-start justify-between gap-2">
-          <h2 className="font-serif text-base font-bold">Planning Requirements</h2>
+          <h2 className="cv-panel-title whitespace-nowrap">Planning Requirements</h2>
           {canCustomize && (
             <Button
               type="button"
@@ -318,17 +318,17 @@ export function Palette() {
           Declared and proposed majors, minors &amp; Professional Preparation — editable planning space, distinct from your official Workday APR.
         </p>
         {isDepartmentAdmin && (
-          <Link href="/admin/program-requirements" className="mt-1 inline-block text-[11px] font-medium text-amber-800 underline underline-offset-2" data-testid="link-program-requirements-admin">
+          <Link href="/admin/program-requirements" className="mt-1 inline-block text-[11px] font-medium text-primary underline underline-offset-2" data-testid="link-program-requirements-admin">
             Program Requirements Admin
           </Link>
         )}
         {editing && requirementsMeta && (
-          <div className="mt-2 space-y-1.5 rounded-md border border-sky-200 bg-sky-50/60 p-2 text-[10px] leading-relaxed text-sky-950" data-testid="edit-requirements-panel">
+          <div className="mt-2 space-y-1.5 rounded-md border border-info-border bg-info-surface p-2 text-[11px] leading-relaxed text-foreground" data-testid="edit-requirements-panel">
             <p>
               Editing <strong>this plan only</strong>. Edits save as you go and never change SCU&apos;s requirements,
               your Workday APR, your Degree Checksheets or what counts as complete.
             </p>
-            <details className="text-sky-900/80">
+            <details className="text-muted-foreground">
               <summary className="cursor-pointer underline-offset-2 hover:underline">Where these requirements come from</summary>
               <p className="mt-1" data-testid="requirements-source-label">{requirementsMeta.sourceLabel}</p>
             </details>
@@ -405,7 +405,7 @@ export function Palette() {
             </SelectContent>
           </Select>
           {isCompletedDestination && (
-            <p className="mt-1.5 text-[10px] leading-relaxed text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+            <p className="mt-1.5 rounded border border-warning-border bg-warning-surface px-2 py-1 text-[11px] leading-relaxed text-warning">
               Only courses can be added to the completed area (no placeholders).
             </p>
           )}
@@ -468,7 +468,7 @@ export function Palette() {
           )}
           <Accordion type="multiple" value={openGroups} onValueChange={setOpenGroups} className="px-1.5 pb-3">
             {requirementsError && !requirements && (
-              <p role="alert" className="mx-1.5 mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900" data-testid="requirements-load-error">
+              <p role="alert" className="mx-1.5 mt-2 rounded-md border border-warning-border bg-warning-surface p-2 text-[11px] text-warning" data-testid="requirements-load-error">
                 The requirements couldn&apos;t be loaded right now. Your plan and any edits you made are safe. Reload to try again.
               </p>
             )}
@@ -568,7 +568,7 @@ export function Palette() {
                           data-stable-key={req.stableKey}
                           data-customized={custom ? custom.kind : undefined}
                           data-flash={flashKey === req.stableKey ? "true" : undefined}
-                          className={`rounded-md border p-2 text-xs ${flashKey === req.stableKey ? "ring-2 ring-amber-400 ring-offset-1" : ""} ${isHidden ? "border-dashed opacity-60" : ""} ${isCustom ? "border-violet-200 bg-violet-50/30" : status === "completed" ? "border-emerald-200 bg-emerald-50/50" : status === "planned" ? "border-blue-200 bg-blue-50/50" : "border-border bg-card"}`}
+                          className={`rounded-md border border-l-[3px] bg-card p-2 text-xs ${flashKey === req.stableKey ? "ring-2 ring-primary/50 ring-offset-1" : ""} ${isHidden ? "border-dashed opacity-60" : ""} ${isCustom ? "border-dashed border-input border-l-input" : status === "completed" ? "border-border border-l-success" : status === "planned" ? "border-border border-l-info" : "border-border border-l-border"}`}
                         >
                           <div className="flex items-start justify-between gap-1.5">
                             <div className="font-medium leading-snug">
@@ -577,10 +577,10 @@ export function Palette() {
                               <CustomizationMarks item={req} />
                             </div>
                             {status === "completed" && (
-                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" aria-label="Satisfied" />
                             )}
                             {status === "planned" && (
-                              <CircleDashed className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+                              <CircleDashed className="h-3.5 w-3.5 shrink-0 text-info" aria-label="Planned" />
                             )}
                           </div>
 
@@ -686,7 +686,7 @@ export function Palette() {
                           )}
 
                           {status === "completed" && (
-                            <div className="mt-1 text-[10px] text-emerald-700">
+                            <div className="mt-1 text-[11px] font-medium text-success">
                               Satisfied
                             </div>
                           )}
@@ -698,7 +698,7 @@ export function Palette() {
                           )}
                           {status === "planned" && (
                             <div
-                              className="mt-1 text-[10px] text-blue-700"
+                              className="mt-1 text-[11px] font-medium text-info"
                               data-testid={`req-planned-${req.id}`}
                             >
                               Planned in schedule

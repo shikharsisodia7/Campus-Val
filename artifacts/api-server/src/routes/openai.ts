@@ -14,6 +14,14 @@ import { getAIProvider, publicAIErrorMessage, AIUnavailableError } from "../lib/
 import { buildAIStudentContext } from "../lib/ai/student-context";
 import { buildSystemPrompt } from "../data/advisor-prompt";
 import { requireAuth } from "../middlewares/requireAuth";
+import { requireRole } from "../lib/auth";
+
+/**
+ * AI features are PILOT_HIDDEN (artifacts/scu-advising/src/lib/pilot-features.ts):
+ * administrators/developers only, enforced here as well as in the web app, so a
+ * pilot user cannot reach them by calling the API directly.
+ */
+const requireAIAccess = requireRole("admin");
 import { getMajorRequirements } from "../data/graduation-paths";
 import { findCourse } from "../data/courses";
 import { offeredSectionsFor, OFFERED_TERMS } from "../data/offered-sections";
@@ -95,7 +103,7 @@ async function ownsConversation(
   return conv[0] ?? null;
 }
 
-router.get("/openai/conversations", requireAuth, async (req, res) => {
+router.get("/openai/conversations", requireAuth, requireAIAccess, async (req, res) => {
   const rows = await db
     .select()
     .from(conversations)
@@ -110,7 +118,7 @@ router.get("/openai/conversations", requireAuth, async (req, res) => {
   );
 });
 
-router.post("/openai/conversations", requireAuth, async (req, res) => {
+router.post("/openai/conversations", requireAuth, requireAIAccess, async (req, res) => {
   const body = CreateOpenaiConversationBody.parse(req.body);
   const [created] = await db
     .insert(conversations)
@@ -123,7 +131,7 @@ router.post("/openai/conversations", requireAuth, async (req, res) => {
   });
 });
 
-router.get("/openai/conversations/:id", requireAuth, async (req, res) => {
+router.get("/openai/conversations/:id", requireAuth, requireAIAccess, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(404).json({ error: "Not found" });
   const conv = await ownsConversation(id, req.userId!);
@@ -147,7 +155,7 @@ router.get("/openai/conversations/:id", requireAuth, async (req, res) => {
   });
 });
 
-router.delete("/openai/conversations/:id", requireAuth, async (req, res) => {
+router.delete("/openai/conversations/:id", requireAuth, requireAIAccess, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(404).json({ error: "Not found" });
   const conv = await ownsConversation(id, req.userId!);
@@ -157,7 +165,7 @@ router.delete("/openai/conversations/:id", requireAuth, async (req, res) => {
   res.status(204).end();
 });
 
-router.get("/openai/conversations/:id/messages", requireAuth, async (req, res) => {
+router.get("/openai/conversations/:id/messages", requireAuth, requireAIAccess, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(404).json({ error: "Not found" });
   const conv = await ownsConversation(id, req.userId!);
@@ -178,7 +186,7 @@ router.get("/openai/conversations/:id/messages", requireAuth, async (req, res) =
   );
 });
 
-router.post("/openai/conversations/:id/messages", requireAuth, async (req, res) => {
+router.post("/openai/conversations/:id/messages", requireAuth, requireAIAccess, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(404).json({ error: "Not found" });
   const body = SendOpenaiMessageBody.parse(req.body);

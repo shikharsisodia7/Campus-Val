@@ -29,7 +29,7 @@
 - **Target:** a private Cloud Storage bucket + Cloud SQL in SCU's project. Details: [docs/security/APR_STORAGE_AUDIT.md](docs/security/APR_STORAGE_AUDIT.md).
 
 ## Current Authentication
-Clerk (a third-party sign-in service) for both apps. Both production deployments run Clerk **development** instances. CampusVal admits only `@scu.edu` accounts and invited reviewers; PreHealth Advisor admits any account that can sign in.
+Clerk (a third-party sign-in service) for both apps. Both production deployments run Clerk **development** instances. CampusVal admits only invited pilot participants (pilot access mode: an `@scu.edu` address alone is not enough — see `docs/PILOT_STATUS.md`); PreHealth Advisor admits any account that can sign in.
 
 ## Target Authentication
 SCU SSO over OpenID Connect, with Duo handled by SCU's identity provider. The apps already call an internal interface (`getCurrentUser`, `requireUser`, `getUserId`, `requireRole`), so only one adapter file changes. Building it needs SCU's details: [docs/migration/SSO_INFORMATION_NEEDED.md](docs/migration/SSO_INFORMATION_NEEDED.md) (ready to send to SCU's identity team). No password store exists or will be created.

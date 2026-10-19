@@ -72,7 +72,7 @@ export function MyTrackingPanel({
       data-testid={`checksheet-my-tracking-${documentId}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 id={headingId} className="font-serif text-base font-semibold">
+        <h3 id={headingId} className="text-base font-semibold">
           My Tracking
         </h3>
         <MyTrackingTag />

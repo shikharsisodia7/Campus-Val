@@ -171,7 +171,7 @@ function Block({
       const level = Math.min(Math.max(block.level ?? 1, 1), 6);
       // The page already has its own h1–h3; the document's headings follow them.
       return (
-        <p role="heading" aria-level={Math.min(level + 3, 6)} className={cn("pt-1 font-serif font-semibold", HEADING[level - 1])}>
+        <p role="heading" aria-level={Math.min(level + 3, 6)} className={cn("pt-1 font-semibold", HEADING[level - 1])}>
           <Runs runs={block.runs} />
         </p>
       );

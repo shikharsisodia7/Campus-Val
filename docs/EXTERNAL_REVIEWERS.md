@@ -1,12 +1,12 @@
 # CampusVal — External Reviewer Access
 
-CampusVal is restricted to `@scu.edu` accounts, with an allowlist
-mechanism to invite outside reviewers (e.g. a professor at another
-university, or students elsewhere) without an SCU email. See
-`artifacts/api-server/src/middlewares/requireAuth.ts`
+During the pilot CampusVal admits only invited people (see
+[PILOT_STATUS.md](PILOT_STATUS.md)): `PILOT_TESTER_EMAILS` for SCU testers,
+and `GUEST_REVIEWER_EMAILS` for outside reviewers (e.g. a professor at another
+university) without an SCU email. See `artifacts/api-server/src/lib/auth/policy.ts`
 and [docs/DEPLOYMENT.md](DEPLOYMENT.md#external-reviewer-access-guest_reviewer_emails)
-for how the mechanism works. This doc is the step-by-step runbook for
-activating it, for whenever access is restricted again.
+for how the mechanism works. This doc is the step-by-step runbook for adding
+or removing an external reviewer.
 
 This grants **prototype/testing access only** — it does not enroll anyone as
 an SCU student, does not grant university systems access, and every reviewer

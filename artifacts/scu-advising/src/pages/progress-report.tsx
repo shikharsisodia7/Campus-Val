@@ -63,17 +63,17 @@ export function FullAprWorkspace({ showExperimentalAssessment = false }: { showE
         )}
       </div>
 
-      <Card className="border-emerald-200 bg-emerald-50 p-4" data-testid="card-privacy-notice">
+      <Card className="p-4 shadow-none" data-testid="card-privacy-notice">
         <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
-          <div className="space-y-1 text-sm text-emerald-900">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <div className="space-y-1 text-sm text-foreground">
             <p className="font-semibold">Your files are private and under your control.</p>
             <ul className="list-disc space-y-0.5 pl-5">
               <li>Only you can see your APRs. Sharing a plan with an advisor does <strong>not</strong> share them.</li>
               <li>Upload the Workday export as it is — Excel or PDF, one file or several. Nothing needs combining.</li>
               <li>Uploading an APR does <strong>not</strong> change your plans or your Workday record.</li>
             </ul>
-            <p className="mt-1 text-xs text-emerald-800">
+            <p className="mt-1 text-xs text-muted-foreground">
               <Info className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
               CampusVal cannot refresh an APR from Workday. Each one shows the date you uploaded it —
               export and upload again after grades post or your program changes.
@@ -207,7 +207,7 @@ function UploadForm({
   return (
     <Card className="space-y-4 p-5" data-testid="card-upload-form">
       <div>
-        <h2 className="mb-1 font-serif text-xl font-semibold">
+        <h2 className="cv-section-title mb-1">
           {first ? "Upload a Workday APR" : "Upload another APR"}
         </h2>
         <p className="text-sm text-muted-foreground">

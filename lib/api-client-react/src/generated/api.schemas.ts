@@ -287,6 +287,22 @@ export interface CourseSearchResult {
   courses: CourseSearchResultCoursesItem[];
 }
 
+export type AppAccessAccessMode =
+  | (typeof AppAccessAccessMode)[keyof typeof AppAccessAccessMode]
+  | null;
+
+export const AppAccessAccessMode = {
+  pilot: "pilot",
+  institution: "institution",
+} as const;
+
+export interface AppAccess {
+  allowed: boolean;
+  accessMode: AppAccessAccessMode;
+  /** Why the account is refused; null when allowed. */
+  message: string | null;
+}
+
 export interface HealthStatus {
   status: string;
 }

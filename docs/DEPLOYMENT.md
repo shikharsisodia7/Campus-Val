@@ -90,7 +90,7 @@ Authentication. This app's Clerk instance is Replit-managed (no separate Clerk.c
 
 ## External reviewer access (GUEST_REVIEWER_EMAILS)
 
-`requireAuth` (`artifacts/api-server/src/middlewares/requireAuth.ts`) accepts any `@scu.edu` email automatically. To invite an external reviewer without one (e.g. a professor's outside contact), add their exact email to the `GUEST_REVIEWER_EMAILS` env var — comma-separated, case/whitespace-insensitive:
+In pilot mode (`CAMPUSVAL_ACCESS_MODE=pilot`, the default — see [PILOT_STATUS.md](./PILOT_STATUS.md)) `requireUser` (`artifacts/api-server/src/lib/auth/policy.ts`) admits only `ADMIN_EMAILS`, `PILOT_TESTER_EMAILS`, `GUEST_REVIEWER_EMAILS` and department administrators with a program scope; an `@scu.edu` address alone is refused. Invite an SCU pilot tester through `PILOT_TESTER_EMAILS`. To invite an external reviewer without an SCU address (e.g. a professor's outside contact), add their exact email to the `GUEST_REVIEWER_EMAILS` env var — comma-separated, case/whitespace-insensitive:
 
 ```bash
 vercel env add GUEST_REVIEWER_EMAILS production

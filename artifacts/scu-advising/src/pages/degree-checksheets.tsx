@@ -132,12 +132,10 @@ function ChecksheetWorkspace() {
       )}
 
       {available === true && documents.length === 0 && (
-        <Card className="flex flex-col items-center gap-4 p-8 text-center sm:p-12" data-testid="card-checksheets-empty">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <ClipboardCheck className="h-7 w-7" aria-hidden="true" />
-          </span>
-          <div className="max-w-xl space-y-2">
-            <h2 className="font-serif text-2xl font-semibold">No documents yet</h2>
+        <Card className="flex flex-col items-center gap-3 p-8 text-center shadow-none" data-testid="card-checksheets-empty">
+          <ClipboardCheck className="h-8 w-8 text-muted-foreground/70" aria-hidden="true" />
+          <div className="max-w-xl space-y-1.5">
+            <h2 className="cv-section-title">No documents yet</h2>
             <p className="text-sm text-muted-foreground">
               Upload major and minor checksheets, four-year plans, flowcharts, and other department advising
               resources so you can reference them while planning.

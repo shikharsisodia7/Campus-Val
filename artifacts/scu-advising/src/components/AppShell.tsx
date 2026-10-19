@@ -1,12 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { motion } from "framer-motion";
-import { UserCog, LogOut, Menu, ChevronDown, Flag } from "lucide-react";
+import { UserCog, LogOut, Menu, ChevronDown, Flag, ShieldCheck, BarChart3, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useIsAdmin, useIsDepartmentAdmin } from "@/hooks/use-is-admin";
 import { useUser, useClerk } from "@clerk/react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,28 +49,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isAdmin = useIsAdmin();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
-        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
+      >
+        Skip to main content
+      </a>
+      <header className="sticky top-0 z-40 border-b border-border bg-card">
+        <div className="mx-auto flex h-14 max-w-[var(--cv-page-max)] items-center gap-3 px-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2.5"
+            className="flex shrink-0 items-center gap-2"
             data-testid="link-home"
           >
-            <Logo size={34} />
-            <div className="leading-tight">
-              <div className="font-serif text-lg font-bold tracking-tight">
-                CampusVal
-              </div>
-              <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-primary">
-                SCU degree planning
-              </div>
-            </div>
+            <Logo size={28} />
+            <span className="text-[15px] font-semibold tracking-tight text-foreground">CampusVal</span>
           </Link>
           <PilotBadge />
 
           <nav
-            className="ml-2 hidden min-w-0 flex-1 items-center gap-0.5 2xl:gap-1 lg:flex"
+            className="ml-3 hidden h-full min-w-0 flex-1 items-stretch gap-0.5 lg:flex 2xl:gap-1"
             aria-label="Primary navigation"
             data-testid="primary-nav"
           >
@@ -96,11 +94,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="hidden shrink-0 items-center gap-1.5 px-2 text-muted-foreground hover:text-foreground lg:flex"
               >
                 <Flag className="h-4 w-4" />
-                <span className="hidden whitespace-nowrap text-sm 2xl:inline">
+                <span className="hidden whitespace-nowrap text-[13px] 2xl:inline">
                   Report Error / Suggest Changes
                 </span>
                 {/* Icon only from lg to xl: with its words the button ran into the navigation at tablet widths. */}
-                <span className="hidden whitespace-nowrap text-sm xl:inline 2xl:hidden">Report Error</span>
+                <span className="hidden whitespace-nowrap text-[13px] xl:inline 2xl:hidden">Report Error</span>
               </Button>
             }
           />
@@ -133,14 +131,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="flex items-center gap-2.5"
                   onClick={() => setMobileOpen(false)}
                 >
-                  <Logo size={34} />
-                  <div>
-                    <div className="font-serif font-bold">CampusVal</div>
-                    <div className="text-[10px] uppercase tracking-wider text-primary">
-                      SCU degree planning
-                    </div>
-                  </div>
+                  <Logo size={28} />
+                  <span className="text-[15px] font-semibold">CampusVal</span>
+                  <span className="rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Pilot
+                  </span>
                 </Link>
+                <p className="mt-2 text-xs leading-snug text-muted-foreground">{PILOT_EXPLANATION}</p>
               </div>
               <nav className="space-y-1 p-3" aria-label="Mobile navigation">
                 {PRIMARY_NAV.map((item) => (
@@ -177,10 +174,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Sheet>
         </div>
       </header>
-      <main className="min-w-0">{children}</main>
-      <footer className="border-t border-border bg-card/50 px-4 py-2 text-center text-[11px] text-muted-foreground sm:px-6 lg:px-8">
-        Independent planning tool — not official SCU advising. Verify with your
-        advisor.
+      <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">{children}</main>
+      <footer className="border-t border-border bg-card px-4 py-2 text-center text-[11px] text-muted-foreground sm:px-6 lg:px-8">
+        CampusVal pilot · a planning aid, not an official SCU system. Workday and SCU remain
+        authoritative for official academic records and decisions.
       </footer>
     </div>
   );
@@ -193,11 +190,12 @@ function TopLink({ item, active }: { item: NavItem; active: boolean }) {
     <Link
       href={item.path}
       data-testid={testId}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors 2xl:gap-1.5 2xl:px-2.5 2xl:text-sm",
+        "-mb-px flex shrink-0 items-center gap-1 border-b-2 px-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring 2xl:gap-1.5 2xl:px-2.5 2xl:text-sm",
         active
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "border-primary text-foreground"
+          : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
       )}
     >
       <Icon className="hidden h-4 w-4 2xl:block" aria-hidden="true" />
@@ -221,11 +219,12 @@ function MobileLink({
       href={item.path}
       onClick={onNavigate}
       title={item.description}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium",
+        "flex items-center gap-3 rounded-md border-l-2 px-3 py-2.5 text-sm font-medium",
         active
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          ? "border-primary bg-accent text-foreground"
+          : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
       <Icon className="h-4 w-4" />
@@ -234,16 +233,29 @@ function MobileLink({
   );
 }
 
+export const PILOT_EXPLANATION =
+  "Available to invited testers while SCU reviews hosting, security, and rollout.";
+
+/** Quiet status indicator: "CampusVal Pilot", with what that means on hover or focus. */
 function PilotBadge() {
   return (
-    <Badge
-      variant="outline"
-      data-testid="badge-pilot"
-      title="CampusVal is in a controlled pilot evaluation. Some features are hidden while under review."
-      className="shrink-0 gap-1 border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary"
-    >
-      Pilot
-    </Badge>
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            data-testid="badge-pilot"
+            aria-label={`CampusVal Pilot. ${PILOT_EXPLANATION}`}
+            className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Pilot
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" align="start">
+          {PILOT_EXPLANATION}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -259,8 +271,8 @@ function AdditionalFeatures({ location, isAdmin }: { location: string; isAdmin: 
           variant="ghost"
           data-testid="nav-additional-features"
           className={cn(
-            "shrink-0 gap-1 px-2 text-[13px] 2xl:gap-1.5 2xl:px-2.5 2xl:text-sm",
-            active && "bg-primary/10 text-primary",
+            "-mb-px h-full shrink-0 gap-1 rounded-none border-0 border-b-2 px-2 text-[13px] font-medium hover:bg-transparent 2xl:gap-1.5 2xl:px-2.5 2xl:text-sm",
+            active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:border-border hover:text-foreground",
           )}
         >
           Additional Features <ChevronDown className="h-3.5 w-3.5" />
@@ -335,7 +347,21 @@ function AccountMenu({
 }) {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  // Links only. Every admin page and API re-checks authorization on the server.
+  const isAdmin = useIsAdmin();
+  const isDepartmentAdmin = useIsDepartmentAdmin();
   if (!isLoaded || !user) return null;
+  const adminLinks = [
+    ...(isDepartmentAdmin || isAdmin
+      ? [{ href: "/admin/program-requirements", label: "Program Requirements Admin", icon: ShieldCheck, testId: "nav-admin-program-requirements" }]
+      : []),
+    ...(isAdmin
+      ? [
+          { href: "/admin/feedback", label: "Feedback review", icon: Inbox, testId: "nav-admin-feedback" },
+          { href: "/admin/usage", label: "Usage", icon: BarChart3, testId: "nav-admin-usage" },
+        ]
+      : []),
+  ];
   const email = user.primaryEmailAddress?.emailAddress ?? "";
   const displayName =
     user.fullName ||
@@ -363,6 +389,22 @@ function AccountMenu({
         >
           <UserCog className="h-4 w-4" /> Edit profile
         </Link>
+        {adminLinks.length > 0 && (
+          <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Administration
+          </div>
+        )}
+        {adminLinks.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            onClick={onNavigate}
+            data-testid={`${l.testId}-mobile`}
+            className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <l.icon className="h-4 w-4" /> {l.label}
+          </Link>
+        ))}
         <button
           type="button"
           onClick={signOutAction}
@@ -391,12 +433,12 @@ function AccountMenu({
               {email}
             </div>
           </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-muted text-foreground/80">
             <UserCog className="h-4 w-4" />
           </div>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel>
           <div className="truncate text-sm">{displayName}</div>
           <div className="truncate text-[10px] font-normal text-muted-foreground">
@@ -413,6 +455,21 @@ function AccountMenu({
             <UserCog className="h-4 w-4" /> Edit profile
           </Link>
         </DropdownMenuItem>
+        {adminLinks.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Administration
+            </DropdownMenuLabel>
+            {adminLinks.map((l) => (
+              <DropdownMenuItem key={l.href} asChild>
+                <Link href={l.href} data-testid={l.testId} className="flex cursor-pointer items-center gap-2">
+                  <l.icon className="h-4 w-4" /> {l.label}
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={signOutAction}
@@ -443,56 +500,31 @@ export function PageHeader({
   compact?: boolean;
 }) {
   return (
-    <div className="relative overflow-hidden border-b border-border bg-card">
+    <div className="border-b border-border bg-card">
       <div
-        aria-hidden
-        className="cv-gradient-sweep pointer-events-none absolute inset-0 opacity-[0.08]"
-        style={{
-          background:
-            "linear-gradient(120deg, hsl(var(--primary)) 0%, transparent 40%, hsl(var(--accent)) 80%)",
-        }}
-      />
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className={`relative mx-auto flex max-w-[1600px] items-start justify-between gap-6 px-4 sm:px-6 lg:px-8 ${
-          compact ? "py-2.5" : "py-5"
-        }`}
+        className={cn(
+          "mx-auto flex max-w-[var(--cv-page-max)] items-start justify-between gap-6 px-4 sm:px-6 lg:px-8",
+          compact ? "py-2.5" : "py-4",
+        )}
       >
         <div className="min-w-0">
-          <h1
-            className={`font-serif font-bold tracking-tight text-foreground ${
-              compact ? "text-xl" : "text-3xl"
-            }`}
-          >
-            {title}
-          </h1>
+          <h1 className={cn("cv-page-title", compact && "text-lg")}>{title}</h1>
           {subtitle && (
-            <p
-              className={`max-w-3xl text-muted-foreground ${
-                compact ? "mt-0.5 text-xs" : "mt-1.5 text-sm"
-              }`}
-            >
+            <p className={cn("max-w-3xl text-muted-foreground", compact ? "mt-0.5 text-xs" : "mt-1 text-sm")}>
               {subtitle}
             </p>
           )}
         </div>
         {right}
-      </motion.div>
+      </div>
     </div>
   );
 }
 
 export function PageContent({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
-      className="mx-auto max-w-[1600px] space-y-6 px-4 py-6 sm:px-6 lg:px-8"
-    >
+    <div className="mx-auto max-w-[var(--cv-page-max)] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
       {children}
-    </motion.div>
+    </div>
   );
 }

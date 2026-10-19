@@ -22,6 +22,13 @@ present for admins and future re-enablement," never "removed."
 
 An internal capability can be stricter than `PILOT_HIDDEN`: it can require both an allowlisted administrator and an explicit server-side R&D flag. Such a route appears in no navigation group.
 
+**Who is "signed in" at all** is decided before any of this, on the server: in pilot access mode only
+invited people are admitted (see [PILOT_STATUS.md](./PILOT_STATUS.md)). **Server enforcement of hidden
+features (2026-10-19):** the AI features (Planning Support, Voice Planning Support, AI Evaluation) are
+refused to non-admins by their API routes as well (`requireRole("admin")`), not only hidden in the UI.
+The remaining `PILOT_HIDDEN` pages are hidden for focus; their APIs serve read-only reference data and no
+student data.
+
 ## CORE — the professor's three key workflows + Dashboard
 
 | Feature | Path | Rationale |
@@ -68,15 +75,17 @@ An internal capability can be stricter than `PILOT_HIDDEN`: it can require both 
 
 ## Admin-only pages outside the pilot registry (unchanged, out of scope)
 
-`/admin/usage` and `/admin/feedback` were already admin-only, direct-URL-only
-pages before this pilot pass — they were never in the nav and aren't part of
-`pilot-features.ts`. Left untouched.
+`/admin/usage`, `/admin/feedback` and `/admin/program-requirements` are admin-only and enforced by
+their APIs. Since 2026-10-19 they are linked from the account menu's "Administration" group, shown only
+to administrators (and, for Program Requirements Admin, department administrators); they are not part
+of `pilot-features.ts`.
 
 ## What this pass did NOT change
 
 - Server-side authorization (`requireAuth.ts`, `lib/admin.ts`, per-route
-  checks) — pilot gating is a **UI contract only**. Every API route keeps
-  enforcing its own authorization regardless of pilot status.
+  checks) — at the time, pilot *feature* gating was a UI contract only. (Since
+  2026-10-19 the AI routes also require an admin on the server, and pilot
+  *access* — who may use CampusVal at all — is enforced by `requireUser`.)
 - Backend calculations for anything de-emphasized on the Dashboard
   (registration windows, overload eligibility, unit caps, GPA) — those
   endpoints and their logic are untouched; the Dashboard simply no longer

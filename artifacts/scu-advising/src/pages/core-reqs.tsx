@@ -148,7 +148,7 @@ export default function CoreReqs() {
               <div className="text-xs uppercase tracking-widest text-muted-foreground">
                 Completed
               </div>
-              <div className="font-serif text-3xl font-bold text-primary">
+              <div className="text-3xl font-bold text-primary">
                 {totals.done}
                 <span className="text-base text-muted-foreground">/{totals.total}</span>
               </div>
@@ -235,7 +235,7 @@ export default function CoreReqs() {
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-2">
                       <Icon className="h-4 w-4 text-primary" />
-                      <h2 className="font-serif text-xl font-bold text-foreground">
+                      <h2 className="text-xl font-bold text-foreground">
                         {group.title}
                       </h2>
                       <Badge variant="outline" className="ml-1">
@@ -254,7 +254,7 @@ export default function CoreReqs() {
                     </a>
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    {group.academicYear} · verified {group.lastVerified}
+                    {group.academicYear} · source checked {group.lastVerified}
                   </div>
 
                   {group.variants && (

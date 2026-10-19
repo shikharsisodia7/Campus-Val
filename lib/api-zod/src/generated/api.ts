@@ -15,6 +15,25 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * Answers only for the caller's own verified session. In pilot mode only invited participants are admitted; every data route enforces the same decision.
+ * @summary Whether the signed-in account may use CampusVal under the current access mode
+ */
+export const GetMyAccessResponse = zod.object({
+  allowed: zod.boolean(),
+  accessMode: zod
+    .union([
+      zod.literal("pilot"),
+      zod.literal("institution"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  message: zod
+    .string()
+    .nullable()
+    .describe("Why the account is refused; null when allowed."),
+});
+
+/**
  * @summary Get the current student profile
  */
 export const GetProfileResponse = zod.object({
@@ -4877,6 +4896,9 @@ export const GetProgressReportSidebarResponse = zod.object({
 });
 
 /**
+ * INTERNAL R&D ONLY: this route is available only when the degree-completion
+ * research flag is enabled and the caller is an allowlisted admin. Normal pilot
+ * callers receive a non-disclosing not-found response.
  * A PLANNING AID derived on every request from the caller's own uploaded APRs:
  * what appears to remain. Not Workday, not an official degree audit; Workday is
  * the definitive reference for degree completion. Only Workday's explicit
@@ -5076,6 +5098,7 @@ export const GetDegreeCompletionAssessmentResponse = zod.object({
 });
 
 /**
+ * Internal R&D-only correction endpoint; unavailable to normal pilot callers.
  * @summary Save the student's correction of one assessment item (never changes the APR)
  */
 
@@ -5113,6 +5136,7 @@ export const CorrectDegreeCompletionItemResponse = zod.object({
 });
 
 /**
+ * Internal R&D-only correction endpoint; unavailable to normal pilot callers.
  * @summary Reset one item to the APR-based assessment
  */
 

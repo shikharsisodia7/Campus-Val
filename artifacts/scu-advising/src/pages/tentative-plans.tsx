@@ -16,7 +16,7 @@ export default function TentativePlansPage() {
       <PageHeader
         compact
         title="Tentative Degree Plan"
-        subtitle="An independent scenario. Use Plan Controls to create, rename, duplicate, or promote one into your Degree Plan."
+        subtitle="A private, hypothetical planning scenario. It does not declare anything in Workday. Use Plan Controls to create, rename, duplicate, or promote one into your Degree Plan."
       />
       <div className="w-full max-w-none flex-1 px-3 py-2 md:px-4 lg:px-6">
         <DegreePlanWorkspace mode="tentative" />

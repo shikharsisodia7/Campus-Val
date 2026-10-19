@@ -33,6 +33,8 @@ app.use((req: Request, res: Response, next) => {
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), geolocation=(), payment=()");
+  // Pre-pilot: invited participants only, never indexed (docs/PILOT_STATUS.md).
+  res.setHeader("X-Robots-Tag", "noindex, nofollow");
   if (req.secure) {
     // Only advertised over TLS (req.secure honours trust proxy), so a plain-
     // http local run never pins browsers to https.
@@ -127,72 +129,6 @@ const SPA_ROUTES = new Set([
   "/admin/program-requirements",
 ]);
 
-// Static prerendered landing HTML injected for crawlers that don't execute JS.
-// React will hydrate/overwrite this on the client.
-const LANDING_PRERENDER = `
-<div style="min-height:100vh;font-family:Inter,system-ui,sans-serif;background:#fff;color:#1a1a1a">
-  <header style="position:sticky;top:0;z-index:40;border-bottom:1px solid #e5e7eb;background:rgba(255,255,255,0.8);backdrop-filter:blur(8px)">
-    <div style="max-width:64rem;margin:0 auto;padding:0 1.5rem;height:4rem;display:flex;align-items:center;justify-content:space-between">
-      <a href="/" style="display:flex;align-items:center;gap:0.625rem;text-decoration:none;color:inherit">
-        <img src="/logo-bronco.png" width="36" height="36" alt="CampusVal Bronco logo" />
-        <span style="font-weight:700;font-size:1.125rem;letter-spacing:-0.025em">CampusVal</span>
-      </a>
-      <div style="display:flex;align-items:center;gap:0.5rem">
-        <a href="/sign-in" style="padding:0.375rem 0.75rem;border-radius:0.375rem;text-decoration:none;color:#1a1a1a;font-size:0.875rem">Sign in</a>
-        <a href="/sign-up" style="padding:0.375rem 0.75rem;border-radius:0.375rem;background:#8C1515;color:#fff;text-decoration:none;font-size:0.875rem">Get started</a>
-      </div>
-    </div>
-  </header>
-  <section style="max-width:64rem;margin:0 auto;padding:5rem 1.5rem 6rem;text-align:center">
-    <img src="/logo-bronco.png" width="88" height="88" alt="CampusVal Bronco logo" style="display:inline-block;margin-bottom:2rem" />
-    <h1 style="font-size:3rem;font-weight:700;line-height:1.2;letter-spacing:-0.025em;max-width:40rem;margin:0 auto">
-      Academic planning for <span style="color:#8C1515">Santa Clara</span>
-    </h1>
-    <p style="margin-top:1.25rem;font-size:1.125rem;color:#6b6b6b;max-width:32rem;margin-left:auto;margin-right:auto">
-      Build an academic plan, map each quarter, and explore options before discussing decisions with your advisor.
-    </p>
-    <div style="margin-top:2rem;display:flex;align-items:center;justify-content:center;gap:0.75rem">
-      <a href="/sign-up" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 1.5rem;background:#8C1515;color:#fff;border-radius:0.5rem;text-decoration:none;font-size:1rem;font-weight:500">
-        Sign up &#8594;
-      </a>
-      <a href="/sign-in" style="display:inline-flex;align-items:center;padding:0.75rem 1.5rem;border:1px solid #e5e7eb;border-radius:0.5rem;text-decoration:none;color:#1a1a1a;font-size:1rem">
-        Sign in
-      </a>
-    </div>
-    <p style="margin-top:1rem;font-size:0.75rem;color:#6b6b6b">Available to SCU users and invited external reviewers.</p>
-    <p style="margin-top:0.25rem;font-size:0.75rem;color:#6b6b6b">Invited reviewer and new to CampusVal? <a href="/sign-up" style="color:#8C1515">Create your account first</a>.</p>
-  </section>
-  <section style="max-width:64rem;margin:0 auto;padding:0 1.5rem 6rem">
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
-      <div style="border-radius:0.75rem;border:1px solid #e5e7eb;padding:1.25rem">
-        <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(140,21,21,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C1515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        </div>
-        <div style="font-weight:600">Degree Planning</div>
-        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Build and organize a long-term academic plan from published requirements.</div>
-      </div>
-      <div style="border-radius:0.75rem;border:1px solid #e5e7eb;padding:1.25rem">
-        <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(140,21,21,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C1515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        </div>
-        <div style="font-weight:600">Quarter Planning</div>
-        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Arrange a quarter schedule and review it before registering in Workday.</div>
-      </div>
-      <div style="border-radius:0.75rem;border:1px solid #e5e7eb;padding:1.25rem">
-        <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(140,21,21,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8C1515" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </div>
-        <div style="font-weight:600">Explore Options with Tentative Degree Planning</div>
-        <div style="font-size:0.875rem;color:#6b6b6b;margin-top:0.25rem">Explore different majors, minors, and academic pathways without changing your declared SCU program.</div>
-      </div>
-    </div>
-  </section>
-  <footer style="border-top:1px solid #e5e7eb;padding:1.5rem;text-align:center;font-size:0.75rem;color:#6b6b6b">
-    An independent student tool, not affiliated with Santa Clara University. Always confirm decisions with an official SCU advisor.
-  </footer>
-</div>
-`.trim();
-
 // The fallback origin baked into index.html's static og:image/JSON-LD tags,
 // used only if this file is ever served without going through this function
 // (e.g. `vite preview` locally). Rewritten below to the real request origin
@@ -210,12 +146,6 @@ function buildLandingHtml(indexHtml: string, origin: string): string {
     canonicalTag,
   );
 
-  // Inject prerendered landing content into #root
-  html = html.replace(
-    "<!--CAMPUSVAL_PRERENDER-->",
-    LANDING_PRERENDER,
-  );
-
   // Rewrite the fallback origin baked into og:image/twitter:image/JSON-LD to
   // this request's real origin, so the deployed domain never leaks a stale
   // hardcoded one (e.g. after moving off Replit).
@@ -227,7 +157,8 @@ function buildLandingHtml(indexHtml: string, origin: string): string {
 if (staticDir) {
   logger.info({ staticDir }, "Serving static frontend");
 
-  // Root route: inject canonical URL + prerendered landing HTML for crawlers.
+  // Root route: inject the canonical URL. The no-JavaScript landing markup is
+  // already in the built index.html (landing-prerender.html, inlined by Vite).
   // Must be registered BEFORE express.static so the directory index doesn't
   // short-circuit this handler.
   app.get("/", (req: Request, res: Response) => {
@@ -248,29 +179,15 @@ if (staticDir) {
   // handler so GET / is handled above, not by the directory index.
   app.use(express.static(staticDir));
 
-  // Crawler governance files: serve from static if present, otherwise real 404.
-  // robots.txt/sitemap.xml embed an absolute domain, so rewrite the fallback
-  // origin baked into the static files to this request's real origin.
-  app.get(["/robots.txt", "/sitemap.xml", "/llms.txt"], (req, res) => {
-    const filePath = path.join(staticDir, req.path);
+  // robots.txt (Disallow: / during the pilot): from the static build if
+  // present, otherwise a real 404. Sent as is; it names no domain.
+  app.get("/robots.txt", (_req, res) => {
+    const filePath = path.join(staticDir, "robots.txt");
     if (!fs.existsSync(filePath)) {
       res.status(404).end();
       return;
     }
-    if (req.path === "/llms.txt") {
-      res.sendFile(filePath);
-      return;
-    }
-    fs.readFile(filePath, "utf-8", (err, data) => {
-      if (err) {
-        res.status(500).end();
-        return;
-      }
-      const origin = publicOrigin(req);
-      const contentType = req.path === "/sitemap.xml" ? "application/xml" : "text/plain";
-      res.setHeader("Content-Type", `${contentType}; charset=utf-8`);
-      res.send(data.split(INDEX_HTML_FALLBACK_ORIGIN).join(origin));
-    });
+    res.type("text/plain").sendFile(filePath);
   });
 
   app.get(/^(?!\/api(?:\/|$)).*/, (req, res) => {

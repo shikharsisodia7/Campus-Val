@@ -3,6 +3,15 @@ import { desc, eq } from "drizzle-orm";
 import { db, feedbackTable } from "@workspace/db";
 import { z } from "zod/v4";
 import { requireAuth } from "../middlewares/requireAuth";
+
+function isWebUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "https:" || url.protocol === "http:") && url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
 import { requireRole } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -43,7 +52,9 @@ const submitSchema = z.object({
     .string()
     .trim()
     .max(500)
-    .refine((v) => v.length === 0 || z.url().safeParse(v).success, {
+    // http(s) only: zod's url() also accepts javascript: and data: addresses,
+    // and this link is shown to admins on the feedback review page.
+    .refine((v) => v.length === 0 || isWebUrl(v), {
       message: "That doesn't look like a valid URL.",
     })
     .optional(),

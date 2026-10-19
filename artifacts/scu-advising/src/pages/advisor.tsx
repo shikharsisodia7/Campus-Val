@@ -229,7 +229,7 @@ export default function Advisor() {
     <AppShell>
       <PageHeader
         title="Planning Support"
-        subtitle="Grounded in verified SCU policies. The assistant knows your profile and uses it to personalize answers."
+        subtitle="Experimental. Draws on CampusVal's copy of SCU policy text and your profile; answers can be wrong — confirm with your advisor."
       />
       <div className="max-w-7xl mx-auto px-8 pt-3 text-xs text-muted-foreground">
         CampusVal is an independent planning tool. Always verify with official SCU sources and a human advisor.
@@ -361,12 +361,12 @@ function EmptyState({
       <div className="h-14 w-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
         <Sparkles className="h-7 w-7" />
       </div>
-      <h2 className="font-serif text-2xl font-bold text-foreground">
+      <h2 className="text-xl font-semibold text-foreground">
         Ask CampusVal
       </h2>
       <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">
-        Confident answers grounded in verified SCU policies. The assistant knows
-        your profile and uses it to personalize advice.
+        Experimental planning support. It draws on CampusVal&apos;s copy of SCU
+        policy text and your profile, and it can be wrong.
       </p>
       <div className="mt-8 grid gap-2 w-full">
         {STARTER_PROMPTS.map((p) => (
@@ -395,7 +395,7 @@ function MessageBubble({ message }: { message: Message }) {
   return (
     <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
-        <div className="h-8 w-8 shrink-0 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold font-serif">
+        <div className="h-8 w-8 shrink-0 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
           CV
         </div>
       )}

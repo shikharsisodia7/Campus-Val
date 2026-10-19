@@ -363,7 +363,7 @@ export default function GraduationPaths() {
             <Card className="p-6">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h2 className="font-serif text-2xl font-bold text-foreground flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
                     <Route className="h-5 w-5 text-primary" />
                     {data.title}
                     <Badge
@@ -804,7 +804,7 @@ function Stat({
         {icon}
         {label}
       </div>
-      <div className="font-serif text-lg font-bold text-foreground mt-0.5">
+      <div className="text-lg font-bold text-foreground mt-0.5">
         {value}
       </div>
     </div>

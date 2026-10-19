@@ -51,6 +51,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /me/access:
+    get:
+      operationId: getMyAccess
+      tags: [profile]
+      summary: Whether the signed-in account may use CampusVal under the current access mode
+      description: >-
+        Answers only for the caller's own verified session. In pilot mode only invited
+        participants are admitted; every data route enforces the same decision.
+      responses:
+        "200":
+          description: The access decision for the signed-in account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppAccess"
+        "401":
+          description: Not signed in
+
   /profile:
     get:
       operationId: getProfile
@@ -2586,6 +2604,20 @@ components:
               sectionsThisQuarter:
                 type: ["integer", "null"]
                 description: Null when no quarter filter was applied.
+    AppAccess:
+      type: object
+      required: [allowed, accessMode, message]
+      properties:
+        allowed:
+          type: boolean
+        accessMode:
+          type: string
+          nullable: true
+          enum: [pilot, institution, null]
+        message:
+          type: string
+          nullable: true
+          description: Why the account is refused; null when allowed.
     HealthStatus:
       type: object
       properties:

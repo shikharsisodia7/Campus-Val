@@ -23,6 +23,7 @@ import type {
   AcademicPlanInput,
   AcademicPlanList,
   AcademicPlanUpdate,
+  AppAccess,
   ArticulationLookupResult,
   BulkImportPlanItemsBody,
   BulkImportPlanItemsResult,
@@ -232,6 +233,82 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetMyAccessUrl = () => {
+  return `/api/me/access`;
+};
+
+/**
+ * Answers only for the caller's own verified session. In pilot mode only invited participants are admitted; every data route enforces the same decision.
+ * @summary Whether the signed-in account may use CampusVal under the current access mode
+ */
+export const getMyAccess = async (
+  options?: RequestInit,
+): Promise<AppAccess> => {
+  return customFetch<AppAccess>(getGetMyAccessUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyAccessQueryKey = () => {
+  return [`/api/me/access`] as const;
+};
+
+export const getGetMyAccessQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyAccess>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyAccess>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyAccessQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAccess>>> = ({
+    signal,
+  }) => getMyAccess({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyAccess>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyAccessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyAccess>>
+>;
+export type GetMyAccessQueryError = ErrorType<void>;
+
+/**
+ * @summary Whether the signed-in account may use CampusVal under the current access mode
+ */
+
+export function useGetMyAccess<
+  TData = Awaited<ReturnType<typeof getMyAccess>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyAccess>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyAccessQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -6877,6 +6954,9 @@ export const getGetDegreeCompletionAssessmentUrl = () => {
 };
 
 /**
+ * INTERNAL R&D ONLY: this route is available only when the degree-completion
+ * research flag is enabled and the caller is an allowlisted admin. Normal pilot
+ * callers receive a non-disclosing not-found response.
  * A PLANNING AID derived on every request from the caller's own uploaded APRs:
  * what appears to remain. Not Workday, not an official degree audit; Workday is
  * the definitive reference for degree completion. Only Workday's explicit
@@ -6903,7 +6983,7 @@ export const getGetDegreeCompletionAssessmentQueryKey = () => {
 
 export const getGetDegreeCompletionAssessmentQueryOptions = <
   TData = Awaited<ReturnType<typeof getDegreeCompletionAssessment>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<void>,
 >(options?: {
   query?: UseQueryOptions<
     Awaited<ReturnType<typeof getDegreeCompletionAssessment>>,
@@ -6932,7 +7012,7 @@ export const getGetDegreeCompletionAssessmentQueryOptions = <
 export type GetDegreeCompletionAssessmentQueryResult = NonNullable<
   Awaited<ReturnType<typeof getDegreeCompletionAssessment>>
 >;
-export type GetDegreeCompletionAssessmentQueryError = ErrorType<unknown>;
+export type GetDegreeCompletionAssessmentQueryError = ErrorType<void>;
 
 /**
  * @summary CampusVal's Degree Completion Assessment of the caller's own APRs
@@ -6940,7 +7020,7 @@ export type GetDegreeCompletionAssessmentQueryError = ErrorType<unknown>;
 
 export function useGetDegreeCompletionAssessment<
   TData = Awaited<ReturnType<typeof getDegreeCompletionAssessment>>,
-  TError = ErrorType<unknown>,
+  TError = ErrorType<void>,
 >(options?: {
   query?: UseQueryOptions<
     Awaited<ReturnType<typeof getDegreeCompletionAssessment>>,
@@ -6966,6 +7046,7 @@ export const getCorrectDegreeCompletionItemUrl = (
 };
 
 /**
+ * Internal R&D-only correction endpoint; unavailable to normal pilot callers.
  * @summary Save the student's correction of one assessment item (never changes the APR)
  */
 export const correctDegreeCompletionItem = async (
@@ -7081,6 +7162,7 @@ export const getResetDegreeCompletionItemUrl = (
 };
 
 /**
+ * Internal R&D-only correction endpoint; unavailable to normal pilot callers.
  * @summary Reset one item to the APR-based assessment
  */
 export const resetDegreeCompletionItem = async (

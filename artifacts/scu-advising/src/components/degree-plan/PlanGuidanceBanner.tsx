@@ -81,11 +81,11 @@ export function PlanGuidanceBanner({
 
   return (
     <div
-      className="rounded-md border border-blue-200 bg-blue-50 text-blue-900"
+      className="rounded-md border border-border bg-card text-foreground"
       data-testid="plan-guidance-banner"
     >
       <div className="flex items-start gap-2 px-3 py-2">
-        <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5" />
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <div className="flex-1 min-w-0">
           <p className="text-xs leading-snug">
             <strong>Degree Plan is a planning workspace, not an official degree audit.</strong>{" "}
@@ -96,7 +96,8 @@ export function PlanGuidanceBanner({
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
+            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-2"
+            aria-expanded={expanded}
             data-testid="plan-guidance-toggle"
           >
             {expanded ? "Hide" : "How to verify your plan"}
@@ -118,7 +119,7 @@ export function PlanGuidanceBanner({
             <button
               type="button"
               onClick={jumpToFirstWarning}
-              className="mt-2 inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900 border border-amber-300"
+              className="mt-2 inline-flex items-center gap-1 rounded border border-warning-border bg-warning-surface px-2 py-1 text-xs font-medium text-warning"
               data-testid="plan-warning-summary"
             >
               {warningCount} planning item{warningCount === 1 ? "" : "s"} need review — jump to first

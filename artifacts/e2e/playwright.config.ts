@@ -126,6 +126,13 @@ export default defineConfig({
       dependencies: ["setup"],
     },
     {
+      // Pilot access: an uninvited @scu.edu account is refused; an invited tester sees no R&D. See tests/pilot-access.spec.ts.
+      name: "pilot-access",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+      testMatch: /pilot-access\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
       name: "security",
       use: { ...devices["Desktop Chrome"] },
       testMatch: /multi-account-security\.spec\.ts/,

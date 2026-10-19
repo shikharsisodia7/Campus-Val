@@ -101,7 +101,7 @@ export function AprDocumentCard({
           )}
           <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
           <span className="min-w-0">
-            <span className="block break-words font-serif text-lg font-semibold leading-tight" data-testid="apr-document-label">
+            <span className="block break-words text-lg font-semibold leading-tight" data-testid="apr-document-label">
               {report.label}
             </span>
             <span className="mt-0.5 block text-xs text-muted-foreground">

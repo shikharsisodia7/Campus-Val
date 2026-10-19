@@ -113,6 +113,14 @@ describe("POST /api/feedback", () => {
       .expect(400);
   });
 
+  it("400s a source address that is not a web link (it is shown to admins as a link)", async () => {
+    for (const officialSourceUrl of ["javascript:alert(1)", "data:text/html,<b>x</b>", "vbscript:x", "file:///etc/passwd"]) {
+      await asScuUser(request(app).post("/api/feedback"))
+        .send({ message: "Valid length message here.", officialSourceUrl })
+        .expect(400);
+    }
+  });
+
   it("ignores client-supplied identity and any unrecognized/sensitive fields", async () => {
     const res = await asScuUser(request(app).post("/api/feedback")).send({
       message: "Testing that extra fields are dropped, not stored.",

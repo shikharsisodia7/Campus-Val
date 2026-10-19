@@ -12,6 +12,8 @@ export * from "./academicPlanDuplicateInput";
 export * from "./academicPlanInput";
 export * from "./academicPlanList";
 export * from "./academicPlanUpdate";
+export * from "./appAccess";
+export * from "./appAccessAccessMode";
 export * from "./aprCell";
 export * from "./aprCellAlign";
 export * from "./aprMerge";

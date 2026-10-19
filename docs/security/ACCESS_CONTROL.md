@@ -22,7 +22,7 @@ Covers **CampusVal** and **PreHealth Advisor**. Kept identical in both repositor
 
 | | CampusVal | PreHealth Advisor |
 |---|---|---|
-| Who may sign in | `@scu.edu` accounts + invited reviewers (`GUEST_REVIEWER_EMAILS`) | Any account that can sign in to its Clerk app (pilot group) |
+| Who may use it | Pilot mode (default): only `ADMIN_EMAILS`, `PILOT_TESTER_EMAILS`, `GUEST_REVIEWER_EMAILS` and department administrators with a program scope — an `@scu.edu` address alone is refused. (`institution` mode, not used: every `@scu.edu` account too.) | Any account that can sign in to its Clerk app (pilot group) |
 | Own data | Profile, APRs, plans, schedules, checksheets, conversations — owner only | Prerequisite tracker, target schools — owner only |
 | Other users' data | None (advisor sees a plan only when the student shares it) | None (fixed in this pass) |
 | Shared reference data | Course catalog, requirements, sections | Prerequisite database |
@@ -42,7 +42,7 @@ Covers **CampusVal** and **PreHealth Advisor**. Kept identical in both repositor
 | **GCP administrator** (SCU) | Can deploy/configure | Can grant themselves access | Can grant themselves access | Full | Full | 
 | **Service account** (Cloud Run runtime) | Is the app | Connects as the app's DB user | `roles/storage.objectUser` on the APR bucket only | Writes logs | Reads only its own secrets |
 | **Cloud Build service account** | Deploys new versions | Runs migrations (CampusVal) via a job using the runtime SA | No | Writes build logs | No (deploy references secret *names*) |
-| **External tester / reviewer** | CampusVal: only if on `GUEST_REVIEWER_EMAILS`; PreHealth Advisor: pilot account | No | No (only their own uploads) | No | No |
+| **Pilot tester / external reviewer** | CampusVal: only if on `PILOT_TESTER_EMAILS` / `GUEST_REVIEWER_EMAILS`; PreHealth Advisor: pilot account | No | No (only their own uploads) | No | No |
 
 Notes:
 - The AI provider (CampusVal) receives only the minimized advisor context per request; it has no standing access to any store.

@@ -80,18 +80,17 @@ export function DegreePlanWorkspace({
   if (mode === "tentative" && !activePlanId && !plansLoading) {
     return (
       <div
-        className="flex flex-col items-center justify-center h-64 text-center border border-dashed rounded-md bg-muted/20 gap-4 p-8"
+        className="flex flex-col items-center justify-center gap-4 rounded-lg border border-border bg-card p-8 text-center"
         data-testid="tentative-starter-state"
       >
-        <FlaskConical className="h-10 w-10 text-muted-foreground/50" />
+        <FlaskConical className="h-8 w-8 text-muted-foreground/70" aria-hidden="true" />
         <div>
-          <h3 className="mb-1 text-lg font-semibold">
-            No Tentative Degree Plan yet
-          </h3>
+          <h2 className="cv-section-title mb-1">No Tentative Degree Plan yet</h2>
           <p className="max-w-md text-sm text-muted-foreground">
-            Tentative Degree Plans are safe, independent scenarios — great for
-            trying out a second major, different sequencing, or a study-abroad
-            term. Promoting one replaces your Degree Plan after confirmation.
+            A Tentative Degree Plan is a private, hypothetical scenario: try a
+            second major, a different sequence, or a study-abroad term. It does
+            not declare anything in Workday. Promoting one replaces your Degree
+            Plan after confirmation.
           </p>
         </div>
         <div className="flex gap-3 flex-wrap justify-center">
@@ -132,7 +131,7 @@ export function DegreePlanWorkspace({
 
   return (
     <DegreePlanProvider value={contextValue}>
-      <div className="xl:hidden flex items-center justify-between mb-4 bg-card border border-border p-2 rounded-md shadow-sm">
+      <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-card p-2 xl:hidden">
         <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="sm">

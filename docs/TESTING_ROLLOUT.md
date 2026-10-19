@@ -1,25 +1,29 @@
 # CampusVal — Controlled Testing Rollout
 
-CampusVal is rolling out to a small, trusted cohort — not a general SCU
-release. This document describes what that cohort actually sees, how
-access is controlled, and what "done" looks like for this phase.
+CampusVal is preparing for a small, invited pilot — not a general SCU
+release, and not yet started: SCU hosting and security review come first
+(see [PILOT_STATUS.md](PILOT_STATUS.md)). This document describes what the
+cohort will see, how access is controlled, and what "done" looks like for
+this phase.
 
 ## Who gets in
 
-Two populations, enforced server-side in
-`artifacts/api-server/src/middlewares/requireAuth.ts`:
+Pilot mode (`CAMPUSVAL_ACCESS_MODE=pilot`, the default) admits only named
+people, enforced server-side by `requireUser` (`artifacts/api-server/src/lib/auth/policy.ts`):
 
-- **`@scu.edu` accounts** — any current SCU student/faculty/staff Clerk
-  account.
-- **Invited external reviewers** — email addresses listed in the
-  `GUEST_REVIEWER_EMAILS` environment variable (comma-separated, matched
-  case/whitespace-insensitively). See
-  [docs/EXTERNAL_REVIEWERS.md](EXTERNAL_REVIEWERS.md) for the runbook to
-  add or remove one. No reviewer email is ever hardcoded in source —
-  the env var is the single place they live.
+- **Invited pilot testers** — `PILOT_TESTER_EMAILS` (comma-separated, matched
+  case/whitespace-insensitively).
+- **Invited external reviewers** — `GUEST_REVIEWER_EMAILS`. See
+  [docs/EXTERNAL_REVIEWERS.md](EXTERNAL_REVIEWERS.md) for the runbook.
+- **Administrators** — `ADMIN_EMAILS` — and **department administrators**
+  holding a program scope.
 
-Everyone else is denied with a generic message that doesn't reveal who is
-or isn't on the allowlist.
+An `@scu.edu` address alone is **not** enough during the pilot. No email is
+ever hardcoded in source — the environment variables are the only place
+they live. Everyone else who signs in sees "CampusVal is currently available
+only to invited pilot participants while SCU reviews hosting, security, and
+rollout." and every data API answers `403 pilot_access_required`; the
+message does not reveal who is on any list.
 
 ## What the cohort sees: a pilot-focused nav, not a reduced product
 
@@ -99,14 +103,13 @@ secondary features:
 
 ## Suggested initial cohort
 
-Per the product spec that drove this phase: Thom Hines (external reviewer,
-`thines@pdx.edu` — set via `GUEST_REVIEWER_EMAILS`, never hardcoded),
-selected forward-thinking faculty, the peer advising team, and a small
-number of selected students/advisors. Do not open broad, unannounced
-`@scu.edu`-wide access during this phase — every `@scu.edu` account is
-technically allowed in by the auth check, but the intent of this phase is
-a small, informed cohort who know they're testing a prototype, not a
-public launch.
+Decided by the professor, not by the engineering team: an invited external
+reviewer (set via `GUEST_REVIEWER_EMAILS`, never in source), selected
+faculty, the peer advising team, and a small number of selected
+students/advisors (`PILOT_TESTER_EMAILS`). Broad `@scu.edu` access is
+switched off in code during this phase (pilot mode), so a wider rollout
+cannot happen by accident: it needs SCU approval and a deliberate change
+to `CAMPUSVAL_ACCESS_MODE=institution`.
 
 ## What "controlled testing ready" means here
 
@@ -138,9 +141,9 @@ public launch.
 
 - **Graduate-student planning** — a later phase, not started. Every major/
   minor/concentration represented is undergraduate-only.
-- **General/public `@scu.edu` rollout** — the auth check technically
-  allows any `@scu.edu` account, but this phase is scoped to the cohort
-  above; a wider announcement is a separate, later decision.
+- **General/public `@scu.edu` rollout** — refused by the server in pilot
+  mode; a wider rollout is a separate, later decision that needs SCU
+  approval.
 - **Institution-wide advisor dashboards / proactive monitoring** — advisor
   access is intentionally limited to plans a student has explicitly
   shared with them (see [docs/ADVISOR_SHARING.md](ADVISOR_SHARING.md)).

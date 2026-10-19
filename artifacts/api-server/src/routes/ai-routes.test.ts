@@ -14,9 +14,18 @@ vi.mock("../middlewares/requireAuth", () => ({
     const userId = req.header("x-test-user");
     if (!userId) return res.status(401).json({ error: "Sign in required" });
     req.userId = userId;
+    // AI features are admin-only during the pilot; these tests act as an admin
+    // unless a request says otherwise.
+    req.userEmail = req.header("x-test-email") ?? "ai-admin@scu.edu";
     next();
   },
 }));
+const ORIGINAL_ADMIN_EMAILS = process.env.ADMIN_EMAILS;
+process.env.ADMIN_EMAILS = "ai-admin@scu.edu";
+afterAll(() => {
+  if (ORIGINAL_ADMIN_EMAILS === undefined) delete process.env.ADMIN_EMAILS;
+  else process.env.ADMIN_EMAILS = ORIGINAL_ADMIN_EMAILS;
+});
 
 import openaiRouter from "./openai";
 import voiceRouter from "./voice";
@@ -226,3 +235,26 @@ describe("evaluation", () => {
     expect(res.body.model).toBe("gemini:fake-model");
   });
 });
+
+describe("AI features during the pilot", () => {
+  it("refuse an ordinary pilot user on every AI route (admins only, as in the web app)", async () => {
+    const asPilotUser = (r: request.Test) => r.set("x-test-user", USER).set("x-test-email", "pilot-student@scu.edu");
+    const calls: request.Test[] = [
+      asPilotUser(request(app).get("/api/openai/conversations")),
+      asPilotUser(request(app).post("/api/openai/conversations")).send({ title: "x" }),
+      asPilotUser(request(app).get("/api/openai/conversations/1")),
+      asPilotUser(request(app).delete("/api/openai/conversations/1")),
+      asPilotUser(request(app).get("/api/openai/conversations/1/messages")),
+      asPilotUser(request(app).post("/api/openai/conversations/1/messages")).send({ content: "hi" }),
+      asPilotUser(request(app).post("/api/voice/transcribe")),
+      asPilotUser(request(app).post("/api/voice/speak")).send({ text: "hi" }),
+      asPilotUser(request(app).post("/api/voice/ask")),
+      asPilotUser(request(app).post("/api/evaluation/run")).send({}),
+    ];
+    for (const call of calls) {
+      const res = await call;
+      expect(res.status).toBe(403);
+    }
+  });
+});
+

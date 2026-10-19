@@ -303,7 +303,7 @@ function ScoreStat({
         {label}
       </div>
       <div
-        className={`font-serif text-2xl font-bold mt-1 ${
+        className={`text-2xl font-bold mt-1 ${
           positive
             ? "text-emerald-700"
             : negative

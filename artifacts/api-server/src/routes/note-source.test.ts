@@ -20,7 +20,17 @@ vi.mock("../middlewares/requireAuth", () => ({
   },
 }));
 
-const { db, academicPlansTable, planItemsTable, studentProfilesTable, requirementCustomizationsTable, degreeChecksheetDocumentsTable } = await import("@workspace/db");
+const {
+  db,
+  academicPlansTable,
+  planItemsTable,
+  studentProfilesTable,
+  requirementCustomizationsTable,
+  degreeChecksheetDocumentsTable,
+  departmentRequirementNotesTable,
+  departmentRequirementOverridesTable,
+  departmentAuditLogTable,
+} = await import("@workspace/db");
 const plansRouter = (await import("./plans")).default;
 const customizationsRouter = (await import("./requirement-customizations")).default;
 const checksheetsRouter = (await import("./degree-checksheets")).default;
@@ -103,6 +113,35 @@ beforeAll(async () => {
   docB = await documentFor(B, "Someone else's checksheet");
 });
 afterAll(cleanup);
+
+describe("a private checksheet never becomes department guidance", () => {
+  it("A's upload and transfer write only A's own My Note: no Department Note, override or audit row, and nothing in B's view", async () => {
+    const count = async () => ({
+      notes: (await db.select({ id: departmentRequirementNotesTable.id }).from(departmentRequirementNotesTable)).length,
+      overrides: (await db.select({ id: departmentRequirementOverridesTable.id }).from(departmentRequirementOverridesTable)).length,
+      audit: (await db.select({ id: departmentAuditLogTable.id }).from(departmentAuditLogTable)).length,
+    });
+    const degreeB = (await as(B, request(app).get("/api/plans")).expect(200)).body.plans.find((p: any) => p.planType === "degree").id;
+    const before = await count();
+    const bBefore = find(await view(B, degreeB), key);
+
+    const upload = await documentFor(A, "Private Biology checksheet (synthetic)");
+    await as(A, request(app).put(`/api/plans/${degree}/requirement-customizations`))
+      .send({ sourceKey: key, note: "Department says take in Fall (from my checksheet)", noteSource: { type: "DEGREE_CHECKSHEET", documentId: upload.id, anchor: "Sheet1!A1" } })
+      .expect(200);
+
+    expect(await count()).toEqual(before);
+    // A sees it as a My Note with its private source, never as a Department Note.
+    const mine = find(await view(A, degree), key);
+    expect(mine.customization.note).toContain("from my checksheet");
+    expect(JSON.stringify(mine.departmentNotes ?? [])).not.toContain("from my checksheet");
+    // B's requirement is exactly what it was.
+    expect(find(await view(B, degreeB), key)).toEqual(bBefore);
+
+    await as(A, request(app).put(`/api/plans/${degree}/requirement-customizations`)).send({ sourceKey: key, note: null }).expect(200);
+    await db.delete(degreeChecksheetDocumentsTable).where(eq(degreeChecksheetDocumentsTable.id, upload.id));
+  });
+});
 
 describe("a note transferred from a Degree Checksheet", () => {
   it("is the student's own My Note, with where it came from, on the selected plan only", async () => {

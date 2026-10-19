@@ -53,7 +53,7 @@ export default function ResourcesPage() {
                     {r.description}
                   </p>
                   <div className="mt-2 text-[10px] text-muted-foreground">
-                    Authority for: {r.authorityFor} · verified {r.lastVerified}
+                    Authority for: {r.authorityFor} · link checked {r.lastVerified}
                   </div>
                   <a
                     href={r.url}

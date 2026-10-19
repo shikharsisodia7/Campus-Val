@@ -58,6 +58,15 @@ export const TEST_USERS = {
     firstName: "E2E",
     lastName: "AdvisorY",
   },
+  // An SCU-domain account that is deliberately NOT on PILOT_TESTER_EMAILS:
+  // tests/pilot-access.spec.ts proves pilot mode refuses it. Never allowlist it.
+  nonPilot: {
+    email: "e2e-nonpilot+clerk_test@scu.edu",
+    username: "e2e_nonpilot",
+    phoneNumber: "+12025550104",
+    firstName: "E2E",
+    lastName: "NonPilot",
+  },
 } as const;
 
 async function ensureUser(

@@ -28,7 +28,7 @@
 |---|---|
 | `src/lib/auth/clerk.ts` | **The only** server identity code: `clerkMiddleware`, `getAuth`, `clerkClient.users.getUser` (email lookup) |
 | `src/lib/auth/index.ts` | Internal interface (`getCurrentUser`, `requireUser`, `getUserId`, `requireRole`, `AUTH_PROVIDER`) — provider-neutral |
-| `src/lib/auth/policy.ts` | Who may use the app (`@scu.edu` + `GUEST_REVIEWER_EMAILS`) and admin role (`ADMIN_EMAILS`) — provider-neutral |
+| `src/lib/auth/policy.ts` | Who may use the app (pilot mode: named lists only; institution mode: `@scu.edu` too) and admin role (`ADMIN_EMAILS`) — provider-neutral |
 | `src/middlewares/requireAuth.ts` | Stable import used by every route; re-exports `requireUser` |
 | `src/middlewares/clerkProxyMiddleware.ts` | Proxies `/api/__clerk/*` to Clerk's Frontend API for a custom production domain — **delete with Clerk** |
 | `src/app.ts` | Mounts `authSessionMiddleware()` and the Clerk proxy |
@@ -57,7 +57,7 @@ The web app calls the API **same-origin with the session cookie** — it never a
 1. Student opens CampusVal → web app (Clerk JS) sees no session → shows Clerk `<SignIn>`.
 2. Student signs in with email code/password or Google through **Clerk** (Clerk-hosted UI; no SCU login, no Duo).
 3. Clerk sets the `__session` cookie (a short-lived signed JWT, refreshed by Clerk JS) on the CampusVal domain.
-4. On every `/api/*` call, `clerkMiddleware` verifies that cookie; `requireUser` resolves the email (session claim, else Clerk API) and admits only `@scu.edu` or allowlisted reviewers.
+4. On every `/api/*` call, `clerkMiddleware` verifies that cookie; `requireUser` resolves the email (session claim, else Clerk API) and admits only the current access population (pilot mode: `ADMIN_EMAILS`, `PILOT_TESTER_EMAILS`, `GUEST_REVIEWER_EMAILS`, department administrators).
 
 ## 3. Session flow
 Clerk JS refreshes the short-lived session token in the browser; the server verifies it statelessly on each request. CampusVal stores no sessions itself.

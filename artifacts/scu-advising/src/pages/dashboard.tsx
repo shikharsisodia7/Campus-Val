@@ -6,7 +6,6 @@ import {
   getGetProfileQueryKey,
 } from "@workspace/api-client-react";
 import { AppShell, PageContent, PageHeader } from "@/components/AppShell";
-import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,9 +13,9 @@ import {
   CalendarRange,
   FlaskConical,
   AlertTriangle,
-  ArrowUpRight,
-  Info,
-  GraduationCap,
+  ChevronRight,
+  FileSpreadsheet,
+  ClipboardCheck,
   Flag,
 } from "lucide-react";
 import { termLabel } from "@/lib/api";
@@ -42,7 +41,9 @@ export default function Dashboard() {
   if (isLoading || !summary) {
     return (
       <AppShell>
-        <div className="p-12 text-muted-foreground">Loading dashboard…</div>
+        <div className="mx-auto max-w-[var(--cv-page-max)] px-4 py-8 text-sm text-muted-foreground sm:px-6 lg:px-8" role="status">
+          Loading dashboard…
+        </div>
       </AppShell>
     );
   }
@@ -53,11 +54,11 @@ export default function Dashboard() {
     <AppShell>
       <PageHeader
         title={sp ? `Welcome back, ${sp.name.split(" ")[0]}` : "CampusVal"}
-        subtitle="CampusVal is an undergraduate planning workspace currently under pilot evaluation. Workday, the Registrar, and the SCU Bulletin remain the official record for your academic progress — verify important decisions with your advisor."
+        subtitle="A planning workspace under pilot evaluation. Workday, the Registrar, and the SCU Bulletin remain the official record for your academic progress — verify important decisions with your advisor."
         right={
           <Badge
-            variant="secondary"
-            className="text-sm px-3 py-1.5 font-medium"
+            variant="outline"
+            className="shrink-0 bg-card px-2.5 py-1 text-xs"
             data-testid="badge-classification"
           >
             {summary.classification}
@@ -65,120 +66,115 @@ export default function Dashboard() {
         }
       />
       <PageContent>
-        <Card className="border-blue-200 bg-blue-50/60 p-4">
-          <div className="flex items-start gap-2.5">
-            <Info className="h-4 w-4 text-blue-700 shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-900/90 leading-relaxed">
-              <span className="font-semibold">Heads up:</span> Live section
-              schedules, instructors, and seats live in Workday / Camino and
-              need an SCU login — they're not shown here.
-            </div>
-          </div>
-        </Card>
-
         {summary.warnings.length > 0 && (
-          <Card className="border-destructive/30 bg-destructive/5 p-5">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <div className="space-y-2">
-                <div className="font-semibold text-foreground">
-                  Heads up
-                </div>
-                {summary.warnings.map((w, i) => (
-                  <p key={i} className="text-sm text-foreground/90">
-                    {w}
-                  </p>
-                ))}
-              </div>
+          <div
+            role="note"
+            className="flex items-start gap-3 rounded-lg border border-warning-border bg-warning-surface px-4 py-3"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-foreground">Check before planning further</div>
+              {summary.warnings.map((w, i) => (
+                <p key={i} className="text-sm text-foreground/90">
+                  {w}
+                </p>
+              ))}
             </div>
-          </Card>
-        )}
-
-        {sp && (
-          <Card className="p-6" data-testid="dashboard-plan-summary">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground mb-4">
-              <GraduationCap className="h-4 w-4 text-primary" />
-              What you're planning
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-sm">
-              <Detail label="College" value={sp.college} />
-              <Detail
-                label="Major"
-                value={sp.major}
-                hint={
-                  summary.declaredMajor &&
-                  summary.planningMajor &&
-                  summary.declaredMajor !== summary.planningMajor
-                    ? `Planning intent — SCU/Workday record: ${summary.declaredMajor}. Verify formal changes with your advisor.`
-                    : undefined
-                }
-                hintTestId="dashboard-planning-major-note"
-              />
-              {sp.secondMajor && (
-                <Detail label="Second major" value={sp.secondMajor} />
-              )}
-              {sp.minor && <Detail label="Minor" value={sp.minor} />}
-              <Detail
-                label="Expected grad"
-                value={`${termLabel(sp.expectedGradTerm)} ${sp.expectedGradYear}`}
-              />
-            </div>
-            <div className="mt-5">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                <span>Degree progress</span>
-                <span>
-                  {summary.totalUnitsAllSources} / 175 units
-                </span>
-              </div>
-              <Progress value={summary.progressPercent} aria-label="Progress toward your degree" />
-            </div>
-          </Card>
-        )}
-
-        <div>
-          <div className="text-sm font-semibold text-foreground mb-3">
-            Key workflows
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {KEY_WORKFLOWS.map((w) => {
-              const Icon = w.icon;
-              return (
-                <Link
-                  key={w.path}
-                  href={w.path}
-                  data-testid={`quick-${w.path.slice(1)}`}
-                  className="flex flex-col gap-3 p-5 rounded-md border border-border hover:border-primary/40 hover:bg-accent/50 transition-all group"
+        )}
+
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+          <section aria-labelledby="dashboard-continue">
+            <h2 id="dashboard-continue" className="cv-section-title mb-2">
+              Continue planning
+            </h2>
+            <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+              {[...KEY_WORKFLOWS, ...REFERENCE_LINKS].map((w) => {
+                const Icon = w.icon;
+                return (
+                  <li key={w.path}>
+                    <Link
+                      href={w.path}
+                      data-testid={`quick-${w.path.slice(1)}`}
+                      className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none"
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-foreground">{w.label}</div>
+                        <div className="cv-meta">{w.subtitle}</div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            <ReportIssueDialog
+              trigger={
+                <button
+                  type="button"
+                  data-testid="dashboard-report-error"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                      {w.label}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                      {w.subtitle}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-          <ReportIssueDialog
-            trigger={
-              <button
-                type="button"
-                data-testid="dashboard-report-error"
-                className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  <Flag className="h-3 w-3" aria-hidden="true" />
+                  Something not right? Report Error / Suggest Changes
+                </button>
+              }
+            />
+          </section>
+
+          <div className="space-y-5">
+            {sp && (
+              <section
+                aria-labelledby="dashboard-planning"
+                className="rounded-lg border border-border bg-card p-4"
+                data-testid="dashboard-plan-summary"
               >
-                <Flag className="h-3 w-3" />
-                Something not right? Report Error / Suggest Changes
-              </button>
-            }
-          />
+                <h2 id="dashboard-planning" className="cv-panel-title mb-3">
+                  What you&apos;re planning
+                </h2>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  <Detail label="College" value={sp.college} />
+                  <Detail
+                    label="Major"
+                    value={sp.major}
+                    hint={
+                      summary.declaredMajor &&
+                      summary.planningMajor &&
+                      summary.declaredMajor !== summary.planningMajor
+                        ? `Planning intent — SCU/Workday record: ${summary.declaredMajor}. Verify formal changes with your advisor.`
+                        : undefined
+                    }
+                    hintTestId="dashboard-planning-major-note"
+                  />
+                  {sp.secondMajor && <Detail label="Second major" value={sp.secondMajor} />}
+                  {sp.minor && <Detail label="Minor" value={sp.minor} />}
+                  <Detail
+                    label="Expected grad"
+                    value={`${termLabel(sp.expectedGradTerm)} ${sp.expectedGradYear}`}
+                  />
+                </dl>
+                <div className="mt-4">
+                  <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Units entered in your profile</span>
+                    <span className="tabular-nums">{summary.totalUnitsAllSources} / 175 units</span>
+                  </div>
+                  <Progress value={summary.progressPercent} aria-label="Units entered in your profile, out of 175" />
+                </div>
+              </section>
+            )}
+
+            <section aria-labelledby="dashboard-sources" className="rounded-lg border border-border bg-card p-4">
+              <h2 id="dashboard-sources" className="cv-panel-title mb-3">
+                Where information comes from
+              </h2>
+              <dl className="space-y-2.5 text-sm">
+                <SourceRow term="Requirements" value="2026–27 Undergraduate Bulletin, with department notes where reviewed" />
+                <SourceRow term="Official progress" value="Your Workday Academic Progress Report" />
+                <SourceRow term="Section availability" value="Live section availability is not connected. Check seats in Workday." />
+              </dl>
+            </section>
+          </div>
         </div>
       </PageContent>
     </AppShell>
@@ -207,6 +203,30 @@ const KEY_WORKFLOWS = [
   },
 ];
 
+const REFERENCE_LINKS = [
+  {
+    path: "/progress-report",
+    label: "View Workday APR",
+    subtitle: "Your uploaded Academic Progress Reports, exactly as exported",
+    icon: FileSpreadsheet,
+  },
+  {
+    path: "/degree-checksheets",
+    label: "Review uploaded documents",
+    subtitle: "Department checksheets and advising resources you uploaded",
+    icon: ClipboardCheck,
+  },
+];
+
+function SourceRow({ term, value }: { term: string; value: string }) {
+  return (
+    <div>
+      <dt className="cv-eyebrow">{term}</dt>
+      <dd className="mt-0.5 text-sm text-foreground/90">{value}</dd>
+    </div>
+  );
+}
+
 function Detail({
   label,
   value,
@@ -219,20 +239,13 @@ function Detail({
   hintTestId?: string;
 }) {
   return (
-    <div>
-      <div className="text-xs text-muted-foreground uppercase tracking-wider">
-        {label}
-      </div>
-      <div className="text-sm font-medium text-foreground mt-1 truncate">
-        {value}
-      </div>
+    <div className="min-w-0">
+      <dt className="cv-eyebrow">{label}</dt>
+      <dd className="mt-0.5 truncate text-sm font-medium text-foreground">{value}</dd>
       {hint && (
-        <div
-          className="mt-0.5 text-[10px] leading-snug text-muted-foreground"
-          data-testid={hintTestId}
-        >
+        <dd className="mt-0.5 text-[11px] leading-snug text-muted-foreground" data-testid={hintTestId}>
           {hint}
-        </div>
+        </dd>
       )}
     </div>
   );

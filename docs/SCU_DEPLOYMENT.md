@@ -48,7 +48,8 @@ invalid variable (nothing else is printed — values are never logged).
 | `DATABASE_POOL_MAX` | no | Default 5; use 10–20 on a long-running host. |
 | `LOG_LEVEL` | no | Default `info`. |
 | `WORKDAY_AVAILABILITY_*` | no | Off by default. §11 and `docs/SECTION_AVAILABILITY.md`. |
-| `GUEST_REVIEWER_EMAILS`, `ADMIN_EMAILS`, `WORKDAY_SYNC_ADMIN_EMAIL` | no | Access lists; emails only. |
+| `CAMPUSVAL_ACCESS_MODE` | no | `pilot` (default: invited people only) or `institution` (every `@scu.edu` account, only after SCU approves). See `docs/PILOT_STATUS.md`. |
+| `PILOT_TESTER_EMAILS`, `GUEST_REVIEWER_EMAILS`, `ADMIN_EMAILS`, `WORKDAY_SYNC_ADMIN_EMAIL` | no | Access lists; emails only. |
 
 **Never commit secrets.** `.env`, `.env.*`, `.vercel/` and uploaded files are
 gitignored; the Docker build context also excludes them (`.dockerignore`).
@@ -291,7 +292,7 @@ errors are printed once, in plain text, then the process exits with status 1.
 6. Run migrations (`--baseline`, then a plain run, if adopting the existing database).
 7. Start the app; check `/api/healthz` then `/api/readyz`.
 8. Configure the reverse proxy + TLS; set `PUBLIC_APP_URL` and `TRUST_PROXY=1`.
-9. Add `GUEST_REVIEWER_EMAILS` / `ADMIN_EMAILS` as needed.
+9. Leave `CAMPUSVAL_ACCESS_MODE` unset (pilot) and add `PILOT_TESTER_EMAILS` / `GUEST_REVIEWER_EMAILS` / `ADMIN_EMAILS` for the invited cohort.
 10. Run the smoke tests below.
 
 ### Post-deployment smoke tests
@@ -305,7 +306,8 @@ curl -s -o /dev/null -w "%{http_code}\n" https://HOST/api/progress-reports  # 40
 curl -s -o /dev/null -w "%{http_code}\n" https://HOST/admin/feedback        # 200 (SPA route)
 ```
 
-Then sign in with an @scu.edu account and check: Dashboard loads; Degree Plan
+Then sign in with an invited account (on `PILOT_TESTER_EMAILS` or `ADMIN_EMAILS`) and check that an
+uninvited `@scu.edu` account sees the pilot message instead of the app. With the invited account check: Dashboard loads; Degree Plan
 shows the Academic Progress Reports panel on the right; APR page → upload a Workday
 Excel export (.xlsx) with a label → the full workbook appears with its upload date →
 upload a second one → both are listed → "Original file" downloads the workbook; sign

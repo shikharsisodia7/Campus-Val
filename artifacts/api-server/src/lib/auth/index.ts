@@ -16,11 +16,31 @@
  */
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { clerkAdapter } from "./clerk";
-import { hasRole, isApprovedCampusValUser, type AppRole } from "./policy";
+import {
+  accessDeniedMessage,
+  effectiveAccessMode,
+  envAccessBasis,
+  hasRole,
+  type AccessBasis,
+  type AccessMode,
+  type AppRole,
+} from "./policy";
 import type { AuthAdapter, AuthProviderName, AuthUser } from "./types";
+import { loadAdminScopes } from "../department/authz";
 
 export type { AuthAdapter, AuthProviderName, AuthUser } from "./types";
-export { campusValUserType, hasRole, isApprovedCampusValUser, type AppRole } from "./policy";
+export {
+  accessDeniedMessage,
+  campusValUserType,
+  effectiveAccessMode,
+  envAccessBasis,
+  hasRole,
+  isApprovedCampusValUser,
+  resolveAccessMode,
+  type AccessBasis,
+  type AccessMode,
+  type AppRole,
+} from "./policy";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -30,6 +50,8 @@ declare global {
       userEmail?: string;
       /** Memoised result of getCurrentUser for this request. */
       authUser?: AuthUser | null;
+      /** Why requireUser admitted this account (set only on admitted requests). */
+      accessBasis?: AccessBasis;
     }
   }
 }
@@ -79,10 +101,34 @@ export function getUserId(req: Request): string {
   return req.userId;
 }
 
+export interface AccessDecision {
+  mode: AccessMode;
+  allowed: boolean;
+  basis: AccessBasis | null;
+}
+
+/**
+ * Whether this signed-in address may use CampusVal under the current access
+ * mode. Environment allowlists are checked first; only an address they do not
+ * admit costs a database read, for a department-administrator program scope
+ * (granting one is an explicit admin action, so it counts as an invitation).
+ * Nothing here reads anything the browser sends besides the verified session.
+ */
+export async function decideAccess(email: string): Promise<AccessDecision> {
+  const mode = effectiveAccessMode();
+  const basis = envAccessBasis(email);
+  if (basis) return { mode, allowed: true, basis };
+  const scopes = await loadAdminScopes(email);
+  if (scopes.programKeys.size > 0) return { mode, allowed: true, basis: "department_admin" };
+  return { mode, allowed: false, basis: null };
+}
+
 /**
  * Gate for every user-data route: 401 when signed out, 403 when the account
- * has no readable email or is neither @scu.edu nor an invited reviewer.
- * Sets req.userId / req.userEmail.
+ * has no readable email or is outside the current access population (pilot:
+ * named participants only; institution: SCU accounts too). Runs before any
+ * route handler, so a denied account reads and writes nothing.
+ * Sets req.userId / req.userEmail / req.accessBasis.
  */
 export async function requireUser(req: Request, res: Response, next: NextFunction) {
   const user = await getCurrentUser(req);
@@ -94,13 +140,16 @@ export async function requireUser(req: Request, res: Response, next: NextFunctio
       error: "We couldn't read your email address from your account. Sign out and sign back in.",
     });
   }
-  if (!isApprovedCampusValUser(user.email)) {
+  const decision = await decideAccess(user.email);
+  if (!decision.allowed) {
     return res.status(403).json({
-      error: "This CampusVal prototype is currently limited to SCU users and invited reviewers.",
+      error: accessDeniedMessage(),
+      code: decision.mode === "pilot" ? "pilot_access_required" : "access_not_approved",
     });
   }
   req.userId = user.id;
   req.userEmail = user.email;
+  req.accessBasis = decision.basis!;
   next();
 }
 

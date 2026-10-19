@@ -160,7 +160,7 @@ function CalculateTab() {
           </p>
         ) : (
           <div className="mt-3 space-y-3">
-            <div className="font-serif text-5xl font-bold text-primary">
+            <div className="text-5xl font-bold text-primary">
               {calc.data.gpa.toFixed(3)}
             </div>
             <div className="text-sm text-muted-foreground space-y-1">
@@ -340,7 +340,7 @@ function SimulateTab() {
           <div className="mt-3 space-y-4">
             <div>
               <div className="flex items-baseline gap-3">
-                <span className="font-serif text-5xl font-bold text-primary">
+                <span className="text-5xl font-bold text-primary">
                   {sim.data.simulatedGpa.toFixed(3)}
                 </span>
                 <ChangeBadge change={sim.data.gpaChange} />

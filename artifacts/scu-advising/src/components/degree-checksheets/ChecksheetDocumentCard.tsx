@@ -189,7 +189,7 @@ export function ChecksheetDocumentCard({
           )}
           <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
           <span className="min-w-0">
-            <span className="block break-words font-serif text-lg font-semibold leading-tight xl:text-base" data-testid="checksheet-title">
+            <span className="block break-words text-lg font-semibold leading-tight xl:text-base" data-testid="checksheet-title">
               {document.title}
             </span>
             <span className="mt-0.5 block break-words text-xs text-muted-foreground">
