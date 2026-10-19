@@ -136,14 +136,15 @@ export function TermAndScheduleHeader({
   }
 
   return (
-    <div className="mb-6 space-y-4 min-w-0">
+    <div className="mb-4 min-w-0 space-y-3">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 min-w-0">
         <div className="min-w-0">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-            <CalendarRange className="h-7 w-7 text-primary shrink-0" />
+          {/* The page already has its h1 (PageHeader); this is a section of it. */}
+          <h2 className="cv-section-title mb-1 flex items-center gap-2">
+            <CalendarRange className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             Schedule Planner
-          </h1>
-          <p className="text-muted-foreground text-sm max-w-2xl">
+          </h2>
+          <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
             {workspace.availability?.note || "Select a quarter to plan your schedule."}
           </p>
         </div>
@@ -219,19 +220,20 @@ export function TermAndScheduleHeader({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border pb-4">
-        <div className="flex items-center gap-3 text-sm min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border pb-3">
+        <div className="flex min-w-0 items-center gap-3 text-xs">
           {currentTermAvailability && (
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 rounded-full bg-muted/50 border border-border">
+            // Source and freshness of the schedule, stated quietly.
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground" data-testid="schedule-source">
               {currentTermAvailability.status === "published" ? (
                 <>
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Published SCU Registrar Schedule</span>
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" aria-hidden="true" />
+                  <span className="text-foreground">Published SCU Registrar Schedule</span>
                 </>
               ) : (
                 <>
-                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                  <span className="text-amber-700 font-medium">Tentative SCU Registrar Schedule</span>
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-warning" aria-hidden="true" />
+                  <span className="font-medium text-warning">Tentative SCU Registrar Schedule</span>
                 </>
               )}
               <a

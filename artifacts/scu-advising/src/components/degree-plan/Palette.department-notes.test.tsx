@@ -162,8 +162,8 @@ describe("Department Notes beside My Notes", () => {
     expect(mine.textContent).toContain("My Note:");
     expect(mine.textContent).toContain("my private reminder");
     expect(mine.textContent).not.toContain("Department Note");
-    expect(dept.className).toContain("amber");
-    expect(mine.className).toContain("sky");
+    expect(dept.getAttribute("data-note-kind")).toBe("department");
+    expect(mine.getAttribute("data-note-kind")).toBe("personal");
     expect(dept.className).not.toBe(mine.className);
   });
 

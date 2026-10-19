@@ -80,22 +80,24 @@ export function TermColumn({
   const { label: statusLabel, evidence: termEvidence } = isCompletedTerm
     ? { label: "", evidence: "unknown" as const }
     : termOfferingLabel(term, calendarYear, scheduleAvailability);
-  const statusColor =
+  // Schedule evidence is status, shown as a small dot beside quiet text rather
+  // than a coloured pill in every column.
+  const statusDot =
     termEvidence === "published"
-      ? "bg-emerald-100 text-emerald-800"
+      ? "bg-success"
       : termEvidence === "tentative"
-        ? "bg-amber-100 text-amber-800"
+        ? "bg-warning"
         : termEvidence === "projected"
-          ? "bg-sky-100 text-sky-800"
-          : "bg-muted/50 text-muted-foreground";
+          ? "bg-info"
+          : "bg-border";
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-[125px] min-w-0 flex-col gap-1.5 rounded-lg border p-2 shadow-sm transition-colors xl:min-h-[130px] xl:p-2.5 ${isOver ? "border-primary bg-primary/5" : "border-border/50 bg-card"}`}
+      className={`flex min-h-[125px] min-w-0 flex-col gap-1.5 rounded-lg border p-2 transition-colors xl:min-h-[130px] xl:p-2.5 ${isOver ? "border-primary bg-primary/5" : "border-border bg-card"}`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-border/40 pb-1">
-        <h4 className="text-sm font-medium capitalize whitespace-nowrap">{term}</h4>
+      <div className="flex flex-wrap items-center justify-between gap-x-2 border-b border-border pb-1">
+        <h4 className="text-sm font-semibold capitalize whitespace-nowrap">{term}</h4>
         <div className="whitespace-nowrap text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
           {realUnits} {realUnits === 1 ? "unit" : "units"}
           {placeholders > 0 && (
@@ -107,10 +109,12 @@ export function TermColumn({
       </div>
 
       <div
-        className={`text-[9px] px-1.5 py-0.5 rounded-sm w-fit ${statusColor}`}
+        className="flex w-fit items-center gap-1.5 text-[11px] text-muted-foreground"
         title={termEvidence === "projected" ? PROJECTED_TERM_EXPLANATION : undefined}
         data-testid="term-status-badge"
+        data-evidence={termEvidence}
       >
+        {statusLabel && <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot}`} aria-hidden="true" />}
         {statusLabel}
       </div>
 

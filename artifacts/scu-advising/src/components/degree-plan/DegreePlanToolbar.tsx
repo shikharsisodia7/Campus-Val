@@ -52,25 +52,25 @@ export function DegreePlanToolbar({
 
   return (
     <div
-      className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-border/60 bg-card px-2.5 py-1.5 shadow-sm"
+      className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-border bg-card px-2.5 py-1.5"
       data-testid="degree-plan-toolbar"
     >
       {/* LEFT: affects Planning Requirements */}
-      {/* min-w is a real floor (not 0) so the row actually wraps instead of
-          crushing a section to nothing — see DegreePlanToolbar's toolbar-plan-name
-          fix for why min-w-0 on a flex-1 section defeats flex-wrap. */}
-      <div className="flex min-w-36 flex-1 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <Button
           variant="outline"
           size="sm"
           className="h-8 shrink-0 text-xs"
           onClick={() => setControlsOpen(true)}
+          title="Add majors, minors, or professional preparation not yet in your APR."
           data-testid="button-open-plan-controls"
         >
-          <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+          <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
           Plan Controls
         </Button>
-        <span className="hidden truncate text-[11px] text-muted-foreground lg:inline">
+        {/* Shown in full where it fits; elsewhere the button's tooltip carries it
+            (a truncated half-sentence helped no one). */}
+        <span className="hidden max-w-[16rem] text-[11px] leading-tight text-muted-foreground 2xl:inline">
           Add majors, minors, or professional preparation not yet in your APR.
         </span>
         <Button
@@ -80,22 +80,17 @@ export function DegreePlanToolbar({
           onClick={() => setSharingOpen(true)}
           data-testid="button-open-advisor-sharing"
         >
-          <Share2 className="mr-1.5 h-3.5 w-3.5" />
+          <Share2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
           Share
         </Button>
       </div>
 
-      {/* MIDDLE: affects the Degree Plan board itself */}
-      {/* min-w-72 (not min-w-44): at in-between widths like 768px, where all
-          three sections fit on one row without wrapping, flex-1 splits the
-          row's slack evenly regardless of each section's actual content — a
-          smaller floor here let the name span (needing its own real floor
-          below) get squeezed down to 1-2 visible characters before the
-          "Load Four-Year Plan" button. 72 covers name + button + gap so the
-          squeeze never happens; narrower viewports still wrap normally. */}
-      <div className="flex min-w-72 flex-1 flex-wrap items-center justify-center gap-2">
+      {/* MIDDLE: affects the Degree Plan board itself. The plan name gives way
+          (truncates) before the load buttons wrap, so the row stays one line
+          at desktop widths. */}
+      <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
         <span
-          className="min-w-20 truncate text-sm font-semibold leading-tight"
+          className="min-w-12 truncate text-sm font-semibold leading-tight"
           data-testid="toolbar-plan-name"
         >
           {activePlan?.name ?? "—"}
@@ -105,10 +100,10 @@ export function DegreePlanToolbar({
       </div>
 
       {/* RIGHT: affects the Workday APR reference column */}
-      <div className="flex min-w-36 flex-1 items-center justify-end gap-2">
+      <div className="flex shrink-0 items-center justify-end gap-2">
         <Button asChild variant="outline" size="sm" className="h-8 shrink-0 text-xs">
           <Link href="/progress-report" data-testid="button-upload-apr-toolbar">
-            <Upload className="mr-1.5 h-3.5 w-3.5" />
+            <Upload className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
             {hasReport ? "Manage Workday APRs" : "Upload Workday APR"}
           </Link>
         </Button>

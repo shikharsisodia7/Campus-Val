@@ -154,14 +154,17 @@ export function CustomizationNote({ item }: { item: RequirementItem }) {
   const c = item.customization;
   if (!c || !c.note || c.sourceChanged) return null;
   return (
+    // Personal, and visibly so: a dashed outline on white with the student's own
+    // label, never the Department Note's solid rule and building icon.
     <p
-      className="mt-1 whitespace-pre-line rounded border border-sky-100 bg-sky-50/60 px-1.5 py-1 text-[10px] leading-relaxed text-sky-900"
+      className="mt-1.5 whitespace-pre-line rounded-md border border-dashed border-input bg-card px-2 py-1.5 text-xs leading-relaxed text-foreground"
       data-testid={`my-note-${item.id}`}
+      data-note-kind="personal"
     >
-      <span className="font-semibold">{c.kind === "custom" ? "Note: " : "My Note: "}</span>
+      <span className="font-semibold text-foreground/85">{c.kind === "custom" ? "Note: " : "My Note: "}</span>
       {c.note}
       {c.noteSource && (
-        <span className="mt-0.5 block text-[9px] text-sky-800/80" data-testid={`my-note-source-${item.id}`}>
+        <span className="mt-0.5 block text-[11px] text-muted-foreground" data-testid={`my-note-source-${item.id}`}>
           From: {c.noteSource.label}
           {c.noteSource.documentAvailable ? "" : " (source document no longer available)"}
         </span>

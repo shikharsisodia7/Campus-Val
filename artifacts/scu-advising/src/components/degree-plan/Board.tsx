@@ -336,7 +336,7 @@ export function Board(_props: { plans: any[] }) {
             return (
               <div key={year} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold tracking-tight text-foreground/90 xl:text-xl">
+                  <h3 className="cv-section-title tabular-nums">
                     {year}–{year + 1}
                   </h3>
                   <div className="flex items-center gap-1">

@@ -29,15 +29,15 @@ export function WorkdayAprPanel() {
 
   return (
     <Card
-      className="flex h-full min-h-0 flex-col overflow-hidden border-border/60 bg-card shadow-sm"
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-card"
       data-testid="workday-apr-panel"
     >
       <div
-        className="flex items-start justify-between gap-2 border-b border-border/60 px-3 py-2"
+        className="flex items-start justify-between gap-2 border-b border-border px-3 py-2"
         data-testid="apr-column-header"
       >
         <div className="min-w-0">
-          <h2 className="text-base font-bold leading-tight">Academic Progress Reports</h2>
+          <h2 className="cv-panel-title">Academic Progress Reports</h2>
           <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Workday reference · read-only
           </p>
