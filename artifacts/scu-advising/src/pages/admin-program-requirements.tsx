@@ -390,9 +390,9 @@ function AddNote({ programKey, targetKey, act, busy }: { programKey: string; tar
     setCourses("");
     setOpen(false);
   };
-  if (!open) return <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => setOpen(true)} data-testid="add-department-note">Add Department Note</Button>;
+  if (!open) return <Button size="sm" variant="link" className="h-auto min-h-0 p-0 text-[11px] font-medium" onClick={() => setOpen(true)} data-testid="add-department-note">+ Add Department Note</Button>;
   return (
-    <div className="space-y-1">
+    <div className="w-full basis-full space-y-1">
       <NoteStructureFields title={title} setTitle={setTitle} courses={courses} setCourses={setCourses} idPrefix="new-note" />
       <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={1200} placeholder="Advising guidance for students, in the department's words" aria-label="New Department Note" data-testid="new-note-text" />
       <div className="flex gap-1">
@@ -419,37 +419,45 @@ function GroupEditor({ group, programKey, notesFor, busy, act }: { group: AdminG
         {group.shared && <span className="ml-1 text-[10px] font-normal text-muted-foreground">shared by every program of the school{group.editable ? "" : " · notes only"}</span>}
       </summary>
       <div className="space-y-2 border-t p-2.5">
-        <p className="text-[11px] text-muted-foreground">Bulletin source: {[group.provenance.sourceLabel, group.provenance.sourceVersion, group.provenance.lastVerified && `verified ${group.provenance.lastVerified}`].filter(Boolean).join(" · ")}</p>
+        <p className="text-[11px] text-muted-foreground">Bulletin source: {[group.provenance.sourceLabel, group.provenance.sourceVersion, group.provenance.lastVerified && `source checked ${group.provenance.lastVerified}`].filter(Boolean).join(" · ")}</p>
         <div className="space-y-1">
           {notesFor(group.stableKey).map((n) => <NoteRow key={n.id} note={n} act={act} busy={busy} />)}
           {!group.shared && <AddNote programKey={programKey} targetKey={group.stableKey} act={act} busy={busy} />}
         </div>
-        {group.items.map((item) => (
-          <div key={item.stableKey} className={`rounded border p-2 text-xs ${item.override?.hidden ? "border-dashed opacity-80" : ""}`} data-testid={`admin-item-${item.stableKey}`}>
-            <div className="flex flex-wrap items-start justify-between gap-1">
-              <div className="min-w-0">
-                <div className="font-medium">{item.override?.title ?? item.label}{item.override?.title && <Badge variant="outline" className="ml-1 text-[9px]">department edit</Badge>}{item.override?.hidden && <Badge variant="secondary" className="ml-1 text-[9px]">hidden</Badge>}</div>
-                {item.override?.title && <div className="text-[10px] text-muted-foreground">Bulletin: {item.label}</div>}
-                {item.override?.bulletinChangedSince && <div className="text-[11px] font-medium text-warning">The Bulletin changed since this override was made. Review it.</div>}
+        {/* One row per requirement in a single list: label and actions on one line,
+            then its notes, then the quiet "add a note / where this comes from" line. */}
+        <div className="divide-y divide-border overflow-hidden rounded-md border border-border">
+          {group.items.map((item) => (
+            <div key={item.stableKey} className={`px-3 py-2 text-xs ${item.override?.hidden ? "bg-muted/50" : "bg-card"}`} data-testid={`admin-item-${item.stableKey}`}>
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                <div className="min-w-0">
+                  <div className="font-medium text-foreground">{item.override?.title ?? item.label}{item.override?.title && <Badge variant="outline" className="ml-1.5 text-[10px]">department edit</Badge>}{item.override?.hidden && <Badge variant="secondary" className="ml-1.5 text-[10px]">hidden</Badge>}</div>
+                  {item.override?.title && <div className="text-[11px] text-muted-foreground">Bulletin: {item.label}</div>}
+                  {item.override?.bulletinChangedSince && <div className="text-[11px] font-medium text-warning">The Bulletin changed since this override was made. Review it.</div>}
+                </div>
+                {group.editable && (
+                  <div className="flex flex-wrap items-center gap-1">
+                    <WordingEditor item={item} busy={busy} act={act} />
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" disabled={busy} data-testid={`toggle-hide-${item.stableKey}`}
+                      onClick={() => act(() => customFetch("/api/admin/department/overrides", json("PUT", { targetKey: item.stableKey, hidden: !item.override?.hidden })))}>
+                      {item.override?.hidden ? "Show" : "Hide from planning view"}
+                    </Button>
+                    {item.override && <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" disabled={busy} data-testid={`reset-${item.stableKey}`} onClick={() => act(() => customFetch(`/api/admin/department/overrides/${item.override!.id}`, { method: "DELETE" }))}>Reset to Bulletin</Button>}
+                  </div>
+                )}
               </div>
-              {group.editable && (
-                <div className="flex flex-wrap gap-1">
-                  <WordingEditor item={item} busy={busy} act={act} />
-                  <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={busy} data-testid={`toggle-hide-${item.stableKey}`}
-                    onClick={() => act(() => customFetch("/api/admin/department/overrides", json("PUT", { targetKey: item.stableKey, hidden: !item.override?.hidden })))}>
-                    {item.override?.hidden ? "Show" : "Hide from planning view"}
-                  </Button>
-                  {item.override && <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" disabled={busy} data-testid={`reset-${item.stableKey}`} onClick={() => act(() => customFetch(`/api/admin/department/overrides/${item.override!.id}`, { method: "DELETE" }))}>Reset to Bulletin</Button>}
+              {notesFor(item.stableKey).length > 0 && (
+                <div className="mt-1.5 space-y-1">
+                  {notesFor(item.stableKey).map((n) => <NoteRow key={n.id} note={n} act={act} busy={busy} />)}
                 </div>
               )}
+              <div className="mt-1 flex flex-wrap items-start gap-x-4 gap-y-1">
+                <AddNote programKey={programKey} targetKey={item.stableKey} act={act} busy={busy} />
+                <ProvenanceView programKey={programKey} targetKey={item.stableKey} />
+              </div>
             </div>
-            <div className="mt-1 space-y-1">
-              {notesFor(item.stableKey).map((n) => <NoteRow key={n.id} note={n} act={act} busy={busy} />)}
-              <AddNote programKey={programKey} targetKey={item.stableKey} act={act} busy={busy} />
-              <ProvenanceView programKey={programKey} targetKey={item.stableKey} />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
         {group.added.map((a) => (
           <div key={a.id} className="flex items-center justify-between rounded-md border border-border p-2 text-xs">
             <span>{a.title} <Badge variant="outline" className="text-[9px]">added by department</Badge> <span className="font-mono text-[10px]">{a.courseCodes.join(", ")}</span></span>
@@ -493,11 +501,11 @@ function ProvenanceView({ programKey, targetKey }: { programKey: string; targetK
     enabled: open,
   });
   return (
-    <details className="text-[10px] text-muted-foreground" onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
+    <details className="text-[11px] text-muted-foreground" onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
       <summary className="cursor-pointer">Where this comes from</summary>
       {data.data && (
         <dl className="mt-1 space-y-0.5" data-testid="provenance-panel">
-          <div><dt className="inline font-semibold">Base: </dt><dd className="inline">{data.data.base.edition} Bulletin · {data.data.base.sourceLabel} · {data.data.base.sourceVersion} · verified {data.data.base.lastVerified}</dd></div>
+          <div><dt className="inline font-semibold">Base: </dt><dd className="inline">{data.data.base.edition} Bulletin · {data.data.base.sourceLabel} · {data.data.base.sourceVersion} · source checked {data.data.base.lastVerified}</dd></div>
           <div><dt className="inline font-semibold">Department: </dt><dd className="inline">{data.data.department.override ? `override by ${data.data.department.override.updatedBy}${data.data.department.override.hidden ? " (hidden)" : ""}${data.data.department.override.bulletinChangedSince ? " — the Bulletin changed since" : ""}` : "no override"}; {data.data.department.notes.length} note(s)</dd></div>
           <div><dt className="inline font-semibold">Student: </dt><dd className="inline">{data.data.student}</dd></div>
         </dl>
@@ -509,7 +517,7 @@ function ProvenanceView({ programKey, targetKey }: { programKey: string; targetK
 function WordingEditor({ item, busy, act }: { item: AdminItem; busy: boolean; act: Act }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(item.override?.title ?? item.label);
-  if (!open) return <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => setOpen(true)} data-testid={`edit-wording-${item.stableKey}`}>Edit wording</Button>;
+  if (!open) return <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => setOpen(true)} data-testid={`edit-wording-${item.stableKey}`}>Edit wording</Button>;
   return (
     <span className="flex flex-wrap items-center gap-1">
       <Input value={text} onChange={(e) => setText(e.target.value)} maxLength={160} className="h-7 w-64 text-xs" aria-label="Wording shown to students" data-testid="wording-input" />
