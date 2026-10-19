@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle } from "lucide-react";
+import { safeExternalUrl } from "@/lib/safe-url";
 
 /**
  * Program Requirements Admin. For a department administrator (and super
@@ -210,8 +211,8 @@ export default function AdminProgramRequirementsPage() {
                             </td>
                             <td className="whitespace-nowrap px-3 py-2 tabular-nums">v{p.version}</td>
                             <td className="px-3 py-2 text-muted-foreground">
-                              {p.sourceUrl ? (
-                                <a href={p.sourceUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">{p.sourceLabel ?? "Source"}</a>
+                              {safeExternalUrl(p.sourceUrl) ? (
+                                <a href={safeExternalUrl(p.sourceUrl)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">{p.sourceLabel ?? "Source"}</a>
                               ) : (p.sourceLabel ?? p.sourceType)}
                             </td>
                             <td className="px-3 py-2"><StatusBadge status={p.status} /></td>
@@ -340,7 +341,7 @@ function NoteRow({ note, act, busy }: { note: AdminNote; act: Act; busy: boolean
           {note.sourceAcademicYear ? ` · ${note.sourceAcademicYear}` : ""}
           {note.sourceDocumentVersion ? ` · v${note.sourceDocumentVersion}` : ""}
           {` · provenance ${note.provenanceStatus}`}
-          {note.sourceUrl && <> · <a href={note.sourceUrl} target="_blank" rel="noreferrer" className="underline">source</a></>}
+          {safeExternalUrl(note.sourceUrl) && <> · <a href={safeExternalUrl(note.sourceUrl)} target="_blank" rel="noopener noreferrer" className="underline">source</a></>}
         </p>
       )}
       {editing ? (
@@ -599,7 +600,7 @@ function CanonicalResources({
           <p className="break-all text-muted-foreground">{resource.school} · {resource.sourceFileName}{resource.academicYear ? ` · ${resource.academicYear}` : ""}{resource.documentVersion ? ` · v${resource.documentVersion}` : ""}</p>
           <p className="text-muted-foreground">
             provenance: {resource.provenanceStatus} · review: {resource.reviewStatus}
-            {resource.sourceUrl && <> · <a href={resource.sourceUrl} target="_blank" rel="noreferrer" className="underline">source URL</a></>}
+            {safeExternalUrl(resource.sourceUrl) && <> · <a href={safeExternalUrl(resource.sourceUrl)} target="_blank" rel="noopener noreferrer" className="underline">source URL</a></>}
           </p>
           {superAdmin && (
             <div className="flex flex-wrap gap-1 pt-0.5">

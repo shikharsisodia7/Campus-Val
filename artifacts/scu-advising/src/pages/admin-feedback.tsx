@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { REPORT_TYPE_OPTIONS } from "@/lib/feedback-features";
+import { safeExternalUrl } from "@/lib/safe-url";
 
 interface FeedbackReport {
   id: number;
@@ -207,13 +208,13 @@ export default function AdminFeedbackPage() {
                                   <p className="text-sm">{r.academicItem}</p>
                                 </div>
                               )}
-                              {r.officialSourceUrl && (
+                              {safeExternalUrl(r.officialSourceUrl) ? (
                                 <div>
                                   <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                     Official source
                                   </div>
                                   <a
-                                    href={r.officialSourceUrl}
+                                    href={safeExternalUrl(r.officialSourceUrl)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
@@ -221,7 +222,11 @@ export default function AdminFeedbackPage() {
                                     {r.officialSourceUrl} <ExternalLink className="h-3 w-3" />
                                   </a>
                                 </div>
-                              )}
+                              ) : r.officialSourceUrl ? (
+                                <div className="text-xs text-muted-foreground">
+                                  Official source (not a web link, shown as text): <span className="break-all">{r.officialSourceUrl}</span>
+                                </div>
+                              ) : null}
                               {r.pathname && (
                                 <div>
                                   <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

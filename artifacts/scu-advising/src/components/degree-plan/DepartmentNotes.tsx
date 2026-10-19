@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Landmark } from "lucide-react";
 import type { DepartmentNote, RequirementGroup, RequirementItem } from "@workspace/api-client-react";
+import { safeExternalUrl } from "@/lib/safe-url";
 
 /**
  * Department Notes: advising guidance a department stands behind, shown beside
@@ -72,10 +73,10 @@ function NoteCard({ note, testId }: { note: DepartmentNote; testId: string }) {
       )}
       <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
         {sourceText(note)}
-        {note.sourceUrl && (
+        {safeExternalUrl(note.sourceUrl) && (
           <>
             {" · "}
-            <a href={note.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+            <a href={safeExternalUrl(note.sourceUrl)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
               source
             </a>
           </>

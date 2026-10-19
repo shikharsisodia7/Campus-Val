@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { ExternalLink, FileStack, Loader2 } from "lucide-react";
 import { useDegreePlanContext } from "./DegreePlanContext";
+import { safeExternalUrl } from "@/lib/safe-url";
 
 /**
  * "Load Sample Plan": browse official planning templates by school and
@@ -346,8 +347,8 @@ export function SamplePlanLoader() {
                 <section className="space-y-2 rounded-md border bg-muted/20 p-2.5" aria-label="Preview" data-testid="sample-plan-preview">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-sm font-semibold">{preview.data.program} — {preview.data.title}</h3>
-                    {preview.data.sourceUrl && (
-                      <a href={preview.data.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs underline underline-offset-2">
+                    {safeExternalUrl(preview.data.sourceUrl) && (
+                      <a href={safeExternalUrl(preview.data.sourceUrl)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs underline underline-offset-2">
                         Source <ExternalLink className="h-3 w-3" />
                       </a>
                     )}
