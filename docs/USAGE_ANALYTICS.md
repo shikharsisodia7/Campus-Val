@@ -11,9 +11,9 @@ One row per feature visit, in the `usage_events` table
 
 - `userId`, `userEmail` — from the verified Clerk session server-side
   (`req.userId`/`req.userEmail`), never from anything the client sends.
-- `userType` — `"scu"` or `"external_reviewer"`, derived the same way
-  `requireAuth` decides access (`@scu.edu` vs. the `GUEST_REVIEWER_EMAILS`
-  allowlist).
+- `userType` — `"scu"` for an `@scu.edu` address, `"external_reviewer"`
+  otherwise (who may use CampusVal at all is decided separately by the
+  access policy — see `docs/PILOT_STATUS.md`).
 - `feature` — one of a fixed, server-enforced allowlist
   (`USAGE_FEATURES` in `artifacts/api-server/src/routes/usage.ts`):
   `dashboard`, `degree_plan`, `tentative_degree_plan`, `quarter_plan`,

@@ -60,7 +60,7 @@ describe("requireAuth — SCU and guest access", () => {
   it("allows an allowlisted external reviewer (e.g. invited-reviewer@pdx.edu)", async () => {
     process.env.GUEST_REVIEWER_EMAILS = "invited-reviewer@pdx.edu, jake@example.com";
     mockAuth = {
-      userId: "user_thom",
+      userId: "user_reviewer",
       sessionClaims: { email: "invited-reviewer@pdx.edu" },
     };
     const res = await request(buildApp()).get("/protected");
@@ -91,7 +91,7 @@ describe("requireAuth — SCU and guest access", () => {
   it("normalizes email case for both req.userEmail and the allowlist check", async () => {
     process.env.GUEST_REVIEWER_EMAILS = "invited-reviewer@pdx.edu";
     mockAuth = {
-      userId: "user_thom_upper",
+      userId: "user_reviewer_upper",
       sessionClaims: { email: "INVITED-REVIEWER@PDX.EDU" },
     };
     const res = await request(buildApp()).get("/protected");

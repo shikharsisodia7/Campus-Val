@@ -108,7 +108,7 @@ There is **no public URL** for an APR. Vercel Blob read links are minted server-
 | `GET /api/progress-reports/sidebar` | Yes | Caller's documents only; grade/period/units removed |
 | Advisor sharing (`/api/advisor/shared-students/...`) | Yes | **No APR access** — `"apr"` is deliberately not a valid share scope (`routes/plan-shares.ts`) |
 
-"Signed in" also means: an `@scu.edu` account or an invited reviewer on `GUEST_REVIEWER_EMAILS` (`lib/auth/policy.ts`).
+"Signed in" also means admitted by the access policy (`lib/auth/policy.ts`): in pilot mode, an invited tester, invited reviewer, administrator or department administrator.
 
 Tests: `routes/progress-reports.test.ts`, `routes/features.test.ts`, `lib/uploadPath.test.ts`, `lib/storage/gcsProvider.test.ts`, `routes/profile.delete-account.test.ts`.
 

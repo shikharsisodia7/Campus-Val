@@ -1,5 +1,13 @@
 # Implementation Report — SCU Migration Readiness
 
+> **Historical record (2026-10-05).** It describes that pass as it was. For CampusVal's current state —
+> pre-pilot engineering deployment, invited participants only, what is waiting on SCU — read
+> [docs/PILOT_STATUS.md](docs/PILOT_STATUS.md) and the current report
+> [docs/PILOT_REPORT_2026-10-19.md](docs/PILOT_REPORT_2026-10-19.md). Where this page says
+> "production" for CampusVal it means the Vercel **engineering deployment** (campus-val.vercel.app), not
+> SCU-hosted or SCU-approved production. Access is no longer "any `@scu.edu` account": pilot mode admits
+> invited people only.
+
 *October 5, 2026. Merged to `main` in both repositories (see Follow-up at the end). This same report is in both repositories.*
 
 ## Repositories Audited
@@ -154,7 +162,7 @@ What happens after receiving it: update PreHealth Advisor's DATABASE_URL, redepl
 
 ## Follow-up — October 5, 2026 (afternoon)
 
-Done after the first pass, all verified on production in Chrome:
+Done after the first pass, all verified on the deployed environments (for CampusVal: the Vercel engineering deployment) in Chrome:
 
 | Item | Result |
 |---|---|

@@ -527,7 +527,7 @@ export function AddRequirementButton({ onClick }: { onClick: () => void }) {
 }
 
 export function SourceLine({ group }: { group: RequirementGroup }) {
-  const parts = [group.sourceLabel, group.academicYear, group.lastVerified ? `last verified ${group.lastVerified}` : null].filter(Boolean);
+  const parts = [group.sourceLabel, group.academicYear, group.lastVerified ? `source checked ${group.lastVerified}` : null].filter(Boolean);
   return (
     <p className="text-[10px] leading-relaxed text-muted-foreground" data-testid={`source-line-${group.kind}`}>
       <span className="font-semibold">Source data: </span>

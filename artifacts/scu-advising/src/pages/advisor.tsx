@@ -229,7 +229,7 @@ export default function Advisor() {
     <AppShell>
       <PageHeader
         title="Planning Support"
-        subtitle="Grounded in verified SCU policies. The assistant knows your profile and uses it to personalize answers."
+        subtitle="Experimental. Draws on CampusVal's copy of SCU policy text and your profile; answers can be wrong — confirm with your advisor."
       />
       <div className="max-w-7xl mx-auto px-8 pt-3 text-xs text-muted-foreground">
         CampusVal is an independent planning tool. Always verify with official SCU sources and a human advisor.
@@ -365,8 +365,8 @@ function EmptyState({
         Ask CampusVal
       </h2>
       <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">
-        Confident answers grounded in verified SCU policies. The assistant knows
-        your profile and uses it to personalize advice.
+        Experimental planning support. It draws on CampusVal&apos;s copy of SCU
+        policy text and your profile, and it can be wrong.
       </p>
       <div className="mt-8 grid gap-2 w-full">
         {STARTER_PROMPTS.map((p) => (

@@ -254,7 +254,7 @@ export default function CoreReqs() {
                     </a>
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    {group.academicYear} · verified {group.lastVerified}
+                    {group.academicYear} · source checked {group.lastVerified}
                   </div>
 
                   {group.variants && (

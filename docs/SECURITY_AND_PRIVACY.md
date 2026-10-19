@@ -9,11 +9,15 @@ file/test if you want to verify it yourself.
 - Clerk-based session auth (`artifacts/api-server/src/middlewares/requireAuth.ts`).
   `req.userId`/`req.userEmail` are derived server-side from a verified
   session — never trusted from client-supplied request bodies.
-- Access is gated to `@scu.edu` email addresses plus an explicit invited-
-  reviewer allowlist (`GUEST_REVIEWER_EMAILS` env var — see
-  `docs/EXTERNAL_REVIEWERS.md`). No email is hardcoded in source; the
-  allowlist is verified empty in the repo (`.env.example`) and only ever
-  set via Vercel environment variables.
+- Pilot access mode (`CAMPUSVAL_ACCESS_MODE=pilot`, the default) admits
+  only named people: `ADMIN_EMAILS`, `PILOT_TESTER_EMAILS`,
+  `GUEST_REVIEWER_EMAILS` and department administrators with a program
+  scope. An `@scu.edu` address alone is refused (`403
+  pilot_access_required`) before any route handler runs
+  (`artifacts/api-server/src/lib/auth/policy.ts`, tests in `lib/auth/pilot-access.test.ts` and the
+  `pilot-access` browser suite). No email is hardcoded in source; the lists
+  are empty in `.env.example` and only ever set as deployment environment
+  variables. See `docs/PILOT_STATUS.md`.
 - Random unauthenticated or unauthorized users get a 401/403, not a
   degraded view.
 
@@ -83,7 +87,7 @@ instance. This is a deliberate decision for the current controlled
 undergraduate-testing phase, not an oversight:
 
 - **Why Development is appropriate right now:** the current cohort is a
-  small, controlled group of invited SCU students and reviewers (see
+  small, controlled group of invited pilot participants (see
   `docs/TESTING_ROLLOUT.md`). Clerk's Development instance has no
   functional limitation that affects this cohort — sign-in, OAuth
   (Apple/GitHub/Google), sessions, and the advisor-sharing/APR/plan

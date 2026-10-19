@@ -1,11 +1,28 @@
 # CampusVal
 
-Academic planning support for Santa Clara University students, grounded in real SCU
-policy and each student's own record.
+A degree- and quarter-planning workspace for Santa Clara University undergraduates. It
+organizes and compares planning information from SCU sources; Workday and SCU remain
+authoritative for official academic records and decisions.
 
-**Production:** https://campus-val.vercel.app
-**Production branch:** `main` (the repo's default branch). `replit-main` is a legacy
-branch from early development and is no longer used for deploys.
+## Status: pre-pilot
+
+- **Development / engineering deployment:** https://campus-val.vercel.app (Vercel, built from
+  `main`). It exists for engineering verification and, once the professor authorizes it,
+  controlled pre-pilot testing. It is **not** SCU-hosted, SCU-approved or launched.
+- **Access: invited participants only.** Pilot access mode (`CAMPUSVAL_ACCESS_MODE=pilot`, the
+  default) admits only `ADMIN_EMAILS`, `PILOT_TESTER_EMAILS`, `GUEST_REVIEWER_EMAILS` and
+  department administrators. An `@scu.edu` address alone is refused, on the server.
+- **Not promoted and not indexed:** no announcements or invitations are sent by the app, and
+  search engines are asked not to index it.
+- **Waiting on SCU:** hosting decision, IT/security review, SSO details, an official Workday
+  availability source, department confirmation of open academic questions, and the professor's
+  rollout plan. Engineering security controls are tested; that is not SCU security approval.
+- **Source:** this repository is public. Credentials, student records and uploaded documents are
+  never stored in it.
+
+Details, and the full list of what is waiting on whom: [docs/PILOT_STATUS.md](docs/PILOT_STATUS.md).
+SCU target hosting (Docker, Cloud Run, Cloud SQL, Cloud Storage, OIDC seam):
+[docs/SCU_DEPLOYMENT.md](docs/SCU_DEPLOYMENT.md).
 
 ---
 
@@ -113,9 +130,10 @@ hook called after an early return in the mobile sign-in screens — plus a pile 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, all three suites and both builds against
 a Postgres 16 service on every push and PR to `main`.
 
-## Deployment
+## Engineering deployment (Vercel)
 
-Vercel project `campusval`, deployed from `main`:
+This is the development / pre-pilot environment, not institutional hosting
+([docs/PILOT_STATUS.md](docs/PILOT_STATUS.md)). Vercel project `campusval`, deployed from `main`:
 
 ```bash
 git checkout main && git pull --ff-only
@@ -144,9 +162,13 @@ live. A 500 there means the deployment is missing production environment variabl
 
 ## Access
 
-Sign-in is restricted to `@scu.edu` accounts. Invited external reviewers can be allowed
-individually through the server-side `GUEST_REVIEWER_EMAILS` allowlist — see
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Uploaded Academic Progress Reports live in
+During the pilot only invited people can use CampusVal: the server admits `ADMIN_EMAILS`,
+`PILOT_TESTER_EMAILS`, `GUEST_REVIEWER_EMAILS` and department administrators, and answers every
+other signed-in account — including any other `@scu.edu` account — with one pilot message and
+`403` on every data route ([docs/PILOT_STATUS.md](docs/PILOT_STATUS.md),
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)). Degree Completion Assessment and generated four-year
+plans are research features behind a server flag and an admin account; AI features are
+administrators-only. Uploaded Academic Progress Reports live in
 private object storage behind owner checks; they are never publicly addressable. A
 student may upload several (one Workday Excel export per major or minor). They are shown
 as exported — CampusVal does not re-evaluate them — and planning pages are never sent
@@ -214,6 +236,7 @@ students (`artifacts/e2e`, keys in `artifacts/e2e/.env.e2e.local`):
 | `a11y-desktop`, `a11y-phone` | axe-core on every page and state; the keyboard |
 | `req-customization` | The requirements sidebar's planning edits: persistence, reset, hide, own requirements, plan isolation, phone, axe |
 | `dept-layer` | Bulletin baseline, Department Notes beside My Notes, Program Requirements Admin (scoped), Sample Plans, widened sidebar at five sizes |
+| `pilot-access` | An uninvited `@scu.edu` account sees only the pilot message and gets 403 everywhere; an invited tester sees no R&D or admin tools (needs `CAMPUSVAL_ACCESS_MODE=pilot` with the synthetic students on `PILOT_TESTER_EMAILS`) |
 
 They are not part of CI: they need Clerk test keys and a running server, and CI
 must pass without any secret. CI runs everything in the first block, applies

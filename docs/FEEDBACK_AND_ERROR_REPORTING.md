@@ -18,9 +18,9 @@ says, what should change instead).
 
 ## Who can submit
 
-Any authenticated CampusVal user - the same population `requireAuth` already
-allows: `@scu.edu` accounts and invited external reviewers
-(`GUEST_REVIEWER_EMAILS`). See [docs/TESTING_ROLLOUT.md](TESTING_ROLLOUT.md).
+Any admitted CampusVal user - the same population `requireAuth` already
+allows: during the pilot, invited testers, invited external reviewers and
+administrators (see [docs/PILOT_STATUS.md](PILOT_STATUS.md)).
 
 ## What to report
 

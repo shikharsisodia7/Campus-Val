@@ -50,7 +50,9 @@ Built from the variables the code actually reads (`process.env` / `import.meta.e
 | `ANTHROPIC_MODEL` | CV | No | No | Default `claude-sonnet-5-5` |
 | `ELEVENLABS_API_KEY` | CV | No | **Yes** | Optional extra voice vendor (leave unset unless approved) |
 | `VOICE_TTS_VOICE_ID` | CV | No | No | ElevenLabs voice |
-| `GUEST_REVIEWER_EMAILS` | CV | No | Sensitive list | Non-SCU emails allowed to sign in |
+| `CAMPUSVAL_ACCESS_MODE` | CV | No | No | `pilot` (default; invited people only) or `institution` (every `@scu.edu` account — only after SCU approves a broader rollout). Anything else refuses to start. See `docs/PILOT_STATUS.md` |
+| `PILOT_TESTER_EMAILS` | CV | No | Sensitive list | Invited pilot testers (exact addresses) |
+| `GUEST_REVIEWER_EMAILS` | CV | No | Sensitive list | Invited external reviewers without an `@scu.edu` address |
 | `ADMIN_EMAILS` | CV | No | Sensitive list | Admin dashboards (usage, feedback) and the super admins of Program Requirements Admin |
 | `WORKDAY_SYNC_ADMIN_EMAIL` | CV | No | Sensitive | Data steward allowed to replace section data |
 | `WORKDAY_INTEGRATION_ENABLED` | CV | No | No | Keep `false` until SCU authorizes |
