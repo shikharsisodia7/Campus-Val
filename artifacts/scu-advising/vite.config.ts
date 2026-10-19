@@ -65,6 +65,25 @@ function pdfViewerAssets(): Plugin {
   };
 }
 
+/**
+ * Inlines landing-prerender.html (the no-JavaScript landing page) into
+ * index.html, for crawlers and slow first paint. One copy, used by every host:
+ * Vercel serves the built file as is and the Express server serves the same
+ * file, so the wording can never differ between them.
+ */
+function landingPrerender(): Plugin {
+  return {
+    name: "campusval-landing-prerender",
+    transformIndexHtml(html) {
+      const markup = fs
+        .readFileSync(path.resolve(import.meta.dirname, "landing-prerender.html"), "utf-8")
+        .replace(/<!--[\s\S]*?-->\s*/, "")
+        .trim();
+      return html.replace("<!--CAMPUSVAL_PRERENDER-->", markup);
+    },
+  };
+}
+
 export default defineConfig({
   base: basePath,
   plugins: [
@@ -72,6 +91,7 @@ export default defineConfig({
     tailwindcss(),
     runtimeErrorOverlay(),
     pdfViewerAssets(),
+    landingPrerender(),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [

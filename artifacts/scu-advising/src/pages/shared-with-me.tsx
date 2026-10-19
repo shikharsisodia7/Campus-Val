@@ -180,7 +180,7 @@ function ReadOnlyPlanView({ plan }: { plan: SharedPlan }) {
     <div className="space-y-4" data-testid="read-only-plan-view">
       {years.map((year) => (
         <Card key={year} className="p-3">
-          <h3 className="font-serif text-lg font-bold mb-2">
+          <h3 className="text-lg font-bold mb-2">
             {year}–{year + 1}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">

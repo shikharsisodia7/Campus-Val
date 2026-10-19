@@ -137,7 +137,7 @@ function ChecksheetWorkspace() {
             <ClipboardCheck className="h-7 w-7" aria-hidden="true" />
           </span>
           <div className="max-w-xl space-y-2">
-            <h2 className="font-serif text-2xl font-semibold">No documents yet</h2>
+            <h2 className="text-2xl font-semibold">No documents yet</h2>
             <p className="text-sm text-muted-foreground">
               Upload major and minor checksheets, four-year plans, flowcharts, and other department advising
               resources so you can reference them while planning.

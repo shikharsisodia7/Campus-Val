@@ -89,7 +89,7 @@ export function ChecksheetUploadDialog({
         data-testid="checksheet-upload-dialog"
       >
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl">Upload a checksheet or advising resource</DialogTitle>
+          <DialogTitle className="text-xl">Upload a checksheet or advising resource</DialogTitle>
           <DialogDescription>
             Choose the document you are using for your planning. If the department shares it as a Google Doc or
             Sheet, download it first (File, Download) as a PDF, Word or Excel file. The file is stored privately

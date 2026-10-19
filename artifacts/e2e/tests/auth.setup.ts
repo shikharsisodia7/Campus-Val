@@ -12,6 +12,7 @@ const STORAGE_FILE: Record<keyof typeof TEST_USERS, string> = {
   studentA: "student-a.json",
   studentB: "student-b.json",
   advisorY: "advisor-y.json",
+  nonPilot: "non-pilot.json",
 };
 
 setup.describe.configure({ mode: "serial" });
@@ -42,6 +43,13 @@ for (const key of Object.keys(TEST_USERS) as (keyof typeof TEST_USERS)[]) {
 
     await page.goto(`${baseURL}/sign-in?__clerk_ticket=${token}`);
     await page.waitForURL((url) => !url.pathname.startsWith("/sign-in"), { timeout: 20_000 });
+
+    // The non-pilot account is refused by the server (403) by design: it has
+    // no profile to seed. Its signed-in session is still what the pilot spec needs.
+    if (key === "nonPilot") {
+      await page.context().storageState({ path: path.join(STORAGE_DIR, STORAGE_FILE[key]) });
+      return;
+    }
 
     // A brand-new synthetic user has no CampusVal profile yet, so Dashboard
     // (and other profile-gated pages) would otherwise redirect every test to

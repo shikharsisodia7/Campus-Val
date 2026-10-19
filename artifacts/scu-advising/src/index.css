@@ -39,6 +39,21 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-border: var(--destructive-border);
 
+  /* Status colours carry meaning only (see :root). Each has a strong text
+     colour, a quiet surface and a border, so a notice never needs raw palette
+     classes. */
+  --color-success: hsl(var(--success));
+  --color-success-surface: hsl(var(--success-surface));
+  --color-success-border: hsl(var(--success-border));
+  --color-warning: hsl(var(--warning));
+  --color-warning-surface: hsl(var(--warning-surface));
+  --color-warning-border: hsl(var(--warning-border));
+  --color-info: hsl(var(--info));
+  --color-info-surface: hsl(var(--info-surface));
+  --color-info-border: hsl(var(--info-border));
+  --color-danger-surface: hsl(var(--danger-surface));
+  --color-danger-border: hsl(var(--danger-border));
+
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
@@ -61,68 +76,95 @@
 }
 
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
-  --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --button-outline: hsl(var(--border));
+  --badge-outline: hsl(var(--border));
 
-  /* SCU Cardinal Red: #8C1515 */
-  /* SCU Gold: #B08850 */
+  /* ---- CampusVal design tokens -------------------------------------------
+     Institutional and restrained: neutral surfaces, dark readable text, light
+     borders, SCU Cardinal (#8C1515) as the one accent. Colour other than the
+     accent means status (success / warning / info / danger), never decoration.
+     Layout values below are the only widths/heights pages should use. */
 
-  --background: 40 33% 98%; /* Warm off-white */
-  --foreground: 0 0% 10%;
-  --border: 35 20% 85%;
-  
+  /* Layout */
+  --cv-page-max: 1600px;        /* widest content column */
+  --cv-header-h: 3.5rem;        /* global app header */
+  --cv-sidebar-w: 22rem;        /* Planning Requirements panel */
+  --cv-reference-w: 24rem;      /* APR reference panel */
+  --cv-control-h: 2.25rem;      /* inputs, selects, default buttons */
+  --cv-row-h: 2.25rem;          /* dense table / list rows */
+  --cv-panel-header-h: 2.75rem; /* sticky panel headers */
+
+  /* Surfaces and text */
+  --background: 220 14% 97%;    /* app canvas: neutral, not warm */
+  --foreground: 222 22% 11%;
+  --border: 220 13% 86%;
+
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 10%;
-  --card-border: 35 20% 90%;
+  --card-foreground: 222 22% 11%;
+  --card-border: 220 13% 89%;
 
-  --sidebar: 353 74% 18%; /* Very dark cardinal */
-  --sidebar-foreground: 40 33% 98%;
-  --sidebar-border: 353 74% 25%;
-  --sidebar-primary: 35 41% 50%; /* Gold */
-  --sidebar-primary-foreground: 353 74% 18%;
-  --sidebar-accent: 353 74% 28%;
-  --sidebar-accent-foreground: 40 33% 98%;
-  --sidebar-ring: 35 41% 50%;
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 222 22% 11%;
+  --sidebar-border: 220 13% 89%;
+  --sidebar-primary: 353 74% 32%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 14% 94%;
+  --sidebar-accent-foreground: 222 22% 11%;
+  --sidebar-ring: 353 74% 32%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 10%;
-  --popover-border: 35 20% 85%;
+  --popover-foreground: 222 22% 11%;
+  --popover-border: 220 13% 86%;
 
-  --primary: 353 74% 32%; /* Cardinal Red */
+  /* SCU Cardinal Red #8C1515 */
+  --primary: 353 74% 32%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 35 41% 50%; /* Gold */
-  /* Dark text on gold: 5.5:1. White on this gold is 3.2:1, below WCAG AA. */
-  --secondary-foreground: 0 0% 10%;
+  /* Neutral secondary (was SCU Gold, which read as decoration). */
+  --secondary: 220 14% 93%;
+  --secondary-foreground: 222 22% 15%;
 
-  --muted: 35 20% 95%;
-  --muted-foreground: 0 0% 40%;
+  --muted: 220 14% 95%;
+  /* 7:1 on white, 6.4:1 on --muted. */
+  --muted-foreground: 220 9% 36%;
 
-  --accent: 35 30% 92%;
-  --accent-foreground: 353 74% 32%;
+  /* Hover / selected surfaces for ghost controls and menu items. */
+  --accent: 220 14% 93%;
+  --accent-foreground: 222 22% 11%;
 
-  /* 6.5:1 on white and 5.5:1 on the accent tint. The brighter red was 3.8:1. */
+  /* 6.5:1 on white and 5.5:1 on the accent tint. */
   --destructive: 0 72% 42%;
   --destructive-foreground: 0 0% 100%;
 
-  --input: 35 20% 80%;
+  /* Status: text colours are AA (4.5:1+) on white and on their surface. */
+  --success: 152 62% 24%;
+  --success-surface: 150 40% 96%;
+  --success-border: 150 30% 82%;
+  --warning: 30 85% 27%;
+  --warning-surface: 40 85% 96%;
+  --warning-border: 38 60% 80%;
+  --info: 215 62% 33%;
+  --info-surface: 214 60% 97%;
+  --info-border: 214 45% 85%;
+  --danger-surface: 0 70% 97%;
+  --danger-border: 0 55% 86%;
+
+  --input: 220 13% 80%;
   --ring: 353 74% 32%;
 
-  --app-font-sans: 'Inter', sans-serif;
-  --app-font-serif: 'Georgia', serif;
-  --app-font-mono: 'Menlo', monospace;
-  --radius: 0.5rem;
+  --app-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* The authenticated app uses one family; serif display type is not used. */
+  --app-font-serif: var(--app-font-sans);
+  --app-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --radius: 0.375rem;
 
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l - 8) / alpha);
+  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l - 8) / alpha);
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l - 8) / alpha);
+  --secondary-border: hsl(var(--border));
+  --muted-border: hsl(var(--border));
+  --accent-border: hsl(var(--border));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l - 8) / alpha);
 }
 
 .dark {
@@ -164,6 +206,18 @@
 
   --input: 0 0% 20%;
   --ring: 353 74% 40%;
+
+  --success: 150 45% 65%;
+  --success-surface: 150 30% 12%;
+  --success-border: 150 25% 25%;
+  --warning: 38 80% 65%;
+  --warning-surface: 35 40% 12%;
+  --warning-border: 35 35% 28%;
+  --info: 214 70% 72%;
+  --info-surface: 214 35% 13%;
+  --info-border: 214 30% 28%;
+  --danger-surface: 0 40% 13%;
+  --danger-border: 0 35% 28%;
 }
 
 @layer base {
@@ -175,45 +229,46 @@
   }
 }
 
-/* ---- CampusVal motion ---- */
+/* ---- CampusVal typography ------------------------------------------------
+   One hierarchy for every authenticated page. Use these instead of ad-hoc
+   text sizes:
+     cv-page-title      page <h1> in PageHeader
+     cv-section-title   a section inside a page
+     cv-panel-title     a panel or card heading (sidebar, APR, dialogs)
+     cv-eyebrow         small uppercase group label
+     cv-meta            secondary detail line (source, dates, counts)
+     cv-caption         the smallest supporting text                         */
+@layer components {
+  .cv-page-title { @apply text-xl font-semibold leading-tight tracking-tight text-foreground; }
+  .cv-section-title { @apply text-base font-semibold leading-snug text-foreground; }
+  .cv-panel-title { @apply text-sm font-semibold leading-snug text-foreground; }
+  .cv-eyebrow { @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground; }
+  .cv-meta { @apply text-xs leading-relaxed text-muted-foreground; }
+  .cv-caption { @apply text-[11px] leading-snug text-muted-foreground; }
+}
 
-@keyframes cv-gradient-sweep {
-  0%   { background-position:   0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position:   0% 50%; }
-}
-.cv-gradient-sweep {
-  background-size: 200% 200%;
-  animation: cv-gradient-sweep 14s ease-in-out infinite;
-}
+/* ---- CampusVal motion ----
+   Kept deliberately small: state changes may fade, nothing loops. */
 
 @keyframes cv-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.cv-fade-up { animation: cv-fade-up 0.45s ease-out both; }
+.cv-fade-up { animation: cv-fade-up 0.2s ease-out both; }
 
 @keyframes cv-pulse-ring {
-  0%   { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.55); }
-  70%  { box-shadow: 0 0 0 18px hsl(var(--primary) / 0); }
+  0%   { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.45); }
+  70%  { box-shadow: 0 0 0 12px hsl(var(--primary) / 0); }
   100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
 }
 .cv-pulse-ring { animation: cv-pulse-ring 1.6s ease-out infinite; }
 
-/* Hover lift for cards — applied via Tailwind class on individual cards. */
-.cv-card-hover {
-  transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
-}
-.cv-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px -8px hsl(var(--primary) / 0.25);
-}
+/* Former decorative effects, now inert so older markup stays harmless. */
+.cv-gradient-sweep { display: none; }
+.cv-card-hover { transition: border-color 0.15s ease-out; }
 
 /* Respect reduced-motion users. */
 @media (prefers-reduced-motion: reduce) {
-  .cv-gradient-sweep,
   .cv-fade-up,
   .cv-pulse-ring { animation: none !important; }
-  .cv-card-hover { transition: none; }
-  .cv-card-hover:hover { transform: none; box-shadow: none; }
 }

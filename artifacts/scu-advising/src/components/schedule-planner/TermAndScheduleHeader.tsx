@@ -139,7 +139,7 @@ export function TermAndScheduleHeader({
     <div className="mb-6 space-y-4 min-w-0">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 min-w-0">
         <div className="min-w-0">
-          <h1 className="font-serif text-3xl font-bold mb-2 flex items-center gap-3">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
             <CalendarRange className="h-7 w-7 text-primary shrink-0" />
             Schedule Planner
           </h1>

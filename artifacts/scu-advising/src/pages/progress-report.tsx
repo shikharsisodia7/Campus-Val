@@ -207,7 +207,7 @@ function UploadForm({
   return (
     <Card className="space-y-4 p-5" data-testid="card-upload-form">
       <div>
-        <h2 className="mb-1 font-serif text-xl font-semibold">
+        <h2 className="mb-1 text-xl font-semibold">
           {first ? "Upload a Workday APR" : "Upload another APR"}
         </h2>
         <p className="text-sm text-muted-foreground">

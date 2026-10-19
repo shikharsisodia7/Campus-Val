@@ -1,4 +1,4 @@
+# CampusVal is a pre-pilot engineering deployment for invited participants
+# only (docs/PILOT_STATUS.md). It is not meant to be found through search.
 User-agent: *
-Allow: /
-
-Sitemap: https://campus-val.vercel.app/sitemap.xml
+Disallow: /

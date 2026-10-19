@@ -37,7 +37,7 @@ export function WorkdayAprPanel() {
         data-testid="apr-column-header"
       >
         <div className="min-w-0">
-          <h2 className="font-serif text-base font-bold leading-tight">Academic Progress Reports</h2>
+          <h2 className="text-base font-bold leading-tight">Academic Progress Reports</h2>
           <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Workday reference · read-only
           </p>

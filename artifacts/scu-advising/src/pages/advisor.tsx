@@ -361,7 +361,7 @@ function EmptyState({
       <div className="h-14 w-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
         <Sparkles className="h-7 w-7" />
       </div>
-      <h2 className="font-serif text-2xl font-bold text-foreground">
+      <h2 className="text-2xl font-bold text-foreground">
         Ask CampusVal
       </h2>
       <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">
@@ -395,7 +395,7 @@ function MessageBubble({ message }: { message: Message }) {
   return (
     <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
-        <div className="h-8 w-8 shrink-0 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold font-serif">
+        <div className="h-8 w-8 shrink-0 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
           CV
         </div>
       )}

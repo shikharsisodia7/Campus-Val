@@ -9,6 +9,12 @@
       "includeFiles": "artifacts/api-server/dist/**"
     }
   },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/[[...path]].mjs" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }

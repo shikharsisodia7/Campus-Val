@@ -50,7 +50,7 @@ export default function SyncWorkdayPage() {
     <AppShell>
       <div className="max-w-5xl mx-auto px-8 py-10">
         <div className="mb-8">
-          <h1 className="font-serif text-4xl font-bold mb-2">
+          <h1 className="text-4xl font-bold mb-2">
             Sync Workday Sections
           </h1>
           <p className="text-muted-foreground">
@@ -190,7 +190,7 @@ export default function SyncWorkdayPage() {
           <Card className="p-5 mb-6" data-testid="sync-result">
             <div className="flex items-center gap-2 mb-3">
               <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              <h2 className="font-serif text-xl font-semibold">
+              <h2 className="text-xl font-semibold">
                 Sync complete — {result.term} {result.year}
               </h2>
             </div>
@@ -319,7 +319,7 @@ export default function SyncWorkdayPage() {
         <Card className="p-5">
           <div className="flex items-center gap-2 mb-3">
             <Database className="h-5 w-5 text-primary" />
-            <h2 className="font-serif text-xl font-semibold">
+            <h2 className="text-xl font-semibold">
               What's currently synced
             </h2>
           </div>

@@ -132,7 +132,7 @@ export default function ProfessorsPage() {
                 data-testid={`professor-card-${p.name.replace(/\s+/g, "_")}`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="font-serif font-semibold text-base leading-tight">
+                  <div className="font-semibold text-base leading-tight">
                     {p.name}
                   </div>
                   <Badge variant="secondary" className="shrink-0 text-[10px]">
@@ -205,7 +205,7 @@ function ProfessorSheetBody({
   return (
     <>
       <SheetHeader>
-        <SheetTitle className="font-serif">{name}</SheetTitle>
+        <SheetTitle>{name}</SheetTitle>
         <SheetDescription>
           From SCU's published schedule and your synced Workday sections.
         </SheetDescription>
@@ -217,7 +217,7 @@ function ProfessorSheetBody({
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
               Sections
             </div>
-            <div className="mt-1 font-serif text-2xl font-bold text-foreground">
+            <div className="mt-1 text-2xl font-bold text-foreground">
               {sectionsCount}
             </div>
           </Card>
@@ -225,7 +225,7 @@ function ProfessorSheetBody({
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
               Latest term
             </div>
-            <div className="mt-1 font-serif text-lg font-bold text-foreground">
+            <div className="mt-1 text-lg font-bold text-foreground">
               {latestTerm || "—"}
             </div>
           </Card>

@@ -293,7 +293,7 @@ export function Palette() {
     >
       <div className="border-b border-border/60 px-3 py-2">
         <div className="flex items-start justify-between gap-2">
-          <h2 className="font-serif text-base font-bold">Planning Requirements</h2>
+          <h2 className="text-base font-bold">Planning Requirements</h2>
           {canCustomize && (
             <Button
               type="button"

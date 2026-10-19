@@ -329,7 +329,7 @@ export default function Onboarding() {
         <div className="flex items-center gap-3 mb-8">
           <Logo size={48} />
           <div>
-            <div className="font-serif font-bold text-2xl text-foreground">
+            <div className="font-bold text-2xl text-foreground">
               CampusVal
             </div>
             <div className="text-sm text-muted-foreground flex items-center gap-1.5">
@@ -367,7 +367,7 @@ export default function Onboarding() {
         </div>
 
         <Card className="p-8">
-          <h2 className="font-serif text-2xl font-bold text-foreground">
+          <h2 className="text-2xl font-bold text-foreground">
             {STEPS[step]!.title}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">

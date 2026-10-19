@@ -678,7 +678,7 @@ function Stat({
       <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
         {label}
       </div>
-      <div className="font-serif text-3xl font-bold text-foreground mt-1">
+      <div className="text-3xl font-bold text-foreground mt-1">
         {value}
       </div>
       {children}

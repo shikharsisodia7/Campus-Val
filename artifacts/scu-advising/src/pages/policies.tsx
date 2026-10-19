@@ -121,7 +121,7 @@ export default function Policies() {
                   <Badge variant="secondary" className="w-fit mb-1">
                     {open.category}
                   </Badge>
-                  <SheetTitle className="font-serif text-2xl">
+                  <SheetTitle className="text-2xl">
                     {open.title}
                   </SheetTitle>
                 </SheetHeader>

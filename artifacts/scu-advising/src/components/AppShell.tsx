@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Logo size={34} />
             <div className="leading-tight">
-              <div className="font-serif text-lg font-bold tracking-tight">
+              <div className="text-lg font-bold tracking-tight">
                 CampusVal
               </div>
               <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-primary">
@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   <Logo size={34} />
                   <div>
-                    <div className="font-serif font-bold">CampusVal</div>
+                    <div className="font-bold">CampusVal</div>
                     <div className="text-[10px] uppercase tracking-wider text-primary">
                       SCU degree planning
                     </div>
@@ -462,7 +462,7 @@ export function PageHeader({
       >
         <div className="min-w-0">
           <h1
-            className={`font-serif font-bold tracking-tight text-foreground ${
+            className={`font-bold tracking-tight text-foreground ${
               compact ? "text-xl" : "text-3xl"
             }`}
           >

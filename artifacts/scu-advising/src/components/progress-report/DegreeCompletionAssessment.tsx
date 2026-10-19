@@ -84,7 +84,7 @@ export function DegreeCompletionAssessment({
     <Card className="border-border/70 p-3 sm:p-4" data-testid="degree-completion-assessment" aria-labelledby="dca-heading">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h2 id="dca-heading" className="flex flex-wrap items-center gap-2 font-serif text-base font-bold">
+          <h2 id="dca-heading" className="flex flex-wrap items-center gap-2 text-base font-bold">
             <ScrollText className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
             Degree Completion Assessment
             <span className="rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 font-sans text-[10px] font-medium uppercase tracking-wide text-sky-900">

@@ -234,7 +234,7 @@ function CourseDetail({ code }: { code: string }) {
   return (
     <div className="space-y-3">
       <div>
-        <div className="font-serif font-bold text-base text-foreground">
+        <div className="font-bold text-base text-foreground">
           {data.code}
         </div>
         <div className="text-sm text-foreground/90">{data.title}</div>

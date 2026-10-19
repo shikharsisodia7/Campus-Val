@@ -258,7 +258,7 @@ function CourseDrawer({
               <div className="font-mono text-sm font-bold text-primary">
                 {data.code} · {data.units} units
               </div>
-              <SheetTitle className="font-serif text-2xl">
+              <SheetTitle className="text-2xl">
                 {data.title}
               </SheetTitle>
               <Button
@@ -424,7 +424,7 @@ function SectionsList({ code }: { code: string }) {
             return (
               <div key={key}>
                 <div className="flex items-baseline gap-2 mb-2 pb-1.5 border-b-2 border-primary/30 flex-wrap">
-                  <span className="font-serif text-lg font-bold text-primary capitalize">
+                  <span className="text-lg font-bold text-primary capitalize">
                     {term} {year}
                   </span>
                   <span className="text-xs text-muted-foreground">

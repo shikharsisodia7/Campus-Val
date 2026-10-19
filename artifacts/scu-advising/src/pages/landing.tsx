@@ -1,177 +1,96 @@
 import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { CalendarRange, FlaskConical, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Map,
-  CalendarRange,
-  FlaskConical,
-  ArrowRight,
-} from "lucide-react";
 import { Logo } from "@/components/Logo";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-const fadeUp = {
-  initial: { opacity: 0, y: 16 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-60px" },
-  transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
-};
+/**
+ * Public landing page. Keep it to what CampusVal reliably does, state the pilot
+ * status plainly, and keep the wording in step with landing-prerender.html (the
+ * no-JavaScript copy). No sign-up call to action: CampusVal is not open for
+ * general use (docs/PILOT_STATUS.md); invited participants who have no account
+ * yet use the quiet link under Sign in.
+ */
+const CAPABILITIES = [
+  {
+    icon: Map,
+    title: "Degree Planning",
+    desc: "Build and organize a long-term academic plan from published requirements.",
+  },
+  {
+    icon: CalendarRange,
+    title: "Quarter Planning",
+    desc: "Arrange a quarter schedule and review it before registering in Workday.",
+  },
+  {
+    icon: FlaskConical,
+    title: "Explore Options with Tentative Degree Planning",
+    desc: "Explore different majors, minors, and academic pathways without changing your declared SCU program.",
+  },
+];
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header />
-      <main>
-        <Hero />
-        <Features />
-      </main>
-      <Footer />
-    </div>
-  );
-}
-
-function Header() {
-  return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-      <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5">
-          <Logo size={36} />
-          <span className="font-serif font-bold text-lg tracking-tight">
-            CampusVal
-          </span>
-        </Link>
-        <div className="flex items-center gap-2">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <Logo size={28} />
+            <span className="text-base font-semibold">CampusVal</span>
+            <span className="rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Pilot
+            </span>
+          </Link>
           <Link href="/sign-in">
-            <Button variant="ghost" size="sm">
+            <Button variant="outline" size="sm">
               Sign in
             </Button>
           </Link>
-          <Link href="/sign-up">
-            <Button size="sm" className="bg-[#8C1515] hover:bg-[#7a1212]">
-              Get started
-            </Button>
-          </Link>
         </div>
-      </div>
-    </header>
-  );
-}
+      </header>
 
-function Hero() {
-  return (
-    <section className="max-w-5xl mx-auto px-6 pt-20 pb-24 text-center">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="flex justify-center mb-8"
-      >
-        <Logo size={88} />
-      </motion.div>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-12 pt-14 sm:pt-20">
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+          Pre-pilot · Santa Clara University planning
+        </p>
+        <h1 className="mt-3 max-w-xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+          Plan your degree and each quarter in one place.
+        </h1>
+        <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-[17px]">
+          CampusVal helps organize and compare planning information from SCU sources.
+          Workday and SCU remain authoritative for official academic records and decisions.
+        </p>
+        <p className="mt-6 text-sm text-foreground/80" data-testid="landing-pilot-status">
+          Available only to invited pilot participants while SCU reviews hosting, security,
+          and rollout.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Invited and new to CampusVal?{" "}
+          <Link href="/sign-up" className="font-medium text-foreground underline underline-offset-2">
+            Create your account
+          </Link>{" "}
+          with the address your invitation was sent to.
+        </p>
 
-      <motion.h1
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-        className="font-serif text-4xl md:text-5xl font-bold leading-tight tracking-tight max-w-2xl mx-auto"
-      >
-        Academic planning for{" "}
-        <span className="text-[#8C1515]">Santa Clara</span>
-      </motion.h1>
+        <ul className="mt-10 divide-y divide-border border-y border-border" aria-label="What CampusVal does">
+          {CAPABILITIES.map((c) => (
+            <li key={c.title} className="flex gap-3 py-4">
+              <c.icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <div>
+                <div className="font-semibold">{c.title}</div>
+                <div className="mt-0.5 text-sm text-muted-foreground">{c.desc}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </main>
 
-      <motion.p
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.15 }}
-        className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto"
-      >
-        Build an academic plan, map each quarter, and explore options before
-        discussing decisions with your advisor.
-      </motion.p>
-
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.25 }}
-        className="mt-8 flex items-center justify-center gap-3"
-      >
-        <Link href="/sign-up">
-          <Button
-            size="lg"
-            className="bg-[#8C1515] hover:bg-[#7a1212] gap-2"
-          >
-            Sign up <ArrowRight className="h-4 w-4" />
-          </Button>
-        </Link>
-        <Link href="/sign-in">
-          <Button size="lg" variant="outline">
-            Sign in
-          </Button>
-        </Link>
-      </motion.div>
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="mt-4 text-xs text-muted-foreground"
-      >
-        An independent prototype, not an official SCU system.
-      </motion.p>
-    </section>
-  );
-}
-
-function Features() {
-  const features = [
-    {
-      icon: Map,
-      title: "Degree Planning",
-      desc: "Build and organize a long-term academic plan from published requirements.",
-    },
-    {
-      icon: CalendarRange,
-      title: "Quarter Planning",
-      desc: "Arrange a quarter schedule and review it before registering in Workday.",
-    },
-    {
-      icon: FlaskConical,
-      title: "Explore Options with Tentative Degree Planning",
-      desc: "Explore different majors, minors, and academic pathways without changing your declared SCU program.",
-    },
-  ];
-
-  return (
-    <section className="max-w-5xl mx-auto px-6 pb-24">
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {features.map((f, i) => (
-          <motion.div
-            key={f.title}
-            {...fadeUp}
-            transition={{ ...fadeUp.transition, delay: (i % 3) * 0.05 }}
-            className="rounded-xl border bg-card p-5"
-          >
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#8C1515]/10 text-[#8C1515] mb-3">
-              <f.icon className="h-5 w-5" />
-            </div>
-            <div className="font-semibold">{f.title}</div>
-            <div className="text-sm text-muted-foreground mt-1 leading-relaxed">
-              {f.desc}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-      An independent student tool, not affiliated with Santa Clara University.
-      Always confirm decisions with an official SCU advisor.
-    </footer>
+      <footer className="border-t border-border px-4 py-5 text-center text-xs text-muted-foreground">
+        CampusVal is a pre-pilot planning tool under review. It is not an official SCU system
+        and does not register, declare, or certify anything.
+      </footer>
+    </div>
   );
 }
 
