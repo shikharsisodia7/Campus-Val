@@ -234,7 +234,9 @@ describe("scope guards: a checksheet is a reference, not a source of requirement
     const web = join(REPO, "artifacts", "scu-advising", "src");
     const allowed = /^(pages\/degree-checksheets\.tsx|components\/degree-checksheets\/|hooks\/use-degree-checksheets\.ts|lib\/pilot-features\.ts|App\.tsx)/;
     const users = sourceFiles(web, isSource)
-      .filter((p) => /DegreeChecksheet|degree-checksheets/.test(text(p)))
+      // Checksheet components, hooks, module imports or API calls. A plain link to the
+      // /degree-checksheets page (navigation, e.g. from the Dashboard) is not a use of its data.
+      .filter((p) => /DegreeChecksheet|\/api\/degree-checksheets|\/degree-checksheets\/|use-degree-checksheets/.test(text(p)))
       .map((p) => relative(web, p).replace(/\\/g, "/"))
       .filter((p) => !allowed.test(p));
     expect(users).toEqual([]);
