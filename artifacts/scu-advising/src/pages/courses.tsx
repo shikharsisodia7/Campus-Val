@@ -258,7 +258,7 @@ function CourseDrawer({
               <div className="font-mono text-sm font-bold text-primary">
                 {data.code} · {data.units} units
               </div>
-              <SheetTitle className="text-2xl">
+              <SheetTitle className="text-lg">
                 {data.title}
               </SheetTitle>
               <Button

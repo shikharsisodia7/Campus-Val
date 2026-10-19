@@ -131,7 +131,7 @@ export function DegreePlanWorkspace({
 
   return (
     <DegreePlanProvider value={contextValue}>
-      <div className="xl:hidden flex items-center justify-between mb-4 bg-card border border-border p-2 rounded-md shadow-sm">
+      <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-card p-2 xl:hidden">
         <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="sm">

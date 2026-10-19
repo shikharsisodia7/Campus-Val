@@ -361,7 +361,7 @@ function EmptyState({
       <div className="h-14 w-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
         <Sparkles className="h-7 w-7" />
       </div>
-      <h2 className="text-2xl font-bold text-foreground">
+      <h2 className="text-xl font-semibold text-foreground">
         Ask CampusVal
       </h2>
       <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">

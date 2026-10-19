@@ -50,7 +50,7 @@ export default function SyncWorkdayPage() {
     <AppShell>
       <div className="max-w-5xl mx-auto px-8 py-10">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">
+          <h1 className="cv-page-title mb-2">
             Sync Workday Sections
           </h1>
           <p className="text-muted-foreground">

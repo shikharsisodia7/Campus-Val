@@ -43,16 +43,28 @@ interface AdminGroup {
 }
 interface Detail { edition: { id: string; label: string }; program: Program; groups: AdminGroup[]; notes: AdminNote[] }
 interface AuditEntry { id: number; at: string; actor: string; entity: string; action: string; targetKey: string | null; before: unknown; after: unknown }
-interface SamplePlanRow { id: number; slug: string; version: string; program: string; programKey: string | null; title: string; planLength: string; status: string; importWarnings: string[]; schoolName: string }
+interface SamplePlanRow {
+  id: number; slug: string; version: string; program: string; programKey: string | null; title: string; planLength: string; status: string; importWarnings: string[]; schoolName: string;
+  sourceType: string; sourceLabel: string | null; sourceUrl: string | null; academicYear: string | null;
+}
 interface CanonicalResource {
   id: number; programKey: string; programType: string; school: string; documentTitle: string; sourceFileName: string; sourceUrl: string;
   academicYear: string | null; documentVersion: string | null; provenanceStatus: string; reviewStatus: string; publicationStatus: string;
   reviewedBy: string | null; reviewedAt: string | null; publishedBy: string | null; publishedAt: string | null; updatedBy: string; updatedAt: string;
 }
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  published: "default", draft: "secondary", archived: "outline", unmapped: "destructive",
+// Review states, worded the same everywhere: a note or plan is a Draft until a
+// person publishes it; "unmapped" means the importer could not place it, so a
+// person has to review it before it can be shown to anyone.
+const STATUS_VARIANT: Record<string, "success" | "secondary" | "outline" | "warning"> = {
+  published: "success", draft: "secondary", archived: "outline", unmapped: "warning",
 };
+const STATUS_LABEL: Record<string, string> = {
+  published: "Published", draft: "Draft", archived: "Archived", unmapped: "Needs review",
+};
+function StatusBadge({ status }: { status: string }) {
+  return <Badge variant={STATUS_VARIANT[status] ?? "outline"} data-status={status}>{STATUS_LABEL[status] ?? status}</Badge>;
+}
 
 const msg = (e: unknown) => (e instanceof ApiError ? ((e.data as { error?: string } | null)?.error ?? e.message) : "Something went wrong.");
 const json = (method: string, body?: unknown) => ({ method, headers: { "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -171,31 +183,77 @@ export default function AdminProgramRequirementsPage() {
               </TabsContent>
 
               <TabsContent value="samples" className="space-y-2">
-                {(samples.data?.plans ?? [])
-                  .filter((p) => !programKey || p.programKey === programKey || me.data!.superAdmin)
-                  .slice(0, 80)
-                  .map((p) => (
-                    <Card key={p.id} className="flex flex-wrap items-center justify-between gap-2 p-2 text-xs" data-testid={`sample-row-${p.id}`}>
-                      <span><span className="font-medium">{p.program}</span> — {p.title} <span className="text-muted-foreground">v{p.version} · {p.planLength}{p.importWarnings.length ? ` · ${p.importWarnings.length} warning(s)` : ""}</span></span>
-                      <span className="flex items-center gap-2">
-                        <Badge variant={STATUS_VARIANT[p.status] ?? "outline"}>{p.status}</Badge>
-                        {p.status !== "published" ? (
-                          <Button size="sm" className="h-7" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/sample-plans/${p.id}`, json("PATCH", { status: "published" })))}>Publish</Button>
-                        ) : (
-                          <Button size="sm" variant="outline" className="h-7" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/sample-plans/${p.id}`, json("PATCH", { status: "draft" })))}>Unpublish</Button>
-                        )}
-                      </span>
-                    </Card>
-                  ))}
+                <div className="max-h-[70vh] overflow-auto rounded-lg border border-border bg-card">
+                  <table className="w-full text-left text-xs" data-testid="admin-sample-plans-table">
+                    <thead className="sticky top-0 z-10 bg-muted text-[11px] font-semibold text-muted-foreground">
+                      <tr>
+                        <th scope="col" className="px-3 py-2">Program</th>
+                        <th scope="col" className="px-3 py-2">Plan</th>
+                        <th scope="col" className="px-3 py-2">Version</th>
+                        <th scope="col" className="px-3 py-2">Source</th>
+                        <th scope="col" className="px-3 py-2">Status</th>
+                        <th scope="col" className="px-3 py-2"><span className="sr-only">Action</span></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {(samples.data?.plans ?? [])
+                        .filter((p) => !programKey || p.programKey === programKey || me.data!.superAdmin)
+                        .slice(0, 80)
+                        .map((p) => (
+                          <tr key={p.id} className="align-top hover:bg-muted/40" data-testid={`sample-row-${p.id}`}>
+                            <td className="px-3 py-2 font-medium">{p.program}</td>
+                            <td className="px-3 py-2">
+                              {p.title}
+                              <span className="block text-[11px] text-muted-foreground">
+                                {p.planLength}{p.importWarnings.length ? ` · ${p.importWarnings.length} import warning(s)` : ""}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2 tabular-nums">v{p.version}</td>
+                            <td className="px-3 py-2 text-muted-foreground">
+                              {p.sourceUrl ? (
+                                <a href={p.sourceUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">{p.sourceLabel ?? "Source"}</a>
+                              ) : (p.sourceLabel ?? p.sourceType)}
+                            </td>
+                            <td className="px-3 py-2"><StatusBadge status={p.status} /></td>
+                            <td className="whitespace-nowrap px-3 py-2 text-right">
+                              {p.status !== "published" ? (
+                                <Button size="sm" className="h-7" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/sample-plans/${p.id}`, json("PATCH", { status: "published" })))}>Publish</Button>
+                              ) : (
+                                <Button size="sm" variant="outline" className="h-7" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/sample-plans/${p.id}`, json("PATCH", { status: "draft" })))}>Unpublish</Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
               </TabsContent>
 
               <TabsContent value="history" className="space-y-1">
-                {(audit.data?.entries ?? []).map((e) => (
-                  <Card key={e.id} className="p-2 text-xs" data-testid={`audit-${e.id}`}>
-                    <span className="font-medium">{e.entity} {e.action}</span> by {e.actor} · {new Date(e.at).toLocaleString()}
-                    {e.targetKey && <span className="block break-all text-muted-foreground">{e.targetKey}</span>}
-                  </Card>
-                ))}
+                {(audit.data?.entries ?? []).length > 0 && (
+                  <div className="max-h-[70vh] overflow-auto rounded-lg border border-border bg-card">
+                    <table className="w-full text-left text-xs" data-testid="admin-history-table">
+                      <thead className="sticky top-0 z-10 bg-muted text-[11px] font-semibold text-muted-foreground">
+                        <tr>
+                          <th scope="col" className="px-3 py-2">When</th>
+                          <th scope="col" className="px-3 py-2">Change</th>
+                          <th scope="col" className="px-3 py-2">By</th>
+                          <th scope="col" className="px-3 py-2">Requirement</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {(audit.data?.entries ?? []).map((e) => (
+                          <tr key={e.id} className="align-top" data-testid={`audit-${e.id}`}>
+                            <td className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground">{new Date(e.at).toLocaleString()}</td>
+                            <td className="px-3 py-2 font-medium">{e.entity} {e.action}</td>
+                            <td className="px-3 py-2">{e.actor}</td>
+                            <td className="break-all px-3 py-2 text-muted-foreground">{e.targetKey ?? "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
                 {programKey && audit.data?.entries.length === 0 && <p className="text-sm text-muted-foreground">No changes recorded yet.</p>}
               </TabsContent>
 
@@ -262,9 +320,9 @@ function NoteRow({ note, act, busy }: { note: AdminNote; act: Act; busy: boolean
   const [courses, setCourses] = useState((note.courseCodes ?? []).join(", "));
   const patch = (body: object) => act(() => customFetch(`/api/admin/department/notes/${note.id}`, json("PATCH", body)));
   return (
-    <div className="rounded border border-amber-200 bg-amber-50/60 p-1.5 text-xs" data-testid={`admin-note-${note.id}`}>
+    <div className="rounded-md border border-border border-l-[3px] border-l-foreground/45 bg-muted/50 p-2 text-xs" data-testid={`admin-note-${note.id}`}>
       <div className="flex flex-wrap items-center gap-1.5">
-        <Badge variant={STATUS_VARIANT[note.status] ?? "outline"}>{note.status}</Badge>
+        <StatusBadge status={note.status} />
         <span className="text-[10px] text-muted-foreground">{note.origin === "imported" ? `imported · ${note.sourceReference ?? ""}${note.reviewedBy ? "" : " · not reviewed"}` : `by ${note.updatedBy}`}</span>
       </div>
       <p className="mt-0.5 text-[10px] text-muted-foreground" data-testid={`note-provenance-${note.id}`}>
@@ -298,7 +356,7 @@ function NoteRow({ note, act, busy }: { note: AdminNote; act: Act; busy: boolean
           {note.title && <p className="mt-0.5 font-semibold">{note.title}</p>}
           <p className="mt-0.5 whitespace-pre-line break-words">{note.body}</p>
           {note.courseCodes?.length > 0 && (
-            <p className="mt-0.5 font-mono text-[10px] text-amber-900" data-testid={`admin-note-courses-${note.id}`}>{note.courseCodes.join(", ")}</p>
+            <p className="mt-0.5 font-mono text-[11px] text-foreground/80" data-testid={`admin-note-courses-${note.id}`}>{note.courseCodes.join(", ")}</p>
           )}
         </>
       )}
@@ -371,7 +429,7 @@ function GroupEditor({ group, programKey, notesFor, busy, act }: { group: AdminG
               <div className="min-w-0">
                 <div className="font-medium">{item.override?.title ?? item.label}{item.override?.title && <Badge variant="outline" className="ml-1 text-[9px]">department edit</Badge>}{item.override?.hidden && <Badge variant="secondary" className="ml-1 text-[9px]">hidden</Badge>}</div>
                 {item.override?.title && <div className="text-[10px] text-muted-foreground">Bulletin: {item.label}</div>}
-                {item.override?.bulletinChangedSince && <div className="text-[10px] text-amber-800">The Bulletin changed since this override was made. Review it.</div>}
+                {item.override?.bulletinChangedSince && <div className="text-[11px] font-medium text-warning">The Bulletin changed since this override was made. Review it.</div>}
               </div>
               {group.editable && (
                 <div className="flex flex-wrap gap-1">
@@ -392,7 +450,7 @@ function GroupEditor({ group, programKey, notesFor, busy, act }: { group: AdminG
           </div>
         ))}
         {group.added.map((a) => (
-          <div key={a.id} className="flex items-center justify-between rounded border border-amber-200 p-2 text-xs">
+          <div key={a.id} className="flex items-center justify-between rounded-md border border-border p-2 text-xs">
             <span>{a.title} <Badge variant="outline" className="text-[9px]">added by department</Badge> <span className="font-mono text-[10px]">{a.courseCodes.join(", ")}</span></span>
             {group.editable && <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" disabled={busy} onClick={() => act(() => customFetch(`/api/admin/department/overrides/${a.id}`, { method: "DELETE" }))}>Remove</Button>}
           </div>
@@ -535,7 +593,7 @@ function CanonicalResources({
             <span className="font-medium">{resource.documentTitle}</span>
             <span className="flex flex-wrap gap-1">
               <Badge variant={ready(resource) ? "default" : "secondary"}>{ready(resource) ? "import-ready" : "not import-ready"}</Badge>
-              <Badge variant={STATUS_VARIANT[resource.publicationStatus] ?? "outline"}>{resource.publicationStatus}</Badge>
+              <StatusBadge status={resource.publicationStatus} />
             </span>
           </div>
           <p className="break-all text-muted-foreground">{resource.school} · {resource.sourceFileName}{resource.academicYear ? ` · ${resource.academicYear}` : ""}{resource.documentVersion ? ` · v${resource.documentVersion}` : ""}</p>

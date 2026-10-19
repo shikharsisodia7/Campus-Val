@@ -85,10 +85,11 @@ export function DegreePlanToolbar({
         </Button>
       </div>
 
-      {/* MIDDLE: affects the Degree Plan board itself. The plan name gives way
-          (truncates) before the load buttons wrap, so the row stays one line
-          at desktop widths. */}
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+      {/* MIDDLE: affects the Degree Plan board itself. From lg up it shares the
+          row and the plan name truncates before anything wraps; below lg it
+          takes its own line (and may wrap) so nothing is squeezed or pushes
+          the page wider than a phone. */}
+      <div className="order-last flex w-full flex-wrap items-center justify-center gap-2 lg:order-none lg:w-auto lg:min-w-0 lg:flex-1 lg:flex-nowrap">
         <span
           className="min-w-12 truncate text-sm font-semibold leading-tight"
           data-testid="toolbar-plan-name"
