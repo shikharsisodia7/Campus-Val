@@ -41,10 +41,13 @@ async function sidebar(page: Page) {
   await page.getByRole("button", { name: "Palette" }).click();
   return page.getByRole("dialog").getByTestId("requirements-palette");
 }
+/** A group's accordion trigger by its title (the trigger also holds the school subtitle). */
+const groupTrigger = (palette: ReturnType<Page["getByTestId"]>, title: string) =>
+  palette.locator("[data-category-kind] > h3 button").filter({ hasText: title }).first();
 const groupTitles = async (palette: ReturnType<Page["getByTestId"]>) =>
   (await palette.locator("[data-category-kind] > h3 button").allInnerTexts()).map((t) => t.split("\n")[0]!.trim());
 async function openGroup(palette: ReturnType<Page["getByTestId"]>, title: string) {
-  const trigger = palette.locator("[data-category-kind] > h3 button").filter({ hasText: title }).first();
+  const trigger = groupTrigger(palette, title);
   await expect(trigger).toBeVisible({ timeout: 30_000 });
   if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
   await expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -67,7 +70,7 @@ test("Finance: University, Core, Leavey School and Finance Major requirements, t
   await withDegreePlan(page, programs("FNCE"), async () => {
     await page.goto("/degree-plan");
     const palette = await sidebar(page);
-    await expect(palette.getByText(LEAVEY, { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(groupTrigger(palette, LEAVEY)).toBeVisible({ timeout: 30_000 });
     const titles = await groupTitles(palette);
     expect(titles.filter((t) => t === "University Core Curriculum")).toHaveLength(1);
     expect(titles.filter((t) => t === LEAVEY)).toHaveLength(1);
@@ -105,7 +108,7 @@ test("Biology + Finance: both schools' requirements, one Core, both majors; acce
   await withDegreePlan(page, programs("BIOL", ["FNCE"]), async () => {
     await page.goto("/degree-plan");
     const palette = await sidebar(page);
-    await expect(palette.getByText(LEAVEY, { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(groupTrigger(palette, LEAVEY)).toBeVisible({ timeout: 30_000 });
     const titles = await groupTitles(palette);
     expect(titles).toEqual(expect.arrayContaining([
       "Major Requirements — Biology",
@@ -132,7 +135,7 @@ test("Engineering + Finance: the School of Engineering and the Leavey School req
   await withDegreePlan(page, programs("MECH", ["FNCE"]), async () => {
     await page.goto("/degree-plan");
     const palette = await sidebar(page);
-    await expect(palette.getByText(LEAVEY, { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(groupTrigger(palette, LEAVEY)).toBeVisible({ timeout: 30_000 });
     const titles = await groupTitles(palette);
     expect(titles).toEqual(expect.arrayContaining(["School of Engineering Requirements", LEAVEY, "Major Requirements — Mechanical Engineering"]));
     expect(titles.filter((t) => t === "University Core Curriculum")).toHaveLength(1);
@@ -153,7 +156,7 @@ test("a Tentative Finance plan shows the Leavey core; removing Finance removes i
 
     await page.goto("/tentative-plans");
     const palette = await sidebar(page);
-    await expect(palette.getByText(LEAVEY, { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(groupTrigger(palette, LEAVEY)).toBeVisible({ timeout: 30_000 });
     await page.screenshot({ path: path.join(SHOTS, "tentative-finance-sidebar.png") });
 
     // Biology instead of Finance in the same plan: the Leavey group goes away.
