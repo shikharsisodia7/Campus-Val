@@ -41,9 +41,14 @@ primary major as `primaryMajorOverride ?? profile.major`. The override:
 
 - replaces the old primary major's requirement group (it is not appended as an
   extra), leaving second majors, minors, and professional preparation intact;
-- follows the **major's own college** for University Core / college
-  requirements when it belongs to a different school (via `getMajorCollege`),
-  so a CAS → LSB/SOE change loads the right college rules;
+- follows the **major's own school** (via `getMajorCollege`) for the Core's
+  school-dependent rule and its own SCHOOL group, so a CAS → LSB/SOE change loads
+  the right school requirements;
+- never removes another major's school: the plan's school groups are the set of
+  schools of ALL its majors (primary, second, additional, scenario / Tentative), so a
+  Biology profile planning Finance as an additional or tentative major sees the
+  Leavey School of Business requirements beside CAS's (see
+  `MULTI_SCHOOL_REQUIREMENTS.md`);
 - adds a truthful "Planning major — … official SCU declaration and Workday APR
   are unchanged" note; it is never labelled "(proposed)" (that is reserved for
   additional/scenario majors).

@@ -434,6 +434,13 @@ function AssessmentRow({ item, isAdmin, actions }: { item: DegreeCompletionItem;
             <dt>row</dt><dd>{item.trace.row + 1} (Excel)</dd>
             <dt>block</dt><dd>{item.trace.block ?? "—"}</dd>
             <dt>rule</dt><dd>{item.trace.rule} · v{item.trace.ruleVersion}</dd>
+            <dt>code</dt><dd>{item.automatic.code}</dd>
+            <dt>remaining</dt>
+            <dd>
+              {item.automatic.remainingCourses.count === null ? "not stated" : `${item.automatic.remainingCourses.count} course(s)`} ({item.automatic.remainingCourses.basis})
+            </dd>
+            {item.automatic.minimumCombination && (<><dt>combination</dt><dd>{item.automatic.minimumCombination}</dd></>)}
+            {item.automatic.statusDetail && (<><dt>status detail</dt><dd>{item.automatic.statusDetail}</dd></>)}
             <dt>confidence</dt><dd>{item.confidence} (automatic {item.automatic.state})</dd>
             <dt>override</dt><dd>{correction ? JSON.stringify({ status: correction.status, hidden: correction.hidden, sourceChanged: correction.sourceChanged }) : "none"}</dd>
             <dt>key</dt><dd>{item.key} / {item.trace.fingerprint}</dd>

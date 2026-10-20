@@ -31,6 +31,7 @@ export type ChecksheetFixtureName =
   | "legacy-workbook-reworded"
   | "legacy-workbook-protected"
   | "checklist-workbook"
+  | "business-side-by-side-workbook"
   | "checklist-workbook-reworded"
   | "major-pdf"
   | "major-pdf-revised"
@@ -606,6 +607,21 @@ export async function buildChecksheetFixture(name: ChecksheetFixtureName): Promi
       return protectedLegacyWorkbook();
     case "checklist-workbook":
       return checklist(CHECKLIST_ROWS);
+    case "business-side-by-side-workbook":
+      // Leavey-style: two tables side by side in one row band, each with its own Notes column, the
+      // left one with the student's Status column in an unusual place (second, before the course).
+      return workbook([
+        {
+          name: "Business Core",
+          title: "Widget School of Business core checksheet (sample)",
+          header: ["Lower Division", "Status", "Course", "Notes", null, "Upper Division", "Course", "Notes"],
+          rows: [
+            ["Introduction to Widget Business", null, "WBUS 70", "Take in the first year", null, "Widget Finance", "WFIN 121", "After WACC 12"],
+            ["Widget Accounting I", null, "WACC 11", null, null, "Widget Marketing", "WMKT 181", null],
+            ["Widget Accounting II", null, "WACC 12", "The quarter after WACC 11", null, "Capstone", "WMGT 162", "Senior standing"],
+          ],
+        },
+      ]);
     case "checklist-workbook-reworded":
       // The same shape; the first requirement is a different one.
       return checklist(CHECKLIST_ROWS.map((row, i) => (i === 1 ? { text: "History of Widgets" } : row)));
@@ -683,6 +699,7 @@ export const CHECKSHEET_FIXTURE_FILES: Record<ChecksheetFixtureName, { fileName:
   "legacy-workbook-reworded": { fileName: "applied-widgetry-major-reworded.xls", contentType: "application/vnd.ms-excel" },
   "legacy-workbook-protected": { fileName: "applied-widgetry-major-protected.xls", contentType: "application/vnd.ms-excel" },
   "checklist-workbook": { fileName: "applied-widgetry-checklist.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  "business-side-by-side-workbook": { fileName: "widget-business-core-side-by-side.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "checklist-workbook-reworded": { fileName: "applied-widgetry-checklist-reworded.xlsx", contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
   "major-pdf": { fileName: "applied-widgetry-major.pdf", contentType: "application/pdf" },
   "major-pdf-revised": { fileName: "applied-widgetry-major-revised.pdf", contentType: "application/pdf" },

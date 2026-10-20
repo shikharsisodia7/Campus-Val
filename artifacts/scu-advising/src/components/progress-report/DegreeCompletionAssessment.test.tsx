@@ -40,7 +40,7 @@ function item(over: Partial<DegreeCompletionItem> & { key: string; label: string
     registrations: [],
     group: "Biology Major",
     groupKind: "major",
-    automatic: { state: "CLEAR_REMAINING", reason: "apr_not_satisfied", explanation: "Your APR marks this Not Satisfied." },
+    automatic: { state: "CLEAR_REMAINING", reason: "apr_not_satisfied", explanation: "Your APR marks this Not Satisfied.", code: "NOT_SATISFIED_EXPLICIT", remainingCourses: { count: 1, basis: "SOURCE_COUNT_AVAILABLE" }, minimumCombination: null, statusDetail: null },
     correction: null,
     effective: "remaining",
     confidence: "CLEAR_REMAINING",
@@ -57,7 +57,7 @@ const ITEMS = [
     label: "Biology Major: Upper Division Theme Courses",
     aprStatus: "In Progress",
     remaining: "Minimum 2 Course(s)",
-    automatic: { state: "AMBIGUOUS", reason: "in_progress_with_remaining", explanation: "Your APR marks this In Progress and also lists an amount remaining." },
+    automatic: { state: "AMBIGUOUS", reason: "in_progress_with_remaining", explanation: "Your APR marks this In Progress and also lists an amount remaining.", code: "MULTI_COURSE_AMBIGUOUS", remainingCourses: { count: null, basis: "SOURCE_COUNT_UNAVAILABLE" as const }, minimumCombination: null, statusDetail: null },
     effective: "needs_review",
     confidence: "AMBIGUOUS",
   }),
@@ -67,7 +67,7 @@ const ITEMS = [
     group: "Core",
     aprStatus: "Satisfied",
     remaining: null,
-    automatic: { state: "LIKELY_COMPLETE", reason: "apr_satisfied", explanation: "Your APR marks this Satisfied." },
+    automatic: { state: "LIKELY_COMPLETE", reason: "apr_satisfied", explanation: "Your APR marks this Satisfied.", code: "SATISFIED_EXPLICIT", remainingCourses: { count: 0, basis: "SOURCE_COUNT_AVAILABLE" }, minimumCombination: null, statusDetail: null },
     effective: "appears_complete",
     confidence: "LIKELY_COMPLETE",
   }),
@@ -76,7 +76,7 @@ const ITEMS = [
     label: "Biology Major: BIOL 1B",
     aprStatus: "In Progress",
     remaining: null,
-    automatic: { state: "AMBIGUOUS", reason: "in_progress_pending_grade", explanation: "Not complete until graded." },
+    automatic: { state: "AMBIGUOUS", reason: "in_progress_pending_grade", explanation: "Not complete until graded.", code: "USER_OVERRIDE", remainingCourses: { count: null, basis: "SOURCE_COUNT_UNAVAILABLE" as const }, minimumCombination: null, statusDetail: null },
     correction: { status: "complete", hidden: false, note: "Graded A last week", sourceChanged: false, updatedAt: "2026-10-09T00:00:00Z" },
     effective: "complete_for_planning",
     confidence: "USER_CORRECTED",
@@ -192,6 +192,9 @@ describe("Degree Completion Assessment", () => {
     const inspector = screen.getByTestId("dca-inspector-0000000000000001");
     expect(inspector.textContent).toMatch(/row8 \(Excel\)/);
     expect(inspector.textContent).toMatch(/apr_not_satisfied/);
+    // The rule code and a remaining count only when the APR states one, for checking Registrar answers.
+    expect(inspector.textContent).toMatch(/NOT_SATISFIED_EXPLICIT/);
+    expect(inspector.textContent).toMatch(/1 course\(s\) \(SOURCE_COUNT_AVAILABLE\)/);
   });
 
   it("renders nothing when the assessment is switched off", () => {

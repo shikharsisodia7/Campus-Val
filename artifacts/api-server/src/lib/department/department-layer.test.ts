@@ -224,6 +224,49 @@ describe("checklist note extraction", () => {
     expect(at("Biology!D51")).toMatchObject({ targetKey: null, status: "unmapped" });
   });
 
+  it("does not interpret a side-by-side or offset layout (Leavey-style): every note is kept for a person, none anchored", () => {
+    const sideBySide = extractChecklistNotes(
+      sheet([
+        // Two tables in one row band: Core on the left, the major on the right.
+        [2, [0, "Foundations"], [1, "Notes"], [3, "Finance Major Requirements"], [4, "Notes"]],
+        [3, [0, "RTC 3"], [1, "Left note"], [3, "BIOL 1A"], [4, "Right note"]],
+        // Only the right-hand table has Notes: the left label must never be paired with it.
+        [10, [0, "Explorations"], [1, "Quarter"], [3, "Finance Major Requirements"], [4, "Notes"]],
+        [11, [0, "Ethics"], [3, "BIOL 1A"], [4, "Take in junior year"]],
+        // A table that starts in column B.
+        [20, [1, "Integrations"], [2, "Notes"]],
+        [21, [1, "Advanced Writing"], [2, "Offset note"]],
+      ]),
+      "Biology",
+      group,
+      tree.tree,
+    );
+    expect(sideBySide.map((c) => [c.sourceReference, c.body])).toEqual([
+      ["Biology!B4", "Left note"],
+      ["Biology!E4", "Right note"],
+      ["Biology!E12", "Take in junior year"],
+      ["Biology!C22", "Offset note"],
+    ]);
+    for (const c of sideBySide) {
+      expect(c).toMatchObject({ status: "unmapped", targetKey: null, rowLabel: "" });
+      expect(c.reason).toMatch(/does not read a column's meaning from its position/);
+    }
+  });
+
+  it("still reads a table that has a Notes-less grid beside it (how CAS checklists are laid out)", () => {
+    const withGrid = extractChecklistNotes(
+      sheet([
+        [2, [0, "Foundations"], [1, "Quarter"], [2, "Notes"], [5, "Year"], [6, "Fall"], [7, "Units"], [8, "Winter"]],
+        [3, [0, "RTC 3"], [2, "Can overlap with another Core or a Major requirement"], [5, "Year 1"], [6, "BIOL 1A"]],
+      ]),
+      "Biology",
+      group,
+      tree.tree,
+    );
+    expect(withGrid).toHaveLength(1);
+    expect(withGrid[0]).toMatchObject({ targetKey: "university-core:cas#rtc3", status: "published" });
+  });
+
   it("parses course codes, slash alternatives and code-only text", () => {
     expect(courseCodesIn("PHYS 11/31")).toEqual(["PHYS 11", "PHYS 31"]);
     expect(courseCodesIn("CHEM 12")).toEqual(["CHEM 12"]);

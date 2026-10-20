@@ -128,10 +128,17 @@ describe("structural guards", () => {
       // Either filtered by the owner, or addressed by the id of a row just read under the owner filter.
       expect(statement, statement.slice(0, 120)).toMatch(/degreeCompletionOverridesTable\.userId|degreeCompletionOverridesTable\.id, existing\.id/);
     }
-    // The engine reads the APR only through the grade-free projection and never touches the database.
+    // The engine reads the APR only through the normalized model built on the grade-free projection,
+    // never asks it for the withheld columns, and neither layer touches the database.
     const engine = text(join(SRC, "lib", "degree-completion", "engine.ts"));
     expect(engine).not.toMatch(/@workspace\/db|progressReportsTable/);
-    expect(engine).toMatch(/projectForSidebar/);
+    expect(engine).toMatch(/normalizeApr\(workbook\)/);
+    expect(engine).not.toMatch(/includeWithheldColumns/);
+    const normalized = text(join(SRC, "lib", "degree-completion", "apr-normalized.ts"));
+    expect(normalized).not.toMatch(/@workspace\/db|progressReportsTable/);
+    expect(normalized).toMatch(/projectForSidebar/);
+    // Academic Period, Units and Grade are read only behind the explicit option.
+    expect(normalized).toMatch(/options\.includeWithheldColumns \? withheldColumns\(/);
   });
 
   it("the client DTO never carries a storage path, an owner id, or the legacy interpretation", () => {

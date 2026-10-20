@@ -54,6 +54,12 @@ export interface RequirementItemDef {
    */
   needsVerification: boolean;
   phase?: "Foundations" | "Explorations" | "Integrations";
+  /**
+   * Course SETS, any one of which satisfies the item when every course in it is
+   * complete ("OMIS 41, or ECON 41 and ECON 42"). When present, `courses` is
+   * the union of the sets and completion follows the sets, not "any one course".
+   */
+  routes?: { label: string; courses: string[] }[];
 }
 
 export interface RequirementGroupDef {
@@ -68,13 +74,256 @@ export interface RequirementGroupDef {
   items: RequirementItemDef[];
 }
 
+/** Display name of each school, as SCU writes it. */
+export const SCHOOL_NAME: Record<College, string> = {
+  CAS: "College of Arts and Sciences",
+  LSB: "Leavey School of Business",
+  SOE: "School of Engineering",
+};
+
+/**
+ * The programs in a plan, as canonical codes. School requirements and their
+ * program-specific variants (the Accounting STS route, Economics' ECON 41 + 42)
+ * are chosen from these, never from a course prefix or a hard-coded major name.
+ */
+export interface PlanProgramContext {
+  /** Major codes ("FNCE", "ECON", "ECON_CAS"). */
+  majors: string[];
+  /** Minor codes ("MIS-MIN"). */
+  minors: string[];
+}
+
+const EMPTY_PROGRAMS: PlanProgramContext = { majors: [], minors: [] };
+
 // ---------------------------------------------------------------------------
-// University Core Curriculum (applies to ALL SCU undergraduates), with the
-// documented per-college fulfillment differences from official SCU sources.
+// School-specific University Core fulfillment.
+//
+// The University Core is ONE requirement set for every undergraduate. A school
+// may prescribe HOW its students fulfil a Core area (Leavey: "Social Science:
+// ECON 1"). That is an overlay on the shared Core item, never a second Core and
+// never a reason to file the item under SCHOOL or MAJOR: the item stays CORE and
+// carries the school's statement as an annotation, with its source.
+//
+// Only statements the school's official page makes are here. A route names the
+// course sets SCU says satisfy the area: the area counts as completed only when
+// every part of a route has a completed course, and as planned when every part
+// is completed or planned. Choosing a Leavey major never completes anything.
+// ---------------------------------------------------------------------------
+
+export interface CoreFulfillmentRoute {
+  /** "MGMT 162 with MGMT 136, MGMT 6 or PHIL 109". */
+  label: string;
+  /** One course from EACH part. A single part is "any one of these". */
+  parts: string[][];
+}
+
+export interface SchoolCoreFulfillmentDef {
+  id: string;
+  school: College;
+  /** The University Core item it describes ("socsci"). */
+  coreItemId: string;
+  /** The school's statement about the area, in its own words. */
+  text: string;
+  /** Course routes SCU names. Empty: guidance only (choose from the approved list). */
+  routes: CoreFulfillmentRoute[];
+  /**
+   * True when the routes ARE the school's requirement for the area (no separate
+   * approved list): the item then needs no manual verification.
+   */
+  definitive: boolean;
+  /** Leavey School requirement items the same course also satisfies (a genuine overlap). */
+  schoolRequirementIds: string[];
+  /** Who it applies to, when not every student of the school ("Accounting majors"). */
+  programScope: string | null;
+  /** Applies to the plan only when this returns true (program-specific rules). */
+  appliesTo?: (programs: PlanProgramContext) => boolean;
+  sourceLabel: string;
+  sourceUrl: string;
+  academicYear: string;
+  lastVerified: string;
+}
+
+const LEAVEY_CORE_PAGE = {
+  sourceLabel: "Leavey School of Business — Core Curriculum for business students",
+  sourceUrl: "https://www.scu.edu/business/undergraduates/core/",
+  // The page states no edition; it was read and compared with this data on the date below.
+  academicYear: "Current (page states no academic year)",
+  lastVerified: "2026-10-20",
+};
+
+const hasMajor = (programs: PlanProgramContext, ...codes: string[]) => programs.majors.some((m) => codes.includes(m));
+const hasMinor = (programs: PlanProgramContext, ...codes: string[]) => programs.minors.some((m) => codes.includes(m));
+/** "Students who declare a major or a minor in management information systems". */
+const isMisStudent = (programs: PlanProgramContext) => hasMajor(programs, "OMIS") || hasMinor(programs, "MIS-MIN");
+
+export const LEAVEY_CORE_FULFILLMENTS: SchoolCoreFulfillmentDef[] = [
+  {
+    id: "lsb-core-math",
+    school: "LSB",
+    coreItemId: "math",
+    text: "MATH 30 or MATH 11. Most business students take the calculus for business course: MATH 30. MATH 35 can be used to satisfy this requirement for business majors who have a second major in the life sciences.",
+    routes: [
+      { label: "MATH 30", parts: [["MATH 30"]] },
+      { label: "MATH 11", parts: [["MATH 11"]] },
+    ],
+    definitive: true,
+    schoolRequirementIds: [],
+    programScope: null,
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-math-finance",
+    school: "LSB",
+    coreItemId: "math",
+    text: "Finance students: MATH 11 or MATH 30, and MATH 12 or MATH 31 or FNCE 186. The second course is tracked under the Finance major requirements.",
+    routes: [],
+    definitive: true,
+    schoolRequirementIds: [],
+    programScope: "Finance majors",
+    appliesTo: (p) => hasMajor(p, "FNCE"),
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-math-economics",
+    school: "LSB",
+    coreItemId: "math",
+    text: "Economics students: MATH 11 or MATH 30, and MATH 12 or MATH 31. The second course is tracked under the Economics major requirements.",
+    routes: [],
+    definitive: true,
+    schoolRequirementIds: [],
+    programScope: "Economics (B.S. Commerce) majors",
+    appliesTo: (p) => hasMajor(p, "ECON"),
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-civic",
+    school: "LSB",
+    coreItemId: "civic",
+    text: "MGMT 162 and MGMT 136 (or MGMT 6) or PHIL 109.",
+    routes: [{ label: "MGMT 162 with MGMT 136, MGMT 6 or PHIL 109", parts: [["MGMT 162"], ["MGMT 136", "MGMT 6", "PHIL 109"]] }],
+    definitive: true,
+    schoolRequirementIds: ["lsb-mgmt162"],
+    programScope: null,
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-ci3",
+    school: "LSB",
+    coreItemId: "ci3",
+    text: "Cultures & Ideas 3 with MGMT 80 when the course is taken on the SCU campus. When MGMT 80 is not taken on the SCU campus, students choose from a list of approved courses.",
+    routes: [{ label: "MGMT 80 (on the SCU campus)", parts: [["MGMT 80"]] }],
+    definitive: false,
+    schoolRequirementIds: [],
+    programScope: null,
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-ethics",
+    school: "LSB",
+    coreItemId: "ethics",
+    text: "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+    routes: [
+      { label: "MGMT 136", parts: [["MGMT 136"]] },
+      { label: "MGMT 6", parts: [["MGMT 6"]] },
+      { label: "PHIL 109", parts: [["PHIL 109"]] },
+    ],
+    definitive: true,
+    schoolRequirementIds: [],
+    programScope: null,
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-natsci",
+    school: "LSB",
+    coreItemId: "natsci",
+    text: "Natural Science (with lab): one course from a list of approved courses.",
+    routes: [],
+    definitive: false,
+    schoolRequirementIds: [],
+    programScope: null,
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-sts",
+    school: "LSB",
+    coreItemId: "sts",
+    text: "Science, Technology, and Society: OMIS 34.",
+    routes: [{ label: "OMIS 34", parts: [["OMIS 34"]] }],
+    definitive: false,
+    schoolRequirementIds: ["lsb-omis34"],
+    programScope: null,
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-sts-accounting",
+    school: "LSB",
+    coreItemId: "sts",
+    text: "Students who are considering a major in accounting should take ACTG 134 to satisfy the Science, Technology, and Society requirement.",
+    routes: [{ label: "ACTG 134", parts: [["ACTG 134"]] }],
+    definitive: false,
+    schoolRequirementIds: ["lsb-omis34"],
+    programScope: "Accounting majors",
+    appliesTo: (p) => hasMajor(p, "ACTG"),
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-sts-mis",
+    school: "LSB",
+    coreItemId: "sts",
+    text: "Students who declare a major or a minor in management information systems will take OMIS 30 or OMIS 31, which will satisfy the information systems requirement in the business core, and may choose a course to satisfy Science, Technology, and Society from the list of approved courses.",
+    routes: [],
+    definitive: false,
+    schoolRequirementIds: [],
+    programScope: "Management information systems majors and minors",
+    appliesTo: isMisStudent,
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-socsci",
+    school: "LSB",
+    coreItemId: "socsci",
+    text: "Social Science: ECON 1.",
+    routes: [{ label: "ECON 1", parts: [["ECON 1"]] }],
+    definitive: true,
+    schoolRequirementIds: ["lsb-econ1"],
+    programScope: null,
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
+    id: "lsb-core-advwriting",
+    school: "LSB",
+    coreItemId: "advwriting",
+    text: "Advanced Writing: BUSN 179.",
+    routes: [{ label: "BUSN 179", parts: [["BUSN 179"]] }],
+    definitive: true,
+    schoolRequirementIds: [],
+    programScope: null,
+    ...LEAVEY_CORE_PAGE,
+  },
+];
+
+/**
+ * The school Core fulfillments that apply to a plan: one school's statements
+ * apply whenever that school is among the plan's schools (a Biology + Finance
+ * plan gets Leavey's), narrowed by program where SCU narrows them.
+ */
+export function schoolCoreFulfillments(
+  schools: readonly College[],
+  programs: PlanProgramContext = EMPTY_PROGRAMS,
+): SchoolCoreFulfillmentDef[] {
+  return LEAVEY_CORE_FULFILLMENTS.filter(
+    (def) => schools.includes(def.school) && (def.appliesTo ? def.appliesTo(programs) : true),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// University Core Curriculum: one requirement set for ALL SCU undergraduates.
+// The primary school decides only what the Bulletin makes school-dependent for
+// the Core itself (the engineering Pathway count and double-dipping rule);
+// schools' fulfillment statements are overlays (above), not a different Core.
 // ---------------------------------------------------------------------------
 
 function universityCore(college: College): RequirementGroupDef {
-  const leavey = college === "LSB";
   const engineering = college === "SOE";
 
   const items: RequirementItemDef[] = [
@@ -114,11 +363,9 @@ function universityCore(college: College): RequirementGroupDef {
     {
       id: "math",
       label: "Mathematics",
-      description: leavey
-        ? "Leavey students take MATH 30 (business calculus) or MATH 11. Finance and Economics majors also need MATH 12/31 (or FNCE 186 for Finance). MATH 35 allowed with a life-science second major."
-        : "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
-      courses: leavey ? ["MATH 30", "MATH 11"] : [],
-      needsVerification: !leavey,
+      description: "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
+      courses: [],
+      needsVerification: true,
       phase: "Foundations",
     },
     {
@@ -150,20 +397,16 @@ function universityCore(college: College): RequirementGroupDef {
     {
       id: "civic",
       label: "Civic Engagement",
-      description: leavey
-        ? "Leavey students satisfy Civic Engagement with MGMT 162 together with MGMT 136 (or MGMT 6) or PHIL 109."
-        : "One course from the approved Civic Engagement list. Must be completed at SCU.",
-      courses: leavey ? ["MGMT 162"] : [],
-      needsVerification: !leavey,
+      description: "One course from the approved Civic Engagement list. Must be completed at SCU.",
+      courses: [],
+      needsVerification: true,
       phase: "Explorations",
     },
     {
       id: "ci3",
       label: "Cultures & Ideas 3",
-      description: leavey
-        ? "Leavey students satisfy C&I 3 with MGMT 80 when taken on the SCU campus; otherwise choose from the approved list."
-        : "One course from the approved C&I 3 list.",
-      courses: leavey ? ["MGMT 80"] : [],
+      description: "One course from the approved C&I 3 list.",
+      courses: [],
       needsVerification: true,
       phase: "Explorations",
     },
@@ -178,19 +421,15 @@ function universityCore(college: College): RequirementGroupDef {
     {
       id: "ethics",
       label: "Ethics",
-      description: leavey
-        ? "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109."
-        : "One course from the approved Ethics list.",
-      courses: leavey ? ["MGMT 136", "MGMT 6", "PHIL 109"] : [],
-      needsVerification: !leavey,
+      description: "One course from the approved Ethics list.",
+      courses: [],
+      needsVerification: true,
       phase: "Explorations",
     },
     {
       id: "natsci",
       label: "Natural Science",
-      description: leavey
-        ? "One approved natural science course with lab."
-        : "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
+      description: "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
       courses: [],
       needsVerification: true,
       phase: "Explorations",
@@ -214,31 +453,25 @@ function universityCore(college: College): RequirementGroupDef {
     {
       id: "sts",
       label: "Science, Technology & Society",
-      description: leavey
-        ? "Leavey students satisfy STS with OMIS 34 (prospective Accounting majors: ACTG 134). MIS majors/minors choose from the approved list instead."
-        : "One course from the approved STS list. Must be completed at SCU.",
-      courses: leavey ? ["OMIS 34", "ACTG 134"] : [],
+      description: "One course from the approved STS list. Must be completed at SCU.",
+      courses: [],
       needsVerification: true,
       phase: "Explorations",
     },
     {
       id: "socsci",
       label: "Social Science",
-      description: leavey
-        ? "Leavey students satisfy Social Science with ECON 1."
-        : "One course from the approved Social Science list.",
-      courses: leavey ? ["ECON 1"] : [],
-      needsVerification: !leavey,
+      description: "One course from the approved Social Science list.",
+      courses: [],
+      needsVerification: true,
       phase: "Explorations",
     },
     {
       id: "advwriting",
       label: "Advanced Writing",
-      description: leavey
-        ? "Leavey students satisfy Advanced Writing with BUSN 179. Must be completed at SCU."
-        : "Upper-division writing course in your discipline. Must be completed at SCU.",
-      courses: leavey ? ["BUSN 179"] : [],
-      needsVerification: !leavey,
+      description: "Upper-division writing course in your discipline. Must be completed at SCU.",
+      courses: [],
+      needsVerification: true,
       phase: "Integrations",
     },
     {
@@ -274,20 +507,12 @@ function universityCore(college: College): RequirementGroupDef {
       "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course).",
     );
   }
-  if (leavey) {
-    notes.push(
-      "Where a specific Leavey course is listed (e.g. OMIS 34 for STS, ECON 1 for Social Science, BUSN 179 for Advanced Writing), that mapping comes from the official Leavey Core Curriculum page.",
-    );
-  }
-
   return {
     id: "university-core",
     title: "University Core Curriculum",
     kind: "university_core",
-    sourceUrl: leavey ? SOURCES.leaveyCore : SOURCES.coreCurriculum,
-    sourceLabel: leavey
-      ? "SCU Bulletin Ch. 2 + Leavey Core Curriculum page"
-      : "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
+    sourceUrl: SOURCES.coreCurriculum,
+    sourceLabel: "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
     academicYear: ACADEMIC_YEAR,
     lastVerified: LAST_VERIFIED,
     notes,
@@ -299,8 +524,21 @@ function universityCore(college: College): RequirementGroupDef {
 // College / school specific requirements
 // ---------------------------------------------------------------------------
 
-function collegeGroup(college: College): RequirementGroupDef {
+function collegeGroup(college: College, programs: PlanProgramContext = EMPTY_PROGRAMS): RequirementGroupDef {
   if (college === "LSB") {
+    // The Bulletin's program-specific routes. ACTG 134 is the information
+    // systems course for accounting students; OMIS 30 or 31 for students with a
+    // management information systems major or minor (and, per the AIS major's
+    // own text, accounting and information systems majors). They are NOT routes
+    // for every business major, so they are offered only to those programs.
+    const isRoutes = [
+      "OMIS 34",
+      ...(hasMajor(programs, "ACTG") ? ["ACTG 134"] : []),
+      ...(isMisStudent(programs) || hasMajor(programs, "AIS") ? ["OMIS 30", "OMIS 31"] : []),
+    ];
+    // "OMIS 40 and 41 or OMIS 40 and ECON 41 and 42 (for economics majors)" —
+    // Leavey Economics only; CAS Economics (ECON_CAS) has no Leavey core at all.
+    const economics = hasMajor(programs, "ECON");
     return {
       id: "college-lsb",
       title: "Leavey School of Business Requirements",
@@ -396,15 +634,23 @@ function collegeGroup(college: College): RequirementGroupDef {
           id: "lsb-omis41",
           label: "Statistics and Data Analysis 2",
           description: "OMIS 41, or ECON 41 and 42 for economics majors (OMIS 40 and 41 or OMIS 40 and ECON 41 and 42).",
-          courses: ["OMIS 41"],
+          courses: economics ? ["OMIS 41", "ECON 41", "ECON 42"] : ["OMIS 41"],
           needsVerification: false,
+          ...(economics
+            ? {
+                routes: [
+                  { label: "OMIS 41", courses: ["OMIS 41"] },
+                  { label: "ECON 41 and ECON 42 (economics majors)", courses: ["ECON 41", "ECON 42"] },
+                ],
+              }
+            : {}),
         },
         {
           id: "lsb-omis34",
           label: "Information Systems",
           description:
             "OMIS 34. Students considering an accounting major should take ACTG 134; students who declare a major or a minor in management information systems take OMIS 30 or OMIS 31, which satisfies the information systems requirement in the business core.",
-          courses: ["OMIS 34", "ACTG 134", "OMIS 30", "OMIS 31"],
+          courses: isRoutes,
           needsVerification: false,
         },
         {
@@ -591,14 +837,32 @@ function universityRequirements(): RequirementGroupDef {
   };
 }
 
-export function buildRequirementGroups(college: College): {
+/**
+ * The requirement groups every plan shares, for a SET of schools.
+ *
+ * `primaryCollege` is the school of the plan's primary major: it decides only
+ * the Core's own school-dependent rules (the engineering Pathway count). The
+ * `schools` are every school any of the plan's MAJORS belongs to, primary first,
+ * each once: each contributes its own school requirements, and its Core
+ * fulfillment statements overlay the one shared University Core. A Biology +
+ * Finance plan therefore gets the College of Arts and Sciences AND the Leavey
+ * School of Business requirements, and one University Core.
+ */
+export function buildRequirementGroups(
+  primaryCollege: College,
+  schools: readonly College[] = [primaryCollege],
+  programs: PlanProgramContext = EMPTY_PROGRAMS,
+): {
   university: RequirementGroupDef;
   universityCore: RequirementGroupDef;
-  college: RequirementGroupDef;
+  schools: RequirementGroupDef[];
+  coreFulfillments: SchoolCoreFulfillmentDef[];
 } {
+  const distinct = [...new Set(schools)];
   return {
     university: universityRequirements(),
-    universityCore: universityCore(college),
-    college: collegeGroup(college),
+    universityCore: universityCore(primaryCollege),
+    schools: distinct.map((school) => collegeGroup(school, programs)),
+    coreFulfillments: schoolCoreFulfillments(distinct, programs),
   };
 }

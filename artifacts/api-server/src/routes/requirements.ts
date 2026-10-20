@@ -6,7 +6,11 @@ import {
   buildRequirementGroups,
   UNIVERSITY_DEGREE_RULES,
   SOURCES,
+  SCHOOL_NAME,
+  type PlanProgramContext,
   type RequirementGroupDef,
+  type RequirementItemDef,
+  type SchoolCoreFulfillmentDef,
 } from "../data/degree-requirements";
 import {
   getMajorRequirements,
@@ -22,7 +26,9 @@ import {
   validVariant,
   type StructuredChoice,
 } from "../data/major-structures";
-import { categoryOfGroupKind } from "../lib/requirements-source/category";
+import { categoryOfGroupKind, type RequirementCategory } from "../lib/requirements-source/category";
+import type { StructureVariants } from "../data/majors/model";
+import { logger } from "../lib/logger";
 import { CORE_AREA_BY_REQUIREMENT } from "../data/core-areas";
 import {
   resolveCrossSatisfaction,
@@ -57,6 +63,35 @@ interface ResolvedRequirementItem {
   variant?: string | null;
   /** A requirement CampusVal cannot count from course codes: the student tracks it. */
   manual?: boolean;
+  /**
+   * A school's own statement about how its students fulfil this University
+   * Core area (Leavey: "Social Science: ECON 1"), with its source. It explains
+   * a relationship; completion still comes from course evidence.
+   */
+  annotations?: RequirementAnnotation[];
+}
+
+/** A school's Core fulfillment statement, as the sidebar shows it under a Core item. */
+export interface RequirementAnnotation {
+  id: string;
+  kind: "school_core_fulfillment";
+  school: College;
+  schoolName: string;
+  text: string;
+  /** Every course the statement names as a route (empty: guidance only). */
+  courses: string[];
+  /** The course sets, one of which satisfies the area ("MGMT 162 with MGMT 136, MGMT 6 or PHIL 109"). */
+  routes: { label: string; parts: string[][] }[];
+  /** Who it applies to, when SCU narrows it ("Accounting majors"); null for every student of the school. */
+  programScope: string | null;
+  /** Ids of the school's own requirements the same course satisfies ("lsb-econ1"). */
+  schoolRequirementIds: string[];
+  /** Where the student stands on this statement's routes. */
+  status: RequirementStatus;
+  sourceLabel: string;
+  sourceUrl: string;
+  academicYear: string;
+  lastVerified: string;
 }
 
 const router: IRouter = Router();
@@ -113,12 +148,143 @@ function coreAreaSummaryFor(itemId: string) {
   return { tag: def.tag, code: def.code, courseCount: c.total, catalogStatedCount: c.stated };
 }
 
+/** A route is completed when every part has a completed course; planned when every part is completed or planned. */
+function routeStatus(parts: string[][], completed: Set<string>, planned: Set<string>): RequirementStatus {
+  const has = (set: Set<string>) => (part: string[]) => part.some((c) => set.has(normalize(c)));
+  if (parts.every(has(completed))) return "completed";
+  if (parts.every((part) => has(completed)(part) || has(planned)(part))) return "planned";
+  return "open";
+}
+
+/**
+ * A University Core item with the plan's schools' fulfillment statements laid
+ * over it. Explicit statements (the school names the course) win over the
+ * catalog's derived Core tagging; a derived match is still reported, flagged
+ * for verification, for courses outside the statements. A planned course is
+ * never reported as completed, and naming a school's route never completes it.
+ */
+function resolveCoreItem(
+  item: RequirementItemDef,
+  fulfillments: SchoolCoreFulfillmentDef[],
+  completed: Set<string>,
+  planned: Set<string>,
+): ResolvedRequirementItem {
+  const routeCourses = [...new Set(fulfillments.flatMap((f) => f.routes.flatMap((r) => r.parts.flat())))];
+  const routeSet = new Set(routeCourses.map(normalize));
+  // The derived Core-tag match only looks at courses the statements do not name.
+  const cross = resolveCrossSatisfaction(
+    item.id,
+    item.courses,
+    new Set([...completed].filter((c) => !routeSet.has(c))),
+    new Set([...planned].filter((c) => !routeSet.has(c))),
+  );
+  const routeResults = fulfillments.flatMap((f) => f.routes.map((r) => ({ route: r, status: routeStatus(r.parts, completed, planned) })));
+  const onRoute = (status: RequirementStatus, set: Set<string>) => [
+    ...new Set(routeResults.filter((r) => r.status === status).flatMap((r) => r.route.parts.flat()).filter((c) => set.has(normalize(c)))),
+  ];
+  const explicitCompleted = onRoute("completed", completed);
+  const explicitPlanned = onRoute("planned", planned);
+  const status: RequirementStatus =
+    explicitCompleted.length > 0 || cross.status === "completed"
+      ? "completed"
+      : explicitPlanned.length > 0 || cross.status === "planned"
+        ? "planned"
+        : "open";
+  const definitive = fulfillments.some((f) => f.definitive && f.routes.length > 0);
+  const restsOnExplicit = explicitCompleted.length > 0 || (status === "planned" && explicitPlanned.length > 0);
+  const annotations: RequirementAnnotation[] = fulfillments.map((f) => {
+    const statuses = f.routes.map((r) => routeStatus(r.parts, completed, planned));
+    return {
+      id: f.id,
+      kind: "school_core_fulfillment",
+      school: f.school,
+      schoolName: SCHOOL_NAME[f.school],
+      text: f.text,
+      courses: [...new Set(f.routes.flatMap((r) => r.parts.flat()))],
+      routes: f.routes.map((r) => ({ label: r.label, parts: r.parts })),
+      programScope: f.programScope,
+      schoolRequirementIds: f.schoolRequirementIds,
+      status: statuses.includes("completed") ? "completed" : statuses.includes("planned") ? "planned" : "open",
+      sourceLabel: f.sourceLabel,
+      sourceUrl: f.sourceUrl,
+      academicYear: f.academicYear,
+      lastVerified: f.lastVerified,
+    };
+  });
+  const courses = [...new Set([...item.courses, ...routeCourses])];
+  return {
+    id: item.id,
+    label: item.label,
+    description: item.description,
+    courses,
+    phase: item.phase ?? null,
+    autoTracked: courses.length > 0 || cross.crossSatisfiedBy.length > 0,
+    // A school statement that IS the requirement needs no manual check; a match
+    // resting only on derived catalog tagging always does.
+    needsVerification: restsOnExplicit ? !definitive : (item.needsVerification && !definitive) || cross.needsVerification,
+    satisfiedBy: [...new Set([...explicitCompleted, ...cross.satisfiedBy])],
+    plannedBy: status === "completed" ? cross.plannedBy : [...new Set([...explicitPlanned, ...cross.plannedBy])],
+    crossSatisfiedBy: cross.crossSatisfiedBy,
+    coreArea: coreAreaSummaryFor(item.id),
+    status,
+    complete: status === "completed",
+    section: null,
+    choice: null,
+    ...(annotations.length > 0 ? { annotations } : {}),
+  };
+}
+
+/** A school requirement with course-set routes ("OMIS 41, or ECON 41 and ECON 42"). */
+function resolveRoutedItem(
+  item: RequirementItemDef & { routes: NonNullable<RequirementItemDef["routes"]> },
+  completed: Set<string>,
+  planned: Set<string>,
+): ResolvedRequirementItem {
+  const statuses = item.routes.map((r) => routeStatus(r.courses.map((c) => [c]), completed, planned));
+  const status: RequirementStatus = statuses.includes("completed") ? "completed" : statuses.includes("planned") ? "planned" : "open";
+  const satisfiedBy = item.courses.filter((c) => completed.has(normalize(c)));
+  const plannedBy = item.courses.filter((c) => !completed.has(normalize(c)) && planned.has(normalize(c)));
+  return {
+    id: item.id,
+    label: item.label,
+    description: item.description,
+    courses: item.courses,
+    phase: item.phase ?? null,
+    autoTracked: true,
+    needsVerification: item.needsVerification,
+    // Only a satisfied route counts as completion evidence: a lone ECON 41 does not complete it.
+    satisfiedBy: status === "completed" ? satisfiedBy : [],
+    plannedBy,
+    crossSatisfiedBy: [],
+    coreArea: null,
+    status,
+    complete: status === "completed",
+    section: null,
+    choice: {
+      kind: "alternatives",
+      minimum: null,
+      minDistinctLists: null,
+      completedCount: satisfiedBy.length,
+      plannedCount: plannedBy.length,
+      lists: [],
+      alternatives: item.routes.map((r, index) => ({ label: r.label, courses: r.courses, recommended: index === 0 })),
+    },
+  };
+}
+
 function resolveGroup(
   group: RequirementGroupDef,
   completed: Set<string>,
   planned: Set<string> = new Set(),
+  fulfillments: SchoolCoreFulfillmentDef[] = [],
 ) {
-  const items = group.items.map((item) => {
+  const items = group.items.map((item): ResolvedRequirementItem => {
+    if (group.kind === "university_core") {
+      return resolveCoreItem(item, fulfillments.filter((f) => f.coreItemId === item.id), completed, planned);
+    }
+    if (item.routes && item.routes.length > 0) {
+      return resolveRoutedItem({ ...item, routes: item.routes }, completed, planned);
+    }
     const cross = resolveCrossSatisfaction(
       item.id,
       item.courses,
@@ -167,8 +333,74 @@ function resolveGroup(
     autoTrackedCount: autoItems.length,
     autoCompletedCount: autoItems.filter((i) => i.complete).length,
     manualCount: items.length - autoItems.length,
+    school: null as GroupSchool | null,
   };
 }
+
+/**
+ * One group of the response. Every group has the same shape, whatever built it,
+ * so a consumer can read `school` or an item's `annotations` on any of them.
+ */
+export interface ResolvedRequirementGroup {
+  id: string;
+  title: string;
+  kind: "university" | "university_core" | "college" | "major" | "minor" | "professional_prep";
+  category: RequirementCategory;
+  sourceUrl: string | null;
+  sourceLabel: string;
+  academicYear: string;
+  lastVerified: string;
+  notes: string[];
+  items: ResolvedRequirementItem[];
+  autoTrackedCount: number;
+  autoCompletedCount: number;
+  manualCount: number;
+  /** SCHOOL groups: the school and the plan majors that bring it in. Null for every other group. */
+  school: GroupSchool | null;
+  variants?: {
+    major: string;
+    kind: StructureVariants["kind"];
+    required: boolean;
+    options: StructureVariants["options"];
+    selected: string | null;
+    note: string | null;
+  } | null;
+}
+
+/** Gives a builder's group the common shape (`school` is null unless it is a SCHOOL group). */
+const asGroup = (group: Omit<ResolvedRequirementGroup, "school"> & { school?: GroupSchool | null }): ResolvedRequirementGroup => ({
+  ...group,
+  school: group.school ?? null,
+});
+
+/** Which school a SCHOOL group belongs to and which of the plan's majors bring it in. */
+export interface GroupSchool {
+  code: College;
+  name: string;
+  /** The plan's majors from this school, as titles ("Finance (B.S. Commerce)"). */
+  activatedBy: string[];
+}
+
+/** One school the plan's majors belong to. */
+export interface PlanSchool {
+  code: College;
+  name: string;
+  /** The plan's majors from this school (codes as the plan stores them). */
+  majors: string[];
+  /** The school of the plan's primary major. */
+  primary: boolean;
+  /**
+   * program_catalog: the major's school in CampusVal's program catalog.
+   * profile_college: the primary major is not in the catalog, so the school is
+   * the one the student chose at onboarding (never a guess).
+   */
+  basis: "program_catalog" | "profile_college";
+}
+
+/** Canonical major code for program rules ("COEN" is the old code of "CSE"). */
+const majorCode = (major: string) => (major.trim().toUpperCase() === "COEN" ? "CSE" : major.trim());
+/** Canonical minor code, whether the plan stored the code or the title. */
+const minorCode = (minor: string) => getMinorRequirements(minor)?.code ?? minor.trim();
 
 /**
  * Builds the full requirement-groups response for a student profile, given
@@ -233,14 +465,95 @@ export function buildRequirementsResponse(
     plannedCourses.map(normalize).filter((c) => !completed.has(c)),
   );
 
-  const { university, universityCore, college } = buildRequirementGroups(collegeCode);
+  const profileDeclaredMajors = new Set(
+    [profile.major, profile.secondMajor, ...(profile.additionalMajors ?? [])]
+      .filter((m): m is string => !!m)
+      .map(normalize),
+  );
+  // The effective primary major leads. The old profile primary is REPLACED
+  // (not kept as an extra) when overridden, so changing the primary major
+  // swaps that program's requirements without deleting second majors, minors,
+  // or professional preparation.
+  const declaredMajors = [
+    effectivePrimaryMajor,
+    profile.secondMajor,
+    ...(profile.additionalMajors ?? []),
+    ...scenarioMajors,
+  ].filter((m, idx, arr): m is string => !!m && arr.indexOf(m) === idx);
+  const declaredMinors = [
+    profile.minor,
+    ...(profile.additionalMinors ?? []),
+    ...scenarioMinors,
+  ].filter(
+    (m, idx, arr): m is string => !!m && arr.indexOf(m) === idx,
+  );
 
-  const majorSourceUrl =
-    collegeCode === "SOE"
+  // The plan's SCHOOLS: every school any of its majors belongs to, primary
+  // first, each once. School requirements come from MAJORS only: a minor in a
+  // school does not bring that school's requirements (a business minor is not
+  // the Leavey core). The school is read from the program catalog, never from a
+  // course prefix (Leavey ECON and CAS ECON_CAS are different programs).
+  const schools: PlanSchool[] = [];
+  const schoolWarnings: string[] = [];
+  declaredMajors.forEach((major, index) => {
+    const catalogSchool = getMajorCollege(majorCode(major));
+    let school: College;
+    let basis: PlanSchool["basis"] = "program_catalog";
+    if (catalogSchool) {
+      school = catalogSchool;
+    } else if (index === 0) {
+      // Backward compatible: a primary major CampusVal does not know keeps the
+      // school chosen at onboarding, which is the student's own record.
+      school = collegeCode;
+      basis = "profile_college";
+      schoolWarnings.push(
+        `CampusVal does not have ${major} in its program catalog, so its school is taken from your profile (${COLLEGE_NAME[collegeCode]}). Confirm your school's requirements with your advisor.`,
+      );
+    } else {
+      schoolWarnings.push(
+        `CampusVal does not know which school ${major} belongs to, so no school requirements are shown for it. Confirm them with SCU or your advisor.`,
+      );
+      logger.warn({ event: "requirements_major_school_unknown" }, "a plan major has no school in the program catalog");
+      return;
+    }
+    const existing = schools.find((s) => s.code === school);
+    if (existing) existing.majors.push(major);
+    else schools.push({ code: school, name: COLLEGE_NAME[school], majors: [major], primary: index === 0, basis });
+  });
+  if (schools.length === 0) {
+    // No majors at all (an incomplete profile): the profile's school, as before.
+    schools.push({ code: collegeCode, name: COLLEGE_NAME[collegeCode], majors: [], primary: true, basis: "profile_college" });
+  }
+  const programs: PlanProgramContext = {
+    majors: declaredMajors.map(majorCode),
+    minors: declaredMinors.map(minorCode),
+  };
+
+  const { university, universityCore, schools: schoolDefs, coreFulfillments } = buildRequirementGroups(
+    collegeCode,
+    schools.map((s) => s.code),
+    programs,
+  );
+  const schoolGroups = schoolDefs.map((def, index) => {
+    const school = schools[index]!;
+    return {
+      ...resolveGroup(def, completed, planned),
+      school: {
+        code: school.code,
+        name: school.name,
+        activatedBy: school.majors.map((m) => getMajorTitle(majorCode(m)) ?? m),
+      } satisfies GroupSchool,
+    };
+  });
+
+  const majorSourceUrlFor = (major: string) => {
+    const school = getMajorCollege(majorCode(major)) ?? collegeCode;
+    return school === "SOE"
       ? SOURCES.engineeringBulletin
-      : collegeCode === "LSB"
+      : school === "LSB"
         ? SOURCES.leaveyBulletin
         : SOURCES.casBulletin;
+  };
 
   // Build a requirement group for a declared major from the recipe system.
   // Majors without verified recipes get an honest empty group (no invented
@@ -265,7 +578,7 @@ export function buildRequirementsResponse(
         title: `Major Requirements — ${majorName}${isScenarioOnly ? " (proposed)" : ""}`,
         kind: "major" as const,
         category: categoryOfGroupKind("major"),
-        sourceUrl: majorSourceUrl,
+        sourceUrl: majorSourceUrlFor(majorName),
         sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
         academicYear: universityCore.academicYear,
         lastVerified: universityCore.lastVerified,
@@ -371,7 +684,7 @@ export function buildRequirementsResponse(
       title: `Major Requirements — ${majorReqs.title}${isScenarioOnly ? " (proposed)" : ""}`,
       kind: "major" as const,
       category: categoryOfGroupKind("major"),
-      sourceUrl: majorSourceUrl,
+      sourceUrl: majorSourceUrlFor(majorName),
       sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
       academicYear: universityCore.academicYear,
       lastVerified: universityCore.lastVerified,
@@ -414,21 +727,6 @@ export function buildRequirementsResponse(
     };
   };
 
-  const profileDeclaredMajors = new Set(
-    [profile.major, profile.secondMajor, ...(profile.additionalMajors ?? [])]
-      .filter((m): m is string => !!m)
-      .map(normalize),
-  );
-  // The effective primary major leads. The old profile primary is REPLACED
-  // (not kept as an extra) when overridden, so changing the primary major
-  // swaps that program's requirements without deleting second majors, minors,
-  // or professional preparation.
-  const declaredMajors = [
-    effectivePrimaryMajor,
-    profile.secondMajor,
-    ...(profile.additionalMajors ?? []),
-    ...scenarioMajors,
-  ].filter((m, idx, arr): m is string => !!m && arr.indexOf(m) === idx);
   const majorGroups = declaredMajors.map((m, idx) =>
     buildMajorGroup(
       m,
@@ -459,13 +757,6 @@ export function buildRequirementsResponse(
     [profile.minor, ...(profile.additionalMinors ?? [])]
       .filter((m): m is string => !!m)
       .map(normalize),
-  );
-  const declaredMinors = [
-    profile.minor,
-    ...(profile.additionalMinors ?? []),
-    ...scenarioMinors,
-  ].filter(
-    (m, idx, arr): m is string => !!m && arr.indexOf(m) === idx,
   );
   const minorGroups = declaredMinors.map((minorName, idx) => {
     const isScenarioOnly = !profileDeclaredMinors.has(normalize(minorName));
@@ -528,9 +819,10 @@ export function buildRequirementsResponse(
               ? {
                   kind: "choose" as const,
                   minimum: group.minimumUnits ? null : minimum,
+                  minDistinctLists: null,
                   completedCount: Math.min(satisfiedBy.length, minimum),
                   plannedCount: plannedHere.length,
-                  lists: [{ key: "eligible", label: group.label, note: null, courses: group.courses }],
+                  lists: [{ key: "eligible", label: group.label, note: null, courses: group.courses, max: null }],
                   alternatives: [],
                 }
               : null,
@@ -650,19 +942,24 @@ export function buildRequirementsResponse(
       sourceUrl: SOURCES.degreeRequirements,
       sourceLabel: "SCU Bulletin Ch. 8: Degree Requirements",
     },
+    // Every school the plan's majors belong to (primary first). The groups
+    // below hold one SCHOOL group per entry.
+    schools,
+    schoolWarnings,
     // Requirement order the professor asked for: the fundamentals a student
     // must graduate with come first, and the optional extras come last, so
     // second majors / minors / professional goals never sit above the primary
-    // major, University Core, or the college's own requirements.
+    // major, University Core, or the schools' own requirements. One University
+    // Core, whatever the number of schools; one group per school.
     groups: [
       ...majorGroups.slice(0, 1),
-      resolveGroup(universityCore, completed, planned),
-      resolveGroup(college, completed, planned),
+      resolveGroup(universityCore, completed, planned, coreFulfillments),
+      ...schoolGroups,
       resolveGroup(university, completed, planned),
       ...majorGroups.slice(1),
       ...minorGroups,
       ...professionalPreparation,
-    ],
+    ].map(asGroup),
   };
 }
 

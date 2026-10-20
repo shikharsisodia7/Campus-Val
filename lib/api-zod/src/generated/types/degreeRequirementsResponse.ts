@@ -6,13 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DegreeRequirementsResponseCollegeCode } from "./degreeRequirementsResponseCollegeCode";
+import type { DegreeRequirementsResponseSchoolsItem } from "./degreeRequirementsResponseSchoolsItem";
 import type { DegreeRequirementsResponseUniversityRules } from "./degreeRequirementsResponseUniversityRules";
 import type { RequirementGroup } from "./requirementGroup";
 
 export interface DegreeRequirementsResponse {
   /** The effective college for these requirement groups. Follows the effective primary major's college when a plan-scoped primaryMajor in a different school/college is supplied; otherwise the profile college. */
   college: string;
+  /** The PRIMARY major's school. It decides only the Core's own school rules (the engineering Pathway count) and keys manual completions. The plan's schools, which may be several, are in `schools`. */
   collegeCode: DegreeRequirementsResponseCollegeCode;
+  /** Every school the plan's MAJORS belong to, primary first, each once. Each has one SCHOOL group in `groups`. Minors never add a school. */
+  schools?: DegreeRequirementsResponseSchoolsItem[];
+  /** A plan major whose school CampusVal does not know (it is never guessed). */
+  schoolWarnings?: string[];
   /** The effective PRIMARY major these requirements were built for (the plan's primaryMajor when supplied, else the profile major). */
   major: string | null;
   /** The profile/onboarding major (aligned with the Workday APR record). Present so callers can tell when the planning primary major differs from the university record. */

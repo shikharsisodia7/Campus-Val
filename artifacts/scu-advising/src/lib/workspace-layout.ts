@@ -42,3 +42,8 @@ export const COMPARISON_PANEL_SIZES = {
 export const COMPARISON_HEIGHT = "xl:h-[calc(100dvh-14.5rem)] xl:min-h-[26rem]";
 /** Width of the drawer the Planning Requirements open in below `xl`. */
 export const REQUIREMENTS_DRAWER_WIDTH = "w-[min(24rem,92vw)]";
+/**
+ * Room in the drawer's Planning Requirements header for the drawer's own close button (top right),
+ * so it does not sit on top of "Edit requirements".
+ */
+export const REQUIREMENTS_DRAWER_HEADER_CLEARANCE = "[&_[data-testid=requirements-palette]>div:first-child]:pr-12";

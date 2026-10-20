@@ -12,7 +12,7 @@ import { Palette } from "./Palette";
 import { usePlanningWorkspace } from "./usePlanningWorkspace";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useMinWidth } from "@/hooks/use-mobile";
-import { COMPARISON_HEIGHT, COMPARISON_PANEL_SIZES, REQUIREMENTS_DRAWER_WIDTH, WIDE_LAYOUT_MIN_WIDTH } from "@/lib/workspace-layout";
+import { COMPARISON_HEIGHT, COMPARISON_PANEL_SIZES, REQUIREMENTS_DRAWER_WIDTH, REQUIREMENTS_DRAWER_HEADER_CLEARANCE, WIDE_LAYOUT_MIN_WIDTH } from "@/lib/workspace-layout";
 import { WorkdayAprPanel } from "@/components/progress-report/WorkdayAprPanel";
 import { planContextLabel } from "@workspace/api-client-react";
 
@@ -163,7 +163,7 @@ export function PlanningComparisonWorkspace({
                   <Menu className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" /> Planning Requirements
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className={`${REQUIREMENTS_DRAWER_WIDTH} p-0`} data-testid="requirements-drawer">
+              <SheetContent side="left" className={`${REQUIREMENTS_DRAWER_WIDTH} ${REQUIREMENTS_DRAWER_HEADER_CLEARANCE} p-0`} data-testid="requirements-drawer">
                 <SheetTitle className="sr-only">Planning Requirements</SheetTitle>
                 <SheetDescription className="sr-only">Your planning requirements for the selected plan, to compare with the page you are on.</SheetDescription>
                 {requirementsPanel}

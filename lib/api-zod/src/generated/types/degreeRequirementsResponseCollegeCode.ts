@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * The PRIMARY major's school. It decides only the Core's own school rules (the engineering Pathway count) and keys manual completions. The plan's schools, which may be several, are in `schools`.
+ */
 export type DegreeRequirementsResponseCollegeCode =
   (typeof DegreeRequirementsResponseCollegeCode)[keyof typeof DegreeRequirementsResponseCollegeCode];
 

@@ -22,6 +22,8 @@ export interface SnapshotItem {
   description: string;
   courses: string[];
   phase: string | null;
+  /** A school's Core fulfillment statements on a University Core item (absent when none). */
+  annotations?: { id: string; text: string; courses: string[]; programScope: string | null; sourceUrl: string; lastVerified: string }[];
 }
 
 export interface SnapshotGroup {
@@ -44,10 +46,34 @@ export interface BulletinSnapshot {
   editionLabel: string;
   statedAs: string;
   provider: string;
-  /** Every distinct group (the University Core of a school appears once, not once per major). */
+  /**
+   * Every distinct group (the University Core of a school appears once, not once per major).
+   * A shared group whose content depends on the program (the Leavey core's information-systems
+   * route for Accounting or MIS, a program-specific Core statement) is stored once per distinct
+   * content: the first under its stable key, each other variant under "<stable key>|<program key>".
+   */
   groups: Record<string, SnapshotGroup>;
   /** program key -> the group keys a student with only that program sees, in order. */
   programs: Record<string, { type: string; title: string; college: string; groupKeys: string[] }>;
+}
+
+type AnnotatedItem = {
+  annotations?: { id: string; text: string; courses: string[]; programScope: string | null; sourceUrl: string; lastVerified: string }[];
+};
+
+function annotationsOf(item: object): Pick<SnapshotItem, "annotations"> {
+  const list = (item as AnnotatedItem).annotations;
+  if (!list || list.length === 0) return {};
+  return {
+    annotations: list.map((a) => ({
+      id: a.id,
+      text: a.text,
+      courses: a.courses,
+      programScope: a.programScope,
+      sourceUrl: a.sourceUrl,
+      lastVerified: a.lastVerified,
+    })),
+  };
 }
 
 export function buildBulletinSnapshot(editionId: string): BulletinSnapshot {
@@ -61,9 +87,8 @@ export function buildBulletinSnapshot(editionId: string): BulletinSnapshot {
     if (built.edition !== editionId) throw new Error(`Programs are built from the ${built.edition} Bulletin, not ${editionId}.`);
     const keys: string[] = [];
     for (const node of built.tree) {
-      keys.push(node.stableKey);
       provider = node.provider;
-      groups[node.stableKey] ??= {
+      const group: SnapshotGroup = {
         stableKey: node.stableKey,
         category: node.category,
         kind: node.group.kind,
@@ -80,8 +105,17 @@ export function buildBulletinSnapshot(editionId: string): BulletinSnapshot {
           description: entry.item.description,
           courses: entry.item.courses,
           phase: entry.item.phase ?? null,
+          ...annotationsOf(entry.item),
         })),
       };
+      // Reuse the stored copy with the same content (the base or an earlier program's variant).
+      const content = JSON.stringify(group);
+      const same = Object.keys(groups).find(
+        (k) => (k === node.stableKey || k.startsWith(`${node.stableKey}|`)) && JSON.stringify(groups[k]) === content,
+      );
+      const key = same ?? (groups[node.stableKey] ? `${node.stableKey}|${info.programKey}` : node.stableKey);
+      groups[key] ??= group;
+      keys.push(key);
     }
     programs[info.programKey] = { type: info.type, title: info.title, college: info.college, groupKeys: keys };
   }
@@ -107,8 +141,8 @@ export interface RequirementChange {
   group: string;
   before: SnapshotItem;
   after: SnapshotItem;
-  /** What differs: label, description (units appear here), courses. */
-  fields: ("label" | "description" | "courses")[];
+  /** What differs: label, description (units appear here), courses, a school's Core statements. */
+  fields: ("label" | "description" | "courses" | "annotations")[];
   coursesAdded: string[];
   coursesRemoved: string[];
 }
@@ -143,7 +177,10 @@ export function diffSnapshots(from: BulletinSnapshot, to: BulletinSnapshot): Sna
   };
   const index = (s: BulletinSnapshot) => {
     const m = new Map<string, { group: string; item: SnapshotItem }>();
-    for (const g of Object.values(s.groups)) for (const i of g.items) m.set(i.stableKey, { group: g.title, item: i });
+    // A program variant of a shared group keeps its items apart from the base group's.
+    for (const [groupKey, g] of Object.entries(s.groups)) {
+      for (const i of g.items) m.set(groupKey === g.stableKey ? i.stableKey : `${groupKey}::${i.stableKey}`, { group: g.title, item: i });
+    }
     return m;
   };
   const a = index(from);
@@ -159,6 +196,7 @@ export function diffSnapshots(from: BulletinSnapshot, to: BulletinSnapshot): Sna
     const bc = [...before.item.courses].sort().join("|");
     const ac = [...after.item.courses].sort().join("|");
     if (bc !== ac) fields.push("courses");
+    if (JSON.stringify(before.item.annotations ?? []) !== JSON.stringify(after.item.annotations ?? [])) fields.push("annotations");
     if (fields.length === 0) continue;
     diff.requirementsChanged.push({
       stableKey: key,

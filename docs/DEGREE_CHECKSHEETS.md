@@ -9,6 +9,16 @@ Important advising guidance from department checksheets should increasingly be a
 as uploaded reference documents and as a *source* of those notes. A checksheet is never the structural authority for a requirement, and a student's private upload
 is never used to create a note or a requirement for anyone else.
 
+## Business (Leavey) checksheets
+
+Leavey checksheets lay tables out side by side, with more than one Notes column and the student's status column in places a
+CAS sheet does not use. CampusVal shows them exactly as published (cells, merges and positions unchanged; the stored file is
+never rewritten) and offers tracking only in a column whose header is a student column ("Status", ...), per table. Nothing in
+the Planning Requirements depends on these sheets: the Leavey business core comes from the Bulletin
+(`MULTI_SCHOOL_REQUIREMENTS.md`), so a future redesign of the Business School's spreadsheets changes nothing here. A canonical
+(department) Leavey checklist is imported only through the reviewed Department Notes path, where side-by-side tables are sent
+to the unmapped review queue rather than parsed by position. Test fixture: `business-side-by-side-workbook`.
+
 ## What it is
 
 SCU departments publish advising documents: major and minor checksheets,

@@ -51,8 +51,8 @@ about a requirement can be edited at runtime by anyone.
 
 | Sidebar content | Enters the system at | Transformation | Kind / id | Edition and date it states | Fallback |
 | --- | --- | --- | --- | --- | --- |
-| **University Core** | `data/degree-requirements.ts`, `universityCore(college)`: 18 areas with the per-school differences (Leavey, Engineering) written in | `resolveGroup` adds completion from the profile's completed and the plan's planned courses; `coreAreaSummaryFor` adds the catalog Core-area mapping (`data/core-areas.ts`); `lib/core-cross-satisfaction.ts` marks a planned course carrying a Core tag | `university_core`, id `university-core` (same id for all three schools; content differs) | `2025-26 / 2026-27 Undergraduate Bulletin`, verified `2026-07-23` | none: always built |
-| **School / college** (LSB Common Curriculum, SOE units, CAS units and major note) | `collegeGroup(college)` in the same file | as above | `college`, ids `college-lsb` / `college-soe` / `college-cas` | same as University Core | none |
+| **University Core** (one per plan) | `data/degree-requirements.ts`, `universityCore(primaryCollege)`: 20 areas, universal; the primary school decides only the Core's own school rule (Engineering's Pathway count). Schools' fulfillment statements are an overlay: `LEAVEY_CORE_FULFILLMENTS` / `schoolCoreFulfillments(schools, programs)` (see `MULTI_SCHOOL_REQUIREMENTS.md`) | `resolveCoreItem`: explicit school routes first (completed only when every part has a completed course), then the catalog Core-area match (`lib/core-cross-satisfaction.ts`, flagged for verification); items carry `annotations` | `university_core`, id `university-core`, key `university-core:<primary school>` | Core: `2025-26 / 2026-27 Undergraduate Bulletin`, verified `2026-07-23`; Leavey statements: scu.edu/business/undergraduates/core, verified `2026-10-20` | none: always built |
+| **School** (one group per school of the plan's MAJORS: LSB business core, SOE, CAS) | `collegeGroup(school, programs)` in the same file, for every school in `response.schools` (from `getMajorCollege` of every plan major, primary first, deduped; minors never add one) | as above; `routes` (course sets) for the Economics OMIS 41 alternative | `college`, ids `college-lsb` / `college-soe` / `college-cas`, `group.school.activatedBy` | LSB: 2026-27 Bulletin Ch. 4, verified `2026-10-09`; others as University Core | an unknown additional major adds no school (`schoolWarnings`) |
 | **University rules** (175 units, 60 upper-division, 2.0 GPA, residency, transfer cap) | `UNIVERSITY_DEGREE_RULES` in the same file | returned as `universityRules`; **not** a sidebar group. Shown on the Core requirements page (`pages/core-reqs.tsx`) | — | Bulletin Ch. 8, no date | — |
 | **Major** (50 programs) | `MAJOR_RECIPES` in `data/graduation-paths.ts` → `getMajorRequirements` | the route turns each recipe course into an item; completion from the profile; "planned" from the plan | `major`, id `major-primary` or `major-extra-N` (positional) | **the University Core's** edition and date: the major data states none of its own (see below) | a program with no loadable course (French: every course is missing from the catalog) becomes an honest empty group with a note pointing to the Bulletin |
 | **Minor** (71 offered) | `MINORS` (list) and `MINOR_RECIPES` (the verified recipe) in `data/graduation-paths.ts` → `getMinorRequirements` | choose-N groups become one item; fixed lists one item per course | `minor`, id `minor-<code>` | its own `catalogYear` and `lastVerified` (`2026-08-11`, `2026-09-04`) | a minor with no recipe becomes an empty group: CampusVal does not invent eligible courses |
@@ -67,8 +67,10 @@ about a requirement can be edited at runtime by anyone.
   their own. `academicYearBasis: "inherited_from_university_core"` records that.
   Until a per-major edition is recorded, a cohort-year source cannot be
   compared with the current data program by program.
-- The three schools' University Core groups share one id (`university-core`);
-  stable keys therefore include the school code.
+- The University Core group has one id (`university-core`); its stable key includes the
+  PRIMARY school's code (`university-core:cas`), unchanged since before multi-school
+  composition so existing customizations keep their anchors. A plan has one Core
+  whatever the number of schools.
 - Quarter Plan does not read the sidebar. The Degree Plan and Tentative Degree
   Plan share it (one component, `components/degree-plan/Palette.tsx`, mounted in
   both workspaces). The mobile app does not show this sidebar.

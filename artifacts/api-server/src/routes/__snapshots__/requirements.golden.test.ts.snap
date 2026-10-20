@@ -183,6 +183,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
         "Planning major — you're planning around Finance (B.S. Commerce) in CampusVal. This updates your CampusVal plan only; your official SCU declaration and Workday APR are unchanged. Verify any formal major change with SCU or your advisor.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
+      "school": null,
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Finance, Requirements for the Major",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/finance.html",
       "title": "Major Requirements — Finance (B.S. Commerce)",
@@ -284,6 +285,60 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "MATH 30",
+                "MATH 11",
+              ],
+              "id": "lsb-core-math",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "MATH 30",
+                  "parts": [
+                    [
+                      "MATH 30",
+                    ],
+                  ],
+                },
+                {
+                  "label": "MATH 11",
+                  "parts": [
+                    [
+                      "MATH 11",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "MATH 30 or MATH 11. Most business students take the calculus for business course: MATH 30. MATH 35 can be used to satisfy this requirement for business majors who have a second major in the life sciences.",
+            },
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [],
+              "id": "lsb-core-math-finance",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": "Finance majors",
+              "routes": [],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Finance students: MATH 11 or MATH 30, and MATH 12 or MATH 31 or FNCE 186. The second course is tracked under the Finance major requirements.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -298,7 +353,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
             "MATH 11",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students take MATH 30 (business calculus) or MATH 11. Finance and Economics majors also need MATH 12/31 (or FNCE 186 for Finance). MATH 35 allowed with a life-science second major.",
+          "description": "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
           "id": "math",
           "label": "Mathematics",
           "needsVerification": false,
@@ -375,6 +430,45 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "MGMT 162",
+                "MGMT 136",
+                "MGMT 6",
+                "PHIL 109",
+              ],
+              "id": "lsb-core-civic",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "MGMT 162 with MGMT 136, MGMT 6 or PHIL 109",
+                  "parts": [
+                    [
+                      "MGMT 162",
+                    ],
+                    [
+                      "MGMT 136",
+                      "MGMT 6",
+                      "PHIL 109",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [
+                "lsb-mgmt162",
+              ],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "MGMT 162 and MGMT 136 (or MGMT 6) or PHIL 109.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -386,9 +480,12 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           },
           "courses": [
             "MGMT 162",
+            "MGMT 136",
+            "MGMT 6",
+            "PHIL 109",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy Civic Engagement with MGMT 162 together with MGMT 136 (or MGMT 6) or PHIL 109.",
+          "description": "One course from the approved Civic Engagement list. Must be completed at SCU.",
           "id": "civic",
           "label": "Civic Engagement",
           "needsVerification": false,
@@ -399,6 +496,35 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "MGMT 80",
+              ],
+              "id": "lsb-core-ci3",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "MGMT 80 (on the SCU campus)",
+                  "parts": [
+                    [
+                      "MGMT 80",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Cultures & Ideas 3 with MGMT 80 when the course is taken on the SCU campus. When MGMT 80 is not taken on the SCU campus, students choose from a list of approved courses.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -412,7 +538,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
             "MGMT 80",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy C&I 3 with MGMT 80 when taken on the SCU campus; otherwise choose from the approved list.",
+          "description": "One course from the approved C&I 3 list.",
           "id": "ci3",
           "label": "Cultures & Ideas 3",
           "needsVerification": true,
@@ -445,6 +571,53 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "MGMT 136",
+                "MGMT 6",
+                "PHIL 109",
+              ],
+              "id": "lsb-core-ethics",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "MGMT 136",
+                  "parts": [
+                    [
+                      "MGMT 136",
+                    ],
+                  ],
+                },
+                {
+                  "label": "MGMT 6",
+                  "parts": [
+                    [
+                      "MGMT 6",
+                    ],
+                  ],
+                },
+                {
+                  "label": "PHIL 109",
+                  "parts": [
+                    [
+                      "PHIL 109",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -460,7 +633,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
             "PHIL 109",
           ],
           "crossSatisfiedBy": [],
-          "description": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+          "description": "One course from the approved Ethics list.",
           "id": "ethics",
           "label": "Ethics",
           "needsVerification": false,
@@ -471,6 +644,24 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [],
+              "id": "lsb-core-natsci",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Natural Science (with lab): one course from a list of approved courses.",
+            },
+          ],
           "autoTracked": false,
           "choice": null,
           "complete": false,
@@ -482,7 +673,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           },
           "courses": [],
           "crossSatisfiedBy": [],
-          "description": "One approved natural science course with lab.",
+          "description": "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
           "id": "natsci",
           "label": "Natural Science",
           "needsVerification": true,
@@ -537,6 +728,37 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "OMIS 34",
+              ],
+              "id": "lsb-core-sts",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "OMIS 34",
+                  "parts": [
+                    [
+                      "OMIS 34",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [
+                "lsb-omis34",
+              ],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Science, Technology, and Society: OMIS 34.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -548,10 +770,9 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           },
           "courses": [
             "OMIS 34",
-            "ACTG 134",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy STS with OMIS 34 (prospective Accounting majors: ACTG 134). MIS majors/minors choose from the approved list instead.",
+          "description": "One course from the approved STS list. Must be completed at SCU.",
           "id": "sts",
           "label": "Science, Technology & Society",
           "needsVerification": true,
@@ -562,6 +783,37 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "ECON 1",
+              ],
+              "id": "lsb-core-socsci",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "ECON 1",
+                  "parts": [
+                    [
+                      "ECON 1",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [
+                "lsb-econ1",
+              ],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Social Science: ECON 1.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -575,7 +827,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
             "ECON 1",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy Social Science with ECON 1.",
+          "description": "One course from the approved Social Science list.",
           "id": "socsci",
           "label": "Social Science",
           "needsVerification": false,
@@ -586,6 +838,35 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "BUSN 179",
+              ],
+              "id": "lsb-core-advwriting",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "BUSN 179",
+                  "parts": [
+                    [
+                      "BUSN 179",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Advanced Writing: BUSN 179.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -599,7 +880,7 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
             "BUSN 179",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy Advanced Writing with BUSN 179. Must be completed at SCU.",
+          "description": "Upper-division writing course in your discipline. Must be completed at SCU.",
           "id": "advwriting",
           "label": "Advanced Writing",
           "needsVerification": false,
@@ -655,10 +936,10 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
       "notes": [
         "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
         "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course).",
-        "Where a specific Leavey course is listed (e.g. OMIS 34 for STS, ECON 1 for Social Science, BUSN 179 for Advanced Writing), that mapping comes from the official Leavey Core Curriculum page.",
       ],
-      "sourceLabel": "SCU Bulletin Ch. 2 + Leavey Core Curriculum page",
-      "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+      "school": null,
+      "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
+      "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
       "title": "University Core Curriculum",
     },
     {
@@ -905,9 +1186,6 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
           "coreArea": null,
           "courses": [
             "OMIS 34",
-            "ACTG 134",
-            "OMIS 30",
-            "OMIS 31",
           ],
           "crossSatisfiedBy": [],
           "description": "OMIS 34. Students considering an accounting major should take ACTG 134; students who declare a major or a minor in management information systems take OMIS 30 or OMIS 31, which satisfies the information systems requirement in the business core.",
@@ -1043,6 +1321,13 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
         "Degree: Bachelor of Science in Commerce — minimum 175 quarter units, of which at least 60 must be upper-division.",
         "The Leavey School of Business core (lower division, the upper-division Common Core of Knowledge, and the MGMT 162 capstone) is required of every business major regardless of department.",
       ],
+      "school": {
+        "activatedBy": [
+          "Finance (B.S. Commerce)",
+        ],
+        "code": "LSB",
+        "name": "Leavey School of Business",
+      },
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Leavey School of Business Core Curriculum (lower and upper division)",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/undergraduate-degrees.html",
       "title": "Leavey School of Business Requirements",
@@ -1146,12 +1431,25 @@ exports[`the requirements sidebar is unchanged > a plan-scoped primary major in 
       "notes": [
         "Degree-level rules that apply to every undergraduate. They are not courses, so CampusVal does not mark them complete: your Workday Academic Progress Report is the record of whether they are met.",
       ],
+      "school": null,
       "sourceLabel": "SCU Bulletin Ch. 8: Degree Requirements",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-8-academic-and-administrative-policies-and-regulations/degree-requirements.html",
       "title": "University Degree Requirements",
     },
   ],
   "major": "FNCE",
+  "schoolWarnings": [],
+  "schools": [
+    {
+      "basis": "program_catalog",
+      "code": "LSB",
+      "majors": [
+        "FNCE",
+      ],
+      "name": "Leavey School of Business",
+      "primary": true,
+    },
+  ],
   "universityRules": {
     "rules": [
       "Minimum 175 quarter units for the B.A./B.S. (CAS) and B.S. in Commerce (Leavey); engineering unit minimums are set by the major department (193 for engineering physics).",
@@ -2259,6 +2557,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
         "Computer science and engineering majors complete a minimum of 182 units, together with associated labs.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
+      "school": null,
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Computer Science and Engineering, Requirements for the Major",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/computer-science-and-engineering.html",
       "title": "Major Requirements — Computer Science & Engineering",
@@ -2714,6 +3013,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
         "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
         "School of Engineering students may satisfy more than one Core requirement with a single course when that course is approved for both Core areas ("double-dipping").",
       ],
+      "school": null,
       "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
       "title": "University Core Curriculum",
@@ -2768,6 +3068,13 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
         "Each engineering major's mathematics, natural science, and engineering-core coursework is defined by that major's curriculum chart in Bulletin Chapter 5; those courses appear under Major Requirements below.",
         "Engineering majors complete three Pathway courses (12+ units) rather than four, and may double-dip approved Core courses (see University Core notes).",
       ],
+      "school": {
+        "activatedBy": [
+          "Computer Science & Engineering",
+        ],
+        "code": "SOE",
+        "name": "School of Engineering",
+      },
       "sourceLabel": "SCU Bulletin Ch. 5: School of Engineering + SOE Core Requirements page",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/undergraduate-degrees.html",
       "title": "School of Engineering Requirements",
@@ -2871,6 +3178,7 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
       "notes": [
         "Degree-level rules that apply to every undergraduate. They are not courses, so CampusVal does not mark them complete: your Workday Academic Progress Report is the record of whether they are met.",
       ],
+      "school": null,
       "sourceLabel": "SCU Bulletin Ch. 8: Degree Requirements",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-8-academic-and-administrative-policies-and-regulations/degree-requirements.html",
       "title": "University Degree Requirements",
@@ -2924,12 +3232,25 @@ exports[`the requirements sidebar is unchanged > a professional preparation goal
         "Student planning goal — not an official SCU graduation requirement.",
         "Talk to the advisor",
       ],
+      "school": null,
       "sourceLabel": "Student planning goal",
       "sourceUrl": null,
       "title": "Professional Preparation — Pre-Health",
     },
   ],
   "major": "CSE",
+  "schoolWarnings": [],
+  "schools": [
+    {
+      "basis": "program_catalog",
+      "code": "SOE",
+      "majors": [
+        "CSE",
+      ],
+      "name": "School of Engineering",
+      "primary": true,
+    },
+  ],
   "universityRules": {
     "rules": [
       "Minimum 175 quarter units for the B.A./B.S. (CAS) and B.S. in Commerce (Leavey); engineering unit minimums are set by the major department (193 for engineering physics).",
@@ -4037,6 +4358,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
         "Computer science and engineering majors complete a minimum of 182 units, together with associated labs.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
+      "school": null,
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Computer Science and Engineering, Requirements for the Major",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/computer-science-and-engineering.html",
       "title": "Major Requirements — Computer Science & Engineering",
@@ -4492,6 +4814,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
         "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
         "School of Engineering students may satisfy more than one Core requirement with a single course when that course is approved for both Core areas ("double-dipping").",
       ],
+      "school": null,
       "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
       "title": "University Core Curriculum",
@@ -4546,6 +4869,14 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
         "Each engineering major's mathematics, natural science, and engineering-core coursework is defined by that major's curriculum chart in Bulletin Chapter 5; those courses appear under Major Requirements below.",
         "Engineering majors complete three Pathway courses (12+ units) rather than four, and may double-dip approved Core courses (see University Core notes).",
       ],
+      "school": {
+        "activatedBy": [
+          "Computer Science & Engineering",
+          "Electrical & Computer Engineering",
+        ],
+        "code": "SOE",
+        "name": "School of Engineering",
+      },
       "sourceLabel": "SCU Bulletin Ch. 5: School of Engineering + SOE Core Requirements page",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/undergraduate-degrees.html",
       "title": "School of Engineering Requirements",
@@ -4649,6 +4980,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
       "notes": [
         "Degree-level rules that apply to every undergraduate. They are not courses, so CampusVal does not mark them complete: your Workday Academic Progress Report is the record of whether they are met.",
       ],
+      "school": null,
       "sourceLabel": "SCU Bulletin Ch. 8: Degree Requirements",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-8-academic-and-administrative-policies-and-regulations/degree-requirements.html",
       "title": "University Degree Requirements",
@@ -5592,6 +5924,7 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
         "Engineering-only course gating applies (CSEN/ECEN/MECH/CENG/BIOE/ENGR/AMTH).",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
+      "school": null,
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Electrical and Computer Engineering, Requirements for the Major",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/electrical-and-computer-engineering.html",
       "title": "Major Requirements — Electrical & Computer Engineering (proposed)",
@@ -5618,9 +5951,11 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
                 ],
                 "key": "eligible",
                 "label": "Introduction to Anthropology",
+                "max": null,
                 "note": null,
               },
             ],
+            "minDistinctLists": null,
             "minimum": 1,
             "plannedCount": 0,
           },
@@ -5716,12 +6051,26 @@ exports[`the requirements sidebar is unchanged > a proposed second major and a p
         "Planning only — official declaration must be completed through SCU. CampusVal does not declare minors.",
         "Complete ANTH 1 or ANTH 2, ANTH 3, one additional lower-division anthropology course, ANTH 110, and two approved upper-division anthropology courses.",
       ],
+      "school": null,
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Anthropology",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/anthropology.html",
       "title": "Minor Requirements — Anthropology (proposed)",
     },
   ],
   "major": "CSE",
+  "schoolWarnings": [],
+  "schools": [
+    {
+      "basis": "program_catalog",
+      "code": "SOE",
+      "majors": [
+        "CSE",
+        "ECEN",
+      ],
+      "name": "School of Engineering",
+      "primary": true,
+    },
+  ],
   "universityRules": {
     "rules": [
       "Minimum 175 quarter units for the B.A./B.S. (CAS) and B.S. in Commerce (Leavey); engineering unit minimums are set by the major department (193 for engineering physics).",
@@ -6497,6 +6846,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
         "Seven approved upper-division biology courses, including five with a laboratory component: one course from each of the CMB, EEB and MOD themes (all with laboratory) plus four electives, at least two with laboratory.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
+      "school": null,
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Biology, Requirements for the Major",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/biology.html",
       "title": "Major Requirements — Biology",
@@ -6952,6 +7302,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
         "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
         "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course).",
       ],
+      "school": null,
       "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
       "title": "University Core Curriculum",
@@ -7005,6 +7356,13 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
         "Degree: Bachelor of Arts or Bachelor of Science — minimum 175 quarter units (193 for engineering physics), of which at least 60 must be upper-division.",
         "CAS does not impose a separate college-wide course list beyond the University Core; degree coursework beyond the Core is defined by the major department (Bulletin Ch. 3). B.A. programs carry a higher second-language proficiency expectation than B.S. programs.",
       ],
+      "school": {
+        "activatedBy": [
+          "Biology",
+        ],
+        "code": "CAS",
+        "name": "College of Arts and Sciences",
+      },
       "sourceLabel": "SCU Bulletin Ch. 8: Degree Requirements + Ch. 3 (CAS)",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-8-academic-and-administrative-policies-and-regulations/degree-requirements.html",
       "title": "College of Arts and Sciences Requirements",
@@ -7108,6 +7466,7 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
       "notes": [
         "Degree-level rules that apply to every undergraduate. They are not courses, so CampusVal does not mark them complete: your Workday Academic Progress Report is the record of whether they are met.",
       ],
+      "school": null,
       "sourceLabel": "SCU Bulletin Ch. 8: Degree Requirements",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-8-academic-and-administrative-policies-and-regulations/degree-requirements.html",
       "title": "University Degree Requirements",
@@ -7133,9 +7492,11 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
                 ],
                 "key": "eligible",
                 "label": "Introduction to Anthropology",
+                "max": null,
                 "note": null,
               },
             ],
+            "minDistinctLists": null,
             "minimum": 1,
             "plannedCount": 0,
           },
@@ -7230,12 +7591,25 @@ exports[`the requirements sidebar is unchanged > arts and sciences major with a 
       "notes": [
         "Complete ANTH 1 or ANTH 2, ANTH 3, one additional lower-division anthropology course, ANTH 110, and two approved upper-division anthropology courses.",
       ],
+      "school": null,
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Anthropology",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-3-college-of-arts-and-sciences/anthropology.html",
       "title": "Minor Requirements — Anthropology",
     },
   ],
   "major": "BIOL",
+  "schoolWarnings": [],
+  "schools": [
+    {
+      "basis": "program_catalog",
+      "code": "CAS",
+      "majors": [
+        "BIOL",
+      ],
+      "name": "College of Arts and Sciences",
+      "primary": true,
+    },
+  ],
   "universityRules": {
     "rules": [
       "Minimum 175 quarter units for the B.A./B.S. (CAS) and B.S. in Commerce (Leavey); engineering unit minimums are set by the major department (193 for engineering physics).",
@@ -7432,6 +7806,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
       "notes": [
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
+      "school": null,
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Finance, Requirements for the Major",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/finance.html",
       "title": "Major Requirements — Finance (B.S. Commerce)",
@@ -7537,6 +7912,60 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "MATH 30",
+                "MATH 11",
+              ],
+              "id": "lsb-core-math",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "MATH 30",
+                  "parts": [
+                    [
+                      "MATH 30",
+                    ],
+                  ],
+                },
+                {
+                  "label": "MATH 11",
+                  "parts": [
+                    [
+                      "MATH 11",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "completed",
+              "text": "MATH 30 or MATH 11. Most business students take the calculus for business course: MATH 30. MATH 35 can be used to satisfy this requirement for business majors who have a second major in the life sciences.",
+            },
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [],
+              "id": "lsb-core-math-finance",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": "Finance majors",
+              "routes": [],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Finance students: MATH 11 or MATH 30, and MATH 12 or MATH 31 or FNCE 186. The second course is tracked under the Finance major requirements.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": true,
@@ -7551,7 +7980,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
             "MATH 11",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students take MATH 30 (business calculus) or MATH 11. Finance and Economics majors also need MATH 12/31 (or FNCE 186 for Finance). MATH 35 allowed with a life-science second major.",
+          "description": "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
           "id": "math",
           "label": "Mathematics",
           "needsVerification": false,
@@ -7630,6 +8059,45 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "MGMT 162",
+                "MGMT 136",
+                "MGMT 6",
+                "PHIL 109",
+              ],
+              "id": "lsb-core-civic",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "MGMT 162 with MGMT 136, MGMT 6 or PHIL 109",
+                  "parts": [
+                    [
+                      "MGMT 162",
+                    ],
+                    [
+                      "MGMT 136",
+                      "MGMT 6",
+                      "PHIL 109",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [
+                "lsb-mgmt162",
+              ],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "MGMT 162 and MGMT 136 (or MGMT 6) or PHIL 109.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -7641,9 +8109,12 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           },
           "courses": [
             "MGMT 162",
+            "MGMT 136",
+            "MGMT 6",
+            "PHIL 109",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy Civic Engagement with MGMT 162 together with MGMT 136 (or MGMT 6) or PHIL 109.",
+          "description": "One course from the approved Civic Engagement list. Must be completed at SCU.",
           "id": "civic",
           "label": "Civic Engagement",
           "needsVerification": false,
@@ -7654,6 +8125,35 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "MGMT 80",
+              ],
+              "id": "lsb-core-ci3",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "MGMT 80 (on the SCU campus)",
+                  "parts": [
+                    [
+                      "MGMT 80",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "planned",
+              "text": "Cultures & Ideas 3 with MGMT 80 when the course is taken on the SCU campus. When MGMT 80 is not taken on the SCU campus, students choose from a list of approved courses.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -7667,7 +8167,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
             "MGMT 80",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy C&I 3 with MGMT 80 when taken on the SCU campus; otherwise choose from the approved list.",
+          "description": "One course from the approved C&I 3 list.",
           "id": "ci3",
           "label": "Cultures & Ideas 3",
           "needsVerification": true,
@@ -7702,6 +8202,53 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "MGMT 136",
+                "MGMT 6",
+                "PHIL 109",
+              ],
+              "id": "lsb-core-ethics",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "MGMT 136",
+                  "parts": [
+                    [
+                      "MGMT 136",
+                    ],
+                  ],
+                },
+                {
+                  "label": "MGMT 6",
+                  "parts": [
+                    [
+                      "MGMT 6",
+                    ],
+                  ],
+                },
+                {
+                  "label": "PHIL 109",
+                  "parts": [
+                    [
+                      "PHIL 109",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -7717,7 +8264,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
             "PHIL 109",
           ],
           "crossSatisfiedBy": [],
-          "description": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+          "description": "One course from the approved Ethics list.",
           "id": "ethics",
           "label": "Ethics",
           "needsVerification": false,
@@ -7728,6 +8275,24 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [],
+              "id": "lsb-core-natsci",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Natural Science (with lab): one course from a list of approved courses.",
+            },
+          ],
           "autoTracked": false,
           "choice": null,
           "complete": false,
@@ -7739,7 +8304,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           },
           "courses": [],
           "crossSatisfiedBy": [],
-          "description": "One approved natural science course with lab.",
+          "description": "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
           "id": "natsci",
           "label": "Natural Science",
           "needsVerification": true,
@@ -7794,6 +8359,37 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "OMIS 34",
+              ],
+              "id": "lsb-core-sts",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "OMIS 34",
+                  "parts": [
+                    [
+                      "OMIS 34",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [
+                "lsb-omis34",
+              ],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Science, Technology, and Society: OMIS 34.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -7805,10 +8401,9 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           },
           "courses": [
             "OMIS 34",
-            "ACTG 134",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy STS with OMIS 34 (prospective Accounting majors: ACTG 134). MIS majors/minors choose from the approved list instead.",
+          "description": "One course from the approved STS list. Must be completed at SCU.",
           "id": "sts",
           "label": "Science, Technology & Society",
           "needsVerification": true,
@@ -7819,6 +8414,37 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "ECON 1",
+              ],
+              "id": "lsb-core-socsci",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "ECON 1",
+                  "parts": [
+                    [
+                      "ECON 1",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [
+                "lsb-econ1",
+              ],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Social Science: ECON 1.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -7832,7 +8458,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
             "ECON 1",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy Social Science with ECON 1.",
+          "description": "One course from the approved Social Science list.",
           "id": "socsci",
           "label": "Social Science",
           "needsVerification": false,
@@ -7843,6 +8469,35 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "status": "open",
         },
         {
+          "annotations": [
+            {
+              "academicYear": "Current (page states no academic year)",
+              "courses": [
+                "BUSN 179",
+              ],
+              "id": "lsb-core-advwriting",
+              "kind": "school_core_fulfillment",
+              "lastVerified": "2026-10-20",
+              "programScope": null,
+              "routes": [
+                {
+                  "label": "BUSN 179",
+                  "parts": [
+                    [
+                      "BUSN 179",
+                    ],
+                  ],
+                },
+              ],
+              "school": "LSB",
+              "schoolName": "Leavey School of Business",
+              "schoolRequirementIds": [],
+              "sourceLabel": "Leavey School of Business — Core Curriculum for business students",
+              "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+              "status": "open",
+              "text": "Advanced Writing: BUSN 179.",
+            },
+          ],
           "autoTracked": true,
           "choice": null,
           "complete": false,
@@ -7856,7 +8511,7 @@ exports[`the requirements sidebar is unchanged > business major with completed a
             "BUSN 179",
           ],
           "crossSatisfiedBy": [],
-          "description": "Leavey students satisfy Advanced Writing with BUSN 179. Must be completed at SCU.",
+          "description": "Upper-division writing course in your discipline. Must be completed at SCU.",
           "id": "advwriting",
           "label": "Advanced Writing",
           "needsVerification": false,
@@ -7912,10 +8567,10 @@ exports[`the requirements sidebar is unchanged > business major with completed a
       "notes": [
         "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
         "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course).",
-        "Where a specific Leavey course is listed (e.g. OMIS 34 for STS, ECON 1 for Social Science, BUSN 179 for Advanced Writing), that mapping comes from the official Leavey Core Curriculum page.",
       ],
-      "sourceLabel": "SCU Bulletin Ch. 2 + Leavey Core Curriculum page",
-      "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+      "school": null,
+      "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
+      "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
       "title": "University Core Curriculum",
     },
     {
@@ -8164,9 +8819,6 @@ exports[`the requirements sidebar is unchanged > business major with completed a
           "coreArea": null,
           "courses": [
             "OMIS 34",
-            "ACTG 134",
-            "OMIS 30",
-            "OMIS 31",
           ],
           "crossSatisfiedBy": [],
           "description": "OMIS 34. Students considering an accounting major should take ACTG 134; students who declare a major or a minor in management information systems take OMIS 30 or OMIS 31, which satisfies the information systems requirement in the business core.",
@@ -8304,6 +8956,13 @@ exports[`the requirements sidebar is unchanged > business major with completed a
         "Degree: Bachelor of Science in Commerce — minimum 175 quarter units, of which at least 60 must be upper-division.",
         "The Leavey School of Business core (lower division, the upper-division Common Core of Knowledge, and the MGMT 162 capstone) is required of every business major regardless of department.",
       ],
+      "school": {
+        "activatedBy": [
+          "Finance (B.S. Commerce)",
+        ],
+        "code": "LSB",
+        "name": "Leavey School of Business",
+      },
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Leavey School of Business Core Curriculum (lower and upper division)",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/undergraduate-degrees.html",
       "title": "Leavey School of Business Requirements",
@@ -8407,12 +9066,25 @@ exports[`the requirements sidebar is unchanged > business major with completed a
       "notes": [
         "Degree-level rules that apply to every undergraduate. They are not courses, so CampusVal does not mark them complete: your Workday Academic Progress Report is the record of whether they are met.",
       ],
+      "school": null,
       "sourceLabel": "SCU Bulletin Ch. 8: Degree Requirements",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-8-academic-and-administrative-policies-and-regulations/degree-requirements.html",
       "title": "University Degree Requirements",
     },
   ],
   "major": "FNCE",
+  "schoolWarnings": [],
+  "schools": [
+    {
+      "basis": "program_catalog",
+      "code": "LSB",
+      "majors": [
+        "FNCE",
+      ],
+      "name": "Leavey School of Business",
+      "primary": true,
+    },
+  ],
   "universityRules": {
     "rules": [
       "Minimum 175 quarter units for the B.A./B.S. (CAS) and B.S. in Commerce (Leavey); engineering unit minimums are set by the major department (193 for engineering physics).",
@@ -9520,6 +10192,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
         "Computer science and engineering majors complete a minimum of 182 units, together with associated labs.",
         "This program is treated as a B.S. / professional degree and does not require the 3-quarter foreign-language intro sequence.",
       ],
+      "school": null,
       "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Department of Computer Science and Engineering, Requirements for the Major",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/computer-science-and-engineering.html",
       "title": "Major Requirements — Computer Science & Engineering",
@@ -9975,6 +10648,7 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
         "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
         "School of Engineering students may satisfy more than one Core requirement with a single course when that course is approved for both Core areas ("double-dipping").",
       ],
+      "school": null,
       "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
       "title": "University Core Curriculum",
@@ -10029,6 +10703,13 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
         "Each engineering major's mathematics, natural science, and engineering-core coursework is defined by that major's curriculum chart in Bulletin Chapter 5; those courses appear under Major Requirements below.",
         "Engineering majors complete three Pathway courses (12+ units) rather than four, and may double-dip approved Core courses (see University Core notes).",
       ],
+      "school": {
+        "activatedBy": [
+          "Computer Science & Engineering",
+        ],
+        "code": "SOE",
+        "name": "School of Engineering",
+      },
       "sourceLabel": "SCU Bulletin Ch. 5: School of Engineering + SOE Core Requirements page",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-5-school-of-engineering/undergraduate-degrees.html",
       "title": "School of Engineering Requirements",
@@ -10132,12 +10813,25 @@ exports[`the requirements sidebar is unchanged > engineering major, nothing comp
       "notes": [
         "Degree-level rules that apply to every undergraduate. They are not courses, so CampusVal does not mark them complete: your Workday Academic Progress Report is the record of whether they are met.",
       ],
+      "school": null,
       "sourceLabel": "SCU Bulletin Ch. 8: Degree Requirements",
       "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-8-academic-and-administrative-policies-and-regulations/degree-requirements.html",
       "title": "University Degree Requirements",
     },
   ],
   "major": "CSE",
+  "schoolWarnings": [],
+  "schools": [
+    {
+      "basis": "program_catalog",
+      "code": "SOE",
+      "majors": [
+        "CSE",
+      ],
+      "name": "School of Engineering",
+      "primary": true,
+    },
+  ],
   "universityRules": {
     "rules": [
       "Minimum 175 quarter units for the B.A./B.S. (CAS) and B.S. in Commerce (Leavey); engineering unit minimums are set by the major department (193 for engineering physics).",

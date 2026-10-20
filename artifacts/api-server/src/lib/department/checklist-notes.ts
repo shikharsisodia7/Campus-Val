@@ -20,6 +20,15 @@
  * Anything else is "unmapped": the text and the label it sat beside are kept for
  * a person to place; it is never attached to a guess.
  *
+ * Layout: the rules above assume one table per row band, starting in column A
+ * (the label column). Some schools' checklists (Leavey's among them) put tables
+ * SIDE BY SIDE or start them further right. CampusVal does not read a column's
+ * meaning from its position, so a table whose header has more than one "Notes"
+ * cell, another table's header to the right of its Notes, or nothing in column
+ * A is not interpreted: every Notes cell in it becomes an unmapped candidate
+ * (text verbatim, no row label guessed) for a person to place, and the checklist
+ * itself is shown unchanged in Degree Checksheets.
+ *
  * A candidate is "publishable" only when its anchor is exact AND its text says
  * something in words. A note that is only course codes ("CHEM 14") is anchored
  * but needs a person to say what it means, so it is a draft.
@@ -164,16 +173,37 @@ export function extractChecklistNotes(
   const coreKeys = new Set(core?.items.map((i) => i.stableKey) ?? []);
 
   let notesCol = -1;
+  /** Every "Notes" column of the current header row (more than one: tables side by side). */
+  let notesCols: number[] = [];
   /** Columns the table's header row names ("Quarter", "Prerequisites", "Notes"); a course list sits in one it does not. */
   let headedCols = new Set<number>();
   let section: { name: string; kind: "core" | "program" | "other" } | null = null;
+  /** Why the current table's layout is not interpreted (side by side, offset), or null. */
+  let layoutIssue: string | null = null;
 
   for (const row of sheet.rows) {
     const text = (c: number) => clean(row.cells.find((cell) => cell.c === c)?.text ?? "");
-    const headerNotes = row.cells.find((cell) => /^notes$/i.test(clean(cell.text)));
-    if (headerNotes) {
-      notesCol = headerNotes.c;
+    const headerNotes = row.cells.filter((cell) => /^notes$/i.test(clean(cell.text)));
+    if (headerNotes.length > 0) {
+      notesCol = headerNotes[0]!.c;
+      notesCols = headerNotes.map((cell) => cell.c);
       headedCols = new Set(row.cells.filter((cell) => clean(cell.text)).map((cell) => cell.c));
+      // A table beside this one is fine when it has no Notes column (CAS checklists print a
+      // four-year grid to the right of the Core table). The layouts that would pair a note with
+      // another table's label are refused.
+      layoutIssue =
+        headerNotes.length > 1
+          ? "This checklist puts tables side by side, each with a Notes column."
+          : !text(0)
+            ? "This table does not start in the first column."
+            : row.cells.some(
+                  (cell) =>
+                    cell.c > 0 &&
+                    cell.c < notesCol &&
+                    (CORE_SECTIONS.has(clean(cell.text).toLowerCase()) || /requirements?$/i.test(clean(cell.text))),
+                )
+              ? "The Notes column belongs to a second table that starts to the right of the first column."
+              : null;
       const name = text(0);
       const lower = name.toLowerCase();
       section = {
@@ -187,6 +217,25 @@ export function extractChecklistNotes(
       continue;
     }
     if (!section || notesCol < 0) continue;
+    if (layoutIssue) {
+      // Not interpreted: each Notes cell is kept, verbatim, for a person to place. No row label is
+      // read, because which column holds a row's label is exactly what this layout leaves open.
+      for (const c of notesCols) {
+        const body = text(c);
+        if (!body) continue;
+        candidates.push({
+          sourceReference: `${sheet.name}!${colLetter(c)}${row.r + 1}`,
+          sectionName: section.name,
+          rowLabel: "",
+          body,
+          targetKey: null,
+          kind: null,
+          status: "unmapped",
+          reason: `${layoutIssue} CampusVal does not read a column's meaning from its position; a person places this note.`,
+        });
+      }
+      continue;
+    }
     const label = text(0);
     const body = text(notesCol);
     if (!label || !body || label === section.name) continue;

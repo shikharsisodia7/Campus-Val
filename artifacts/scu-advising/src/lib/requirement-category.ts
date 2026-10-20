@@ -56,7 +56,7 @@ export const REQUIREMENT_CATEGORY_STYLE: Record<
     isSupplemental: false,
   },
   college: {
-    label: "College/School",
+    label: "School",
     icon: Landmark,
     badgeClass: "bg-violet-50 text-violet-800 border-violet-200",
     isSupplemental: false,

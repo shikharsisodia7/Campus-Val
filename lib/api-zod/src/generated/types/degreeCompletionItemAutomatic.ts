@@ -5,10 +5,26 @@
  * CampusVal — SCU AI Academic Advising API
  * OpenAPI spec version: 0.1.0
  */
+import type { DegreeCompletionItemAutomaticCode } from "./degreeCompletionItemAutomaticCode";
+import type { DegreeCompletionItemAutomaticRemainingCourses } from "./degreeCompletionItemAutomaticRemainingCourses";
 import type { DegreeCompletionItemAutomaticState } from "./degreeCompletionItemAutomaticState";
 
 export type DegreeCompletionItemAutomatic = {
   state: DegreeCompletionItemAutomaticState;
   reason: string;
   explanation: string;
+  /** The rule that decided, as a stable code. "In Progress" is never complete: its codes all mean Needs Review until the Registrar confirms the semantics. */
+  code: DegreeCompletionItemAutomaticCode;
+  /** Courses remaining, only when the APR states it deterministically; never inferred. */
+  remainingCourses: DegreeCompletionItemAutomaticRemainingCourses;
+  /**
+   * Workday's minimum-combination statement, verbatim.
+   * @nullable
+   */
+  minimumCombination: string | null;
+  /**
+   * Words Workday printed with the status in its cell, verbatim.
+   * @nullable
+   */
+  statusDetail: string | null;
 };
