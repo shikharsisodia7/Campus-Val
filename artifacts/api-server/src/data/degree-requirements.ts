@@ -233,6 +233,17 @@ export const LEAVEY_CORE_FULFILLMENTS: SchoolCoreFulfillmentDef[] = [
     ...LEAVEY_CORE_PAGE,
   },
   {
+    id: "lsb-core-natsci",
+    school: "LSB",
+    coreItemId: "natsci",
+    text: "Natural Science (with lab): one course from a list of approved courses.",
+    routes: [],
+    definitive: false,
+    schoolRequirementIds: [],
+    programScope: null,
+    ...LEAVEY_CORE_PAGE,
+  },
+  {
     id: "lsb-core-sts",
     school: "LSB",
     coreItemId: "sts",

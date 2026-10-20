@@ -167,6 +167,775 @@
      "description": "OMIS 34. Students considering an accounting major should take ACTG 134; students who declare a major or a minor in management information systems take OMIS 30 or OMIS 31, which satisfies the information systems requirement in the business core.",
      "courses": [
       "OMIS 34",
+      "ACTG 134"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt196",
+     "label": "Leadership: MGMT 196",
+     "description": "MGMT 196 — Leadership (with MGMT 71 and MGMT 72) and the upper-division Common Core of Knowledge. External transfers with 44+ units take MGMT 174 instead.",
+     "courses": [
+      "MGMT 196",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-fnce121",
+     "label": "Common Core: FNCE 121",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "FNCE 121"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt160",
+     "label": "Common Core: MGMT 160",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "MGMT 160"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mktg181",
+     "label": "Common Core: MKTG 181",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "MKTG 181"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis108",
+     "label": "Common Core: OMIS 108",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "OMIS 108"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt162",
+     "label": "Capstone: MGMT 162",
+     "description": "One course, to be taken with senior standing.",
+     "courses": [
+      "MGMT 162"
+     ],
+     "phase": null
+    }
+   ]
+  },
+  "college-lsb|major:accounting-information-systems-b-s-commerce": {
+   "stableKey": "college-lsb",
+   "category": "SCHOOL",
+   "kind": "college",
+   "title": "Leavey School of Business Requirements",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/undergraduate-degrees.html",
+   "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Leavey School of Business Core Curriculum (lower and upper division)",
+   "sourceVersion": "2026-27",
+   "lastVerified": "2026-10-09",
+   "sourceProgram": null,
+   "notes": [
+    "Degree: Bachelor of Science in Commerce — minimum 175 quarter units, of which at least 60 must be upper-division.",
+    "The Leavey School of Business core (lower division, the upper-division Common Core of Knowledge, and the MGMT 162 capstone) is required of every business major regardless of department."
+   ],
+   "items": [
+    {
+     "stableKey": "college-lsb#lsb-busn70",
+     "label": "Contemporary Business Issues",
+     "description": "BUSN 70 — taken first year (unless internal/external transfer).",
+     "courses": [
+      "BUSN 70"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis15",
+     "label": "Introduction to Spreadsheets",
+     "description": "OMIS 15.",
+     "courses": [
+      "OMIS 15"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-busn85",
+     "label": "Business Law",
+     "description": "BUSN 85.",
+     "courses": [
+      "BUSN 85"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ1",
+     "label": "Principles of Microeconomics",
+     "description": "ECON 1 (also satisfies the Core Social Science area).",
+     "courses": [
+      "ECON 1"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ2",
+     "label": "Principles of Macroeconomics",
+     "description": "ECON 2.",
+     "courses": [
+      "ECON 2"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ3",
+     "label": "International Economics, Development, and Growth",
+     "description": "ECON 3.",
+     "courses": [
+      "ECON 3"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt71",
+     "label": "Foundations of Leadership",
+     "description": "MGMT 71 (with MGMT 72 and MGMT 196; external transfers with 44+ units take MGMT 174 instead).",
+     "courses": [
+      "MGMT 71",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt72",
+     "label": "Values-Driven Leadership in Silicon Valley",
+     "description": "MGMT 72 (not required for MGMT 174 transfer path).",
+     "courses": [
+      "MGMT 72",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-actg11",
+     "label": "Introduction to Financial Accounting",
+     "description": "ACTG 11 — typically sophomore fall or winter.",
+     "courses": [
+      "ACTG 11"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-actg12",
+     "label": "Introduction to Managerial Accounting",
+     "description": "ACTG 12 — the quarter after ACTG 11.",
+     "courses": [
+      "ACTG 12"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis40",
+     "label": "Statistics and Data Analysis 1",
+     "description": "OMIS 40.",
+     "courses": [
+      "OMIS 40"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis41",
+     "label": "Statistics and Data Analysis 2",
+     "description": "OMIS 41, or ECON 41 and 42 for economics majors (OMIS 40 and 41 or OMIS 40 and ECON 41 and 42).",
+     "courses": [
+      "OMIS 41"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis34",
+     "label": "Information Systems",
+     "description": "OMIS 34. Students considering an accounting major should take ACTG 134; students who declare a major or a minor in management information systems take OMIS 30 or OMIS 31, which satisfies the information systems requirement in the business core.",
+     "courses": [
+      "OMIS 34",
+      "OMIS 30",
+      "OMIS 31"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt196",
+     "label": "Leadership: MGMT 196",
+     "description": "MGMT 196 — Leadership (with MGMT 71 and MGMT 72) and the upper-division Common Core of Knowledge. External transfers with 44+ units take MGMT 174 instead.",
+     "courses": [
+      "MGMT 196",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-fnce121",
+     "label": "Common Core: FNCE 121",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "FNCE 121"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt160",
+     "label": "Common Core: MGMT 160",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "MGMT 160"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mktg181",
+     "label": "Common Core: MKTG 181",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "MKTG 181"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis108",
+     "label": "Common Core: OMIS 108",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "OMIS 108"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt162",
+     "label": "Capstone: MGMT 162",
+     "description": "One course, to be taken with senior standing.",
+     "courses": [
+      "MGMT 162"
+     ],
+     "phase": null
+    }
+   ]
+  },
+  "college-lsb|major:business-analytics-b-s-commerce": {
+   "stableKey": "college-lsb",
+   "category": "SCHOOL",
+   "kind": "college",
+   "title": "Leavey School of Business Requirements",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/undergraduate-degrees.html",
+   "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Leavey School of Business Core Curriculum (lower and upper division)",
+   "sourceVersion": "2026-27",
+   "lastVerified": "2026-10-09",
+   "sourceProgram": null,
+   "notes": [
+    "Degree: Bachelor of Science in Commerce — minimum 175 quarter units, of which at least 60 must be upper-division.",
+    "The Leavey School of Business core (lower division, the upper-division Common Core of Knowledge, and the MGMT 162 capstone) is required of every business major regardless of department."
+   ],
+   "items": [
+    {
+     "stableKey": "college-lsb#lsb-busn70",
+     "label": "Contemporary Business Issues",
+     "description": "BUSN 70 — taken first year (unless internal/external transfer).",
+     "courses": [
+      "BUSN 70"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis15",
+     "label": "Introduction to Spreadsheets",
+     "description": "OMIS 15.",
+     "courses": [
+      "OMIS 15"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-busn85",
+     "label": "Business Law",
+     "description": "BUSN 85.",
+     "courses": [
+      "BUSN 85"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ1",
+     "label": "Principles of Microeconomics",
+     "description": "ECON 1 (also satisfies the Core Social Science area).",
+     "courses": [
+      "ECON 1"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ2",
+     "label": "Principles of Macroeconomics",
+     "description": "ECON 2.",
+     "courses": [
+      "ECON 2"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ3",
+     "label": "International Economics, Development, and Growth",
+     "description": "ECON 3.",
+     "courses": [
+      "ECON 3"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt71",
+     "label": "Foundations of Leadership",
+     "description": "MGMT 71 (with MGMT 72 and MGMT 196; external transfers with 44+ units take MGMT 174 instead).",
+     "courses": [
+      "MGMT 71",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt72",
+     "label": "Values-Driven Leadership in Silicon Valley",
+     "description": "MGMT 72 (not required for MGMT 174 transfer path).",
+     "courses": [
+      "MGMT 72",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-actg11",
+     "label": "Introduction to Financial Accounting",
+     "description": "ACTG 11 — typically sophomore fall or winter.",
+     "courses": [
+      "ACTG 11"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-actg12",
+     "label": "Introduction to Managerial Accounting",
+     "description": "ACTG 12 — the quarter after ACTG 11.",
+     "courses": [
+      "ACTG 12"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis40",
+     "label": "Statistics and Data Analysis 1",
+     "description": "OMIS 40.",
+     "courses": [
+      "OMIS 40"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis41",
+     "label": "Statistics and Data Analysis 2",
+     "description": "OMIS 41, or ECON 41 and 42 for economics majors (OMIS 40 and 41 or OMIS 40 and ECON 41 and 42).",
+     "courses": [
+      "OMIS 41"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis34",
+     "label": "Information Systems",
+     "description": "OMIS 34. Students considering an accounting major should take ACTG 134; students who declare a major or a minor in management information systems take OMIS 30 or OMIS 31, which satisfies the information systems requirement in the business core.",
+     "courses": [
+      "OMIS 34"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt196",
+     "label": "Leadership: MGMT 196",
+     "description": "MGMT 196 — Leadership (with MGMT 71 and MGMT 72) and the upper-division Common Core of Knowledge. External transfers with 44+ units take MGMT 174 instead.",
+     "courses": [
+      "MGMT 196",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-fnce121",
+     "label": "Common Core: FNCE 121",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "FNCE 121"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt160",
+     "label": "Common Core: MGMT 160",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "MGMT 160"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mktg181",
+     "label": "Common Core: MKTG 181",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "MKTG 181"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis108",
+     "label": "Common Core: OMIS 108",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "OMIS 108"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt162",
+     "label": "Capstone: MGMT 162",
+     "description": "One course, to be taken with senior standing.",
+     "courses": [
+      "MGMT 162"
+     ],
+     "phase": null
+    }
+   ]
+  },
+  "college-lsb|major:economics-b-s-commerce": {
+   "stableKey": "college-lsb",
+   "category": "SCHOOL",
+   "kind": "college",
+   "title": "Leavey School of Business Requirements",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/undergraduate-degrees.html",
+   "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Leavey School of Business Core Curriculum (lower and upper division)",
+   "sourceVersion": "2026-27",
+   "lastVerified": "2026-10-09",
+   "sourceProgram": null,
+   "notes": [
+    "Degree: Bachelor of Science in Commerce — minimum 175 quarter units, of which at least 60 must be upper-division.",
+    "The Leavey School of Business core (lower division, the upper-division Common Core of Knowledge, and the MGMT 162 capstone) is required of every business major regardless of department."
+   ],
+   "items": [
+    {
+     "stableKey": "college-lsb#lsb-busn70",
+     "label": "Contemporary Business Issues",
+     "description": "BUSN 70 — taken first year (unless internal/external transfer).",
+     "courses": [
+      "BUSN 70"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis15",
+     "label": "Introduction to Spreadsheets",
+     "description": "OMIS 15.",
+     "courses": [
+      "OMIS 15"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-busn85",
+     "label": "Business Law",
+     "description": "BUSN 85.",
+     "courses": [
+      "BUSN 85"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ1",
+     "label": "Principles of Microeconomics",
+     "description": "ECON 1 (also satisfies the Core Social Science area).",
+     "courses": [
+      "ECON 1"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ2",
+     "label": "Principles of Macroeconomics",
+     "description": "ECON 2.",
+     "courses": [
+      "ECON 2"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ3",
+     "label": "International Economics, Development, and Growth",
+     "description": "ECON 3.",
+     "courses": [
+      "ECON 3"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt71",
+     "label": "Foundations of Leadership",
+     "description": "MGMT 71 (with MGMT 72 and MGMT 196; external transfers with 44+ units take MGMT 174 instead).",
+     "courses": [
+      "MGMT 71",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt72",
+     "label": "Values-Driven Leadership in Silicon Valley",
+     "description": "MGMT 72 (not required for MGMT 174 transfer path).",
+     "courses": [
+      "MGMT 72",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-actg11",
+     "label": "Introduction to Financial Accounting",
+     "description": "ACTG 11 — typically sophomore fall or winter.",
+     "courses": [
+      "ACTG 11"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-actg12",
+     "label": "Introduction to Managerial Accounting",
+     "description": "ACTG 12 — the quarter after ACTG 11.",
+     "courses": [
+      "ACTG 12"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis40",
+     "label": "Statistics and Data Analysis 1",
+     "description": "OMIS 40.",
+     "courses": [
+      "OMIS 40"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis41",
+     "label": "Statistics and Data Analysis 2",
+     "description": "OMIS 41, or ECON 41 and 42 for economics majors (OMIS 40 and 41 or OMIS 40 and ECON 41 and 42).",
+     "courses": [
+      "OMIS 41",
+      "ECON 41",
+      "ECON 42"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis34",
+     "label": "Information Systems",
+     "description": "OMIS 34. Students considering an accounting major should take ACTG 134; students who declare a major or a minor in management information systems take OMIS 30 or OMIS 31, which satisfies the information systems requirement in the business core.",
+     "courses": [
+      "OMIS 34"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt196",
+     "label": "Leadership: MGMT 196",
+     "description": "MGMT 196 — Leadership (with MGMT 71 and MGMT 72) and the upper-division Common Core of Knowledge. External transfers with 44+ units take MGMT 174 instead.",
+     "courses": [
+      "MGMT 196",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-fnce121",
+     "label": "Common Core: FNCE 121",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "FNCE 121"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt160",
+     "label": "Common Core: MGMT 160",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "MGMT 160"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mktg181",
+     "label": "Common Core: MKTG 181",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "MKTG 181"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis108",
+     "label": "Common Core: OMIS 108",
+     "description": "Upper-division Common Core of Knowledge.",
+     "courses": [
+      "OMIS 108"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt162",
+     "label": "Capstone: MGMT 162",
+     "description": "One course, to be taken with senior standing.",
+     "courses": [
+      "MGMT 162"
+     ],
+     "phase": null
+    }
+   ]
+  },
+  "college-lsb|minor-mis-min": {
+   "stableKey": "college-lsb",
+   "category": "SCHOOL",
+   "kind": "college",
+   "title": "Leavey School of Business Requirements",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-4-leavey-school-of-business/undergraduate-degrees.html",
+   "sourceLabel": "SCU 2026-27 Undergraduate Bulletin — Leavey School of Business Core Curriculum (lower and upper division)",
+   "sourceVersion": "2026-27",
+   "lastVerified": "2026-10-09",
+   "sourceProgram": null,
+   "notes": [
+    "Degree: Bachelor of Science in Commerce — minimum 175 quarter units, of which at least 60 must be upper-division.",
+    "The Leavey School of Business core (lower division, the upper-division Common Core of Knowledge, and the MGMT 162 capstone) is required of every business major regardless of department."
+   ],
+   "items": [
+    {
+     "stableKey": "college-lsb#lsb-busn70",
+     "label": "Contemporary Business Issues",
+     "description": "BUSN 70 — taken first year (unless internal/external transfer).",
+     "courses": [
+      "BUSN 70"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis15",
+     "label": "Introduction to Spreadsheets",
+     "description": "OMIS 15.",
+     "courses": [
+      "OMIS 15"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-busn85",
+     "label": "Business Law",
+     "description": "BUSN 85.",
+     "courses": [
+      "BUSN 85"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ1",
+     "label": "Principles of Microeconomics",
+     "description": "ECON 1 (also satisfies the Core Social Science area).",
+     "courses": [
+      "ECON 1"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ2",
+     "label": "Principles of Macroeconomics",
+     "description": "ECON 2.",
+     "courses": [
+      "ECON 2"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-econ3",
+     "label": "International Economics, Development, and Growth",
+     "description": "ECON 3.",
+     "courses": [
+      "ECON 3"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt71",
+     "label": "Foundations of Leadership",
+     "description": "MGMT 71 (with MGMT 72 and MGMT 196; external transfers with 44+ units take MGMT 174 instead).",
+     "courses": [
+      "MGMT 71",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-mgmt72",
+     "label": "Values-Driven Leadership in Silicon Valley",
+     "description": "MGMT 72 (not required for MGMT 174 transfer path).",
+     "courses": [
+      "MGMT 72",
+      "MGMT 174"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-actg11",
+     "label": "Introduction to Financial Accounting",
+     "description": "ACTG 11 — typically sophomore fall or winter.",
+     "courses": [
+      "ACTG 11"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-actg12",
+     "label": "Introduction to Managerial Accounting",
+     "description": "ACTG 12 — the quarter after ACTG 11.",
+     "courses": [
+      "ACTG 12"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis40",
+     "label": "Statistics and Data Analysis 1",
+     "description": "OMIS 40.",
+     "courses": [
+      "OMIS 40"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis41",
+     "label": "Statistics and Data Analysis 2",
+     "description": "OMIS 41, or ECON 41 and 42 for economics majors (OMIS 40 and 41 or OMIS 40 and ECON 41 and 42).",
+     "courses": [
+      "OMIS 41"
+     ],
+     "phase": null
+    },
+    {
+     "stableKey": "college-lsb#lsb-omis34",
+     "label": "Information Systems",
+     "description": "OMIS 34. Students considering an accounting major should take ACTG 134; students who declare a major or a minor in management information systems take OMIS 30 or OMIS 31, which satisfies the information systems requirement in the business core.",
+     "courses": [
+      "OMIS 34",
       "ACTG 134",
       "OMIS 30",
       "OMIS 31"
@@ -18322,15 +19091,14 @@
    "category": "CORE",
    "kind": "university_core",
    "title": "University Core Curriculum",
-   "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
-   "sourceLabel": "SCU Bulletin Ch. 2 + Leavey Core Curriculum page",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
+   "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
    "sourceVersion": "2025-26 / 2026-27 Undergraduate Bulletin",
    "lastVerified": "2026-07-23",
    "sourceProgram": null,
    "notes": [
     "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
-    "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course).",
-    "Where a specific Leavey course is listed (e.g. OMIS 34 for STS, ECON 1 for Social Science, BUSN 179 for Advanced Writing), that mapping comes from the official Leavey Core Curriculum page."
+    "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course)."
    ],
    "items": [
     {
@@ -18364,12 +19132,25 @@
     {
      "stableKey": "university-core:lsb#math",
      "label": "Mathematics",
-     "description": "Leavey students take MATH 30 (business calculus) or MATH 11. Finance and Economics majors also need MATH 12/31 (or FNCE 186 for Finance). MATH 35 allowed with a life-science second major.",
+     "description": "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
      "courses": [
       "MATH 30",
       "MATH 11"
      ],
-     "phase": "Foundations"
+     "phase": "Foundations",
+     "annotations": [
+      {
+       "id": "lsb-core-math",
+       "text": "MATH 30 or MATH 11. Most business students take the calculus for business course: MATH 30. MATH 35 can be used to satisfy this requirement for business majors who have a second major in the life sciences.",
+       "courses": [
+        "MATH 30",
+        "MATH 11"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
     },
     {
      "stableKey": "university-core:lsb#rtc1",
@@ -18395,20 +19176,50 @@
     {
      "stableKey": "university-core:lsb#civic",
      "label": "Civic Engagement",
-     "description": "Leavey students satisfy Civic Engagement with MGMT 162 together with MGMT 136 (or MGMT 6) or PHIL 109.",
+     "description": "One course from the approved Civic Engagement list. Must be completed at SCU.",
      "courses": [
-      "MGMT 162"
+      "MGMT 162",
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
      ],
-     "phase": "Explorations"
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-civic",
+       "text": "MGMT 162 and MGMT 136 (or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 162",
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
     },
     {
      "stableKey": "university-core:lsb#ci3",
      "label": "Cultures & Ideas 3",
-     "description": "Leavey students satisfy C&I 3 with MGMT 80 when taken on the SCU campus; otherwise choose from the approved list.",
+     "description": "One course from the approved C&I 3 list.",
      "courses": [
       "MGMT 80"
      ],
-     "phase": "Explorations"
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ci3",
+       "text": "Cultures & Ideas 3 with MGMT 80 when the course is taken on the SCU campus. When MGMT 80 is not taken on the SCU campus, students choose from a list of approved courses.",
+       "courses": [
+        "MGMT 80"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
     },
     {
      "stableKey": "university-core:lsb#diversity",
@@ -18420,20 +19231,44 @@
     {
      "stableKey": "university-core:lsb#ethics",
      "label": "Ethics",
-     "description": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+     "description": "One course from the approved Ethics list.",
      "courses": [
       "MGMT 136",
       "MGMT 6",
       "PHIL 109"
      ],
-     "phase": "Explorations"
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ethics",
+       "text": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
     },
     {
      "stableKey": "university-core:lsb#natsci",
      "label": "Natural Science",
-     "description": "One approved natural science course with lab.",
+     "description": "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
      "courses": [],
-     "phase": "Explorations"
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-natsci",
+       "text": "Natural Science (with lab): one course from a list of approved courses.",
+       "courses": [],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
     },
     {
      "stableKey": "university-core:lsb#rtc2",
@@ -18452,30 +19287,1504 @@
     {
      "stableKey": "university-core:lsb#sts",
      "label": "Science, Technology & Society",
-     "description": "Leavey students satisfy STS with OMIS 34 (prospective Accounting majors: ACTG 134). MIS majors/minors choose from the approved list instead.",
+     "description": "One course from the approved STS list. Must be completed at SCU.",
      "courses": [
       "OMIS 34",
       "ACTG 134"
      ],
-     "phase": "Explorations"
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-sts",
+       "text": "Science, Technology, and Society: OMIS 34.",
+       "courses": [
+        "OMIS 34"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      },
+      {
+       "id": "lsb-core-sts-accounting",
+       "text": "Students who are considering a major in accounting should take ACTG 134 to satisfy the Science, Technology, and Society requirement.",
+       "courses": [
+        "ACTG 134"
+       ],
+       "programScope": "Accounting majors",
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
     },
     {
      "stableKey": "university-core:lsb#socsci",
      "label": "Social Science",
-     "description": "Leavey students satisfy Social Science with ECON 1.",
+     "description": "One course from the approved Social Science list.",
      "courses": [
       "ECON 1"
      ],
-     "phase": "Explorations"
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-socsci",
+       "text": "Social Science: ECON 1.",
+       "courses": [
+        "ECON 1"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
     },
     {
      "stableKey": "university-core:lsb#advwriting",
      "label": "Advanced Writing",
-     "description": "Leavey students satisfy Advanced Writing with BUSN 179. Must be completed at SCU.",
+     "description": "Upper-division writing course in your discipline. Must be completed at SCU.",
      "courses": [
       "BUSN 179"
      ],
+     "phase": "Integrations",
+     "annotations": [
+      {
+       "id": "lsb-core-advwriting",
+       "text": "Advanced Writing: BUSN 179.",
+       "courses": [
+        "BUSN 179"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#elsj",
+     "label": "Experiential Learning for Social Justice",
+     "description": "Community-based learning course from the approved ELSJ list. Must be completed at SCU.",
+     "courses": [],
      "phase": "Integrations"
+    },
+    {
+     "stableKey": "university-core:lsb#pathway",
+     "label": "Pathway (4 courses, at least 16 units)",
+     "description": "CAS and Leavey majors complete four Pathway courses (at least 16 units) in one declared Pathway. Declare by end of second year.",
+     "courses": [],
+     "phase": "Integrations"
+    }
+   ]
+  },
+  "university-core:lsb|major:accounting-information-systems-b-s-commerce": {
+   "stableKey": "university-core:lsb",
+   "category": "CORE",
+   "kind": "university_core",
+   "title": "University Core Curriculum",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
+   "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
+   "sourceVersion": "2025-26 / 2026-27 Undergraduate Bulletin",
+   "lastVerified": "2026-07-23",
+   "sourceProgram": null,
+   "notes": [
+    "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
+    "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course)."
+   ],
+   "items": [
+    {
+     "stableKey": "university-core:lsb#ctw1",
+     "label": "Critical Thinking & Writing 1",
+     "description": "First course of the two-quarter CTW sequence. Must be completed at SCU for students admitted as first-years.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ctw2",
+     "label": "Critical Thinking & Writing 2",
+     "description": "Second course of the CTW sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci1",
+     "label": "Cultures & Ideas 1",
+     "description": "First course of the two-quarter C&I sequence.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci2",
+     "label": "Cultures & Ideas 2",
+     "description": "Second course of the C&I sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#math",
+     "label": "Mathematics",
+     "description": "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
+     "courses": [
+      "MATH 30",
+      "MATH 11"
+     ],
+     "phase": "Foundations",
+     "annotations": [
+      {
+       "id": "lsb-core-math",
+       "text": "MATH 30 or MATH 11. Most business students take the calculus for business course: MATH 30. MATH 35 can be used to satisfy this requirement for business majors who have a second major in the life sciences.",
+       "courses": [
+        "MATH 30",
+        "MATH 11"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc1",
+     "label": "Religion, Theology & Culture 1",
+     "description": "First of three RTC courses. First-year admits must take all three in sequential order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#lang",
+     "label": "Second Language",
+     "description": "Proficiency requirement; the level varies by major. Satisfiable by coursework, a proficiency exam, or AP score of 4+ in a classical or modern language.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#arts",
+     "label": "Arts",
+     "description": "One course from the approved Arts list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#civic",
+     "label": "Civic Engagement",
+     "description": "One course from the approved Civic Engagement list. Must be completed at SCU.",
+     "courses": [
+      "MGMT 162",
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-civic",
+       "text": "MGMT 162 and MGMT 136 (or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 162",
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#ci3",
+     "label": "Cultures & Ideas 3",
+     "description": "One course from the approved C&I 3 list.",
+     "courses": [
+      "MGMT 80"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ci3",
+       "text": "Cultures & Ideas 3 with MGMT 80 when the course is taken on the SCU campus. When MGMT 80 is not taken on the SCU campus, students choose from a list of approved courses.",
+       "courses": [
+        "MGMT 80"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#diversity",
+     "label": "Diversity: U.S. Perspectives",
+     "description": "One course from the approved Diversity list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#ethics",
+     "label": "Ethics",
+     "description": "One course from the approved Ethics list.",
+     "courses": [
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ethics",
+       "text": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#natsci",
+     "label": "Natural Science",
+     "description": "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
+     "courses": [],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-natsci",
+       "text": "Natural Science (with lab): one course from a list of approved courses.",
+       "courses": [],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc2",
+     "label": "Religion, Theology & Culture 2",
+     "description": "Second RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#rtc3",
+     "label": "Religion, Theology & Culture 3",
+     "description": "Third RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#sts",
+     "label": "Science, Technology & Society",
+     "description": "One course from the approved STS list. Must be completed at SCU.",
+     "courses": [
+      "OMIS 34"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-sts",
+       "text": "Science, Technology, and Society: OMIS 34.",
+       "courses": [
+        "OMIS 34"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#socsci",
+     "label": "Social Science",
+     "description": "One course from the approved Social Science list.",
+     "courses": [
+      "ECON 1"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-socsci",
+       "text": "Social Science: ECON 1.",
+       "courses": [
+        "ECON 1"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#advwriting",
+     "label": "Advanced Writing",
+     "description": "Upper-division writing course in your discipline. Must be completed at SCU.",
+     "courses": [
+      "BUSN 179"
+     ],
+     "phase": "Integrations",
+     "annotations": [
+      {
+       "id": "lsb-core-advwriting",
+       "text": "Advanced Writing: BUSN 179.",
+       "courses": [
+        "BUSN 179"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#elsj",
+     "label": "Experiential Learning for Social Justice",
+     "description": "Community-based learning course from the approved ELSJ list. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Integrations"
+    },
+    {
+     "stableKey": "university-core:lsb#pathway",
+     "label": "Pathway (4 courses, at least 16 units)",
+     "description": "CAS and Leavey majors complete four Pathway courses (at least 16 units) in one declared Pathway. Declare by end of second year.",
+     "courses": [],
+     "phase": "Integrations"
+    }
+   ]
+  },
+  "university-core:lsb|major:economics-b-s-commerce": {
+   "stableKey": "university-core:lsb",
+   "category": "CORE",
+   "kind": "university_core",
+   "title": "University Core Curriculum",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
+   "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
+   "sourceVersion": "2025-26 / 2026-27 Undergraduate Bulletin",
+   "lastVerified": "2026-07-23",
+   "sourceProgram": null,
+   "notes": [
+    "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
+    "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course)."
+   ],
+   "items": [
+    {
+     "stableKey": "university-core:lsb#ctw1",
+     "label": "Critical Thinking & Writing 1",
+     "description": "First course of the two-quarter CTW sequence. Must be completed at SCU for students admitted as first-years.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ctw2",
+     "label": "Critical Thinking & Writing 2",
+     "description": "Second course of the CTW sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci1",
+     "label": "Cultures & Ideas 1",
+     "description": "First course of the two-quarter C&I sequence.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci2",
+     "label": "Cultures & Ideas 2",
+     "description": "Second course of the C&I sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#math",
+     "label": "Mathematics",
+     "description": "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
+     "courses": [
+      "MATH 30",
+      "MATH 11"
+     ],
+     "phase": "Foundations",
+     "annotations": [
+      {
+       "id": "lsb-core-math",
+       "text": "MATH 30 or MATH 11. Most business students take the calculus for business course: MATH 30. MATH 35 can be used to satisfy this requirement for business majors who have a second major in the life sciences.",
+       "courses": [
+        "MATH 30",
+        "MATH 11"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      },
+      {
+       "id": "lsb-core-math-economics",
+       "text": "Economics students: MATH 11 or MATH 30, and MATH 12 or MATH 31. The second course is tracked under the Economics major requirements.",
+       "courses": [],
+       "programScope": "Economics (B.S. Commerce) majors",
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc1",
+     "label": "Religion, Theology & Culture 1",
+     "description": "First of three RTC courses. First-year admits must take all three in sequential order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#lang",
+     "label": "Second Language",
+     "description": "Proficiency requirement; the level varies by major. Satisfiable by coursework, a proficiency exam, or AP score of 4+ in a classical or modern language.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#arts",
+     "label": "Arts",
+     "description": "One course from the approved Arts list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#civic",
+     "label": "Civic Engagement",
+     "description": "One course from the approved Civic Engagement list. Must be completed at SCU.",
+     "courses": [
+      "MGMT 162",
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-civic",
+       "text": "MGMT 162 and MGMT 136 (or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 162",
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#ci3",
+     "label": "Cultures & Ideas 3",
+     "description": "One course from the approved C&I 3 list.",
+     "courses": [
+      "MGMT 80"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ci3",
+       "text": "Cultures & Ideas 3 with MGMT 80 when the course is taken on the SCU campus. When MGMT 80 is not taken on the SCU campus, students choose from a list of approved courses.",
+       "courses": [
+        "MGMT 80"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#diversity",
+     "label": "Diversity: U.S. Perspectives",
+     "description": "One course from the approved Diversity list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#ethics",
+     "label": "Ethics",
+     "description": "One course from the approved Ethics list.",
+     "courses": [
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ethics",
+       "text": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#natsci",
+     "label": "Natural Science",
+     "description": "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
+     "courses": [],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-natsci",
+       "text": "Natural Science (with lab): one course from a list of approved courses.",
+       "courses": [],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc2",
+     "label": "Religion, Theology & Culture 2",
+     "description": "Second RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#rtc3",
+     "label": "Religion, Theology & Culture 3",
+     "description": "Third RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#sts",
+     "label": "Science, Technology & Society",
+     "description": "One course from the approved STS list. Must be completed at SCU.",
+     "courses": [
+      "OMIS 34"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-sts",
+       "text": "Science, Technology, and Society: OMIS 34.",
+       "courses": [
+        "OMIS 34"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#socsci",
+     "label": "Social Science",
+     "description": "One course from the approved Social Science list.",
+     "courses": [
+      "ECON 1"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-socsci",
+       "text": "Social Science: ECON 1.",
+       "courses": [
+        "ECON 1"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#advwriting",
+     "label": "Advanced Writing",
+     "description": "Upper-division writing course in your discipline. Must be completed at SCU.",
+     "courses": [
+      "BUSN 179"
+     ],
+     "phase": "Integrations",
+     "annotations": [
+      {
+       "id": "lsb-core-advwriting",
+       "text": "Advanced Writing: BUSN 179.",
+       "courses": [
+        "BUSN 179"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#elsj",
+     "label": "Experiential Learning for Social Justice",
+     "description": "Community-based learning course from the approved ELSJ list. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Integrations"
+    },
+    {
+     "stableKey": "university-core:lsb#pathway",
+     "label": "Pathway (4 courses, at least 16 units)",
+     "description": "CAS and Leavey majors complete four Pathway courses (at least 16 units) in one declared Pathway. Declare by end of second year.",
+     "courses": [],
+     "phase": "Integrations"
+    }
+   ]
+  },
+  "university-core:lsb|major:finance-b-s-commerce": {
+   "stableKey": "university-core:lsb",
+   "category": "CORE",
+   "kind": "university_core",
+   "title": "University Core Curriculum",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
+   "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
+   "sourceVersion": "2025-26 / 2026-27 Undergraduate Bulletin",
+   "lastVerified": "2026-07-23",
+   "sourceProgram": null,
+   "notes": [
+    "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
+    "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course)."
+   ],
+   "items": [
+    {
+     "stableKey": "university-core:lsb#ctw1",
+     "label": "Critical Thinking & Writing 1",
+     "description": "First course of the two-quarter CTW sequence. Must be completed at SCU for students admitted as first-years.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ctw2",
+     "label": "Critical Thinking & Writing 2",
+     "description": "Second course of the CTW sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci1",
+     "label": "Cultures & Ideas 1",
+     "description": "First course of the two-quarter C&I sequence.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci2",
+     "label": "Cultures & Ideas 2",
+     "description": "Second course of the C&I sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#math",
+     "label": "Mathematics",
+     "description": "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
+     "courses": [
+      "MATH 30",
+      "MATH 11"
+     ],
+     "phase": "Foundations",
+     "annotations": [
+      {
+       "id": "lsb-core-math",
+       "text": "MATH 30 or MATH 11. Most business students take the calculus for business course: MATH 30. MATH 35 can be used to satisfy this requirement for business majors who have a second major in the life sciences.",
+       "courses": [
+        "MATH 30",
+        "MATH 11"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      },
+      {
+       "id": "lsb-core-math-finance",
+       "text": "Finance students: MATH 11 or MATH 30, and MATH 12 or MATH 31 or FNCE 186. The second course is tracked under the Finance major requirements.",
+       "courses": [],
+       "programScope": "Finance majors",
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc1",
+     "label": "Religion, Theology & Culture 1",
+     "description": "First of three RTC courses. First-year admits must take all three in sequential order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#lang",
+     "label": "Second Language",
+     "description": "Proficiency requirement; the level varies by major. Satisfiable by coursework, a proficiency exam, or AP score of 4+ in a classical or modern language.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#arts",
+     "label": "Arts",
+     "description": "One course from the approved Arts list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#civic",
+     "label": "Civic Engagement",
+     "description": "One course from the approved Civic Engagement list. Must be completed at SCU.",
+     "courses": [
+      "MGMT 162",
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-civic",
+       "text": "MGMT 162 and MGMT 136 (or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 162",
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#ci3",
+     "label": "Cultures & Ideas 3",
+     "description": "One course from the approved C&I 3 list.",
+     "courses": [
+      "MGMT 80"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ci3",
+       "text": "Cultures & Ideas 3 with MGMT 80 when the course is taken on the SCU campus. When MGMT 80 is not taken on the SCU campus, students choose from a list of approved courses.",
+       "courses": [
+        "MGMT 80"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#diversity",
+     "label": "Diversity: U.S. Perspectives",
+     "description": "One course from the approved Diversity list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#ethics",
+     "label": "Ethics",
+     "description": "One course from the approved Ethics list.",
+     "courses": [
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ethics",
+       "text": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#natsci",
+     "label": "Natural Science",
+     "description": "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
+     "courses": [],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-natsci",
+       "text": "Natural Science (with lab): one course from a list of approved courses.",
+       "courses": [],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc2",
+     "label": "Religion, Theology & Culture 2",
+     "description": "Second RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#rtc3",
+     "label": "Religion, Theology & Culture 3",
+     "description": "Third RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#sts",
+     "label": "Science, Technology & Society",
+     "description": "One course from the approved STS list. Must be completed at SCU.",
+     "courses": [
+      "OMIS 34"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-sts",
+       "text": "Science, Technology, and Society: OMIS 34.",
+       "courses": [
+        "OMIS 34"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#socsci",
+     "label": "Social Science",
+     "description": "One course from the approved Social Science list.",
+     "courses": [
+      "ECON 1"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-socsci",
+       "text": "Social Science: ECON 1.",
+       "courses": [
+        "ECON 1"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#advwriting",
+     "label": "Advanced Writing",
+     "description": "Upper-division writing course in your discipline. Must be completed at SCU.",
+     "courses": [
+      "BUSN 179"
+     ],
+     "phase": "Integrations",
+     "annotations": [
+      {
+       "id": "lsb-core-advwriting",
+       "text": "Advanced Writing: BUSN 179.",
+       "courses": [
+        "BUSN 179"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#elsj",
+     "label": "Experiential Learning for Social Justice",
+     "description": "Community-based learning course from the approved ELSJ list. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Integrations"
+    },
+    {
+     "stableKey": "university-core:lsb#pathway",
+     "label": "Pathway (4 courses, at least 16 units)",
+     "description": "CAS and Leavey majors complete four Pathway courses (at least 16 units) in one declared Pathway. Declare by end of second year.",
+     "courses": [],
+     "phase": "Integrations"
+    }
+   ]
+  },
+  "university-core:lsb|major:management-information-systems-b-s-commerce": {
+   "stableKey": "university-core:lsb",
+   "category": "CORE",
+   "kind": "university_core",
+   "title": "University Core Curriculum",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
+   "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
+   "sourceVersion": "2025-26 / 2026-27 Undergraduate Bulletin",
+   "lastVerified": "2026-07-23",
+   "sourceProgram": null,
+   "notes": [
+    "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
+    "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course)."
+   ],
+   "items": [
+    {
+     "stableKey": "university-core:lsb#ctw1",
+     "label": "Critical Thinking & Writing 1",
+     "description": "First course of the two-quarter CTW sequence. Must be completed at SCU for students admitted as first-years.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ctw2",
+     "label": "Critical Thinking & Writing 2",
+     "description": "Second course of the CTW sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci1",
+     "label": "Cultures & Ideas 1",
+     "description": "First course of the two-quarter C&I sequence.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci2",
+     "label": "Cultures & Ideas 2",
+     "description": "Second course of the C&I sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#math",
+     "label": "Mathematics",
+     "description": "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
+     "courses": [
+      "MATH 30",
+      "MATH 11"
+     ],
+     "phase": "Foundations",
+     "annotations": [
+      {
+       "id": "lsb-core-math",
+       "text": "MATH 30 or MATH 11. Most business students take the calculus for business course: MATH 30. MATH 35 can be used to satisfy this requirement for business majors who have a second major in the life sciences.",
+       "courses": [
+        "MATH 30",
+        "MATH 11"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc1",
+     "label": "Religion, Theology & Culture 1",
+     "description": "First of three RTC courses. First-year admits must take all three in sequential order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#lang",
+     "label": "Second Language",
+     "description": "Proficiency requirement; the level varies by major. Satisfiable by coursework, a proficiency exam, or AP score of 4+ in a classical or modern language.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#arts",
+     "label": "Arts",
+     "description": "One course from the approved Arts list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#civic",
+     "label": "Civic Engagement",
+     "description": "One course from the approved Civic Engagement list. Must be completed at SCU.",
+     "courses": [
+      "MGMT 162",
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-civic",
+       "text": "MGMT 162 and MGMT 136 (or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 162",
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#ci3",
+     "label": "Cultures & Ideas 3",
+     "description": "One course from the approved C&I 3 list.",
+     "courses": [
+      "MGMT 80"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ci3",
+       "text": "Cultures & Ideas 3 with MGMT 80 when the course is taken on the SCU campus. When MGMT 80 is not taken on the SCU campus, students choose from a list of approved courses.",
+       "courses": [
+        "MGMT 80"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#diversity",
+     "label": "Diversity: U.S. Perspectives",
+     "description": "One course from the approved Diversity list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#ethics",
+     "label": "Ethics",
+     "description": "One course from the approved Ethics list.",
+     "courses": [
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ethics",
+       "text": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#natsci",
+     "label": "Natural Science",
+     "description": "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
+     "courses": [],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-natsci",
+       "text": "Natural Science (with lab): one course from a list of approved courses.",
+       "courses": [],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc2",
+     "label": "Religion, Theology & Culture 2",
+     "description": "Second RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#rtc3",
+     "label": "Religion, Theology & Culture 3",
+     "description": "Third RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#sts",
+     "label": "Science, Technology & Society",
+     "description": "One course from the approved STS list. Must be completed at SCU.",
+     "courses": [
+      "OMIS 34"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-sts",
+       "text": "Science, Technology, and Society: OMIS 34.",
+       "courses": [
+        "OMIS 34"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      },
+      {
+       "id": "lsb-core-sts-mis",
+       "text": "Students who declare a major or a minor in management information systems will take OMIS 30 or OMIS 31, which will satisfy the information systems requirement in the business core, and may choose a course to satisfy Science, Technology, and Society from the list of approved courses.",
+       "courses": [],
+       "programScope": "Management information systems majors and minors",
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#socsci",
+     "label": "Social Science",
+     "description": "One course from the approved Social Science list.",
+     "courses": [
+      "ECON 1"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-socsci",
+       "text": "Social Science: ECON 1.",
+       "courses": [
+        "ECON 1"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#advwriting",
+     "label": "Advanced Writing",
+     "description": "Upper-division writing course in your discipline. Must be completed at SCU.",
+     "courses": [
+      "BUSN 179"
+     ],
+     "phase": "Integrations",
+     "annotations": [
+      {
+       "id": "lsb-core-advwriting",
+       "text": "Advanced Writing: BUSN 179.",
+       "courses": [
+        "BUSN 179"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#elsj",
+     "label": "Experiential Learning for Social Justice",
+     "description": "Community-based learning course from the approved ELSJ list. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Integrations"
+    },
+    {
+     "stableKey": "university-core:lsb#pathway",
+     "label": "Pathway (4 courses, at least 16 units)",
+     "description": "CAS and Leavey majors complete four Pathway courses (at least 16 units) in one declared Pathway. Declare by end of second year.",
+     "courses": [],
+     "phase": "Integrations"
+    }
+   ]
+  },
+  "university-core:lsb|minor-mis-min": {
+   "stableKey": "university-core:lsb",
+   "category": "CORE",
+   "kind": "university_core",
+   "title": "University Core Curriculum",
+   "sourceUrl": "https://www.scu.edu/bulletin/undergraduate/chapter-2-transformative-experiences-and-learning-resources/the-core-curriculum.html",
+   "sourceLabel": "SCU Undergraduate Bulletin, Ch. 2: The Core Curriculum",
+   "sourceVersion": "2025-26 / 2026-27 Undergraduate Bulletin",
+   "lastVerified": "2026-07-23",
+   "sourceProgram": null,
+   "notes": [
+    "Core requirements that must be completed at SCU (per the Bulletin): Civic Engagement; Science, Technology & Society; Religion, Theology & Culture; Advanced Writing; ELSJ; and Pathways.",
+    "CAS and Leavey students satisfy Foundations and Explorations with one course per Core area (Second Language may require more than one course)."
+   ],
+   "items": [
+    {
+     "stableKey": "university-core:lsb#ctw1",
+     "label": "Critical Thinking & Writing 1",
+     "description": "First course of the two-quarter CTW sequence. Must be completed at SCU for students admitted as first-years.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ctw2",
+     "label": "Critical Thinking & Writing 2",
+     "description": "Second course of the CTW sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci1",
+     "label": "Cultures & Ideas 1",
+     "description": "First course of the two-quarter C&I sequence.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#ci2",
+     "label": "Cultures & Ideas 2",
+     "description": "Second course of the C&I sequence, taken in order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#math",
+     "label": "Mathematics",
+     "description": "One approved mathematics course. STEM majors typically satisfy this within the major's calculus sequence.",
+     "courses": [
+      "MATH 30",
+      "MATH 11"
+     ],
+     "phase": "Foundations",
+     "annotations": [
+      {
+       "id": "lsb-core-math",
+       "text": "MATH 30 or MATH 11. Most business students take the calculus for business course: MATH 30. MATH 35 can be used to satisfy this requirement for business majors who have a second major in the life sciences.",
+       "courses": [
+        "MATH 30",
+        "MATH 11"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc1",
+     "label": "Religion, Theology & Culture 1",
+     "description": "First of three RTC courses. First-year admits must take all three in sequential order.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#lang",
+     "label": "Second Language",
+     "description": "Proficiency requirement; the level varies by major. Satisfiable by coursework, a proficiency exam, or AP score of 4+ in a classical or modern language.",
+     "courses": [],
+     "phase": "Foundations"
+    },
+    {
+     "stableKey": "university-core:lsb#arts",
+     "label": "Arts",
+     "description": "One course from the approved Arts list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#civic",
+     "label": "Civic Engagement",
+     "description": "One course from the approved Civic Engagement list. Must be completed at SCU.",
+     "courses": [
+      "MGMT 162",
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-civic",
+       "text": "MGMT 162 and MGMT 136 (or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 162",
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#ci3",
+     "label": "Cultures & Ideas 3",
+     "description": "One course from the approved C&I 3 list.",
+     "courses": [
+      "MGMT 80"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ci3",
+       "text": "Cultures & Ideas 3 with MGMT 80 when the course is taken on the SCU campus. When MGMT 80 is not taken on the SCU campus, students choose from a list of approved courses.",
+       "courses": [
+        "MGMT 80"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#diversity",
+     "label": "Diversity: U.S. Perspectives",
+     "description": "One course from the approved Diversity list.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#ethics",
+     "label": "Ethics",
+     "description": "One course from the approved Ethics list.",
+     "courses": [
+      "MGMT 136",
+      "MGMT 6",
+      "PHIL 109"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-ethics",
+       "text": "One business ethics course: MGMT 136 (preferred, or MGMT 6) or PHIL 109.",
+       "courses": [
+        "MGMT 136",
+        "MGMT 6",
+        "PHIL 109"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#natsci",
+     "label": "Natural Science",
+     "description": "One approved natural science course. STEM/engineering majors typically satisfy this within the major.",
+     "courses": [],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-natsci",
+       "text": "Natural Science (with lab): one course from a list of approved courses.",
+       "courses": [],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#rtc2",
+     "label": "Religion, Theology & Culture 2",
+     "description": "Second RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#rtc3",
+     "label": "Religion, Theology & Culture 3",
+     "description": "Third RTC course, in sequence. Must be completed at SCU.",
+     "courses": [],
+     "phase": "Explorations"
+    },
+    {
+     "stableKey": "university-core:lsb#sts",
+     "label": "Science, Technology & Society",
+     "description": "One course from the approved STS list. Must be completed at SCU.",
+     "courses": [
+      "OMIS 34",
+      "ACTG 134"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-sts",
+       "text": "Science, Technology, and Society: OMIS 34.",
+       "courses": [
+        "OMIS 34"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      },
+      {
+       "id": "lsb-core-sts-accounting",
+       "text": "Students who are considering a major in accounting should take ACTG 134 to satisfy the Science, Technology, and Society requirement.",
+       "courses": [
+        "ACTG 134"
+       ],
+       "programScope": "Accounting majors",
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      },
+      {
+       "id": "lsb-core-sts-mis",
+       "text": "Students who declare a major or a minor in management information systems will take OMIS 30 or OMIS 31, which will satisfy the information systems requirement in the business core, and may choose a course to satisfy Science, Technology, and Society from the list of approved courses.",
+       "courses": [],
+       "programScope": "Management information systems majors and minors",
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#socsci",
+     "label": "Social Science",
+     "description": "One course from the approved Social Science list.",
+     "courses": [
+      "ECON 1"
+     ],
+     "phase": "Explorations",
+     "annotations": [
+      {
+       "id": "lsb-core-socsci",
+       "text": "Social Science: ECON 1.",
+       "courses": [
+        "ECON 1"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
+    },
+    {
+     "stableKey": "university-core:lsb#advwriting",
+     "label": "Advanced Writing",
+     "description": "Upper-division writing course in your discipline. Must be completed at SCU.",
+     "courses": [
+      "BUSN 179"
+     ],
+     "phase": "Integrations",
+     "annotations": [
+      {
+       "id": "lsb-core-advwriting",
+       "text": "Advanced Writing: BUSN 179.",
+       "courses": [
+        "BUSN 179"
+       ],
+       "programScope": null,
+       "sourceUrl": "https://www.scu.edu/business/undergraduates/core/",
+       "lastVerified": "2026-10-20"
+      }
+     ]
     },
     {
      "stableKey": "university-core:lsb#elsj",
@@ -18720,8 +21029,8 @@
    "college": "LSB",
    "groupKeys": [
     "major:accounting-information-systems-b-s-commerce",
-    "university-core:lsb",
-    "college-lsb",
+    "university-core:lsb|major:accounting-information-systems-b-s-commerce",
+    "college-lsb|major:accounting-information-systems-b-s-commerce",
     "university-requirements"
    ]
   },
@@ -18797,8 +21106,8 @@
    "college": "LSB",
    "groupKeys": [
     "major:business-analytics-b-s-commerce",
-    "university-core:lsb",
-    "college-lsb",
+    "university-core:lsb|major:accounting-information-systems-b-s-commerce",
+    "college-lsb|major:business-analytics-b-s-commerce",
     "university-requirements"
    ]
   },
@@ -18907,8 +21216,8 @@
    "college": "LSB",
    "groupKeys": [
     "major:economics-b-s-commerce",
-    "university-core:lsb",
-    "college-lsb",
+    "university-core:lsb|major:economics-b-s-commerce",
+    "college-lsb|major:economics-b-s-commerce",
     "university-requirements"
    ]
   },
@@ -18995,8 +21304,8 @@
    "college": "LSB",
    "groupKeys": [
     "major:finance-b-s-commerce",
-    "university-core:lsb",
-    "college-lsb",
+    "university-core:lsb|major:finance-b-s-commerce",
+    "college-lsb|major:business-analytics-b-s-commerce",
     "university-requirements"
    ]
   },
@@ -19050,8 +21359,8 @@
    "college": "LSB",
    "groupKeys": [
     "major:management-b-s-commerce",
-    "university-core:lsb",
-    "college-lsb",
+    "university-core:lsb|major:accounting-information-systems-b-s-commerce",
+    "college-lsb|major:business-analytics-b-s-commerce",
     "university-requirements"
    ]
   },
@@ -19061,8 +21370,8 @@
    "college": "LSB",
    "groupKeys": [
     "major:management-information-systems-b-s-commerce",
-    "university-core:lsb",
-    "college-lsb",
+    "university-core:lsb|major:management-information-systems-b-s-commerce",
+    "college-lsb|major:accounting-information-systems-b-s-commerce",
     "university-requirements"
    ]
   },
@@ -19072,8 +21381,8 @@
    "college": "LSB",
    "groupKeys": [
     "major:marketing-b-s-commerce",
-    "university-core:lsb",
-    "college-lsb",
+    "university-core:lsb|major:accounting-information-systems-b-s-commerce",
+    "college-lsb|major:business-analytics-b-s-commerce",
     "university-requirements"
    ]
   },
@@ -19847,8 +22156,8 @@
    "college": "LSB",
    "groupKeys": [
     "major:accounting-b-s-commerce",
-    "university-core:lsb",
-    "college-lsb",
+    "university-core:lsb|minor-mis-min",
+    "college-lsb|minor-mis-min",
     "university-requirements",
     "minor-mis-min"
    ]

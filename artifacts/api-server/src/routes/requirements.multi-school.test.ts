@@ -291,7 +291,9 @@ describe("Leavey fulfillment of the University Core (annotations)", () => {
   it("annotates the verified areas, every annotation with its source", () => {
     const r = plan(["FNCE"]);
     const annotated = coreGroups(r)[0]!.items.filter((i) => i.annotations).map((i) => i.id);
-    expect(annotated).toEqual(["math", "civic", "ci3", "ethics", "sts", "socsci", "advwriting"]);
+    expect(annotated).toEqual(["math", "civic", "ci3", "ethics", "natsci", "sts", "socsci", "advwriting"]);
+    // Guidance-only statements name no course and so never change a status.
+    expect(coreItem(r, "natsci").annotations![0]!.routes).toEqual([]);
     for (const a of coreGroups(r)[0]!.items.flatMap((i) => i.annotations ?? [])) {
       expect(a.kind).toBe("school_core_fulfillment");
       expect(a.sourceUrl).toBe("https://www.scu.edu/business/undergraduates/core/");

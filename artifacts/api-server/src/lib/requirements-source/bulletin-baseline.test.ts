@@ -196,8 +196,17 @@ describe("Bulletin snapshots", () => {
   it("holds every program once with stable, unique keys and provenance", () => {
     const snap = JSON.parse(readFileSync(snapshotPath, "utf8")) as BulletinSnapshot;
     expect(Object.keys(snap.programs).length).toBe(50 + 71);
-    const keys = Object.values(snap.groups).flatMap((g) => g.items.map((i) => i.stableKey));
+    // Program variants of a shared group ("college-lsb|<program>") repeat its item keys by design;
+    // across base groups every key is unique.
+    const base = Object.entries(snap.groups).filter(([key]) => !key.includes("|"));
+    const keys = base.flatMap(([, g]) => g.items.map((i) => i.stableKey));
     expect(new Set(keys).size).toBe(keys.length);
+    // Only groups whose content the program changes have variants: the Leavey core and the Core it annotates.
+    const varied = new Set(Object.keys(snap.groups).filter((k) => k.includes("|")).map((k) => k.split("|")[0]));
+    expect([...varied].sort()).toEqual(["college-lsb", "university-core:lsb"]);
+    // Finance's view of the Leavey core has no Accounting / MIS information-systems route.
+    const financeLsb = snap.programs["major:finance-b-s-commerce"]!.groupKeys.find((k) => k.startsWith("college-lsb"))!;
+    expect(snap.groups[financeLsb]!.items.find((i) => i.stableKey === "college-lsb#lsb-omis34")!.courses).toEqual(["OMIS 34"]);
     expect(Object.values(snap.groups).every((g) => g.sourceVersion && g.lastVerified && g.category)).toBe(true);
     expect(snap.edition).toBe("2026-27");
   });
