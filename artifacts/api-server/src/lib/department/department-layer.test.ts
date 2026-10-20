@@ -253,6 +253,20 @@ describe("checklist note extraction", () => {
     }
   });
 
+  it("still reads a table that has a Notes-less grid beside it (how CAS checklists are laid out)", () => {
+    const withGrid = extractChecklistNotes(
+      sheet([
+        [2, [0, "Foundations"], [1, "Quarter"], [2, "Notes"], [5, "Year"], [6, "Fall"], [7, "Units"], [8, "Winter"]],
+        [3, [0, "RTC 3"], [2, "Can overlap with another Core or a Major requirement"], [5, "Year 1"], [6, "BIOL 1A"]],
+      ]),
+      "Biology",
+      group,
+      tree.tree,
+    );
+    expect(withGrid).toHaveLength(1);
+    expect(withGrid[0]).toMatchObject({ targetKey: "university-core:cas#rtc3", status: "published" });
+  });
+
   it("parses course codes, slash alternatives and code-only text", () => {
     expect(courseCodesIn("PHYS 11/31")).toEqual(["PHYS 11", "PHYS 31"]);
     expect(courseCodesIn("CHEM 12")).toEqual(["CHEM 12"]);

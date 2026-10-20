@@ -188,19 +188,22 @@ export function extractChecklistNotes(
       notesCol = headerNotes[0]!.c;
       notesCols = headerNotes.map((cell) => cell.c);
       headedCols = new Set(row.cells.filter((cell) => clean(cell.text)).map((cell) => cell.c));
-      const headed = (c: number) => !!text(c);
+      // A table beside this one is fine when it has no Notes column (CAS checklists print a
+      // four-year grid to the right of the Core table). The layouts that would pair a note with
+      // another table's label are refused.
       layoutIssue =
         headerNotes.length > 1
-          ? "This checklist puts tables side by side (more than one Notes column)."
-          : row.cells.some((cell) => cell.c > notesCol && clean(cell.text))
-            ? "Another table's header sits to the right of this table's Notes column."
-            : !text(0)
-              ? "This table does not start in the first column."
-              : row.cells.some((cell) => cell.c > 0 && (CORE_SECTIONS.has(clean(cell.text).toLowerCase()) || /requirements?$/i.test(clean(cell.text))))
-                ? "A second table's title sits in this header row (tables side by side)."
-                : Array.from({ length: notesCol }, (_, c) => c).some((c) => !headed(c))
-                  ? "This header row has an empty column before its Notes column (tables side by side)."
-                  : null;
+          ? "This checklist puts tables side by side, each with a Notes column."
+          : !text(0)
+            ? "This table does not start in the first column."
+            : row.cells.some(
+                  (cell) =>
+                    cell.c > 0 &&
+                    cell.c < notesCol &&
+                    (CORE_SECTIONS.has(clean(cell.text).toLowerCase()) || /requirements?$/i.test(clean(cell.text))),
+                )
+              ? "The Notes column belongs to a second table that starts to the right of the first column."
+              : null;
       const name = text(0);
       const lower = name.toLowerCase();
       section = {
