@@ -44,7 +44,10 @@ async function sidebar(page: Page) {
     return column.getByTestId("requirements-palette");
   }
   await page.getByRole("button", { name: "Palette" }).click();
-  return page.getByRole("dialog").getByTestId("requirements-palette");
+  // Wait for the drawer to finish sliding in from the left before anything is measured.
+  const drawer = page.getByRole("dialog");
+  await expect.poll(async () => Math.round((await drawer.boundingBox())?.x ?? -1), { timeout: 10_000 }).toBe(0);
+  return drawer.getByTestId("requirements-palette");
 }
 /** A group's accordion trigger by its title (the trigger also holds the school subtitle). */
 const groupTrigger = (palette: ReturnType<Page["getByTestId"]>, title: string) =>
@@ -191,7 +194,7 @@ for (const viewport of [
         // The drawer's close button does not sit on "Edit requirements".
         const close = (await page.getByRole("dialog").getByRole("button", { name: "Close" }).boundingBox())!;
         const edit = (await palette.getByTestId("toggle-edit-requirements").boundingBox())!;
-        expect(edit.x + edit.width <= close.x || close.y + close.height <= edit.y).toBe(true);
+        expect(edit.x + edit.width <= close.x || close.y + close.height <= edit.y, JSON.stringify({ close, edit })).toBe(true);
       }
       await openGroup(palette, LEAVEY);
       const capstone = palette.getByText("Capstone: MGMT 162", { exact: true });
