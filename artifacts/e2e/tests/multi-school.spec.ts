@@ -36,8 +36,13 @@ const programs = (primaryMajor: string, additionalMajors: string[] = []) => ({ p
 
 /** The visible sidebar: the column on wide screens, the drawer (opened) below xl. */
 async function sidebar(page: Page) {
-  const column = page.getByTestId("degree-plan-palette-column");
-  if (await column.isVisible()) return column.getByTestId("requirements-palette");
+  // The layout's xl breakpoint (1280px): a column at or above it, a drawer below. Decided by the
+  // viewport, not by a visibility check that can run before the page has rendered.
+  if ((page.viewportSize()?.width ?? 0) >= 1280) {
+    const column = page.getByTestId("degree-plan-palette-column");
+    await expect(column).toBeVisible({ timeout: 30_000 });
+    return column.getByTestId("requirements-palette");
+  }
   await page.getByRole("button", { name: "Palette" }).click();
   return page.getByRole("dialog").getByTestId("requirements-palette");
 }
@@ -182,6 +187,12 @@ for (const viewport of [
       await page.goto("/degree-plan");
       expect(await page.evaluate(() => window.innerWidth)).toBe(viewport.width);
       const palette = await sidebar(page);
+      if (viewport.width < 1280) {
+        // The drawer's close button does not sit on "Edit requirements".
+        const close = (await page.getByRole("dialog").getByRole("button", { name: "Close" }).boundingBox())!;
+        const edit = (await palette.getByTestId("toggle-edit-requirements").boundingBox())!;
+        expect(edit.x + edit.width <= close.x || close.y + close.height <= edit.y).toBe(true);
+      }
       await openGroup(palette, LEAVEY);
       const capstone = palette.getByText("Capstone: MGMT 162", { exact: true });
       await capstone.scrollIntoViewIfNeeded();

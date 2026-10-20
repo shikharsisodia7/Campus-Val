@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useCreatePlan } from "@workspace/api-client-react";
 import { usePlanningWorkspace } from "./usePlanningWorkspace";
-import { PLANNING_THREE_COLUMNS, REQUIREMENTS_DRAWER_WIDTH } from "@/lib/workspace-layout";
+import { PLANNING_THREE_COLUMNS, REQUIREMENTS_DRAWER_WIDTH, REQUIREMENTS_DRAWER_HEADER_CLEARANCE } from "@/lib/workspace-layout";
 import { DegreePlanProvider } from "./DegreePlanContext";
 import { Palette } from "./Palette";
 import { Board } from "./Board";
@@ -140,7 +140,7 @@ export function DegreePlanWorkspace({
           </SheetTrigger>
           <SheetContent
             side="left"
-            className={`${REQUIREMENTS_DRAWER_WIDTH} p-0`}
+            className={`${REQUIREMENTS_DRAWER_WIDTH} ${REQUIREMENTS_DRAWER_HEADER_CLEARANCE} p-0`}
             onEscapeKeyDown={() => setLeftOpen(false)}
             onPointerDownOutside={() => setLeftOpen(false)}
           >
