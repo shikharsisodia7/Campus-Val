@@ -26,7 +26,8 @@ import {
   validVariant,
   type StructuredChoice,
 } from "../data/major-structures";
-import { categoryOfGroupKind } from "../lib/requirements-source/category";
+import { categoryOfGroupKind, type RequirementCategory } from "../lib/requirements-source/category";
+import type { StructureVariants } from "../data/majors/model";
 import { logger } from "../lib/logger";
 import { CORE_AREA_BY_REQUIREMENT } from "../data/core-areas";
 import {
@@ -335,6 +336,42 @@ function resolveGroup(
     school: null as GroupSchool | null,
   };
 }
+
+/**
+ * One group of the response. Every group has the same shape, whatever built it,
+ * so a consumer can read `school` or an item's `annotations` on any of them.
+ */
+export interface ResolvedRequirementGroup {
+  id: string;
+  title: string;
+  kind: "university" | "university_core" | "college" | "major" | "minor" | "professional_prep";
+  category: RequirementCategory;
+  sourceUrl: string | null;
+  sourceLabel: string;
+  academicYear: string;
+  lastVerified: string;
+  notes: string[];
+  items: ResolvedRequirementItem[];
+  autoTrackedCount: number;
+  autoCompletedCount: number;
+  manualCount: number;
+  /** SCHOOL groups: the school and the plan majors that bring it in. Null for every other group. */
+  school: GroupSchool | null;
+  variants?: {
+    major: string;
+    kind: StructureVariants["kind"];
+    required: boolean;
+    options: StructureVariants["options"];
+    selected: string | null;
+    note: string | null;
+  } | null;
+}
+
+/** Gives a builder's group the common shape (`school` is null unless it is a SCHOOL group). */
+const asGroup = (group: Omit<ResolvedRequirementGroup, "school"> & { school?: GroupSchool | null }): ResolvedRequirementGroup => ({
+  ...group,
+  school: group.school ?? null,
+});
 
 /** Which school a SCHOOL group belongs to and which of the plan's majors bring it in. */
 export interface GroupSchool {
@@ -782,9 +819,10 @@ export function buildRequirementsResponse(
               ? {
                   kind: "choose" as const,
                   minimum: group.minimumUnits ? null : minimum,
+                  minDistinctLists: null,
                   completedCount: Math.min(satisfiedBy.length, minimum),
                   plannedCount: plannedHere.length,
-                  lists: [{ key: "eligible", label: group.label, note: null, courses: group.courses }],
+                  lists: [{ key: "eligible", label: group.label, note: null, courses: group.courses, max: null }],
                   alternatives: [],
                 }
               : null,
@@ -921,7 +959,7 @@ export function buildRequirementsResponse(
       ...majorGroups.slice(1),
       ...minorGroups,
       ...professionalPreparation,
-    ],
+    ].map(asGroup),
   };
 }
 

@@ -18,7 +18,7 @@
  * Private student data is never read: the audit runs on synthetic profiles.
  */
 import type { StudentProfileRow } from "@workspace/db";
-import { getAvailableMajors, getAvailableMinors, getMajorRequirements, getMinorRequirements, type College } from "../../data/graduation-paths";
+import { getAvailableMajors, getAvailableMinors, getMajorCollege, getMajorRequirements, getMinorRequirements, type College } from "../../data/graduation-paths";
 import { findCourse } from "../../data/courses";
 import { MAJOR_STRUCTURES, resolveMajorStructure, structureCourses, type MajorStructure } from "../../data/major-structures";
 import { buildNormalizedRequirements } from "./index";
@@ -108,6 +108,10 @@ export interface AuditReport {
     sourceRepresentationMismatches: number;
     /** Majors with no enumerated upper-division course evidence. */
     majorsWithoutUpperDivisionCourseEvidence: number;
+    /** Plans (single majors and cross-school combinations) checked for school composition. */
+    schoolCompositionCases: number;
+    /** Findings from those checks (a missing or duplicated school group, a second Core...). */
+    schoolCompositionErrors: number;
     findings: number;
     byCategory: Record<AuditCategory, number>;
     bySeverity: Record<AuditSeverity, number>;
@@ -805,6 +809,29 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
     mergeChoiceCoverage(choiceCoverage, result.choiceCoverage);
   }
 
+  // Multi-school composition: every major alone, the cross-school matrix, and a
+  // business minor beside a non-business major (a minor brings no school).
+  const compositionCases: { label: string; majors: string[]; minor: string | null }[] = [
+    ...majors.map((m) => ({ label: `${m.title} (${m.code})`, majors: [m.code], minor: null })),
+    ...SCHOOL_COMPOSITION_MATRIX.map((combo) => ({ label: combo.join(" + "), majors: combo, minor: null })),
+    { label: "BIOL + MIS-MIN (minor)", majors: ["BIOL"], minor: "MIS-MIN" },
+  ];
+  let schoolCompositionErrors = 0;
+  for (const c of compositionCases) {
+    const [primary, ...rest] = c.majors;
+    const tree = buildNormalizedRequirements({
+      profile: { ...syntheticProfile(getMajorCollege(primary!) ?? "CAS", primary!, c.minor), additionalMajors: rest } as StudentProfileRow,
+      scenarioMajors: [],
+      scenarioMinors: [],
+      professionalGoals: [],
+      plannedCourses: [],
+      primaryMajor: null,
+    }).tree;
+    const found = auditSchoolComposition(tree, c.majors, c.label);
+    schoolCompositionErrors += found.length;
+    findings.push(...found);
+  }
+
   // A key must identify one requirement across the whole catalog of a kind.
   const seen = new Map<string, string>();
   for (const row of rows) {
@@ -853,6 +880,8 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
       structuredMajorSources: majors.filter((major) => MAJOR_STRUCTURES[major.code]).length,
       sourceRepresentationMismatches: findings.filter((f) => SOURCE_REPRESENTATION_MISMATCH_CODES.has(f.code)).length,
       majorsWithoutUpperDivisionCourseEvidence: findings.filter((f) => f.code === "major_without_upper_division_course_evidence").length,
+      schoolCompositionCases: compositionCases.length,
+      schoolCompositionErrors,
       findings: findings.length,
       byCategory,
       bySeverity,
@@ -862,6 +891,85 @@ export function auditRequirements(now: Date = new Date()): AuditReport {
     rows,
   };
 }
+
+/** Finding codes from the multi-school composition check. */
+export const SCHOOL_COMPOSITION_CODES = new Set([
+  "lsb_major_missing_school_group",
+  "lsb_group_without_lsb_major",
+  "school_groups_mismatch",
+  "duplicate_school_group",
+  "university_core_duplicated",
+  "school_requirement_categorized_as_major",
+  "core_annotation_outside_core",
+  "major_school_unknown",
+]);
+
+/**
+ * Checks one plan's tree against the schools its MAJORS belong to (from the
+ * program catalog): every school group present exactly once, no other, one
+ * University Core, school requirements filed as SCHOOL, and school Core
+ * statements only on Core items. Exported so tests can feed it planted trees.
+ */
+export function auditSchoolComposition(tree: Tree, majors: readonly string[], label: string): AuditFinding[] {
+  const findings: AuditFinding[] = [];
+  const add = (code: string, message: string, node?: Tree[number], requirement?: { label: string; stableKey: string }) =>
+    findings.push({
+      code,
+      category: "data_integrity",
+      severity: "error",
+      programType: "college",
+      program: label,
+      group: node?.group.title ?? "",
+      groupKey: node?.stableKey ?? "",
+      requirement: requirement?.label ?? null,
+      requirementKey: requirement?.stableKey ?? null,
+      message,
+    });
+
+  const expected = new Set<College>();
+  for (const major of majors) {
+    const school = getMajorCollege(major);
+    if (school) expected.add(school);
+    else add("major_school_unknown", `${major} has no school in the program catalog; its school requirements cannot be composed.`);
+  }
+  const schoolNodes = tree.filter((g) => g.group.kind === "college");
+  const counts = new Map<string, number>();
+  for (const node of schoolNodes) counts.set(node.stableKey, (counts.get(node.stableKey) ?? 0) + 1);
+  for (const [key, n] of counts) if (n > 1) add("duplicate_school_group", `The school group ${key} appears ${n} times.`);
+  const actual = new Set([...counts.keys()]);
+  const wanted = new Set([...expected].map((c) => `college-${c.toLowerCase()}`));
+  if (wanted.has("college-lsb") && !actual.has("college-lsb")) add("lsb_major_missing_school_group", "A Leavey business major is in the plan but the Leavey School requirements are not.");
+  if (!wanted.has("college-lsb") && actual.has("college-lsb")) add("lsb_group_without_lsb_major", "The Leavey School requirements are shown but no Leavey major is in the plan.");
+  const others = (set: Set<string>) => [...set].filter((k) => k !== "college-lsb").sort().join(",");
+  if (expected.size > 0 && others(actual) !== others(wanted)) {
+    add("school_groups_mismatch", `School groups ${[...actual].sort().join(", ") || "(none)"} do not match the majors' schools ${[...wanted].sort().join(", ")}.`);
+  }
+  const cores = tree.filter((g) => g.group.kind === "university_core");
+  if (cores.length !== 1) add("university_core_duplicated", `The plan has ${cores.length} University Core groups; it must have exactly one.`);
+
+  for (const node of tree) {
+    if (node.group.kind === "college" && node.category !== "SCHOOL") add("school_requirement_categorized_as_major", `A school group is filed as ${node.category}.`, node);
+    for (const { item, stableKey } of node.items) {
+      const ref = { label: item.label, stableKey };
+      if (node.category === "MAJOR" && /^lsb-/.test(item.id)) add("school_requirement_categorized_as_major", "A Leavey School requirement is listed as a major requirement.", node, ref);
+      const annotations = (item as { annotations?: unknown[] }).annotations;
+      if (annotations && annotations.length > 0 && node.category !== "CORE") add("core_annotation_outside_core", "A school Core fulfillment statement is attached outside the University Core.", node, ref);
+    }
+  }
+  return findings;
+}
+
+/** Cross-school combinations the composition audit always checks (primary first). */
+export const SCHOOL_COMPOSITION_MATRIX: string[][] = [
+  ["BIOL", "FNCE"],
+  ["FNCE", "BIOL"],
+  ["MECH", "FNCE"],
+  ["FNCE", "MECH"],
+  ["FNCE", "MKTG"],
+  ["BIOL", "MECH"],
+  ["CSCI", "ACTG"],
+  ["ECON_CAS", "ECON"],
+];
 
 /** A plan-level check (used by tests, never by the catalog audit): customizations that no longer match. */
 export function auditPlanCustomizations(tree: Tree, rows: StoredCustomization[]): { code: string; targetKey: string; message: string }[] {
@@ -941,6 +1049,8 @@ export function auditReportToMarkdown(report: AuditReport): string {
     `| Normalized/source representation mismatches | ${counts.sourceRepresentationMismatches} |`,
     `| Majors without upper-division course evidence | ${counts.majorsWithoutUpperDivisionCourseEvidence} |`,
     `| Classification errors | ${counts.classificationErrors} |`,
+    `| Multi-school composition cases checked | ${counts.schoolCompositionCases} |`,
+    `| Multi-school composition errors | ${counts.schoolCompositionErrors} |`,
     `| Missing-provenance groups | ${counts.missingProvenanceGroups} |`,
     `| Findings — errors | ${counts.bySeverity.error} |`,
     `| Findings — warnings | ${counts.bySeverity.warning} |`,

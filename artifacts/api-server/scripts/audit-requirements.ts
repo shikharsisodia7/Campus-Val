@@ -35,6 +35,7 @@ console.log(`  requirements         ${counts.requirements}`);
 console.log(`  choices              ${counts.choiceRequirements} requirements; ${counts.choiceListsWithCourses}/${counts.choiceLists} lists or options populated`);
 console.log(`  structured sources   ${counts.structuredMajorSources}; representation mismatches ${counts.sourceRepresentationMismatches}`);
 console.log(`  majors without upper-division course evidence ${counts.majorsWithoutUpperDivisionCourseEvidence}`);
+console.log(`  school composition   ${counts.schoolCompositionCases} plans (each major alone + cross-school matrix); errors ${counts.schoolCompositionErrors}`);
 console.log(`  findings             ${counts.findings}  (errors ${counts.bySeverity.error}, warnings ${counts.bySeverity.warning}, info ${counts.bySeverity.info})`);
 console.log(`    data_integrity     ${counts.byCategory.data_integrity}`);
 console.log(`    missing_provenance ${counts.byCategory.missing_provenance}`);

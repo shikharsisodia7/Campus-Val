@@ -18,6 +18,7 @@ import type { StudentProfileRow } from "@workspace/db";
 import { buildRequirementsResponse } from "./requirements";
 import { getAvailableMajors } from "../data/graduation-paths";
 import { buildNormalizedRequirements, composeRequirementOverlay, type StoredCustomization } from "../lib/requirements-source";
+import { auditRequirements, auditSchoolComposition, SCHOOL_COMPOSITION_CODES, SCHOOL_COMPOSITION_MATRIX } from "../lib/requirements-source/audit";
 
 function profile(overrides: Partial<StudentProfileRow> = {}): StudentProfileRow {
   return {
@@ -484,5 +485,39 @@ describe("stable keys and plan-scoped edits across schools", () => {
     const { groups } = composeRequirementOverlay(tree, [row]);
     const hidden = groups.flatMap((g) => g.items.filter((i) => i.customization?.hidden).map((i) => i.stableKey));
     expect(hidden).toEqual([biologyItem.stableKey]);
+  });
+});
+
+describe("the requirements audit checks school composition", () => {
+  it("finds no composition error across every major and the cross-school matrix", () => {
+    const report = auditRequirements();
+    expect(report.counts.schoolCompositionCases).toBe(MAJORS.length + SCHOOL_COMPOSITION_MATRIX.length + 1);
+    expect(report.findings.filter((f) => SCHOOL_COMPOSITION_CODES.has(f.code))).toEqual([]);
+    expect(report.counts.schoolCompositionErrors).toBe(0);
+  });
+
+  it("catches a missing Leavey group, a stray one, a second Core and a misplaced annotation", () => {
+    const tree = (majors: string[]) =>
+      buildNormalizedRequirements({
+        profile: profile({ college: COLLEGE[schoolOf(majors[0]!)], major: majors[0]!, additionalMajors: majors.slice(1) }),
+        scenarioMajors: [],
+        scenarioMinors: [],
+        professionalGoals: [],
+        plannedCourses: [],
+        primaryMajor: null,
+      }).tree;
+    const codes = (t: ReturnType<typeof tree>, majors: string[]) => auditSchoolComposition(t, majors, "planted").map((f) => f.code).sort();
+
+    const finance = tree(["BIOL", "FNCE"]);
+    expect(codes(finance.filter((g) => g.stableKey !== "college-lsb"), ["BIOL", "FNCE"])).toContain("lsb_major_missing_school_group");
+    expect(codes(finance, ["BIOL"])).toContain("lsb_group_without_lsb_major");
+    const core = finance.find((g) => g.category === "CORE")!;
+    expect(codes([...finance, core], ["BIOL", "FNCE"])).toContain("university_core_duplicated");
+    const lsb = finance.find((g) => g.stableKey === "college-lsb")!;
+    expect(codes([...finance, lsb], ["BIOL", "FNCE"])).toContain("duplicate_school_group");
+    const annotated = core.items.find((i) => i.item.id === "socsci")!;
+    const major = finance[0]!;
+    expect(codes([{ ...major, items: [...major.items, annotated] }, ...finance.slice(1)], ["BIOL", "FNCE"])).toContain("core_annotation_outside_core");
+    expect(codes(finance, ["BIOL", "NOT A MAJOR"])).toContain("major_school_unknown");
   });
 });
