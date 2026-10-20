@@ -192,6 +192,9 @@ describe("Degree Completion Assessment", () => {
     const inspector = screen.getByTestId("dca-inspector-0000000000000001");
     expect(inspector.textContent).toMatch(/row8 \(Excel\)/);
     expect(inspector.textContent).toMatch(/apr_not_satisfied/);
+    // The rule code and a remaining count only when the APR states one, for checking Registrar answers.
+    expect(inspector.textContent).toMatch(/NOT_SATISFIED_EXPLICIT/);
+    expect(inspector.textContent).toMatch(/1 course\(s\) \(SOURCE_COUNT_AVAILABLE\)/);
   });
 
   it("renders nothing when the assessment is switched off", () => {
