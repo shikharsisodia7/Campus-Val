@@ -71,6 +71,14 @@ export default defineConfig({
       dependencies: ["setup"],
     },
     {
+      // Live QA of multi-school Planning Requirements (Leavey core for any business major, CAS + LSB, SOE + LSB,
+      // Tentative Finance, responsive). See tests/multi-school.spec.ts.
+      name: "multi-school",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
+      testMatch: /multi-school\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
       name: "1440x900",
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 }, storageState: "storage/student-a.json" },
       testMatch: /responsive\.spec\.ts/,
