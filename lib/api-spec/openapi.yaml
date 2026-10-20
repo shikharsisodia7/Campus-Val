@@ -4737,11 +4737,26 @@ components:
         groupKind: { type: string }
         automatic:
           type: object
-          required: [state, reason, explanation]
+          required: [state, reason, explanation, code, remainingCourses, minimumCombination, statusDetail]
           properties:
             state: { type: string, enum: [CLEAR_REMAINING, LIKELY_COMPLETE, AMBIGUOUS] }
             reason: { type: string }
             explanation: { type: string }
+            code:
+              type: string
+              description: >-
+                The rule that decided, as a stable code. "In Progress" is never complete:
+                its codes all mean Needs Review until the Registrar confirms the semantics.
+              enum: [SATISFIED_EXPLICIT, NOT_SATISFIED_EXPLICIT, IN_PROGRESS_SINGLE_FINAL_COURSE, IN_PROGRESS_MINIMUM_NOT_MET, MULTI_COURSE_AMBIGUOUS, UNKNOWN_STATUS, USER_OVERRIDE]
+            remainingCourses:
+              type: object
+              description: Courses remaining, only when the APR states it deterministically; never inferred.
+              required: [count, basis]
+              properties:
+                count: { type: [number, "null"] }
+                basis: { type: string, enum: [SOURCE_COUNT_AVAILABLE, SOURCE_COUNT_UNAVAILABLE] }
+            minimumCombination: { type: [string, "null"], description: "Workday's minimum-combination statement, verbatim." }
+            statusDetail: { type: [string, "null"], description: "Words Workday printed with the status in its cell, verbatim." }
         correction:
           type: [object, "null"]
           required: [status, hidden, note, sourceChanged, updatedAt]

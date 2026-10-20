@@ -18,6 +18,8 @@ import { cleanText } from "../requirement-customizations";
 import {
   ASSESSMENT_RULE_VERSION,
   REASON_TEXT,
+  type AssessmentRuleCode,
+  type RemainingCourses,
   type AssessmentItem,
   type AssessmentOptions,
   type AssessmentState,
@@ -51,7 +53,18 @@ export interface AssessmentItemView {
   registrations: { text: string; inProgress: boolean }[];
   group: string;
   groupKind: string;
-  automatic: { state: AssessmentState; reason: string; explanation: string };
+  automatic: {
+    state: AssessmentState;
+    reason: string;
+    explanation: string;
+    /** The rule code that decided (USER_OVERRIDE when a correction applies). */
+    code: AssessmentRuleCode;
+    /** Courses remaining, only when the APR states it deterministically. */
+    remainingCourses: RemainingCourses;
+    /** Workday's minimum-combination statement, verbatim, when the row has one. */
+    minimumCombination: string | null;
+    statusDetail: string | null;
+  };
   correction: CorrectionView | null;
   effective: Effective;
   confidence: Confidence;
@@ -116,7 +129,15 @@ function itemView(item: AssessmentItem, row: DegreeCompletionOverrideRow | undef
     registrations: item.registrations,
     group: item.source.group,
     groupKind: item.source.groupKind,
-    automatic: { state: item.derived.state, reason: item.derived.reason, explanation: REASON_TEXT[item.derived.reason] },
+    automatic: {
+      state: item.derived.state,
+      reason: item.derived.reason,
+      explanation: REASON_TEXT[item.derived.reason],
+      code: applied ? "USER_OVERRIDE" : item.rule.code,
+      remainingCourses: item.rule.remainingCourses,
+      minimumCombination: item.minimumCombination?.text ?? null,
+      statusDetail: item.statusDetail,
+    },
     correction,
     effective,
     confidence: applied ? "USER_CORRECTED" : item.derived.state,
