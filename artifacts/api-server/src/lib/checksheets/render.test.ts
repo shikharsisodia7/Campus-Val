@@ -138,6 +138,26 @@ describe("spreadsheet", () => {
     expect(sheet!.merges).toEqual([{ r: 0, c: 0, rowSpan: 1, colSpan: 5 }]);
   });
 
+  it("keeps a business-style side-by-side sheet exactly as published, and offers only the student's Status column", async () => {
+    const out = await buildChecksheetRender(await buildChecksheetFixture("business-side-by-side-workbook"), "xlsx");
+    expect(out.status).toBe("ready");
+    if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
+    const [sheet] = out.render.sheets;
+    // Every source cell, both tables, both Notes columns: nothing rewritten, moved or dropped.
+    const text = sheet!.rows.flatMap((r) => r.cells.map((c) => c.text));
+    for (const t of ["Lower Division", "Upper Division", "Take in the first year", "After WACC 12", "Senior standing", "WMGT 162"]) {
+      expect(text, t).toContain(t);
+    }
+    const header = sheet!.rows.find((r) => r.cells.some((c) => c.text === "Upper Division"))!;
+    expect(header.cells.map((c) => [c.c, c.text])).toEqual([
+      [0, "Lower Division"], [1, "Status"], [2, "Course"], [3, "Notes"], [5, "Upper Division"], [6, "Course"], [7, "Notes"],
+    ]);
+    // The Status column is the student's, wherever it sits; the department's Notes never are.
+    expect(sheet!.tracking.columns.map((c) => [c.c, c.header])).toEqual([[1, "Status"]]);
+    expect(new Set(sheet!.tracking.cells.map((c) => c.c))).toEqual(new Set([1]));
+    expect(sheet!.tracking.cells).toHaveLength(3);
+  });
+
   it("keeps every worksheet, each with its own layout", async () => {
     const out = await buildChecksheetRender(await buildChecksheetFixture("minor-workbook"), "xlsx");
     if (out.render?.kind !== "spreadsheet") throw new Error("expected a spreadsheet");
