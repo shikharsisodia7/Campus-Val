@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DepartmentNote } from "./departmentNote";
+import type { RequirementAnnotation } from "./requirementAnnotation";
 import type { RequirementChoice } from "./requirementChoice";
 import type { RequirementItemCoreArea } from "./requirementItemCoreArea";
 import type { RequirementItemCustomization } from "./requirementItemCustomization";
@@ -51,6 +52,8 @@ export interface RequirementItem {
   variant?: string | null;
   /** True for a requirement CampusVal cannot count from course codes (a department's approved list the Bulletin does not print, units of ensemble, an internship). Shown in the Bulletin's words for the student to track. */
   manual?: boolean;
+  /** University Core items only: a school's own statement about how its students fulfil this Core area (Leavey: "Social Science: ECON 1"), present when one of the plan's majors belongs to that school. It explains a relationship; the item stays a University Core requirement and its status still comes from course evidence. */
+  annotations?: RequirementAnnotation[];
   /** Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note). */
   departmentNotes?: DepartmentNote[];
   /** Present when a department changed this requirement's wording or added it. */

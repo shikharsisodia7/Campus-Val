@@ -1189,7 +1189,31 @@ export const GetDegreeRequirementsResponse = zod.object({
     .describe(
       "The effective college for these requirement groups. Follows the effective primary major's college when a plan-scoped primaryMajor in a different school\/college is supplied; otherwise the profile college.",
     ),
-  collegeCode: zod.enum(["CAS", "LSB", "SOE"]),
+  collegeCode: zod
+    .enum(["CAS", "LSB", "SOE"])
+    .describe(
+      "The PRIMARY major's school. It decides only the Core's own school rules (the engineering Pathway count) and keys manual completions. The plan's schools, which may be several, are in `schools`.",
+    ),
+  schools: zod
+    .array(
+      zod.object({
+        code: zod.enum(["CAS", "LSB", "SOE"]),
+        name: zod.string(),
+        majors: zod.array(zod.string()),
+        primary: zod.boolean(),
+        basis: zod.enum(["program_catalog", "profile_college"]),
+      }),
+    )
+    .optional()
+    .describe(
+      "Every school the plan's MAJORS belong to, primary first, each once. Each has one SCHOOL group in `groups`. Minors never add a school.",
+    ),
+  schoolWarnings: zod
+    .array(zod.string())
+    .optional()
+    .describe(
+      "A plan major whose school CampusVal does not know (it is never guessed).",
+    ),
   major: zod
     .string()
     .nullable()
@@ -1482,6 +1506,53 @@ export const GetDegreeRequirementsResponse = zod.object({
             .describe(
               "True for a requirement CampusVal cannot count from course codes (a department's approved list the Bulletin does not print, units of ensemble, an internship). Shown in the Bulletin's words for the student to track.",
             ),
+          annotations: zod
+            .array(
+              zod.object({
+                id: zod.string(),
+                kind: zod.enum(["school_core_fulfillment"]),
+                school: zod.enum(["CAS", "LSB", "SOE"]),
+                schoolName: zod.string(),
+                text: zod
+                  .string()
+                  .describe("The school's statement, in its own words."),
+                courses: zod
+                  .array(zod.string())
+                  .describe(
+                    "Every course the statement names (empty for guidance only).",
+                  ),
+                routes: zod
+                  .array(
+                    zod.object({
+                      label: zod.string(),
+                      parts: zod.array(zod.array(zod.string())),
+                    }),
+                  )
+                  .describe(
+                    "Course sets, any one of which satisfies the area; one course from each part.",
+                  ),
+                programScope: zod
+                  .string()
+                  .nullable()
+                  .describe(
+                    'Who the statement applies to when SCU narrows it (\"Accounting majors\").',
+                  ),
+                schoolRequirementIds: zod
+                  .array(zod.string())
+                  .describe(
+                    'The school\'s own requirements the same course also satisfies (\"lsb-econ1\").',
+                  ),
+                status: zod.enum(["completed", "planned", "open"]),
+                sourceLabel: zod.string(),
+                sourceUrl: zod.string(),
+                academicYear: zod.string(),
+                lastVerified: zod.string(),
+              }),
+            )
+            .optional()
+            .describe(
+              "University Core items only: a school's own statement about how its students fulfil this Core area (Leavey: \"Social Science: ECON 1\"), present when one of the plan's majors belongs to that school. It explains a relationship; the item stays a University Core requirement and its status still comes from course evidence.",
+            ),
           departmentNotes: zod
             .array(
               zod.object({
@@ -1571,6 +1642,18 @@ export const GetDegreeRequirementsResponse = zod.object({
         .nullish()
         .describe(
           "The tracks, emphases or concentrations the Bulletin defines inside a major, and the one the student follows. Null for a group without them.",
+        ),
+      school: zod
+        .object({
+          code: zod.enum(["CAS", "LSB", "SOE"]),
+          name: zod.string(),
+          activatedBy: zod
+            .array(zod.string())
+            .describe("Titles of the plan's majors from this school."),
+        })
+        .nullish()
+        .describe(
+          "SCHOOL groups only: the school, and which of the plan's majors bring its requirements in. A plan has one SCHOOL group per school its majors belong to.",
         ),
     }),
   ),
@@ -2565,7 +2648,31 @@ export const GetPlanRequirementsResponse = zod
       .describe(
         "The effective college for these requirement groups. Follows the effective primary major's college when a plan-scoped primaryMajor in a different school\/college is supplied; otherwise the profile college.",
       ),
-    collegeCode: zod.enum(["CAS", "LSB", "SOE"]),
+    collegeCode: zod
+      .enum(["CAS", "LSB", "SOE"])
+      .describe(
+        "The PRIMARY major's school. It decides only the Core's own school rules (the engineering Pathway count) and keys manual completions. The plan's schools, which may be several, are in `schools`.",
+      ),
+    schools: zod
+      .array(
+        zod.object({
+          code: zod.enum(["CAS", "LSB", "SOE"]),
+          name: zod.string(),
+          majors: zod.array(zod.string()),
+          primary: zod.boolean(),
+          basis: zod.enum(["program_catalog", "profile_college"]),
+        }),
+      )
+      .optional()
+      .describe(
+        "Every school the plan's MAJORS belong to, primary first, each once. Each has one SCHOOL group in `groups`. Minors never add a school.",
+      ),
+    schoolWarnings: zod
+      .array(zod.string())
+      .optional()
+      .describe(
+        "A plan major whose school CampusVal does not know (it is never guessed).",
+      ),
     major: zod
       .string()
       .nullable()
@@ -2858,6 +2965,53 @@ export const GetPlanRequirementsResponse = zod
               .describe(
                 "True for a requirement CampusVal cannot count from course codes (a department's approved list the Bulletin does not print, units of ensemble, an internship). Shown in the Bulletin's words for the student to track.",
               ),
+            annotations: zod
+              .array(
+                zod.object({
+                  id: zod.string(),
+                  kind: zod.enum(["school_core_fulfillment"]),
+                  school: zod.enum(["CAS", "LSB", "SOE"]),
+                  schoolName: zod.string(),
+                  text: zod
+                    .string()
+                    .describe("The school's statement, in its own words."),
+                  courses: zod
+                    .array(zod.string())
+                    .describe(
+                      "Every course the statement names (empty for guidance only).",
+                    ),
+                  routes: zod
+                    .array(
+                      zod.object({
+                        label: zod.string(),
+                        parts: zod.array(zod.array(zod.string())),
+                      }),
+                    )
+                    .describe(
+                      "Course sets, any one of which satisfies the area; one course from each part.",
+                    ),
+                  programScope: zod
+                    .string()
+                    .nullable()
+                    .describe(
+                      'Who the statement applies to when SCU narrows it (\"Accounting majors\").',
+                    ),
+                  schoolRequirementIds: zod
+                    .array(zod.string())
+                    .describe(
+                      'The school\'s own requirements the same course also satisfies (\"lsb-econ1\").',
+                    ),
+                  status: zod.enum(["completed", "planned", "open"]),
+                  sourceLabel: zod.string(),
+                  sourceUrl: zod.string(),
+                  academicYear: zod.string(),
+                  lastVerified: zod.string(),
+                }),
+              )
+              .optional()
+              .describe(
+                "University Core items only: a school's own statement about how its students fulfil this Core area (Leavey: \"Social Science: ECON 1\"), present when one of the plan's majors belongs to that school. It explains a relationship; the item stays a University Core requirement and its status still comes from course evidence.",
+              ),
             departmentNotes: zod
               .array(
                 zod.object({
@@ -2949,6 +3103,18 @@ export const GetPlanRequirementsResponse = zod
           .nullish()
           .describe(
             "The tracks, emphases or concentrations the Bulletin defines inside a major, and the one the student follows. Null for a group without them.",
+          ),
+        school: zod
+          .object({
+            code: zod.enum(["CAS", "LSB", "SOE"]),
+            name: zod.string(),
+            activatedBy: zod
+              .array(zod.string())
+              .describe("Titles of the plan's majors from this school."),
+          })
+          .nullish()
+          .describe(
+            "SCHOOL groups only: the school, and which of the plan's majors bring its requirements in. A plan has one SCHOOL group per school its majors belong to.",
           ),
       }),
     ),

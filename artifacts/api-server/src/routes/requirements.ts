@@ -27,6 +27,7 @@ import {
   type StructuredChoice,
 } from "../data/major-structures";
 import { categoryOfGroupKind } from "../lib/requirements-source/category";
+import { logger } from "../lib/logger";
 import { CORE_AREA_BY_REQUIREMENT } from "../data/core-areas";
 import {
   resolveCrossSatisfaction,
@@ -331,8 +332,38 @@ function resolveGroup(
     autoTrackedCount: autoItems.length,
     autoCompletedCount: autoItems.filter((i) => i.complete).length,
     manualCount: items.length - autoItems.length,
+    school: null as GroupSchool | null,
   };
 }
+
+/** Which school a SCHOOL group belongs to and which of the plan's majors bring it in. */
+export interface GroupSchool {
+  code: College;
+  name: string;
+  /** The plan's majors from this school, as titles ("Finance (B.S. Commerce)"). */
+  activatedBy: string[];
+}
+
+/** One school the plan's majors belong to. */
+export interface PlanSchool {
+  code: College;
+  name: string;
+  /** The plan's majors from this school (codes as the plan stores them). */
+  majors: string[];
+  /** The school of the plan's primary major. */
+  primary: boolean;
+  /**
+   * program_catalog: the major's school in CampusVal's program catalog.
+   * profile_college: the primary major is not in the catalog, so the school is
+   * the one the student chose at onboarding (never a guess).
+   */
+  basis: "program_catalog" | "profile_college";
+}
+
+/** Canonical major code for program rules ("COEN" is the old code of "CSE"). */
+const majorCode = (major: string) => (major.trim().toUpperCase() === "COEN" ? "CSE" : major.trim());
+/** Canonical minor code, whether the plan stored the code or the title. */
+const minorCode = (minor: string) => getMinorRequirements(minor)?.code ?? minor.trim();
 
 /**
  * Builds the full requirement-groups response for a student profile, given
@@ -397,14 +428,95 @@ export function buildRequirementsResponse(
     plannedCourses.map(normalize).filter((c) => !completed.has(c)),
   );
 
-  const { university, universityCore, college } = buildRequirementGroups(collegeCode);
+  const profileDeclaredMajors = new Set(
+    [profile.major, profile.secondMajor, ...(profile.additionalMajors ?? [])]
+      .filter((m): m is string => !!m)
+      .map(normalize),
+  );
+  // The effective primary major leads. The old profile primary is REPLACED
+  // (not kept as an extra) when overridden, so changing the primary major
+  // swaps that program's requirements without deleting second majors, minors,
+  // or professional preparation.
+  const declaredMajors = [
+    effectivePrimaryMajor,
+    profile.secondMajor,
+    ...(profile.additionalMajors ?? []),
+    ...scenarioMajors,
+  ].filter((m, idx, arr): m is string => !!m && arr.indexOf(m) === idx);
+  const declaredMinors = [
+    profile.minor,
+    ...(profile.additionalMinors ?? []),
+    ...scenarioMinors,
+  ].filter(
+    (m, idx, arr): m is string => !!m && arr.indexOf(m) === idx,
+  );
 
-  const majorSourceUrl =
-    collegeCode === "SOE"
+  // The plan's SCHOOLS: every school any of its majors belongs to, primary
+  // first, each once. School requirements come from MAJORS only: a minor in a
+  // school does not bring that school's requirements (a business minor is not
+  // the Leavey core). The school is read from the program catalog, never from a
+  // course prefix (Leavey ECON and CAS ECON_CAS are different programs).
+  const schools: PlanSchool[] = [];
+  const schoolWarnings: string[] = [];
+  declaredMajors.forEach((major, index) => {
+    const catalogSchool = getMajorCollege(majorCode(major));
+    let school: College;
+    let basis: PlanSchool["basis"] = "program_catalog";
+    if (catalogSchool) {
+      school = catalogSchool;
+    } else if (index === 0) {
+      // Backward compatible: a primary major CampusVal does not know keeps the
+      // school chosen at onboarding, which is the student's own record.
+      school = collegeCode;
+      basis = "profile_college";
+      schoolWarnings.push(
+        `CampusVal does not have ${major} in its program catalog, so its school is taken from your profile (${COLLEGE_NAME[collegeCode]}). Confirm your school's requirements with your advisor.`,
+      );
+    } else {
+      schoolWarnings.push(
+        `CampusVal does not know which school ${major} belongs to, so no school requirements are shown for it. Confirm them with SCU or your advisor.`,
+      );
+      logger.warn({ event: "requirements_major_school_unknown" }, "a plan major has no school in the program catalog");
+      return;
+    }
+    const existing = schools.find((s) => s.code === school);
+    if (existing) existing.majors.push(major);
+    else schools.push({ code: school, name: COLLEGE_NAME[school], majors: [major], primary: index === 0, basis });
+  });
+  if (schools.length === 0) {
+    // No majors at all (an incomplete profile): the profile's school, as before.
+    schools.push({ code: collegeCode, name: COLLEGE_NAME[collegeCode], majors: [], primary: true, basis: "profile_college" });
+  }
+  const programs: PlanProgramContext = {
+    majors: declaredMajors.map(majorCode),
+    minors: declaredMinors.map(minorCode),
+  };
+
+  const { university, universityCore, schools: schoolDefs, coreFulfillments } = buildRequirementGroups(
+    collegeCode,
+    schools.map((s) => s.code),
+    programs,
+  );
+  const schoolGroups = schoolDefs.map((def, index) => {
+    const school = schools[index]!;
+    return {
+      ...resolveGroup(def, completed, planned),
+      school: {
+        code: school.code,
+        name: school.name,
+        activatedBy: school.majors.map((m) => getMajorTitle(majorCode(m)) ?? m),
+      } satisfies GroupSchool,
+    };
+  });
+
+  const majorSourceUrlFor = (major: string) => {
+    const school = getMajorCollege(majorCode(major)) ?? collegeCode;
+    return school === "SOE"
       ? SOURCES.engineeringBulletin
-      : collegeCode === "LSB"
+      : school === "LSB"
         ? SOURCES.leaveyBulletin
         : SOURCES.casBulletin;
+  };
 
   // Build a requirement group for a declared major from the recipe system.
   // Majors without verified recipes get an honest empty group (no invented
@@ -429,7 +541,7 @@ export function buildRequirementsResponse(
         title: `Major Requirements — ${majorName}${isScenarioOnly ? " (proposed)" : ""}`,
         kind: "major" as const,
         category: categoryOfGroupKind("major"),
-        sourceUrl: majorSourceUrl,
+        sourceUrl: majorSourceUrlFor(majorName),
         sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
         academicYear: universityCore.academicYear,
         lastVerified: universityCore.lastVerified,
@@ -535,7 +647,7 @@ export function buildRequirementsResponse(
       title: `Major Requirements — ${majorReqs.title}${isScenarioOnly ? " (proposed)" : ""}`,
       kind: "major" as const,
       category: categoryOfGroupKind("major"),
-      sourceUrl: majorSourceUrl,
+      sourceUrl: majorSourceUrlFor(majorName),
       sourceLabel: "SCU Undergraduate Bulletin (major department chapter)",
       academicYear: universityCore.academicYear,
       lastVerified: universityCore.lastVerified,
@@ -578,21 +690,6 @@ export function buildRequirementsResponse(
     };
   };
 
-  const profileDeclaredMajors = new Set(
-    [profile.major, profile.secondMajor, ...(profile.additionalMajors ?? [])]
-      .filter((m): m is string => !!m)
-      .map(normalize),
-  );
-  // The effective primary major leads. The old profile primary is REPLACED
-  // (not kept as an extra) when overridden, so changing the primary major
-  // swaps that program's requirements without deleting second majors, minors,
-  // or professional preparation.
-  const declaredMajors = [
-    effectivePrimaryMajor,
-    profile.secondMajor,
-    ...(profile.additionalMajors ?? []),
-    ...scenarioMajors,
-  ].filter((m, idx, arr): m is string => !!m && arr.indexOf(m) === idx);
   const majorGroups = declaredMajors.map((m, idx) =>
     buildMajorGroup(
       m,
@@ -623,13 +720,6 @@ export function buildRequirementsResponse(
     [profile.minor, ...(profile.additionalMinors ?? [])]
       .filter((m): m is string => !!m)
       .map(normalize),
-  );
-  const declaredMinors = [
-    profile.minor,
-    ...(profile.additionalMinors ?? []),
-    ...scenarioMinors,
-  ].filter(
-    (m, idx, arr): m is string => !!m && arr.indexOf(m) === idx,
   );
   const minorGroups = declaredMinors.map((minorName, idx) => {
     const isScenarioOnly = !profileDeclaredMinors.has(normalize(minorName));
@@ -814,14 +904,19 @@ export function buildRequirementsResponse(
       sourceUrl: SOURCES.degreeRequirements,
       sourceLabel: "SCU Bulletin Ch. 8: Degree Requirements",
     },
+    // Every school the plan's majors belong to (primary first). The groups
+    // below hold one SCHOOL group per entry.
+    schools,
+    schoolWarnings,
     // Requirement order the professor asked for: the fundamentals a student
     // must graduate with come first, and the optional extras come last, so
     // second majors / minors / professional goals never sit above the primary
-    // major, University Core, or the college's own requirements.
+    // major, University Core, or the schools' own requirements. One University
+    // Core, whatever the number of schools; one group per school.
     groups: [
       ...majorGroups.slice(0, 1),
-      resolveGroup(universityCore, completed, planned),
-      resolveGroup(college, completed, planned),
+      resolveGroup(universityCore, completed, planned, coreFulfillments),
+      ...schoolGroups,
       resolveGroup(university, completed, planned),
       ...majorGroups.slice(1),
       ...minorGroups,

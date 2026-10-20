@@ -4623,6 +4623,16 @@ components:
             True for a requirement CampusVal cannot count from course codes (a department's approved
             list the Bulletin does not print, units of ensemble, an internship). Shown in the
             Bulletin's words for the student to track.
+        annotations:
+          type: array
+          description: >-
+            University Core items only: a school's own statement about how its students
+            fulfil this Core area (Leavey: "Social Science: ECON 1"), present when one of
+            the plan's majors belongs to that school. It explains a relationship; the
+            item stays a University Core requirement and its status still comes from
+            course evidence.
+          items:
+            $ref: "#/components/schemas/RequirementAnnotation"
         departmentNotes:
           type: array
           description: >-
@@ -4651,6 +4661,50 @@ components:
         - needsVerification
         - satisfiedBy
         - complete
+    RequirementAnnotation:
+      type: object
+      required: [id, kind, school, schoolName, text, courses, routes, programScope, schoolRequirementIds, status, sourceLabel, sourceUrl, academicYear, lastVerified]
+      properties:
+        id: { type: string }
+        kind:
+          type: string
+          enum: [school_core_fulfillment]
+        school:
+          type: string
+          enum: [CAS, LSB, SOE]
+        schoolName: { type: string }
+        text: { type: string, description: "The school's statement, in its own words." }
+        courses:
+          type: array
+          items: { type: string }
+          description: Every course the statement names (empty for guidance only).
+        routes:
+          type: array
+          description: Course sets, any one of which satisfies the area; one course from each part.
+          items:
+            type: object
+            required: [label, parts]
+            properties:
+              label: { type: string }
+              parts:
+                type: array
+                items:
+                  type: array
+                  items: { type: string }
+        programScope:
+          type: [string, "null"]
+          description: Who the statement applies to when SCU narrows it ("Accounting majors").
+        schoolRequirementIds:
+          type: array
+          items: { type: string }
+          description: The school's own requirements the same course also satisfies ("lsb-econ1").
+        status:
+          type: string
+          enum: [completed, planned, open]
+        sourceLabel: { type: string }
+        sourceUrl: { type: string }
+        academicYear: { type: string }
+        lastVerified: { type: string }
     DegreeCompletionCorrectionInput:
       type: object
       additionalProperties: false
@@ -5125,6 +5179,21 @@ components:
           type: integer
         variants:
           $ref: "#/components/schemas/RequirementGroupVariants"
+        school:
+          type: [object, "null"]
+          description: >-
+            SCHOOL groups only: the school, and which of the plan's majors bring its
+            requirements in. A plan has one SCHOOL group per school its majors belong to.
+          required: [code, name, activatedBy]
+          properties:
+            code:
+              type: string
+              enum: [CAS, LSB, SOE]
+            name: { type: string }
+            activatedBy:
+              type: array
+              items: { type: string }
+              description: Titles of the plan's majors from this school.
       required:
         - id
         - title
@@ -5206,6 +5275,34 @@ components:
         collegeCode:
           type: string
           enum: [CAS, LSB, SOE]
+          description: >-
+            The PRIMARY major's school. It decides only the Core's own school rules
+            (the engineering Pathway count) and keys manual completions. The plan's
+            schools, which may be several, are in `schools`.
+        schools:
+          type: array
+          description: >-
+            Every school the plan's MAJORS belong to, primary first, each once. Each has
+            one SCHOOL group in `groups`. Minors never add a school.
+          items:
+            type: object
+            required: [code, name, majors, primary, basis]
+            properties:
+              code:
+                type: string
+                enum: [CAS, LSB, SOE]
+              name: { type: string }
+              majors:
+                type: array
+                items: { type: string }
+              primary: { type: boolean }
+              basis:
+                type: string
+                enum: [program_catalog, profile_college]
+        schoolWarnings:
+          type: array
+          items: { type: string }
+          description: A plan major whose school CampusVal does not know (it is never guessed).
         major:
           type: string
           nullable: true

@@ -2052,6 +2052,61 @@ export type RequirementChoice = {
   alternatives: RequirementChoiceAlternativesItem[];
 } | null;
 
+export type RequirementAnnotationKind =
+  (typeof RequirementAnnotationKind)[keyof typeof RequirementAnnotationKind];
+
+export const RequirementAnnotationKind = {
+  school_core_fulfillment: "school_core_fulfillment",
+} as const;
+
+export type RequirementAnnotationSchool =
+  (typeof RequirementAnnotationSchool)[keyof typeof RequirementAnnotationSchool];
+
+export const RequirementAnnotationSchool = {
+  CAS: "CAS",
+  LSB: "LSB",
+  SOE: "SOE",
+} as const;
+
+export type RequirementAnnotationStatus =
+  (typeof RequirementAnnotationStatus)[keyof typeof RequirementAnnotationStatus];
+
+export const RequirementAnnotationStatus = {
+  completed: "completed",
+  planned: "planned",
+  open: "open",
+} as const;
+
+export type RequirementAnnotationRoutesItem = {
+  label: string;
+  parts: string[][];
+};
+
+export interface RequirementAnnotation {
+  id: string;
+  kind: RequirementAnnotationKind;
+  school: RequirementAnnotationSchool;
+  schoolName: string;
+  /** The school's statement, in its own words. */
+  text: string;
+  /** Every course the statement names (empty for guidance only). */
+  courses: string[];
+  /** Course sets, any one of which satisfies the area; one course from each part. */
+  routes: RequirementAnnotationRoutesItem[];
+  /**
+   * Who the statement applies to when SCU narrows it ("Accounting majors").
+   * @nullable
+   */
+  programScope: string | null;
+  /** The school's own requirements the same course also satisfies ("lsb-econ1"). */
+  schoolRequirementIds: string[];
+  status: RequirementAnnotationStatus;
+  sourceLabel: string;
+  sourceUrl: string;
+  academicYear: string;
+  lastVerified: string;
+}
+
 export type DepartmentNoteOrigin =
   (typeof DepartmentNoteOrigin)[keyof typeof DepartmentNoteOrigin];
 
@@ -2129,6 +2184,8 @@ export interface RequirementItem {
   variant?: string | null;
   /** True for a requirement CampusVal cannot count from course codes (a department's approved list the Bulletin does not print, units of ensemble, an internship). Shown in the Bulletin's words for the student to track. */
   manual?: boolean;
+  /** University Core items only: a school's own statement about how its students fulfil this Core area (Leavey: "Social Science: ECON 1"), present when one of the plan's majors belongs to that school. It explains a relationship; the item stays a University Core requirement and its status still comes from course evidence. */
+  annotations?: RequirementAnnotation[];
   /** Department Notes: advising guidance a department stands behind, shown beside the requirement. Read-only for students and separate from the student's own note (customization.note). */
   departmentNotes?: DepartmentNote[];
   /** Present when a department changed this requirement's wording or added it. */
@@ -2494,6 +2551,9 @@ export type PlanRequirementsResponseCustomizations = {
   orphaned: OrphanedCustomization[];
 };
 
+/**
+ * The PRIMARY major's school. It decides only the Core's own school rules (the engineering Pathway count) and keys manual completions. The plan's schools, which may be several, are in `schools`.
+ */
 export type DegreeRequirementsResponseCollegeCode =
   (typeof DegreeRequirementsResponseCollegeCode)[keyof typeof DegreeRequirementsResponseCollegeCode];
 
@@ -2501,6 +2561,23 @@ export const DegreeRequirementsResponseCollegeCode = {
   CAS: "CAS",
   LSB: "LSB",
   SOE: "SOE",
+} as const;
+
+export type DegreeRequirementsResponseSchoolsItemCode =
+  (typeof DegreeRequirementsResponseSchoolsItemCode)[keyof typeof DegreeRequirementsResponseSchoolsItemCode];
+
+export const DegreeRequirementsResponseSchoolsItemCode = {
+  CAS: "CAS",
+  LSB: "LSB",
+  SOE: "SOE",
+} as const;
+
+export type DegreeRequirementsResponseSchoolsItemBasis =
+  (typeof DegreeRequirementsResponseSchoolsItemBasis)[keyof typeof DegreeRequirementsResponseSchoolsItemBasis];
+
+export const DegreeRequirementsResponseSchoolsItemBasis = {
+  program_catalog: "program_catalog",
+  profile_college: "profile_college",
 } as const;
 
 /**
@@ -2568,6 +2645,26 @@ export type RequirementGroupVariants = {
   note: string | null;
 } | null;
 
+export type RequirementGroupSchoolCode =
+  (typeof RequirementGroupSchoolCode)[keyof typeof RequirementGroupSchoolCode];
+
+export const RequirementGroupSchoolCode = {
+  CAS: "CAS",
+  LSB: "LSB",
+  SOE: "SOE",
+} as const;
+
+/**
+ * SCHOOL groups only: the school, and which of the plan's majors bring its requirements in. A plan has one SCHOOL group per school its majors belong to.
+ * @nullable
+ */
+export type RequirementGroupSchool = {
+  code: RequirementGroupSchoolCode;
+  name: string;
+  /** Titles of the plan's majors from this school. */
+  activatedBy: string[];
+} | null;
+
 export interface RequirementGroup {
   id: string;
   /** Present on GET /plans/{id}/requirements. The identifier custom requirements attach to. */
@@ -2594,7 +2691,20 @@ export interface RequirementGroup {
   autoCompletedCount: number;
   manualCount: number;
   variants?: RequirementGroupVariants | null;
+  /**
+   * SCHOOL groups only: the school, and which of the plan's majors bring its requirements in. A plan has one SCHOOL group per school its majors belong to.
+   * @nullable
+   */
+  school?: RequirementGroupSchool;
 }
+
+export type DegreeRequirementsResponseSchoolsItem = {
+  code: DegreeRequirementsResponseSchoolsItemCode;
+  name: string;
+  majors: string[];
+  primary: boolean;
+  basis: DegreeRequirementsResponseSchoolsItemBasis;
+};
 
 export type DegreeRequirementsResponseUniversityRules = {
   rules: string[];
@@ -2605,7 +2715,12 @@ export type DegreeRequirementsResponseUniversityRules = {
 export interface DegreeRequirementsResponse {
   /** The effective college for these requirement groups. Follows the effective primary major's college when a plan-scoped primaryMajor in a different school/college is supplied; otherwise the profile college. */
   college: string;
+  /** The PRIMARY major's school. It decides only the Core's own school rules (the engineering Pathway count) and keys manual completions. The plan's schools, which may be several, are in `schools`. */
   collegeCode: DegreeRequirementsResponseCollegeCode;
+  /** Every school the plan's MAJORS belong to, primary first, each once. Each has one SCHOOL group in `groups`. Minors never add a school. */
+  schools?: DegreeRequirementsResponseSchoolsItem[];
+  /** A plan major whose school CampusVal does not know (it is never guessed). */
+  schoolWarnings?: string[];
   /** The effective PRIMARY major these requirements were built for (the plan's primaryMajor when supplied, else the profile major). */
   major: string | null;
   /** The profile/onboarding major (aligned with the Workday APR record). Present so callers can tell when the planning primary major differs from the university record. */

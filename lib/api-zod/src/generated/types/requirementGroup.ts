@@ -8,6 +8,7 @@
 import type { DepartmentNote } from "./departmentNote";
 import type { RequirementGroupCategory } from "./requirementGroupCategory";
 import type { RequirementGroupKind } from "./requirementGroupKind";
+import type { RequirementGroupSchool } from "./requirementGroupSchool";
 import type { RequirementGroupVariants } from "./requirementGroupVariants";
 import type { RequirementItem } from "./requirementItem";
 
@@ -37,4 +38,9 @@ export interface RequirementGroup {
   autoCompletedCount: number;
   manualCount: number;
   variants?: RequirementGroupVariants | null;
+  /**
+   * SCHOOL groups only: the school, and which of the plan's majors bring its requirements in. A plan has one SCHOOL group per school its majors belong to.
+   * @nullable
+   */
+  school?: RequirementGroupSchool;
 }

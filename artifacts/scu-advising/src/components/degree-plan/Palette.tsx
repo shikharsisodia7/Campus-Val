@@ -32,6 +32,7 @@ import {
   REQUIREMENT_CATEGORY_STYLE,
 } from "@/lib/requirement-category";
 import { DepartmentMarks, DepartmentNotes, GroupDepartmentNotes } from "./DepartmentNotes";
+import { SchoolCoreAnnotations } from "./SchoolCoreAnnotations";
 import { RequirementCourseDiscovery } from "./RequirementCourseDiscovery";
 import { RequirementChoiceDetails, choiceSummary, countedLine, hasCourseList } from "./RequirementChoiceDetails";
 import { TrackPicker } from "./TrackPicker";
@@ -496,6 +497,16 @@ export function Palette() {
                       />
                       <span className="leading-snug">
                         {group.title}
+                        {group.school && group.school.activatedBy.length > 0 && (
+                          <span
+                            className="mt-0.5 block text-[10px] font-normal leading-snug text-muted-foreground"
+                            data-testid={`school-activated-by-${group.school.code}`}
+                          >
+                            {group.school.code === "LSB" ? "Required for Leavey business majors" : "School requirements"}
+                            {" · "}
+                            {group.school.activatedBy.join(", ")}
+                          </span>
+                        )}
                         {categoryStyle.isSupplemental && (
                           <span
                             className={`ml-1.5 rounded border px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide ${categoryStyle.badgeClass}`}
@@ -721,6 +732,7 @@ export function Palette() {
                               </div>
                             )}
 
+                          <SchoolCoreAnnotations item={req} />
                           <DepartmentNotes item={req} />
                           <CustomizationNote item={req} />
                           <SourceChangedNotice
