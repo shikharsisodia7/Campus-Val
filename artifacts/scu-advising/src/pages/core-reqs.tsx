@@ -28,6 +28,7 @@ import {
   Info,
 } from "lucide-react";
 import { Link } from "wouter";
+import { SchoolCoreAnnotations } from "@/components/degree-plan/SchoolCoreAnnotations";
 
 /**
  * College-aware degree requirements, served by GET /api/requirements.
@@ -314,6 +315,12 @@ export default function CoreReqs() {
                           <p className="mt-1 text-xs text-muted-foreground">
                             {item.description}
                           </p>
+                          {item.annotations && item.annotations.length > 0 && (
+                            // A school's statement about this Core area; its Source button must not check the card off.
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <SchoolCoreAnnotations item={item} />
+                            </div>
+                          )}
                           {item.choice ? (
                             // A choice ("choose 3 from these lists") lists its courses by list, behind a toggle;
                             // opening it never checks the requirement off.
