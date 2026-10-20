@@ -51,6 +51,20 @@ function print(report: AprVerification): void {
     line("rows above a table (full APR only)", sheet.preambleRows);
     line("sidebar warnings", sheet.sidebarWarnings.join(", ") || "none");
   }
+  if (report.assessment) {
+    const a = report.assessment;
+    const list = (o: Record<string, number>) => Object.entries(o).filter(([, n]) => n > 0).map(([k, n]) => `${k} ${n}`).join(", ") || "none";
+    console.log("\nDegree Completion Assessment (R&D) structure");
+    line("requirement rows", a.requirementRows);
+    line("course rows under them", a.courseRows);
+    line("nested requirements", a.nestedRequirements);
+    line("status vocabulary (counts)", list(a.statusVocabulary));
+    line("status cells with words beside", a.statusWithDetail);
+    line("minimum-combination statements", `${a.minimumCombination.total} (${a.minimumCombination.withStatedNumber} state a number)`);
+    line("remaining kinds", list(a.remainingKinds));
+    line("rule codes", list(a.ruleCodes));
+    line("sheets without a table", a.unreadableSheets);
+  }
   console.log(`\n${report.findings.length === 0 ? "Nothing needs a look." : "To look at:"}`);
   for (const finding of report.findings) console.log(`  - ${finding}`);
   console.log(`\nResult: ${report.ok ? "read completely" : "NEEDS A LOOK"}`);
@@ -61,6 +75,13 @@ async function main(): Promise<void> {
   const file = args.find((arg) => !arg.startsWith("--"));
   if (!file) {
     console.error("Usage: verify-apr <file.xlsx | file.pdf> [--json]");
+    process.exit(2);
+  }
+  // Real APRs are student records: they must never sit inside the repository,
+  // where a commit could publish them. Synthetic fixtures may, with the flag.
+  const repoRoot = path.resolve(import.meta.dirname, "../../..");
+  if (path.resolve(file).toLowerCase().startsWith(repoRoot.toLowerCase() + path.sep) && !args.includes("--allow-in-repo")) {
+    console.error("Keep APR exports OUTSIDE the repository (see docs/APR_VALIDATION_HARNESS.md). Pass --allow-in-repo only for a synthetic fixture.");
     process.exit(2);
   }
   const extension = path.extname(file).toLowerCase();

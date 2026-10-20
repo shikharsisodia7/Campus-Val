@@ -26,6 +26,8 @@ import { readAprPdf } from "./pdf-table-reader";
 import { isOmittedHeader, projectForSidebar, type SidebarGroupKind } from "./sidebar-projection";
 import { AprImportError, type AprImportErrorCode, type AprWorkbook } from "./workbook-model";
 import { readAprWorkbook } from "./workbook-reader";
+import { normalizeApr } from "../degree-completion/apr-normalized";
+import { assessWorkbook } from "../degree-completion/engine";
 
 /** Workday's column headers. Anything else is reported as "(other)". */
 const KNOWN_HEADERS = new Set([
@@ -76,6 +78,29 @@ export interface SheetVerification {
   sidebarWarnings: string[];
 }
 
+/**
+ * What the Degree Completion Assessment's normalized model makes of the file:
+ * COUNTS ONLY. No requirement label, status text, course or grade is returned,
+ * so it can be run on an authorized real APR and its output shared.
+ */
+export interface AssessmentStructure {
+  requirementRows: number;
+  /** Course (registration) rows under requirements. */
+  courseRows: number;
+  /** Requirements that sit under another (Workday's indent). */
+  nestedRequirements: number;
+  /** How many requirement rows carry each status word. "unrecognized" values are never printed. */
+  statusVocabulary: { satisfied: number; not_satisfied: number; in_progress: number; missing: number; unrecognized: number };
+  /** Status cells with words beside the status ("In Progress - Minimum combination not met"). */
+  statusWithDetail: number;
+  /** Minimum-combination statements, and how many of them state a number. */
+  minimumCombination: { total: number; withStatedNumber: number };
+  remainingKinds: Record<string, number>;
+  ruleCodes: Record<string, number>;
+  /** Sheets without a recognisable requirements table. */
+  unreadableSheets: number;
+}
+
 export interface AprVerification {
   ok: boolean;
   /** Set when the file could not be imported at all. */
@@ -89,6 +114,47 @@ export interface AprVerification {
   warnings: string[];
   /** Plain statements of anything a person should look at. Never cell text. */
   findings: string[];
+  /** Null when the file could not be imported. */
+  assessment: AssessmentStructure | null;
+}
+
+/** Counts from the normalized APR model and the assessment rules. Never text. */
+export function assessmentStructureOf(workbook: AprWorkbook): { structure: AssessmentStructure; findings: string[] } {
+  const normalized = normalizeApr(workbook);
+  const assessed = assessWorkbook(workbook).programs.flatMap((p) => p.items);
+  const count = <K extends string>(keys: K[]) => {
+    const out: Record<string, number> = {};
+    for (const k of keys) out[k] = (out[k] ?? 0) + 1;
+    return out;
+  };
+  const words = { satisfied: 0, not_satisfied: 0, in_progress: 0, missing: 0, unrecognized: 0 };
+  for (const r of normalized.requirements) {
+    if (r.statusWord === "unknown") words.unrecognized += 1;
+    else words[r.statusWord] += 1;
+  }
+  const combos = normalized.requirements.filter((r) => r.minimumCombination);
+  const structure: AssessmentStructure = {
+    requirementRows: normalized.requirements.length,
+    courseRows: normalized.requirements.reduce((n, r) => n + r.courseRows.length, 0),
+    nestedRequirements: normalized.requirements.filter((r) => r.parentKey).length,
+    statusVocabulary: words,
+    statusWithDetail: normalized.requirements.filter((r) => r.statusDetail).length,
+    minimumCombination: { total: combos.length, withStatedNumber: combos.filter((r) => r.minimumCombination!.amount !== null).length },
+    remainingKinds: count(normalized.requirements.flatMap((r) => (r.remaining ? [r.remaining.kind] : []))),
+    ruleCodes: count(assessed.map((i) => i.rule.code)),
+    unreadableSheets: normalized.unreadableSheets.length,
+  };
+  const findings: string[] = [];
+  if (words.unrecognized > 0) {
+    findings.push(`${words.unrecognized} requirement row(s) carry a status CampusVal does not recognise (not printed). They are assessed as Needs Review.`);
+  }
+  if (structure.statusWithDetail > 0) {
+    findings.push(`${structure.statusWithDetail} status cell(s) carry words beside the status. Check that the normalized model reads them as intended.`);
+  }
+  if (structure.requirementRows > 0 && structure.courseRows === 0) {
+    findings.push("No course rows were found under any requirement: the export may use a layout (for example one row per course) the normalized model has not seen.");
+  }
+  return { structure, findings };
 }
 
 interface FileCounts {
@@ -215,10 +281,11 @@ export async function verifyAprExport(buf: Buffer, format: "xlsx" | "pdf"): Prom
     workbook = format === "xlsx" ? await readAprWorkbook(buf) : await readAprPdf(buf);
   } catch (err) {
     const error = err instanceof AprImportError ? err.code : "processing_failed";
-    return { ...base, ok: false, error, sheets: [], formulas: null, findings: [`The file could not be imported: ${error}.`] };
+    return { ...base, ok: false, error, sheets: [], formulas: null, findings: [`The file could not be imported: ${error}.`], assessment: null };
   }
   const counts = format === "xlsx" ? await countFromFile(buf) : null;
   const { sheets, findings } = verifyWorkbook(workbook, counts);
+  const assessment = assessmentStructureOf(workbook);
   if (format === "xlsx" && !counts) findings.push("The file's own row count could not be read, so rows kept could not be compared with it.");
   if (counts && counts.formulas.withoutStoredResult > 0) {
     findings.push(`${counts.formulas.withoutStoredResult} formula cell(s) carry no stored result and are shown blank. CampusVal never calculates a formula.`);
@@ -231,6 +298,8 @@ export async function verifyAprExport(buf: Buffer, format: "xlsx" | "pdf"): Prom
     formulas: counts?.formulas ?? null,
     macros: workbook.warnings.includes("macros_ignored"),
     warnings: [...workbook.warnings],
-    findings,
+    // Assessment findings are for R&D proofing; they never make an import "not ok".
+    findings: [...findings, ...assessment.findings],
+    assessment: assessment.structure,
   };
 }

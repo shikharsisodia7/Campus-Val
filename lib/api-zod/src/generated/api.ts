@@ -5175,6 +5175,42 @@ export const GetDegreeCompletionAssessmentResponse = zod.object({
                 ]),
                 reason: zod.string(),
                 explanation: zod.string(),
+                code: zod
+                  .enum([
+                    "SATISFIED_EXPLICIT",
+                    "NOT_SATISFIED_EXPLICIT",
+                    "IN_PROGRESS_SINGLE_FINAL_COURSE",
+                    "IN_PROGRESS_MINIMUM_NOT_MET",
+                    "MULTI_COURSE_AMBIGUOUS",
+                    "UNKNOWN_STATUS",
+                    "USER_OVERRIDE",
+                  ])
+                  .describe(
+                    'The rule that decided, as a stable code. \"In Progress\" is never complete: its codes all mean Needs Review until the Registrar confirms the semantics.',
+                  ),
+                remainingCourses: zod
+                  .object({
+                    count: zod.number().nullable(),
+                    basis: zod.enum([
+                      "SOURCE_COUNT_AVAILABLE",
+                      "SOURCE_COUNT_UNAVAILABLE",
+                    ]),
+                  })
+                  .describe(
+                    "Courses remaining, only when the APR states it deterministically; never inferred.",
+                  ),
+                minimumCombination: zod
+                  .string()
+                  .nullable()
+                  .describe(
+                    "Workday's minimum-combination statement, verbatim.",
+                  ),
+                statusDetail: zod
+                  .string()
+                  .nullable()
+                  .describe(
+                    "Words Workday printed with the status in its cell, verbatim.",
+                  ),
               }),
               correction: zod
                 .object({

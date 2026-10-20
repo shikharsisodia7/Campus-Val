@@ -2233,10 +2233,57 @@ export const DegreeCompletionItemAutomaticState = {
   AMBIGUOUS: "AMBIGUOUS",
 } as const;
 
+/**
+ * The rule that decided, as a stable code. "In Progress" is never complete: its codes all mean Needs Review until the Registrar confirms the semantics.
+ */
+export type DegreeCompletionItemAutomaticCode =
+  (typeof DegreeCompletionItemAutomaticCode)[keyof typeof DegreeCompletionItemAutomaticCode];
+
+export const DegreeCompletionItemAutomaticCode = {
+  SATISFIED_EXPLICIT: "SATISFIED_EXPLICIT",
+  NOT_SATISFIED_EXPLICIT: "NOT_SATISFIED_EXPLICIT",
+  IN_PROGRESS_SINGLE_FINAL_COURSE: "IN_PROGRESS_SINGLE_FINAL_COURSE",
+  IN_PROGRESS_MINIMUM_NOT_MET: "IN_PROGRESS_MINIMUM_NOT_MET",
+  MULTI_COURSE_AMBIGUOUS: "MULTI_COURSE_AMBIGUOUS",
+  UNKNOWN_STATUS: "UNKNOWN_STATUS",
+  USER_OVERRIDE: "USER_OVERRIDE",
+} as const;
+
+export type DegreeCompletionItemAutomaticRemainingCoursesBasis =
+  (typeof DegreeCompletionItemAutomaticRemainingCoursesBasis)[keyof typeof DegreeCompletionItemAutomaticRemainingCoursesBasis];
+
+export const DegreeCompletionItemAutomaticRemainingCoursesBasis = {
+  SOURCE_COUNT_AVAILABLE: "SOURCE_COUNT_AVAILABLE",
+  SOURCE_COUNT_UNAVAILABLE: "SOURCE_COUNT_UNAVAILABLE",
+} as const;
+
+/**
+ * Courses remaining, only when the APR states it deterministically; never inferred.
+ */
+export type DegreeCompletionItemAutomaticRemainingCourses = {
+  /** @nullable */
+  count: number | null;
+  basis: DegreeCompletionItemAutomaticRemainingCoursesBasis;
+};
+
 export type DegreeCompletionItemAutomatic = {
   state: DegreeCompletionItemAutomaticState;
   reason: string;
   explanation: string;
+  /** The rule that decided, as a stable code. "In Progress" is never complete: its codes all mean Needs Review until the Registrar confirms the semantics. */
+  code: DegreeCompletionItemAutomaticCode;
+  /** Courses remaining, only when the APR states it deterministically; never inferred. */
+  remainingCourses: DegreeCompletionItemAutomaticRemainingCourses;
+  /**
+   * Workday's minimum-combination statement, verbatim.
+   * @nullable
+   */
+  minimumCombination: string | null;
+  /**
+   * Words Workday printed with the status in its cell, verbatim.
+   * @nullable
+   */
+  statusDetail: string | null;
 };
 
 /**
