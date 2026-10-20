@@ -97,7 +97,7 @@ information. The FNCE 186 count-once rule in the Finance major is unchanged (dep
 states no academic year), read and compared with this data on **2026-10-20**. Data: `LEAVEY_CORE_FULFILLMENTS` in
 `artifacts/api-server/src/data/degree-requirements.ts`. Each carries source label, URL, year statement and verification date.
 
-Verified statements: **8 Core areas** carry a Leavey annotation, 6 of them naming courses:
+Verified statements: **8 Core areas** carry a Leavey annotation, 7 of them naming courses (Natural Science is guidance only):
 
 | Core area | Leavey statement | Course routes | Also a Leavey requirement |
 | --- | --- | --- | --- |
@@ -164,7 +164,7 @@ checks: `lsb_major_missing_school_group`, `lsb_group_without_lsb_major`, `school
 
 ## Tests
 
-- `artifacts/api-server/src/routes/requirements.multi-school.test.ts` (57): Finance; Biology+Finance both orders;
+- `artifacts/api-server/src/routes/requirements.multi-school.test.ts` (55): Finance; Biology+Finance both orders;
   `secondMajor`; the composition matrix; two Leavey majors; SOE+LSB; Leavey vs CAS Economics; tentative primary and scenario
   majors; add / remove; business minors; every Leavey major and every non-Leavey major; completion (completed / planned / open);
   Core overlaps (ECON 1 completed, BUSN 179 planned and open, Civic Engagement parts); Accounting, MIS and Economics routes;

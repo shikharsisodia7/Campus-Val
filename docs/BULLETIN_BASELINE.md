@@ -71,6 +71,10 @@ Only the 2026-27 edition has data today; no older edition is invented.
 
 ### Snapshots
 
+A snapshot records each Core item's school annotations, and stores a shared group once per distinct content: when the program
+changes it (the Leavey core's information-systems route for Accounting or MIS, a program-specific Core statement), the variant
+is stored as `<stable key>|<program key>` and that program's `groupKeys` point to it.
+
 `data/bulletin-snapshots/2026-27.json` freezes every program's normalized tree (groups, requirements, stable keys, provenance; no student data).
 A unit test fails if the file is not what the data produces: run `pnpm run snapshot:bulletin` after a Bulletin data change and commit the result.
 
@@ -190,6 +194,12 @@ A Department Note is advising guidance a department stands behind, shown beside 
   **Legacy / needs review** for older rows whose canonical origin has not been verified. Legacy rows are not silently re-attributed.
 
 ### Import from department checklists
+
+Layout guard (2026-10-20): the extractor reads labels from column A and one Notes column. A table whose header row has more
+than one Notes column, nothing in column A, or a second table's title before its Notes column (Leavey-style side-by-side
+sheets) is not interpreted: each Notes cell becomes an unmapped candidate, verbatim, with no guessed label. A Notes-less grid
+beside the table (the four-year grid on every CAS checklist) is fine. Checked on all 41 CAS checklists: 542 candidates, 0
+diverted.
 
 Source: a **registered canonical department resource**, supplied as an offline package to the import workflow — never from the student upload store. A super admin first
 registers the program, school, public HTTPS URL, exact `.xlsx` file name, academic year, and document revision in Program Requirements Admin; they then verify provenance,

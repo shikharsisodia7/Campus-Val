@@ -1,6 +1,6 @@
 # CampusVal — pilot status
 
-Last updated 2026-10-19. This page says what CampusVal is today, who can use it, and what is still
+Last updated 2026-10-20. This page says what CampusVal is today, who can use it, and what is still
 waiting on people and decisions outside this repository. Keep it current; it is the page to send to
 anyone who asks "is CampusVal live?". The pass that set this up is recorded in
 [PILOT_REPORT_2026-10-19.md](./PILOT_REPORT_2026-10-19.md).
@@ -57,6 +57,11 @@ Dashboard, Degree Plan, Quarter Plan and Tentative Degree Plan, plus under *Addi
 Catalog, Core Curriculum, GPA Calculator, Transfer Credit, Workday APR, Degree Checksheets, SCU Resources and
 Shared with Me. Department Notes appear beside requirements; My Notes are the student's own.
 
+Planning Requirements compose every school of a plan's majors (2026-10-20): any Leavey business major,
+primary, second, additional or tentative, brings the Leavey School of Business requirements; a Biology +
+Finance plan shows both schools' requirements and one University Core, which carries the Leavey Core
+statements as sourced annotations ([MULTI_SCHOOL_REQUIREMENTS.md](./MULTI_SCHOOL_REQUIREMENTS.md)).
+
 Not available to pilot users. "Server" means the API refuses the request too, so typing a URL or calling
 the API directly does not help:
 
@@ -110,8 +115,14 @@ These are not coding defects; they need someone other than the engineering team.
     department" note); Core-overlap notes from the Biology checklist (shown as imported, not yet reviewed);
   - Accounting Information Systems: OMIS 30 listed in both the Leavey Common Curriculum and the major;
   - CENG 43 / 43L; Finance double-counting; Creative Writing minor (two workshops from a one-course list).
-- **Registrar clarification** — APR terminology ("Remaining" on In Progress rows) before the Degree Completion
-  Assessment could ever be considered for students.
+- **Registrar clarification** — APR terminology before the Degree Completion Assessment could ever be
+  considered for students: what "In Progress" means, "Minimum combination not met" and how many courses
+  remain, whether "Remaining" on In Progress rows excludes in-progress courses, any move to one row per
+  course, and APR examples for every major and minor ([DEGREE_COMPLETION_ASSESSMENT.md](./DEGREE_COMPLETION_ASSESSMENT.md),
+  [APR_VALIDATION_HARNESS.md](./APR_VALIDATION_HARNESS.md)).
+- **Leavey / cross-school policy questions** — the Pathway count for a student whose majors span Engineering
+  and another school; AIS majors' STS route; whether the Business School redesigns its checksheets (nothing
+  in Planning Requirements depends on them).
 - **Official Workday section-availability source** — nothing live is connected; Quarter Plan says
   availability is unknown/static rather than inventing seat data ([SECTION_AVAILABILITY.md](./SECTION_AVAILABILITY.md)).
 - **SCU SSO/OIDC values** — issuer, client registration and claim mapping from SCU's identity team
